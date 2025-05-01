@@ -2,6 +2,7 @@
 import styles from './ResumeForm.module.scss'
 import { useActionState, useState } from 'react'
 import { z } from 'zod'
+import { getResumeTemplate } from '@/lib/resume-template'
 
 const formSchema = z.object({
   experience: z
@@ -110,6 +111,19 @@ export const ResumeForm: React.FC = () => {
     }))
   }
 
+  const handlePreview = () => {
+    const resumeTemplate = state?.generatedSections?.length
+      ? getResumeTemplate(
+          'John Doe',
+          'test@test.com',
+          '1234567890',
+          state?.generatedSections || []
+        )
+      : 'No Data'
+
+    console.log(resumeTemplate)
+  }
+
   return (
     <form className={styles.form} action={formAction}>
       <textarea
@@ -162,6 +176,15 @@ export const ResumeForm: React.FC = () => {
 
       <button type='submit' className={styles.formButton} disabled={isPending}>
         Mint Resume
+      </button>
+
+      <button
+        type='button'
+        className={styles.formButton}
+        disabled={!state?.generatedSections?.length || isPending}
+        onClick={handlePreview}
+      >
+        Preview Resume
       </button>
     </form>
   )

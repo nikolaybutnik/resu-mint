@@ -47,36 +47,45 @@ export async function POST(request: NextRequest) {
     // TODO: section keys to update will be passed by the client
 
     const prompt = `
-      Generate ${numBulletsPerExperience} resume bullet points per each section on experience based on the following:
+  Generate ${numBulletsPerExperience} resume bullet points tailored specifically to the following job description:
 
-      $$$ EXPERIENCE START $$$
-      ${experience}
-      $$$ EXPERIENCE END $$$
+  $$$ JOB DESCRIPTION START $$$
+  ${jobDescription}
+  $$$ JOB DESCRIPTION END $$$
 
-      $$$ JOB DESCRIPTION START $$$
-      ${jobDescription}
-      $$$ JOB DESCRIPTION END $$$
+  Based on this candidate's experience:
 
-      IMPORTANT: PROCESS FOR FORMING BULLET POINTS
-      - First, scan the job description and pull out all required soft and hard skills.
-      - Then, scan the experience and pull out all the skills that are relevant to the job description.
-      - For each bullet point, make sure to include at least one skill from the job description and one skill from the experience.
-      - The goal is to have each bullet point align as closely as possible with the job description.
-      - If you cannot find any skills that align, make sure not to invent any skills that aren't explicitly stated in user's experience.
-      - In the above situation, lean on soft skills and whatever can be reasonably inferred from the user's experience.
-      - You must ALWAYS return the exact number of bullet points requested.
-      - Ensure that each bullet point features unique skills.
-      - Ensure that each bullet points follows the [SITUATION] [TASK] [ACTION] [RESULT] format.
-      - If a user specified percentages, ensure to include them in the bullet points.
-      - Each bullet should be concise, professional, and no longer than ${maxCharsPerBullet} characters.
-      - [TESTING PURPOSES] If the user sends gibberish, just make up some job titles and bullets to go along with it.
-      - Format your response as follows:
-        REQUIRED FORMAT:
-      [
-        {"EXACT_JOB_TITLE": ["BULLET 1", "BULLET 2", ...]},
-        {"EXACT_JOB_TITLE": ["BULLET 1", "BULLET 2", ...]},
-        ...
-      ]
+  $$$ EXPERIENCE START $$$
+  ${experience}
+  $$$ EXPERIENCE END $$$
+
+  JOB ALIGNMENT INSTRUCTIONS (HIGHEST PRIORITY):
+  - First, carefully analyze the job description and extract ALL key requirements, skills, and qualifications.
+  - For each extracted requirement, find corresponding evidence in the candidate's experience.
+  - EVERY bullet point MUST directly address at least one specific requirement from the job description.
+  - Use exact keywords and terminology from the job description whenever possible.
+  - Prioritize hard skills and technical requirements first, then soft skills.
+  - Only mention skills/achievements that are evidenced in the candidate's experience.
+
+  BULLET POINT FORMATION:
+  - Structure each bullet as: [SITUATION/TASK] + [ACTION with job-relevant skill] + [RESULT that demonstrates job fit]
+  - Each bullet must begin with a strong action verb relevant to the job description.
+  - Include specific metrics and percentages from the experience when available.
+  - Ensure each bullet is unique and highlights different job-relevant skills.
+  - Keep each bullet concise and at or under ${maxCharsPerBullet} characters.
+  - Generate exactly ${numBulletsPerExperience} bullets for each section of experience.
+
+  EXAMPLE OF GOOD ALIGNMENT:
+  Job description requires "experience with data analysis and SQL"
+  Good bullet: "Leveraged SQL to analyze customer data, identifying trends that increased retention by 15%"
+  Bad bullet: "Managed team projects and improved communication" (generic, not aligned)
+
+  Format your response as follows:
+  [
+    {"EXACT_JOB_TITLE": ["BULLET 1", "BULLET 2", ...]},
+    {"EXACT_JOB_TITLE": ["BULLET 1", "BULLET 2", ...]},
+    ...
+  ]
       `
 
     // Notes:

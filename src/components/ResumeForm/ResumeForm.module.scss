@@ -21,4 +21,9 @@
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
+
+  &:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+  }
 }
