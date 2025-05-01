@@ -24,8 +24,9 @@ const formSchema = z.object({
 
 type FormFields = z.infer<typeof formSchema>
 
-type ActionState = {
+export type ResumeFormState = {
   data?: FormFields
+  generatedSections?: { [key: string]: string[] }[]
   errors?: { [key: string]: string }
 }
 
@@ -37,8 +38,8 @@ export const ResumeForm: React.FC = () => {
     maxCharsPerBullet: 0,
   })
 
-  const [state, formAction] = useActionState(
-    async (_previousState: ActionState | null, formData: FormData) => {
+  const [state, formAction, isPending] = useActionState(
+    async (_previousState: ResumeFormState | null, formData: FormData) => {
       const data: FormFields = {
         experience: formData.get('experience') as string,
         jobDescription: formData.get('jobDescription') as string,
@@ -48,22 +49,53 @@ export const ResumeForm: React.FC = () => {
         maxCharsPerBullet: Number(formData.get('maxCharsPerBullet') || 0),
       }
 
-      const result = formSchema.safeParse(data)
+      const apiResult = await handleDataSubmit(data)
 
-      if (!result.success) {
-        const errors: { [key: string]: string } = {}
-        result.error.issues.forEach((issue) => {
-          const field = issue.path[0] as string
-          errors[field] = issue.message
-        })
-        return { errors }
-      }
-
-      console.log(result.data)
-      return { data: result.data }
+      return apiResult
     },
     null
   )
+
+  const handleDataSubmit = async (
+    data: FormFields
+  ): Promise<ResumeFormState> => {
+    const validatedData = formSchema.safeParse(data)
+
+    if (!validatedData.success) {
+      const errors: { [key: string]: string } = {}
+      validatedData.error.issues.forEach((issue) => {
+        const field = issue.path[0] as string
+        errors[field] = issue.message
+      })
+      return { errors }
+    } else {
+      try {
+        const response = await fetch('/api/generate-resume', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(validatedData.data),
+        })
+
+        const apiResult: ResumeFormState = await response.json()
+
+        if (!response.ok) {
+          return {
+            errors: apiResult.errors || {
+              server: 'Failed to generate bullet points',
+            },
+          }
+        }
+
+        return {
+          data: apiResult.data,
+          generatedSections: apiResult.generatedSections,
+        }
+      } catch (error) {
+        console.error('API error:', error)
+        return { errors: { server: 'Network error occurred' } }
+      }
+    }
+  }
 
   const handleChange = (
     event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -128,7 +160,7 @@ export const ResumeForm: React.FC = () => {
         <p className={styles.errorMessage}>{state.errors.maxCharsPerBullet}</p>
       )}
 
-      <button type='submit' className={styles.formButton}>
+      <button type='submit' className={styles.formButton} disabled={isPending}>
         Mint Resume
       </button>
     </form>
