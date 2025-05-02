@@ -2,7 +2,6 @@
 import styles from './ResumeForm.module.scss'
 import { useActionState, useState } from 'react'
 import { z } from 'zod'
-import { getResumeTemplate } from '@/lib/resume-template'
 
 const formSchema = z.object({
   experience: z
@@ -28,6 +27,11 @@ type FormFields = z.infer<typeof formSchema>
 export type ResumeFormState = {
   data?: FormFields
   generatedSections?: { [key: string]: string[] }[]
+  errors?: { [key: string]: string }
+}
+
+type LatexResponse = {
+  latex: string
   errors?: { [key: string]: string }
 }
 
@@ -68,6 +72,7 @@ export const ResumeForm: React.FC = () => {
         const field = issue.path[0] as string
         errors[field] = issue.message
       })
+
       return { errors }
     } else {
       try {
@@ -111,17 +116,30 @@ export const ResumeForm: React.FC = () => {
     }))
   }
 
-  const handlePreview = () => {
-    const resumeTemplate = state?.generatedSections?.length
-      ? getResumeTemplate(
-          'John Doe',
-          'test@test.com',
-          '1234567890',
-          state?.generatedSections || []
-        )
-      : 'No Data'
+  const handleLatexGeneration = async () => {
+    try {
+      const response = await fetch('/api/generate-latex', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: 'John Doe',
+          email: 'john.doe@example.com',
+          phone: '1234567890',
+          generatedSections: state?.generatedSections,
+        }),
+      })
 
-    console.log(resumeTemplate)
+      const apiResult: LatexResponse = await response.json()
+
+      if (apiResult.errors) {
+        console.log(apiResult.errors)
+        return
+      }
+
+      console.log(apiResult.latex)
+    } catch (error) {
+      console.error('API error:', error)
+    }
   }
 
   return (
@@ -175,16 +193,16 @@ export const ResumeForm: React.FC = () => {
       )}
 
       <button type='submit' className={styles.formButton} disabled={isPending}>
-        Mint Resume
+        Generate Bullets
       </button>
 
       <button
         type='button'
         className={styles.formButton}
         disabled={!state?.generatedSections?.length || isPending}
-        onClick={handlePreview}
+        onClick={handleLatexGeneration}
       >
-        Preview Resume
+        Generate LaTeX
       </button>
     </form>
   )
