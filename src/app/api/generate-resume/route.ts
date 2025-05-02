@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import OpenAI from 'openai'
+import { generateResumeBulletPointsTool } from '@/lib/ai/tools'
+import { generateResumeBulletPointsPrompt } from '@/lib/ai/prompts'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -27,6 +29,14 @@ const formSchema = z.object({
 })
 
 type FormFields = z.infer<typeof formSchema>
+type JobSection = {
+  title: string
+  bullet_points: string[]
+}
+
+type ToolResponse = {
+  job_sections: JobSection[]
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,50 +53,18 @@ export async function POST(request: NextRequest) {
       numBulletsPerExperience,
       maxCharsPerBullet,
     } = result.data as FormFields
-
-    // TODO: section keys to update will be passed by the client
-
-    const prompt = `
-  Generate ${numBulletsPerExperience} resume bullet points tailored specifically to the following job description:
-
-  $$$ JOB DESCRIPTION START $$$
-  ${jobDescription}
-  $$$ JOB DESCRIPTION END $$$
-
-  Based on this candidate's experience:
-
-  $$$ EXPERIENCE START $$$
-  ${experience}
-  $$$ EXPERIENCE END $$$
-
-  JOB ALIGNMENT INSTRUCTIONS (HIGHEST PRIORITY):
-  - First, carefully analyze the job description and extract ALL key requirements, skills, and qualifications.
-  - For each extracted requirement, find corresponding evidence in the candidate's experience.
-  - EVERY bullet point MUST directly address at least one specific requirement from the job description.
-  - Use exact keywords and terminology from the job description whenever possible.
-  - Prioritize hard skills and technical requirements first, then soft skills.
-  - Only mention skills/achievements that are evidenced in the candidate's experience.
-
-  BULLET POINT FORMATION:
-  - Structure each bullet as: [SITUATION/TASK] + [ACTION with job-relevant skill] + [RESULT that demonstrates job fit]
-  - Each bullet must begin with a strong action verb relevant to the job description.
-  - Include specific metrics and percentages from the experience when available.
-  - Ensure each bullet is unique and highlights different job-relevant skills.
-  - Keep each bullet concise and at or under ${maxCharsPerBullet} characters.
-  - Generate exactly ${numBulletsPerExperience} bullets for each section of experience.
-
-  EXAMPLE OF GOOD ALIGNMENT:
-  Job description requires "experience with data analysis and SQL"
-  Good bullet: "Leveraged SQL to analyze customer data, identifying trends that increased retention by 15%"
-  Bad bullet: "Managed team projects and improved communication" (generic, not aligned)
-
-  Format your response as follows:
-  [
-    {"EXACT_JOB_TITLE": ["BULLET 1", "BULLET 2", ...]},
-    {"EXACT_JOB_TITLE": ["BULLET 1", "BULLET 2", ...]},
-    ...
-  ]
-      `
+    const tools = [
+      generateResumeBulletPointsTool(
+        numBulletsPerExperience,
+        maxCharsPerBullet
+      ),
+    ]
+    const prompt = generateResumeBulletPointsPrompt(
+      experience,
+      jobDescription,
+      numBulletsPerExperience,
+      maxCharsPerBullet
+    )
 
     // Notes:
     // one token is approximately 4 characters (including spaces)
@@ -96,65 +74,34 @@ export async function POST(request: NextRequest) {
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: numBulletsPerExperience * 100,
+      tools,
+      tool_choice: {
+        type: 'function',
+        function: { name: 'generate_resume_bullets' },
+      },
     })
 
-    const rawBulletPoints =
-      completion.choices[0].message.content?.trim() || '[]'
-    let sections: { [key: string]: string[] }[] = []
+    const toolCall = completion.choices[0].message.tool_calls?.[0]
 
-    try {
-      const cleanJson = (input: string): string => {
-        return input
-          .replace(/```json\n?|\n?```/g, '')
-          .replace(/\/\/.*?\n|\/\*.*?\*\//g, '')
-          .replace(/^\s*|\s*$/g, '')
-          .replace(/\n\s*/g, '')
-          .replace(/,\s*]/g, ']')
-          .replace(/,\s*}/g, '}')
-      }
-
-      const cleanedBulletPoints = cleanJson(rawBulletPoints)
-      const parsed: { [key: string]: string[] }[] =
-        JSON.parse(cleanedBulletPoints)
-
-      try {
-        if (Array.isArray(parsed)) {
-          sections = parsed
-            .filter((section) => {
-              const [key, value] = Object.entries(section)[0] || []
-              if (!key || !Array.isArray(value)) return false
-              return true
-            })
-            .map((section) => {
-              const [key, value] = Object.entries(section)[0]
-              const cleanKey = key.trim()
-              const cleanValue = (value as string[])
-                .map((item) => item.trim())
-                .filter((item) => item)
-              return { [cleanKey]: cleanValue }
-            })
-        }
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError)
-        return NextResponse.json(
-          { errors: { server: 'Failed to parse AI response' } },
-          { status: 500 }
-        )
-      }
-
-      if (!sections.length) {
-        return NextResponse.json(
-          { errors: { server: 'Unable to generate bullet points.' } },
-          { status: 500 }
-        )
-      }
-    } catch (parseError) {
-      console.error('JSON parse error:', parseError)
+    if (!toolCall) {
       return NextResponse.json(
-        { errors: { server: 'Failed to parse AI response' } },
+        { errors: { server: 'Failed to generate resume bullets' } },
         { status: 500 }
       )
     }
+
+    const toolResult = JSON.parse(toolCall.function.arguments) as ToolResponse
+
+    if (!toolResult.job_sections || !Array.isArray(toolResult.job_sections)) {
+      return NextResponse.json(
+        { errors: { server: 'Failed to generate resume bullets' } },
+        { status: 500 }
+      )
+    }
+
+    const sections = toolResult.job_sections.map((section) => ({
+      [section.title]: section.bullet_points,
+    }))
 
     return NextResponse.json(
       { data: result.data, generatedSections: sections },
@@ -163,7 +110,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('API error:', error)
     return NextResponse.json(
-      { errors: { server: 'Failed to generate bullet points' } },
+      { errors: { server: 'Failed to generate resume bullets' } },
       { status: 500 }
     )
   }
