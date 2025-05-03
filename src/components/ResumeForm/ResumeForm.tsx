@@ -41,6 +41,7 @@ type ResumeResponseData = {
 }
 
 type LatexResponseData = {
+  pdfPath: string
   latex: string
 }
 
@@ -157,6 +158,7 @@ export const ResumeForm: React.FC = () => {
         return
       }
 
+      console.log(apiResult.data.pdfPath)
       console.log(apiResult.data.latex)
     } catch (error) {
       console.error('API error:', error)
