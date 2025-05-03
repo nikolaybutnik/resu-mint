@@ -3,10 +3,22 @@ import { z } from 'zod'
 import OpenAI from 'openai'
 import { generateResumeBulletPointsTool } from '@/lib/ai/tools'
 import { generateResumeBulletPointsPrompt } from '@/lib/ai/prompts'
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  createError,
+  zodErrorsToApiErrors,
+} from '@/lib/types/errors'
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 })
+
+const aiGenerationError = createError(
+  'server',
+  'Failed to generate resume bullets',
+  'ai_generation'
+)
 
 // Schema mirrors frontend
 const formSchema = z.object({
@@ -44,7 +56,8 @@ export async function POST(request: NextRequest) {
     const result = formSchema.safeParse(body)
 
     if (!result.success) {
-      return NextResponse.json({ errors: result.error.issues }, { status: 400 })
+      const errors = zodErrorsToApiErrors(result.error.issues)
+      return NextResponse.json(createErrorResponse(errors), { status: 400 })
     }
 
     const {
@@ -84,19 +97,17 @@ export async function POST(request: NextRequest) {
     const toolCall = completion.choices[0].message.tool_calls?.[0]
 
     if (!toolCall) {
-      return NextResponse.json(
-        { errors: { server: 'Failed to generate resume bullets' } },
-        { status: 500 }
-      )
+      return NextResponse.json(createErrorResponse([aiGenerationError]), {
+        status: 500,
+      })
     }
 
     const toolResult = JSON.parse(toolCall.function.arguments) as ToolResponse
 
     if (!toolResult.job_sections || !Array.isArray(toolResult.job_sections)) {
-      return NextResponse.json(
-        { errors: { server: 'Failed to generate resume bullets' } },
-        { status: 500 }
-      )
+      return NextResponse.json(createErrorResponse([aiGenerationError]), {
+        status: 500,
+      })
     }
 
     const sections = toolResult.job_sections.map((section) => ({
@@ -104,14 +115,14 @@ export async function POST(request: NextRequest) {
     }))
 
     return NextResponse.json(
-      { data: result.data, generatedSections: sections },
+      createSuccessResponse({
+        generatedSections: sections,
+      }),
       { status: 200 }
     )
   } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json(
-      { errors: { server: 'Failed to generate resume bullets' } },
-      { status: 500 }
-    )
+    return NextResponse.json(createErrorResponse([aiGenerationError]), {
+      status: 500,
+    })
   }
 }

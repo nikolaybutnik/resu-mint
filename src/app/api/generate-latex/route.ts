@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { getResumeTemplate } from '@/lib/resume-template'
+import {
+  zodErrorsToApiErrors,
+  createError,
+  createErrorResponse,
+  createSuccessResponse,
+} from '@/lib/types/errors'
 
 const latexSchema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -21,7 +27,8 @@ export async function POST(request: NextRequest) {
     const result = latexSchema.safeParse(body)
 
     if (!result.success) {
-      return NextResponse.json({ errors: result.error.issues }, { status: 400 })
+      const errors = zodErrorsToApiErrors(result.error.issues)
+      return NextResponse.json(createErrorResponse(errors), { status: 400 })
     }
 
     const { name, email, phone, generatedSections } = result.data as LatexFields
@@ -33,12 +40,17 @@ export async function POST(request: NextRequest) {
       generatedSections
     )
 
-    return NextResponse.json({ latex: latexContent }, { status: 200 })
+    return NextResponse.json(createSuccessResponse({ latex: latexContent }), {
+      status: 200,
+    })
   } catch (error) {
-    console.error('API error:', error)
-    return NextResponse.json(
-      { errors: { server: 'Failed to generate latex' } },
-      { status: 500 }
+    const serverError = createError(
+      'server',
+      'Failed to generate latex template',
+      'latex_generation'
     )
+    return NextResponse.json(createErrorResponse([serverError]), {
+      status: 500,
+    })
   }
 }

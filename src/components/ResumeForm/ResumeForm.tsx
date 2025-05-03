@@ -1,7 +1,12 @@
 'use client'
 import styles from './ResumeForm.module.scss'
-import { useActionState, useState } from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { z } from 'zod'
+import {
+  formatErrorsForClient,
+  ApiResponse,
+  ResponseStatus,
+} from '@/lib/types/errors'
 
 const formSchema = z.object({
   experience: z
@@ -23,16 +28,20 @@ const formSchema = z.object({
 })
 
 type FormFields = z.infer<typeof formSchema>
+type ClientErrors = { [key: string]: string }
 
 export type ResumeFormState = {
   data?: FormFields
   generatedSections?: { [key: string]: string[] }[]
-  errors?: { [key: string]: string }
+  errors?: ClientErrors | null
 }
 
-type LatexResponse = {
+type ResumeResponseData = {
+  generatedSections: { [key: string]: string[] }[]
+}
+
+type LatexResponseData = {
   latex: string
-  errors?: { [key: string]: string }
 }
 
 export const ResumeForm: React.FC = () => {
@@ -56,10 +65,18 @@ export const ResumeForm: React.FC = () => {
 
       const apiResult = await handleDataSubmit(data)
 
-      return apiResult
+      return {
+        data,
+        generatedSections: apiResult.generatedSections,
+        errors: apiResult.errors || null,
+      }
     },
     null
   )
+
+  useEffect(() => {
+    console.log(state)
+  }, [state])
 
   const handleDataSubmit = async (
     data: FormFields
@@ -67,7 +84,7 @@ export const ResumeForm: React.FC = () => {
     const validatedData = formSchema.safeParse(data)
 
     if (!validatedData.success) {
-      const errors: { [key: string]: string } = {}
+      const errors: ClientErrors = {}
       validatedData.error.issues.forEach((issue) => {
         const field = issue.path[0] as string
         errors[field] = issue.message
@@ -82,19 +99,20 @@ export const ResumeForm: React.FC = () => {
           body: JSON.stringify(validatedData.data),
         })
 
-        const apiResult: ResumeFormState = await response.json()
+        const apiResult =
+          (await response.json()) as ApiResponse<ResumeResponseData>
 
-        if (!response.ok) {
+        if (!response.ok || apiResult.status === ResponseStatus.ERROR) {
           return {
-            errors: apiResult.errors || {
-              server: 'Failed to generate bullet points',
-            },
+            errors:
+              apiResult.status === ResponseStatus.ERROR
+                ? formatErrorsForClient(apiResult.errors)
+                : { server: 'Failed to generate bullet points' },
           }
         }
 
         return {
-          data: apiResult.data,
-          generatedSections: apiResult.generatedSections,
+          generatedSections: apiResult.data.generatedSections,
         }
       } catch (error) {
         console.error('API error:', error)
@@ -118,25 +136,28 @@ export const ResumeForm: React.FC = () => {
 
   const handleLatexGeneration = async () => {
     try {
+      const payload = {
+        name: 'John Doe',
+        email: 'john.doe@example.com',
+        phone: '1234567890',
+        generatedSections: state?.generatedSections,
+      }
+
       const response = await fetch('/api/generate-latex', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          phone: '1234567890',
-          generatedSections: state?.generatedSections,
-        }),
+        body: JSON.stringify(payload),
       })
 
-      const apiResult: LatexResponse = await response.json()
+      const apiResult =
+        (await response.json()) as ApiResponse<LatexResponseData>
 
-      if (apiResult.errors) {
-        console.log(apiResult.errors)
+      if (apiResult.status === ResponseStatus.ERROR) {
+        console.error(apiResult.errors)
         return
       }
 
-      console.log(apiResult.latex)
+      console.log(apiResult.data.latex)
     } catch (error) {
       console.error('API error:', error)
     }
