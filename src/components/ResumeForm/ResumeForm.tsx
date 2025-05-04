@@ -7,6 +7,7 @@ import {
   ApiResponse,
   ResponseStatus,
 } from '@/lib/types/errors'
+import { v4 as uuidv4 } from 'uuid'
 
 const formSchema = z.object({
   experience: z
@@ -41,8 +42,7 @@ type ResumeResponseData = {
 }
 
 type LatexResponseData = {
-  pdfPath: string
-  latex: string
+  fileId: string
 }
 
 export const ResumeForm: React.FC = () => {
@@ -52,6 +52,8 @@ export const ResumeForm: React.FC = () => {
     numBulletsPerExperience: 0,
     maxCharsPerBullet: 0,
   })
+
+  const [sessionId, setSessionId] = useState<string>('')
 
   const [state, formAction, isPending] = useActionState(
     async (_previousState: ResumeFormState | null, formData: FormData) => {
@@ -75,9 +77,18 @@ export const ResumeForm: React.FC = () => {
     null
   )
 
+  // Placeholder until user authentication is implemented
+  // sessionId will be replaced with user id
   useEffect(() => {
-    console.log(state)
-  }, [state])
+    const storedId = window.localStorage.getItem('sessionId')
+    if (storedId) {
+      setSessionId(storedId)
+    } else {
+      const newId = uuidv4()
+      window.localStorage.setItem('sessionId', newId)
+      setSessionId(newId)
+    }
+  }, [])
 
   const handleDataSubmit = async (
     data: FormFields
@@ -138,6 +149,7 @@ export const ResumeForm: React.FC = () => {
   const handleLatexGeneration = async () => {
     try {
       const payload = {
+        sessionId,
         name: 'John Doe',
         email: 'john.doe@example.com',
         phone: '1234567890',
@@ -158,8 +170,7 @@ export const ResumeForm: React.FC = () => {
         return
       }
 
-      console.log(apiResult.data.pdfPath)
-      console.log(apiResult.data.latex)
+      console.log(apiResult.data.fileId)
     } catch (error) {
       console.error('API error:', error)
     }
