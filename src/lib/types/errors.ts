@@ -4,6 +4,9 @@ export type ErrorType =
   | 'ai_generation'
   | 'format'
   | 'latex_generation'
+  | 'pdf_generation'
+  | 'missing_session_id'
+  | 'read_pdf'
 
 export enum ResponseStatus {
   SUCCESS = 'success',

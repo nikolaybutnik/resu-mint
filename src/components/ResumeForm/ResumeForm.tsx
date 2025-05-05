@@ -8,6 +8,7 @@ import {
   ResponseStatus,
 } from '@/lib/types/errors'
 import { v4 as uuidv4 } from 'uuid'
+import { saveAs } from 'file-saver'
 
 const formSchema = z.object({
   experience: z
@@ -146,7 +147,7 @@ export const ResumeForm: React.FC = () => {
     }))
   }
 
-  const handleLatexGeneration = async () => {
+  const handlePDFGeneration = async () => {
     try {
       const payload = {
         sessionId,
@@ -170,7 +171,18 @@ export const ResumeForm: React.FC = () => {
         return
       }
 
-      console.log(apiResult.data.fileId)
+      const fileId = apiResult.data.fileId
+      const downloadResponse = await fetch(
+        `/api/download-pdf/${fileId}?sessionId=${sessionId}`
+      )
+
+      if (!downloadResponse.ok) {
+        console.error('Failed to download PDF')
+      }
+
+      const blob = await downloadResponse.blob()
+
+      saveAs(blob, 'resume.pdf')
     } catch (error) {
       console.error('API error:', error)
     }
@@ -234,9 +246,9 @@ export const ResumeForm: React.FC = () => {
         type='button'
         className={styles.formButton}
         disabled={!state?.generatedSections?.length || isPending}
-        onClick={handleLatexGeneration}
+        onClick={handlePDFGeneration}
       >
-        Generate LaTeX
+        Generate PDF
       </button>
     </form>
   )

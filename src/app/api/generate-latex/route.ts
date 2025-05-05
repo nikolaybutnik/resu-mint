@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
           {
             field: 'server',
             message: 'Failed to write LaTeX file',
+            type: 'latex_generation',
           },
         ]),
         { status: 500 }
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
           {
             field: 'server',
             message: 'Failed to compile LaTeX to PDF',
+            type: 'pdf_generation',
           },
         ]),
         { status: 500 }
@@ -144,8 +146,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     const serverError = createError(
       'server',
-      'Failed to generate latex template',
-      'latex_generation'
+      'Failed to generate PDF',
+      'pdf_generation'
     )
     return NextResponse.json(createErrorResponse([serverError]), {
       status: 500,
