@@ -9,6 +9,39 @@ import {
 } from '@/lib/types/errors'
 import { v4 as uuidv4 } from 'uuid'
 import { saveAs } from 'file-saver'
+import {
+  ExperienceBlock,
+  ExperienceBlockData,
+  Month,
+} from '@/components/ExperienceBlock/ExperienceBlock'
+
+const dummyExperienceData = [
+  {
+    jobTitle: 'Software Engineer',
+    companyName: 'Google',
+    startDate: { month: 'Jan' as Month, year: '2020' },
+    endDate: { month: 'Dec' as Month, year: '2022', isPresent: false },
+    location: 'Mountain View, CA',
+    bulletPoints: [
+      'Developed and maintained web applications using React and Node.js',
+      'Collaborated with cross-functional teams to implement new features',
+      'Optimized application performance for better user experience',
+    ],
+  },
+  {
+    jobTitle: 'Frontend Developer',
+    companyName: 'Microsoft',
+    startDate: { month: 'Jun' as Month, year: '2019' },
+    endDate: { month: 'Dec' as Month, year: '2022', isPresent: false },
+    location: 'Redmond, WA',
+    bulletPoints: [
+      'Built responsive UI components using TypeScript and React hooks',
+      'Implemented state management solutions with Redux and Context API',
+      'Improved accessibility compliance across multiple web applications',
+      'Developed and maintained web applications using React and Node.js',
+    ],
+  },
+]
 
 const formSchema = z.object({
   experience: z
@@ -55,7 +88,9 @@ export const ResumeForm: React.FC = () => {
   })
 
   const [sessionId, setSessionId] = useState<string>('')
-
+  const [pdfGenerating, setPdfGenerating] = useState(false)
+  const [experienceData, setExperienceData] =
+    useState<ExperienceBlockData[]>(dummyExperienceData)
   const [state, formAction, isPending] = useActionState(
     async (_previousState: ResumeFormState | null, formData: FormData) => {
       const data: FormFields = {
@@ -149,6 +184,8 @@ export const ResumeForm: React.FC = () => {
 
   const handlePDFGeneration = async () => {
     try {
+      setPdfGenerating(true)
+
       const payload = {
         sessionId,
         name: 'John Doe',
@@ -185,6 +222,8 @@ export const ResumeForm: React.FC = () => {
       saveAs(blob, 'resume.pdf')
     } catch (error) {
       console.error('API error:', error)
+    } finally {
+      setPdfGenerating(false)
     }
   }
 
@@ -245,11 +284,33 @@ export const ResumeForm: React.FC = () => {
       <button
         type='button'
         className={styles.formButton}
-        disabled={!state?.generatedSections?.length || isPending}
+        disabled={
+          !state?.generatedSections?.length || isPending || pdfGenerating
+        }
         onClick={handlePDFGeneration}
       >
         Generate PDF
       </button>
+
+      {experienceData.map((experience, index) => (
+        <ExperienceBlock
+          key={index}
+          index={index}
+          data={experience}
+          onUpdate={(i, data) => {
+            const updatedExperienceData = experienceData.map((exp, index) =>
+              index === i ? data : exp
+            )
+            setExperienceData(updatedExperienceData)
+          }}
+          onDelete={(i) => {
+            const updatedExperienceData = experienceData.filter(
+              (_, index) => index !== i
+            )
+            setExperienceData(updatedExperienceData)
+          }}
+        />
+      ))}
     </form>
   )
 }

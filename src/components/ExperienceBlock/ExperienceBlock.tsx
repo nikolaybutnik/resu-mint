@@ -1,0 +1,493 @@
+import { z } from 'zod'
+import styles from './ExperienceBlock.module.scss'
+import { useEffect, useState } from 'react'
+
+export type Month =
+  | 'Jan'
+  | 'Feb'
+  | 'Mar'
+  | 'Apr'
+  | 'May'
+  | 'Jun'
+  | 'Jul'
+  | 'Aug'
+  | 'Sep'
+  | 'Oct'
+  | 'Nov'
+  | 'Dec'
+
+type StartDate = {
+  month: Month
+  year: string
+}
+
+type EndDate = {
+  month: Month | ''
+  year: string
+  isPresent: boolean
+}
+
+export interface ExperienceBlockData {
+  jobTitle: string
+  startDate: StartDate
+  endDate: EndDate
+  companyName: string
+  location: string
+  bulletPoints: string[]
+}
+
+interface ExperienceBlockProps {
+  index: number
+  data: ExperienceBlockData
+  onUpdate: (index: number, data: ExperienceBlockData) => void
+  onDelete: (index: number) => void
+}
+
+enum ExperienceBlockFields {
+  JOB_TITLE = 'jobTitle',
+  COMPANY_NAME = 'companyName',
+  START_DATE = 'startDate',
+  END_DATE = 'endDate',
+  LOCATION = 'location',
+  BULLET_POINTS = 'bulletPoints',
+}
+
+const months: Month[] = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+]
+
+const startDateSchema = z.object({
+  month: z.enum(months as [Month, ...Month[]], {
+    message: 'Month must be a valid month (e.g., Jan)',
+  }),
+  year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
+})
+
+const endDateSchema = z.discriminatedUnion('isPresent', [
+  z.object({
+    isPresent: z.literal(true),
+    month: z.literal(''),
+    year: z.literal(''),
+  }),
+  z.object({
+    isPresent: z.literal(false),
+    month: z.enum(months as [Month, ...Month[]], {
+      message: 'Month must be a valid month (e.g., Jan)',
+    }),
+    year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
+  }),
+])
+
+const experienceBlockSchema = z
+  .object({
+    jobTitle: z
+      .string()
+      .min(1, 'Job title is required')
+      .max(100, 'Job title must be 100 characters or less'),
+    startDate: startDateSchema,
+    endDate: endDateSchema,
+    companyName: z
+      .string()
+      .min(1, 'Company name is required')
+      .max(100, 'Company name must be 100 characters or less'),
+    location: z
+      .string()
+      .min(1, 'Location is required')
+      .max(100, 'Location must be 100 characters or less'),
+    bulletPoints: z
+      .array(
+        z
+          .string()
+          .min(1, 'Bullet point cannot be empty')
+          .max(200, 'Bullet point must be 200 characters or less')
+      )
+      .min(1, 'At least one bullet point is required'),
+  })
+  .refine(
+    (data) => {
+      const startResult = startDateSchema.safeParse(data.startDate)
+      const endResult = endDateSchema.safeParse(data.endDate)
+      if (!startResult.success || !endResult.success) return true
+      const startDateStr = `${startResult.data.month} ${startResult.data.year}`
+      const endDateStr = !endResult.data.isPresent
+        ? `${endResult.data.month} ${endResult.data.year}`
+        : 'Present'
+      if (endDateStr === 'Present' || endDateStr === '') return true
+      const startDate = new Date(startDateStr)
+      const endDate = new Date(endDateStr)
+      return endDate >= startDate
+    },
+    {
+      message: 'End date must be on or after start date',
+      path: [ExperienceBlockFields.END_DATE],
+    }
+  )
+
+type ValidationErrors = { [key: string]: string }
+
+export const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
+  index,
+  data,
+  onUpdate,
+  onDelete,
+}) => {
+  const [experienceData, setExperienceData] = useState<ExperienceBlockData>({
+    ...data,
+    endDate: {
+      ...data.endDate,
+      isPresent: data.endDate.month === '' && data.endDate.year === '',
+    },
+  })
+  const [errors, setErrors] = useState<ValidationErrors>({})
+
+  const validateField = <K extends keyof ExperienceBlockData>(
+    field: K,
+    value: ExperienceBlockData[K]
+  ) => {
+    const updatedData = { ...experienceData, [field]: value }
+    const result = experienceBlockSchema.safeParse(updatedData)
+    const newErrors: ValidationErrors = {
+      jobTitle: '',
+      startDate: '',
+      endDate: '',
+      companyName: '',
+      location: '',
+      bulletPoints: '',
+    }
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        const fieldName = issue.path[0] as string
+        newErrors[fieldName] = issue.message
+      })
+    }
+    setErrors(newErrors)
+  }
+
+  const handleFieldChange = (
+    field: keyof Omit<
+      ExperienceBlockData,
+      | ExperienceBlockFields.START_DATE
+      | ExperienceBlockFields.END_DATE
+      | ExperienceBlockFields.BULLET_POINTS
+    >,
+    value: string
+  ): void => {
+    const updatedData = { ...experienceData, [field]: value }
+    setExperienceData(updatedData)
+    onUpdate(index, updatedData)
+    validateField(field, value)
+  }
+
+  const handleDateChange = (
+    field: ExperienceBlockFields.START_DATE | ExperienceBlockFields.END_DATE,
+    key: 'month' | 'year',
+    value: string
+  ) => {
+    const updatedData = {
+      ...experienceData,
+      [field]: {
+        ...experienceData[field],
+        [key]: value,
+        ...(field === ExperienceBlockFields.END_DATE && { isPresent: false }),
+      },
+    }
+    setExperienceData(updatedData)
+    onUpdate(index, updatedData)
+    validateField(field, updatedData[field])
+  }
+
+  const handlePresentChange = (checked: boolean) => {
+    const updatedEndDate = checked
+      ? { month: '' as Month, year: '', isPresent: true }
+      : { ...experienceData.endDate, isPresent: false }
+    const updatedData = {
+      ...experienceData,
+      endDate: updatedEndDate,
+    }
+    setExperienceData(updatedData)
+    onUpdate(index, updatedData)
+    validateField(ExperienceBlockFields.END_DATE, updatedEndDate)
+  }
+
+  const handleYearInput = (value: string, setter: (value: string) => void) => {
+    if (/^\d{0,4}$/.test(value)) {
+      setter(value)
+    }
+  }
+
+  const handleBulletChange = (bulletIndex: number, value: string): void => {
+    const updatedBullets = [...experienceData.bulletPoints]
+    updatedBullets[bulletIndex] = value
+    const updatedData = { ...experienceData, bulletPoints: updatedBullets }
+    setExperienceData(updatedData)
+    onUpdate(index, updatedData)
+    validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
+  }
+
+  const addBullet = (): void => {
+    const updatedBullets = [...experienceData.bulletPoints, '']
+    const updatedData = { ...experienceData, bulletPoints: updatedBullets }
+    setExperienceData(updatedData)
+    onUpdate(index, updatedData)
+    validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
+  }
+
+  const deleteBullet = (bulletIndex: number): void => {
+    const updatedBullets = experienceData.bulletPoints.filter(
+      (_, i) => i !== bulletIndex
+    )
+    const updatedData = { ...experienceData, bulletPoints: updatedBullets }
+    setExperienceData(updatedData)
+    onUpdate(index, updatedData)
+    validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
+  }
+
+  // Validate initial data
+  useEffect(() => {
+    Object.keys(experienceData).forEach((key) => {
+      const field = key as keyof ExperienceBlockData
+      validateField(field, experienceData[field])
+    })
+  }, [])
+
+  return (
+    <section
+      className={styles.experienceBlock}
+      aria-labelledby={`experience-block-${index}`}
+    >
+      <header className={styles.header}>
+        <h3 id={`experience-block-${index}`}>Experience Block {index + 1}</h3>
+        <button
+          type='button'
+          className={styles.button}
+          onClick={() => onDelete(index)}
+          aria-label={`Delete experience block ${index + 1}`}
+        >
+          Delete Block
+        </button>
+      </header>
+
+      <fieldset className={styles.jobDetails}>
+        <div className={styles.field}>
+          <label htmlFor={`job-title-${index}`}>Job Title</label>
+          <input
+            id={`job-title-${index}`}
+            type='text'
+            className={styles.input}
+            value={experienceData.jobTitle}
+            onChange={(e) =>
+              handleFieldChange(ExperienceBlockFields.JOB_TITLE, e.target.value)
+            }
+            aria-required='true'
+          />
+          {errors.jobTitle && (
+            <p className={styles.errorMessage}>{errors.jobTitle}</p>
+          )}
+        </div>
+
+        <div className={styles.field}>
+          <label htmlFor={`company-name-${index}`}>Company Name</label>
+          <input
+            id={`company-name-${index}`}
+            type='text'
+            className={styles.input}
+            value={experienceData.companyName}
+            onChange={(e) =>
+              handleFieldChange(
+                ExperienceBlockFields.COMPANY_NAME,
+                e.target.value
+              )
+            }
+            aria-required='true'
+          />
+          {errors.companyName && (
+            <p className={styles.errorMessage}>{errors.companyName}</p>
+          )}
+        </div>
+
+        <div className={styles.field}>
+          <label htmlFor={`location-${index}`}>Location</label>
+          <input
+            id={`location-${index}`}
+            type='text'
+            className={styles.input}
+            value={experienceData.location}
+            onChange={(e) =>
+              handleFieldChange(ExperienceBlockFields.LOCATION, e.target.value)
+            }
+            aria-required='true'
+          />
+          {errors.location && (
+            <p className={styles.errorMessage}>{errors.location}</p>
+          )}
+        </div>
+
+        <div className={styles.dateField}>
+          <label htmlFor={`start-month-${index}`}>Start Date</label>
+          <div className={styles.dateInputs}>
+            <select
+              id={`start-month-${index}`}
+              className={styles.input}
+              value={experienceData.startDate.month}
+              onChange={(e) =>
+                handleDateChange(
+                  ExperienceBlockFields.START_DATE,
+                  'month',
+                  e.target.value
+                )
+              }
+              aria-required='true'
+              aria-label='Start month'
+              aria-invalid={!!errors.startDate}
+            >
+              <option value=''>Select Month</option>
+              {months.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+            <input
+              id={`start-year-${index}`}
+              type='text'
+              className={styles.input}
+              value={experienceData.startDate.year}
+              onChange={(e) =>
+                handleYearInput(e.target.value, (value) =>
+                  handleDateChange(
+                    ExperienceBlockFields.START_DATE,
+                    'year',
+                    value
+                  )
+                )
+              }
+              placeholder='YYYY'
+              maxLength={4}
+              pattern='[0-9]{4}'
+              aria-required='true'
+              aria-label='Start year'
+              aria-invalid={!!errors.startDate}
+            />
+          </div>
+          {errors.startDate && (
+            <p className={styles.errorMessage}>{errors.startDate}</p>
+          )}
+        </div>
+
+        <div className={styles.dateField}>
+          <label htmlFor={`end-month-${index}`}>End Date</label>
+          <div className={styles.checkboxField}>
+            <input
+              id={`present-${index}`}
+              type='checkbox'
+              checked={experienceData.endDate.isPresent}
+              onChange={(e) => handlePresentChange(e.target.checked)}
+              aria-label='Current position (Present)'
+              aria-describedby={`end-date-error-${index}`}
+            />
+            <label htmlFor={`present-${index}`}>Present</label>
+          </div>
+          <div className={styles.dateInputs}>
+            <select
+              id={`end-month-${index}`}
+              className={styles.input}
+              value={experienceData.endDate.month}
+              onChange={(e) =>
+                handleDateChange(
+                  ExperienceBlockFields.END_DATE,
+                  'month',
+                  e.target.value
+                )
+              }
+              disabled={experienceData.endDate.isPresent}
+              aria-required={!experienceData.endDate.isPresent}
+              aria-label='End month'
+              aria-invalid={!!errors.endDate}
+            >
+              <option value=''>Select Month</option>
+              {months.map((month) => (
+                <option key={month} value={month}>
+                  {month}
+                </option>
+              ))}
+            </select>
+            <input
+              id={`end-year-${index}`}
+              type='text'
+              className={styles.input}
+              value={experienceData.endDate.year}
+              onChange={(e) =>
+                handleYearInput(e.target.value, (value) =>
+                  handleDateChange(
+                    ExperienceBlockFields.END_DATE,
+                    'year',
+                    value
+                  )
+                )
+              }
+              placeholder='YYYY'
+              maxLength={4}
+              pattern='[0-9]{4}'
+              disabled={experienceData.endDate.isPresent}
+              aria-required={!experienceData.endDate.isPresent}
+              aria-label='End year'
+              aria-invalid={!!errors.endDate}
+            />
+          </div>
+          {errors.endDate && (
+            <p id={`end-date-error-${index}`} className={styles.errorMessage}>
+              {errors.endDate}
+            </p>
+          )}
+        </div>
+      </fieldset>
+
+      <fieldset className={styles.bulletPoints}>
+        <legend>Bullet Points</legend>
+        <ul className={styles.bulletList}>
+          {experienceData.bulletPoints.map((bullet, bulletIndex) => (
+            <li key={bulletIndex} className={styles.bulletItem}>
+              <input
+                id={`bullet-${index}-${bulletIndex}`}
+                type='text'
+                className={styles.input}
+                value={bullet}
+                onChange={(e) =>
+                  handleBulletChange(bulletIndex, e.target.value)
+                }
+                aria-label={`Bullet point ${bulletIndex + 1}`}
+              />
+              <button
+                type='button'
+                className={styles.button}
+                onClick={() => deleteBullet(bulletIndex)}
+                aria-label={`Delete bullet point ${bulletIndex + 1}`}
+              >
+                Delete
+              </button>
+            </li>
+          ))}
+        </ul>
+        <button
+          type='button'
+          className={styles.button}
+          onClick={addBullet}
+          aria-label='Add new bullet point'
+        >
+          Add Bullet
+        </button>
+      </fieldset>
+    </section>
+  )
+}
