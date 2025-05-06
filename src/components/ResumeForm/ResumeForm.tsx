@@ -9,8 +9,8 @@ import {
 } from '@/lib/types/errors'
 import { v4 as uuidv4 } from 'uuid'
 import { saveAs } from 'file-saver'
+import ExperienceBlock from '@/components/ExperienceBlock/ExperienceBlock'
 import {
-  ExperienceBlock,
   ExperienceBlockData,
   Month,
 } from '@/components/ExperienceBlock/ExperienceBlock'

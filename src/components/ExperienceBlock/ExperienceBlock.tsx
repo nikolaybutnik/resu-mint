@@ -1,6 +1,7 @@
-import { z } from 'zod'
+import { useDebounce } from '@/lib/utils'
 import styles from './ExperienceBlock.module.scss'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, memo, useMemo, useCallback } from 'react'
+import { z } from 'zod'
 
 export type Month =
   | 'Jan'
@@ -66,6 +67,8 @@ const months: Month[] = [
   'Nov',
   'Dec',
 ]
+
+type ValidationErrors = { [key: string]: string }
 
 const startDateSchema = z.object({
   month: z.enum(months as [Month, ...Month[]], {
@@ -134,132 +137,183 @@ const experienceBlockSchema = z
     }
   )
 
-type ValidationErrors = { [key: string]: string }
+const arePropsEqual = (
+  prevProps: ExperienceBlockProps,
+  nextProps: ExperienceBlockProps
+): boolean => {
+  return (
+    prevProps.index === nextProps.index &&
+    JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
+    prevProps.onUpdate === nextProps.onUpdate &&
+    prevProps.onDelete === nextProps.onDelete
+  )
+}
 
-export const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
+const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
   index,
   data,
   onUpdate,
   onDelete,
 }) => {
-  const [experienceData, setExperienceData] = useState<ExperienceBlockData>({
-    ...data,
-    endDate: {
-      ...data.endDate,
-      isPresent: data.endDate.month === '' && data.endDate.year === '',
-    },
-  })
+  const initialData = useMemo(
+    () => ({
+      ...data,
+      endDate: {
+        ...data.endDate,
+        isPresent: data.endDate.month === '' && data.endDate.year === '',
+      },
+    }),
+    [data]
+  )
+
+  const [experienceData, setExperienceData] =
+    useState<ExperienceBlockData>(initialData)
   const [errors, setErrors] = useState<ValidationErrors>({})
 
-  const validateField = <K extends keyof ExperienceBlockData>(
-    field: K,
-    value: ExperienceBlockData[K]
-  ) => {
-    const updatedData = { ...experienceData, [field]: value }
-    const result = experienceBlockSchema.safeParse(updatedData)
-    const newErrors: ValidationErrors = {
-      jobTitle: '',
-      startDate: '',
-      endDate: '',
-      companyName: '',
-      location: '',
-      bulletPoints: '',
-    }
-    if (!result.success) {
-      result.error.issues.forEach((issue) => {
-        const fieldName = issue.path[0] as string
-        newErrors[fieldName] = issue.message
-      })
-    }
-    setErrors(newErrors)
-  }
+  const debouncedExperienceData = useDebounce(experienceData, 300)
 
-  const handleFieldChange = (
-    field: keyof Omit<
-      ExperienceBlockData,
-      | ExperienceBlockFields.START_DATE
-      | ExperienceBlockFields.END_DATE
-      | ExperienceBlockFields.BULLET_POINTS
-    >,
-    value: string
-  ): void => {
-    const updatedData = { ...experienceData, [field]: value }
-    setExperienceData(updatedData)
-    onUpdate(index, updatedData)
-    validateField(field, value)
-  }
+  const validateField = useCallback(
+    <K extends keyof ExperienceBlockData>(
+      field: K,
+      value: ExperienceBlockData[K]
+    ) => {
+      const updatedData = { ...experienceData, [field]: value }
+      const result = experienceBlockSchema.safeParse(updatedData)
+      const newErrors: ValidationErrors = {}
+      if (!result.success) {
+        result.error.issues.forEach((issue) => {
+          newErrors[issue.path[0] as string] = issue.message
+        })
+      }
+      setErrors(newErrors)
+    },
+    [experienceData]
+  )
 
-  const handleDateChange = (
-    field: ExperienceBlockFields.START_DATE | ExperienceBlockFields.END_DATE,
-    key: 'month' | 'year',
-    value: string
-  ) => {
-    const updatedData = {
-      ...experienceData,
-      [field]: {
-        ...experienceData[field],
-        [key]: value,
-        ...(field === ExperienceBlockFields.END_DATE && { isPresent: false }),
-      },
-    }
-    setExperienceData(updatedData)
-    onUpdate(index, updatedData)
-    validateField(field, updatedData[field])
-  }
+  const handleFieldChange = useCallback(
+    (
+      field: keyof Omit<
+        ExperienceBlockData,
+        | ExperienceBlockFields.START_DATE
+        | ExperienceBlockFields.END_DATE
+        | ExperienceBlockFields.BULLET_POINTS
+      >,
+      value: string
+    ): void => {
+      if (experienceData[field] === value) return
+      const updatedData = { ...experienceData, [field]: value }
+      setExperienceData(updatedData)
+      onUpdate(index, updatedData)
+      validateField(field, value)
+    },
+    [experienceData, index, onUpdate, validateField]
+  )
 
-  const handlePresentChange = (checked: boolean) => {
-    const updatedEndDate = checked
-      ? { month: '' as Month, year: '', isPresent: true }
-      : { ...experienceData.endDate, isPresent: false }
-    const updatedData = {
-      ...experienceData,
-      endDate: updatedEndDate,
-    }
-    setExperienceData(updatedData)
-    onUpdate(index, updatedData)
-    validateField(ExperienceBlockFields.END_DATE, updatedEndDate)
-  }
+  const handleDateChange = useCallback(
+    (
+      field: ExperienceBlockFields.START_DATE | ExperienceBlockFields.END_DATE,
+      key: 'month' | 'year',
+      value: string
+    ) => {
+      if (experienceData[field][key] === value) return
+      const updatedData = {
+        ...experienceData,
+        [field]: {
+          ...experienceData[field],
+          [key]: value,
+          ...(field === ExperienceBlockFields.END_DATE && { isPresent: false }),
+        },
+      }
+      setExperienceData(updatedData)
+      onUpdate(index, updatedData)
+      validateField(field, updatedData[field])
+    },
+    [experienceData, index, onUpdate, validateField]
+  )
 
-  const handleYearInput = (value: string, setter: (value: string) => void) => {
-    if (/^\d{0,4}$/.test(value)) {
-      setter(value)
-    }
-  }
+  const handlePresentChange = useCallback(
+    (checked: boolean) => {
+      if (experienceData.endDate.isPresent === checked) return
+      const updatedEndDate = checked
+        ? { month: '' as Month, year: '', isPresent: true }
+        : { ...experienceData.endDate, isPresent: false }
+      const updatedData = { ...experienceData, endDate: updatedEndDate }
+      setExperienceData(updatedData)
+      onUpdate(index, updatedData)
+      validateField(ExperienceBlockFields.END_DATE, updatedEndDate)
+    },
+    [experienceData, index, onUpdate, validateField]
+  )
 
-  const handleBulletChange = (bulletIndex: number, value: string): void => {
-    const updatedBullets = [...experienceData.bulletPoints]
-    updatedBullets[bulletIndex] = value
-    const updatedData = { ...experienceData, bulletPoints: updatedBullets }
-    setExperienceData(updatedData)
-    onUpdate(index, updatedData)
-    validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
-  }
+  const handleYearInput = useCallback(
+    (value: string, setter: (value: string) => void) => {
+      if (/^\d{0,4}$/.test(value)) {
+        setter(value)
+      }
+    },
+    []
+  )
 
-  const addBullet = (): void => {
+  const handleBulletChange = useCallback(
+    (bulletIndex: number, value: string): void => {
+      if (experienceData.bulletPoints[bulletIndex] === value) return
+      const updatedBullets = [...experienceData.bulletPoints]
+      updatedBullets[bulletIndex] = value
+      const updatedData = { ...experienceData, bulletPoints: updatedBullets }
+      setExperienceData(updatedData)
+      onUpdate(index, updatedData)
+      validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
+    },
+    [experienceData, index, onUpdate, validateField]
+  )
+
+  const addBullet = useCallback((): void => {
     const updatedBullets = [...experienceData.bulletPoints, '']
     const updatedData = { ...experienceData, bulletPoints: updatedBullets }
     setExperienceData(updatedData)
     onUpdate(index, updatedData)
     validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
-  }
+  }, [experienceData, index, onUpdate, validateField])
 
-  const deleteBullet = (bulletIndex: number): void => {
-    const updatedBullets = experienceData.bulletPoints.filter(
-      (_, i) => i !== bulletIndex
-    )
-    const updatedData = { ...experienceData, bulletPoints: updatedBullets }
-    setExperienceData(updatedData)
-    onUpdate(index, updatedData)
-    validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
-  }
+  const deleteBullet = useCallback(
+    (bulletIndex: number): void => {
+      const updatedBullets = experienceData.bulletPoints.filter(
+        (_, i) => i !== bulletIndex
+      )
+      const updatedData = { ...experienceData, bulletPoints: updatedBullets }
+      setExperienceData(updatedData)
+      onUpdate(index, updatedData)
+      validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
+    },
+    [experienceData, index, onUpdate, validateField]
+  )
 
-  // Validate initial data
   useEffect(() => {
-    Object.keys(experienceData).forEach((key) => {
-      const field = key as keyof ExperienceBlockData
-      validateField(field, experienceData[field])
-    })
-  }, [])
+    validateField(
+      ExperienceBlockFields.JOB_TITLE,
+      debouncedExperienceData.jobTitle
+    )
+    validateField(
+      ExperienceBlockFields.COMPANY_NAME,
+      debouncedExperienceData.companyName
+    )
+    validateField(
+      ExperienceBlockFields.LOCATION,
+      debouncedExperienceData.location
+    )
+    validateField(
+      ExperienceBlockFields.START_DATE,
+      debouncedExperienceData.startDate
+    )
+    validateField(
+      ExperienceBlockFields.END_DATE,
+      debouncedExperienceData.endDate
+    )
+    validateField(
+      ExperienceBlockFields.BULLET_POINTS,
+      debouncedExperienceData.bulletPoints
+    )
+  }, [debouncedExperienceData, validateField])
 
   return (
     <section
@@ -491,3 +545,5 @@ export const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
     </section>
   )
 }
+
+export default memo(ExperienceBlock, arePropsEqual)
