@@ -17,6 +17,7 @@ import {
 
 const dummyExperienceData = [
   {
+    id: '1',
     jobTitle: 'Software Engineer',
     companyName: 'Google',
     startDate: { month: 'Jan' as Month, year: '2020' },
@@ -29,6 +30,7 @@ const dummyExperienceData = [
     ],
   },
   {
+    id: '2',
     jobTitle: 'Frontend Developer',
     companyName: 'Microsoft',
     startDate: { month: 'Jun' as Month, year: '2019' },
@@ -294,18 +296,18 @@ export const ResumeForm: React.FC = () => {
 
       {experienceData.map((experience, index) => (
         <ExperienceBlock
-          key={index}
-          index={index}
+          key={experience.id}
+          id={experience.id}
           data={experience}
-          onUpdate={(i, data) => {
-            const updatedExperienceData = experienceData.map((exp, index) =>
-              index === i ? data : exp
+          onUpdate={(id, data) => {
+            const updatedExperienceData = experienceData.map((exp) =>
+              exp.id === id ? data : exp
             )
             setExperienceData(updatedExperienceData)
           }}
-          onDelete={(i) => {
+          onDelete={(id) => {
             const updatedExperienceData = experienceData.filter(
-              (_, index) => index !== i
+              (exp) => exp.id !== id
             )
             setExperienceData(updatedExperienceData)
           }}

@@ -29,6 +29,7 @@ type EndDate = {
 }
 
 export interface ExperienceBlockData {
+  id: string
   jobTitle: string
   startDate: StartDate
   endDate: EndDate
@@ -38,10 +39,10 @@ export interface ExperienceBlockData {
 }
 
 interface ExperienceBlockProps {
-  index: number
+  id: string
   data: ExperienceBlockData
-  onUpdate: (index: number, data: ExperienceBlockData) => void
-  onDelete: (index: number) => void
+  onUpdate: (id: string, data: ExperienceBlockData) => void
+  onDelete: (id: string) => void
 }
 
 enum ExperienceBlockFields {
@@ -142,7 +143,7 @@ const arePropsEqual = (
   nextProps: ExperienceBlockProps
 ): boolean => {
   return (
-    prevProps.index === nextProps.index &&
+    prevProps.id === nextProps.id &&
     JSON.stringify(prevProps.data) === JSON.stringify(nextProps.data) &&
     prevProps.onUpdate === nextProps.onUpdate &&
     prevProps.onDelete === nextProps.onDelete
@@ -150,7 +151,7 @@ const arePropsEqual = (
 }
 
 const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
-  index,
+  id,
   data,
   onUpdate,
   onDelete,
@@ -203,10 +204,10 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
       if (experienceData[field] === value) return
       const updatedData = { ...experienceData, [field]: value }
       setExperienceData(updatedData)
-      onUpdate(index, updatedData)
+      onUpdate(id, updatedData)
       validateField(field, value)
     },
-    [experienceData, index, onUpdate, validateField]
+    [experienceData, id, onUpdate, validateField]
   )
 
   const handleDateChange = useCallback(
@@ -225,10 +226,10 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         },
       }
       setExperienceData(updatedData)
-      onUpdate(index, updatedData)
+      onUpdate(id, updatedData)
       validateField(field, updatedData[field])
     },
-    [experienceData, index, onUpdate, validateField]
+    [experienceData, id, onUpdate, validateField]
   )
 
   const handlePresentChange = useCallback(
@@ -239,10 +240,10 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         : { ...experienceData.endDate, isPresent: false }
       const updatedData = { ...experienceData, endDate: updatedEndDate }
       setExperienceData(updatedData)
-      onUpdate(index, updatedData)
+      onUpdate(id, updatedData)
       validateField(ExperienceBlockFields.END_DATE, updatedEndDate)
     },
-    [experienceData, index, onUpdate, validateField]
+    [experienceData, id, onUpdate, validateField]
   )
 
   const handleYearInput = useCallback(
@@ -261,19 +262,19 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
       updatedBullets[bulletIndex] = value
       const updatedData = { ...experienceData, bulletPoints: updatedBullets }
       setExperienceData(updatedData)
-      onUpdate(index, updatedData)
+      onUpdate(id, updatedData)
       validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
     },
-    [experienceData, index, onUpdate, validateField]
+    [experienceData, id, onUpdate, validateField]
   )
 
   const addBullet = useCallback((): void => {
     const updatedBullets = [...experienceData.bulletPoints, '']
     const updatedData = { ...experienceData, bulletPoints: updatedBullets }
     setExperienceData(updatedData)
-    onUpdate(index, updatedData)
+    onUpdate(id, updatedData)
     validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
-  }, [experienceData, index, onUpdate, validateField])
+  }, [experienceData, id, onUpdate, validateField])
 
   const deleteBullet = useCallback(
     (bulletIndex: number): void => {
@@ -282,10 +283,10 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
       )
       const updatedData = { ...experienceData, bulletPoints: updatedBullets }
       setExperienceData(updatedData)
-      onUpdate(index, updatedData)
+      onUpdate(id, updatedData)
       validateField(ExperienceBlockFields.BULLET_POINTS, updatedBullets)
     },
-    [experienceData, index, onUpdate, validateField]
+    [experienceData, id, onUpdate, validateField]
   )
 
   useEffect(() => {
@@ -316,17 +317,12 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
   }, [debouncedExperienceData, validateField])
 
   return (
-    <section
-      className={styles.experienceBlock}
-      aria-labelledby={`experience-block-${index}`}
-    >
+    <section className={styles.experienceBlock}>
       <header className={styles.header}>
-        <h3 id={`experience-block-${index}`}>Experience Block {index + 1}</h3>
         <button
           type='button'
           className={styles.button}
-          onClick={() => onDelete(index)}
-          aria-label={`Delete experience block ${index + 1}`}
+          onClick={() => onDelete(data.id)}
         >
           Delete Block
         </button>
@@ -334,16 +330,16 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
 
       <fieldset className={styles.jobDetails}>
         <div className={styles.field}>
-          <label htmlFor={`job-title-${index}`}>Job Title</label>
+          <label htmlFor={`job-title-${experienceData.jobTitle}`}>
+            Job Title
+          </label>
           <input
-            id={`job-title-${index}`}
             type='text'
             className={styles.input}
             value={experienceData.jobTitle}
             onChange={(e) =>
               handleFieldChange(ExperienceBlockFields.JOB_TITLE, e.target.value)
             }
-            aria-required='true'
           />
           {errors.jobTitle && (
             <p className={styles.errorMessage}>{errors.jobTitle}</p>
@@ -351,9 +347,10 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor={`company-name-${index}`}>Company Name</label>
+          <label htmlFor={`company-name-${experienceData.companyName}`}>
+            Company Name
+          </label>
           <input
-            id={`company-name-${index}`}
             type='text'
             className={styles.input}
             value={experienceData.companyName}
@@ -363,7 +360,6 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
                 e.target.value
               )
             }
-            aria-required='true'
           />
           {errors.companyName && (
             <p className={styles.errorMessage}>{errors.companyName}</p>
@@ -371,16 +367,16 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor={`location-${index}`}>Location</label>
+          <label htmlFor={`location-${experienceData.location}`}>
+            Location
+          </label>
           <input
-            id={`location-${index}`}
             type='text'
             className={styles.input}
             value={experienceData.location}
             onChange={(e) =>
               handleFieldChange(ExperienceBlockFields.LOCATION, e.target.value)
             }
-            aria-required='true'
           />
           {errors.location && (
             <p className={styles.errorMessage}>{errors.location}</p>
@@ -388,10 +384,11 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.dateField}>
-          <label htmlFor={`start-month-${index}`}>Start Date</label>
+          <label htmlFor={`start-month-${experienceData.startDate.month}`}>
+            Start Date
+          </label>
           <div className={styles.dateInputs}>
             <select
-              id={`start-month-${index}`}
               className={styles.input}
               value={experienceData.startDate.month}
               onChange={(e) =>
@@ -401,9 +398,6 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
                   e.target.value
                 )
               }
-              aria-required='true'
-              aria-label='Start month'
-              aria-invalid={!!errors.startDate}
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
@@ -413,7 +407,6 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
               ))}
             </select>
             <input
-              id={`start-year-${index}`}
               type='text'
               className={styles.input}
               value={experienceData.startDate.year}
@@ -429,9 +422,6 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
               placeholder='YYYY'
               maxLength={4}
               pattern='[0-9]{4}'
-              aria-required='true'
-              aria-label='Start year'
-              aria-invalid={!!errors.startDate}
             />
           </div>
           {errors.startDate && (
@@ -440,21 +430,17 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.dateField}>
-          <label htmlFor={`end-month-${index}`}>End Date</label>
+          <label htmlFor='end-month'>End Date</label>
           <div className={styles.checkboxField}>
             <input
-              id={`present-${index}`}
               type='checkbox'
               checked={experienceData.endDate.isPresent}
               onChange={(e) => handlePresentChange(e.target.checked)}
-              aria-label='Current position (Present)'
-              aria-describedby={`end-date-error-${index}`}
             />
-            <label htmlFor={`present-${index}`}>Present</label>
+            <label htmlFor='present'>Present</label>
           </div>
           <div className={styles.dateInputs}>
             <select
-              id={`end-month-${index}`}
               className={styles.input}
               value={experienceData.endDate.month}
               onChange={(e) =>
@@ -465,9 +451,6 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
                 )
               }
               disabled={experienceData.endDate.isPresent}
-              aria-required={!experienceData.endDate.isPresent}
-              aria-label='End month'
-              aria-invalid={!!errors.endDate}
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
@@ -477,7 +460,6 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
               ))}
             </select>
             <input
-              id={`end-year-${index}`}
               type='text'
               className={styles.input}
               value={experienceData.endDate.year}
@@ -494,15 +476,10 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
               maxLength={4}
               pattern='[0-9]{4}'
               disabled={experienceData.endDate.isPresent}
-              aria-required={!experienceData.endDate.isPresent}
-              aria-label='End year'
-              aria-invalid={!!errors.endDate}
             />
           </div>
           {errors.endDate && (
-            <p id={`end-date-error-${index}`} className={styles.errorMessage}>
-              {errors.endDate}
-            </p>
+            <p className={styles.errorMessage}>{errors.endDate}</p>
           )}
         </div>
       </fieldset>
@@ -513,32 +490,24 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
           {experienceData.bulletPoints.map((bullet, bulletIndex) => (
             <li key={bulletIndex} className={styles.bulletItem}>
               <input
-                id={`bullet-${index}-${bulletIndex}`}
                 type='text'
                 className={styles.input}
                 value={bullet}
                 onChange={(e) =>
                   handleBulletChange(bulletIndex, e.target.value)
                 }
-                aria-label={`Bullet point ${bulletIndex + 1}`}
               />
               <button
                 type='button'
                 className={styles.button}
                 onClick={() => deleteBullet(bulletIndex)}
-                aria-label={`Delete bullet point ${bulletIndex + 1}`}
               >
                 Delete
               </button>
             </li>
           ))}
         </ul>
-        <button
-          type='button'
-          className={styles.button}
-          onClick={addBullet}
-          aria-label='Add new bullet point'
-        >
+        <button type='button' className={styles.button} onClick={addBullet}>
           Add Bullet
         </button>
       </fieldset>
