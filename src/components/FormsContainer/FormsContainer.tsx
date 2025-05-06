@@ -1,5 +1,5 @@
 'use client'
-import styles from './ResumeForm.module.scss'
+import styles from './FormsContainer.module.scss'
 import {
   useActionState,
   useState,
@@ -21,6 +21,37 @@ import {
   Month,
 } from '@/components/ExperienceBlock/ExperienceBlock'
 import Preview from '@/components/ResumePreview/ResumePreview'
+import PersonalDetails, {
+  PersonalDetailsFormValues,
+} from '@/components/PersonalDetails/PersonalDetails'
+
+enum Tabs {
+  PERSONAL_DETAILS = 'PersonalDetails',
+  JOB_DESCRIPTION = 'JobDescription',
+  WORK_EXPERIENCE = 'WorkExperience',
+  EDUCATION = 'Education',
+  SKILLS = 'Skills',
+}
+
+interface FormState {
+  personalDetails: {
+    data: PersonalDetailsFormValues
+    isValid: boolean
+  }
+  workExperience: {
+    data: ExperienceBlockData[]
+    isValid: boolean
+  }
+  // To be expanded with other forms when needed
+}
+
+const tabs = [
+  { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
+  { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
+  { id: Tabs.WORK_EXPERIENCE, label: 'Work Experience' },
+  { id: Tabs.EDUCATION, label: 'Education' },
+  { id: Tabs.SKILLS, label: 'Skills' },
+]
 
 const dummyExperienceData = [
   {
@@ -50,14 +81,6 @@ const dummyExperienceData = [
       'Developed and maintained web applications using React and Node.js',
     ],
   },
-]
-
-const tabs = [
-  { id: 'PersonalDetails', label: 'Personal Details' },
-  { id: 'JobDescription', label: 'Job Description' },
-  { id: 'WorkExperience', label: 'Work Experience' },
-  { id: 'Education', label: 'Education' },
-  { id: 'Skills', label: 'Skills' },
 ]
 
 const formSchema = z.object({
@@ -96,7 +119,27 @@ type LatexResponseData = {
   fileId: string
 }
 
-export const ResumeForm: React.FC = () => {
+const initialFormState: FormState = {
+  personalDetails: {
+    data: {
+      name: '',
+      email: '',
+      phone: '',
+      location: '',
+      linkedin: '',
+      github: '',
+      website: '',
+    },
+    isValid: false,
+  },
+  workExperience: {
+    data: [],
+    isValid: false,
+  },
+}
+
+export const FormsContainer: React.FC = () => {
+  // TODO: break this out into separate sections, and create controls
   const [formValues, setFormValues] = useState<FormFields>({
     experience: '',
     jobDescription: '',
@@ -104,12 +147,15 @@ export const ResumeForm: React.FC = () => {
     maxCharsPerBullet: 0,
   })
 
+  const [formState, setFormState] = useState<FormState>(initialFormState)
+
   const [sessionId, setSessionId] = useState<string>('')
   const [pdfGenerating, setPdfGenerating] = useState(false)
   const [experienceData, setExperienceData] =
     useState<ExperienceBlockData[]>(dummyExperienceData)
-  const [activeTab, setActiveTab] = useState<string>('JobDescription')
+  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
   const [view, setView] = useState<'input' | 'preview'>('input')
+  const [showWarning, setShowWarning] = useState<boolean>(false)
 
   const [state, formAction, isPending] = useActionState(
     async (_previousState: ResumeFormState | null, formData: FormData) => {
@@ -265,10 +311,26 @@ export const ResumeForm: React.FC = () => {
       endDate: { month: '', year: '', isPresent: false },
       companyName: '',
       location: '',
-      bulletPoints: [''],
+      bulletPoints: [],
     }
     setExperienceData((prev) => [...prev, newBlock])
   }, [])
+
+  const handlePersonalDetailsUpdate = ({
+    data,
+    isValid,
+  }: {
+    data: PersonalDetailsFormValues
+    isValid: boolean
+  }) => {
+    if (isValid) {
+      localStorage.setItem('resumint_personalDetails', JSON.stringify(data))
+    }
+    // TODO: update local state
+  }
+
+  // TODO: implement validation of all forms
+  const handleFormsValidation = () => {}
 
   const experienceBlocks = useMemo(() => {
     return experienceData.map((experience) => (
@@ -301,33 +363,10 @@ export const ResumeForm: React.FC = () => {
           ))}
         </div>
         <div className={styles.tabContent}>
-          {activeTab === 'PersonalDetails' && (
-            <div className={styles.section}>
-              <h2>Personal Details</h2>
-              <input
-                name='name'
-                placeholder='Full Name'
-                className={styles.formInput}
-                // value={formValues.name || ''}
-                onChange={handleChange}
-              />
-              <input
-                name='email'
-                placeholder='Email'
-                className={styles.formInput}
-                // value={formValues.email || ''}
-                onChange={handleChange}
-              />
-              <input
-                name='phone'
-                placeholder='Phone'
-                className={styles.formInput}
-                // value={formValues.phone || ''}
-                onChange={handleChange}
-              />
-            </div>
+          {activeTab === Tabs.PERSONAL_DETAILS && (
+            <PersonalDetails onUpdate={handlePersonalDetailsUpdate} />
           )}
-          {activeTab === 'JobDescription' && (
+          {activeTab === Tabs.JOB_DESCRIPTION && (
             <form className={styles.section} action={formAction}>
               <h2>Job Description</h2>
               <textarea
@@ -387,7 +426,7 @@ export const ResumeForm: React.FC = () => {
               </button>
             </form>
           )}
-          {activeTab === 'WorkExperience' && (
+          {activeTab === Tabs.WORK_EXPERIENCE && (
             <div className={styles.section}>
               <h2>Work Experience</h2>
               <button
@@ -400,13 +439,13 @@ export const ResumeForm: React.FC = () => {
               {experienceBlocks}
             </div>
           )}
-          {activeTab === 'Education' && (
+          {activeTab === Tabs.EDUCATION && (
             <div className={styles.section}>
               <h2>Education</h2>
               <p>Add education details here.</p>
             </div>
           )}
-          {activeTab === 'Skills' && (
+          {activeTab === Tabs.SKILLS && (
             <div className={styles.section}>
               <h2>Skills</h2>
               <p>Add skills here (AI-generated in future).</p>

@@ -1,5 +1,5 @@
 import styles from './page.module.scss'
-import { ResumeForm } from '@/components/ResumeForm/ResumeForm'
+import { FormsContainer } from '@/components/FormsContainer/FormsContainer'
 
 export default function Home() {
   return (
@@ -8,7 +8,7 @@ export default function Home() {
         <h1>ResuMint</h1>
       </header>
       <main className={styles.container}>
-        <ResumeForm />
+        <FormsContainer />
       </main>
     </div>
   )
