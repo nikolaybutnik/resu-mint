@@ -294,7 +294,7 @@ export const ResumeForm: React.FC = () => {
         Generate PDF
       </button>
 
-      {experienceData.map((experience, index) => (
+      {experienceData.map((experience) => (
         <ExperienceBlock
           key={experience.id}
           id={experience.id}

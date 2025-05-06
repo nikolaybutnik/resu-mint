@@ -330,10 +330,9 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
 
       <fieldset className={styles.jobDetails}>
         <div className={styles.field}>
-          <label htmlFor={`job-title-${experienceData.jobTitle}`}>
-            Job Title
-          </label>
+          <label htmlFor={'job-title'}>Job Title</label>
           <input
+            id='job-title'
             type='text'
             className={styles.input}
             value={experienceData.jobTitle}
@@ -347,10 +346,9 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor={`company-name-${experienceData.companyName}`}>
-            Company Name
-          </label>
+          <label htmlFor={'company-name'}>Company Name</label>
           <input
+            id='company-name'
             type='text'
             className={styles.input}
             value={experienceData.companyName}
@@ -367,10 +365,9 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor={`location-${experienceData.location}`}>
-            Location
-          </label>
+          <label htmlFor={'location'}>Location</label>
           <input
+            id='location'
             type='text'
             className={styles.input}
             value={experienceData.location}
@@ -384,10 +381,8 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.dateField}>
-          <label htmlFor={`start-month-${experienceData.startDate.month}`}>
-            Start Date
-          </label>
-          <div className={styles.dateInputs}>
+          <label htmlFor={'start-date'}>Start Date</label>
+          <div id='start-date' className={styles.dateInputs}>
             <select
               className={styles.input}
               value={experienceData.startDate.month}
@@ -430,16 +425,16 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.dateField}>
-          <label htmlFor='end-month'>End Date</label>
-          <div className={styles.checkboxField}>
+          <label htmlFor='end-date'>End Date</label>
+          <div id='set-present' className={styles.checkboxField}>
             <input
               type='checkbox'
               checked={experienceData.endDate.isPresent}
               onChange={(e) => handlePresentChange(e.target.checked)}
             />
-            <label htmlFor='present'>Present</label>
+            <label htmlFor='set-present'>Present</label>
           </div>
-          <div className={styles.dateInputs}>
+          <div id='end-date' className={styles.dateInputs}>
             <select
               className={styles.input}
               value={experienceData.endDate.month}
