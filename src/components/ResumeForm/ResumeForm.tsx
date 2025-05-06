@@ -1,6 +1,12 @@
 'use client'
 import styles from './ResumeForm.module.scss'
-import { useActionState, useState, useEffect } from 'react'
+import {
+  useActionState,
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+} from 'react'
 import { z } from 'zod'
 import {
   formatErrorsForClient,
@@ -14,6 +20,7 @@ import {
   ExperienceBlockData,
   Month,
 } from '@/components/ExperienceBlock/ExperienceBlock'
+import Preview from '@/components/ResumePreview/ResumePreview'
 
 const dummyExperienceData = [
   {
@@ -43,6 +50,14 @@ const dummyExperienceData = [
       'Developed and maintained web applications using React and Node.js',
     ],
   },
+]
+
+const tabs = [
+  { id: 'PersonalDetails', label: 'Personal Details' },
+  { id: 'JobDescription', label: 'Job Description' },
+  { id: 'WorkExperience', label: 'Work Experience' },
+  { id: 'Education', label: 'Education' },
+  { id: 'Skills', label: 'Skills' },
 ]
 
 const formSchema = z.object({
@@ -93,6 +108,9 @@ export const ResumeForm: React.FC = () => {
   const [pdfGenerating, setPdfGenerating] = useState(false)
   const [experienceData, setExperienceData] =
     useState<ExperienceBlockData[]>(dummyExperienceData)
+  const [activeTab, setActiveTab] = useState<string>('JobDescription')
+  const [view, setView] = useState<'input' | 'preview'>('input')
+
   const [state, formAction, isPending] = useActionState(
     async (_previousState: ResumeFormState | null, formData: FormData) => {
       const data: FormFields = {
@@ -229,90 +247,198 @@ export const ResumeForm: React.FC = () => {
     }
   }
 
+  const onUpdate = useCallback((id: string, data: ExperienceBlockData) => {
+    setExperienceData((prev) =>
+      prev.map((exp) => (exp.id === id ? { ...data, id: exp.id } : exp))
+    )
+  }, [])
+
+  const onDelete = useCallback((id: string) => {
+    setExperienceData((prev) => prev.filter((exp) => exp.id !== id))
+  }, [])
+
+  const addExperienceBlock = useCallback(() => {
+    const newBlock: ExperienceBlockData = {
+      id: uuidv4(),
+      jobTitle: '',
+      startDate: { month: 'Jan' as Month, year: '' },
+      endDate: { month: '', year: '', isPresent: false },
+      companyName: '',
+      location: '',
+      bulletPoints: [''],
+    }
+    setExperienceData((prev) => [...prev, newBlock])
+  }, [])
+
+  const experienceBlocks = useMemo(() => {
+    return experienceData.map((experience) => (
+      <ExperienceBlock
+        key={experience.id}
+        id={experience.id}
+        data={experience}
+        onUpdate={onUpdate}
+        onDelete={onDelete}
+      />
+    ))
+  }, [experienceData])
+
   return (
-    <form className={styles.form} action={formAction}>
-      <textarea
-        name='experience'
-        placeholder='Work Experience'
-        className={styles.formInput}
-        value={formValues.experience}
-        onChange={handleChange}
-      />
-      {state?.errors?.experience && (
-        <p className={styles.errorMessage}>{state.errors.experience}</p>
-      )}
-
-      <textarea
-        name='jobDescription'
-        placeholder='Job Description'
-        className={styles.formInput}
-        value={formValues.jobDescription}
-        onChange={handleChange}
-      />
-      {state?.errors?.jobDescription && (
-        <p className={styles.errorMessage}>{state.errors.jobDescription}</p>
-      )}
-
-      <input
-        name='numBulletsPerExperience'
-        autoComplete='off'
-        placeholder='Number of Bullets'
-        className={styles.formInput}
-        value={formValues.numBulletsPerExperience || ''}
-        onChange={handleChange}
-      />
-      {state?.errors?.numBulletsPerExperience && (
-        <p className={styles.errorMessage}>
-          {state.errors.numBulletsPerExperience}
-        </p>
-      )}
-
-      <input
-        name='maxCharsPerBullet'
-        autoComplete='off'
-        placeholder='Max Characters'
-        className={styles.formInput}
-        value={formValues.maxCharsPerBullet || ''}
-        onChange={handleChange}
-      />
-      {state?.errors?.maxCharsPerBullet && (
-        <p className={styles.errorMessage}>{state.errors.maxCharsPerBullet}</p>
-      )}
-
-      <button type='submit' className={styles.formButton} disabled={isPending}>
-        Generate Bullets
-      </button>
-
-      <button
-        type='button'
-        className={styles.formButton}
-        disabled={
-          !state?.generatedSections?.length || isPending || pdfGenerating
-        }
-        onClick={handlePDFGeneration}
+    <div className={styles.container}>
+      <div
+        className={`${styles.sidebar} ${view === 'input' ? styles.active : ''}`}
       >
-        Generate PDF
-      </button>
-
-      {experienceData.map((experience) => (
-        <ExperienceBlock
-          key={experience.id}
-          id={experience.id}
-          data={experience}
-          onUpdate={(id, data) => {
-            const updatedExperienceData = experienceData.map((exp) =>
-              exp.id === id ? data : exp
-            )
-            setExperienceData(updatedExperienceData)
-          }}
-          onDelete={(id) => {
-            const updatedExperienceData = experienceData.filter(
-              (exp) => exp.id !== id
-            )
-            setExperienceData(updatedExperienceData)
-          }}
-        />
-      ))}
-    </form>
+        <div className={styles.tabNav}>
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              className={`${styles.tabButton} ${
+                activeTab === tab.id ? styles.activeTab : ''
+              }`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        <div className={styles.tabContent}>
+          {activeTab === 'PersonalDetails' && (
+            <div className={styles.section}>
+              <h2>Personal Details</h2>
+              <input
+                name='name'
+                placeholder='Full Name'
+                className={styles.formInput}
+                // value={formValues.name || ''}
+                onChange={handleChange}
+              />
+              <input
+                name='email'
+                placeholder='Email'
+                className={styles.formInput}
+                // value={formValues.email || ''}
+                onChange={handleChange}
+              />
+              <input
+                name='phone'
+                placeholder='Phone'
+                className={styles.formInput}
+                // value={formValues.phone || ''}
+                onChange={handleChange}
+              />
+            </div>
+          )}
+          {activeTab === 'JobDescription' && (
+            <form className={styles.section} action={formAction}>
+              <h2>Job Description</h2>
+              <textarea
+                name='experience'
+                placeholder='Work Experience'
+                className={styles.formInput}
+                value={formValues.experience}
+                onChange={handleChange}
+              />
+              {state?.errors?.experience && (
+                <p className={styles.errorMessage}>{state.errors.experience}</p>
+              )}
+              <textarea
+                name='jobDescription'
+                placeholder='Job Description'
+                className={styles.formInput}
+                value={formValues.jobDescription}
+                onChange={handleChange}
+              />
+              {state?.errors?.jobDescription && (
+                <p className={styles.errorMessage}>
+                  {state.errors.jobDescription}
+                </p>
+              )}
+              <input
+                name='numBulletsPerExperience'
+                autoComplete='off'
+                placeholder='Number of Bullets'
+                className={styles.formInput}
+                value={formValues.numBulletsPerExperience || ''}
+                onChange={handleChange}
+              />
+              {state?.errors?.numBulletsPerExperience && (
+                <p className={styles.errorMessage}>
+                  {state.errors.numBulletsPerExperience}
+                </p>
+              )}
+              <input
+                name='maxCharsPerBullet'
+                autoComplete='off'
+                placeholder='Max Characters'
+                className={styles.formInput}
+                value={formValues.maxCharsPerBullet || ''}
+                onChange={handleChange}
+              />
+              {state?.errors?.maxCharsPerBullet && (
+                <p className={styles.errorMessage}>
+                  {state.errors.maxCharsPerBullet}
+                </p>
+              )}
+              <button
+                type='submit'
+                className={styles.formButton}
+                disabled={isPending}
+              >
+                Generate Bullets
+              </button>
+            </form>
+          )}
+          {activeTab === 'WorkExperience' && (
+            <div className={styles.section}>
+              <h2>Work Experience</h2>
+              <button
+                type='button'
+                className={styles.formButton}
+                onClick={addExperienceBlock}
+              >
+                Add Experience
+              </button>
+              {experienceBlocks}
+            </div>
+          )}
+          {activeTab === 'Education' && (
+            <div className={styles.section}>
+              <h2>Education</h2>
+              <p>Add education details here.</p>
+            </div>
+          )}
+          {activeTab === 'Skills' && (
+            <div className={styles.section}>
+              <h2>Skills</h2>
+              <p>Add skills here (AI-generated in future).</p>
+            </div>
+          )}
+          <button
+            type='button'
+            className={styles.formButton}
+            disabled={
+              !state?.generatedSections?.length || isPending || pdfGenerating
+            }
+            onClick={handlePDFGeneration}
+          >
+            Generate PDF
+          </button>
+        </div>
+      </div>
+      <div
+        className={`${styles.preview} ${
+          view === 'preview' ? styles.active : ''
+        }`}
+      >
+        <Preview />
+      </div>
+      <div className={styles.bottomNav}>
+        <button className={styles.navItem} onClick={() => setView('input')}>
+          Input
+        </button>
+        <button className={styles.navItem} onClick={() => setView('preview')}>
+          Preview
+        </button>
+      </div>
+    </div>
   )
 }

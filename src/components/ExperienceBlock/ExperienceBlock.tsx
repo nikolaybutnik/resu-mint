@@ -289,6 +289,10 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
     [experienceData, id, onUpdate, validateField]
   )
 
+  const handleBlockDelete = useCallback(() => {
+    onDelete(id)
+  }, [id, onDelete])
+
   useEffect(() => {
     validateField(
       ExperienceBlockFields.JOB_TITLE,
@@ -319,10 +323,11 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
   return (
     <section className={styles.experienceBlock}>
       <header className={styles.header}>
+        <h3>Experience Block</h3>
         <button
           type='button'
           className={styles.button}
-          onClick={() => onDelete(data.id)}
+          onClick={handleBlockDelete}
         >
           Delete Block
         </button>
@@ -330,9 +335,8 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
 
       <fieldset className={styles.jobDetails}>
         <div className={styles.field}>
-          <label htmlFor={'job-title'}>Job Title</label>
+          <label>Job Title</label>
           <input
-            id='job-title'
             type='text'
             className={styles.input}
             value={experienceData.jobTitle}
@@ -346,9 +350,8 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor={'company-name'}>Company Name</label>
+          <label>Company Name</label>
           <input
-            id='company-name'
             type='text'
             className={styles.input}
             value={experienceData.companyName}
@@ -365,9 +368,8 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.field}>
-          <label htmlFor={'location'}>Location</label>
+          <label>Location</label>
           <input
-            id='location'
             type='text'
             className={styles.input}
             value={experienceData.location}
@@ -381,8 +383,8 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.dateField}>
-          <label htmlFor={'start-date'}>Start Date</label>
-          <div id='start-date' className={styles.dateInputs}>
+          <label>Start Date</label>
+          <div className={styles.dateInputs}>
             <select
               className={styles.input}
               value={experienceData.startDate.month}
@@ -425,16 +427,16 @@ const ExperienceBlock: React.FC<ExperienceBlockProps> = ({
         </div>
 
         <div className={styles.dateField}>
-          <label htmlFor='end-date'>End Date</label>
-          <div id='set-present' className={styles.checkboxField}>
+          <label>End Date</label>
+          <div className={styles.checkboxField}>
             <input
               type='checkbox'
               checked={experienceData.endDate.isPresent}
               onChange={(e) => handlePresentChange(e.target.checked)}
             />
-            <label htmlFor='set-present'>Present</label>
+            <label>Present</label>
           </div>
-          <div id='end-date' className={styles.dateInputs}>
+          <div className={styles.dateInputs}>
             <select
               className={styles.input}
               value={experienceData.endDate.month}

@@ -2,11 +2,16 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  overscroll-behavior: none;
 }
 
 :root {
   --primary-color: #1976d6;
   --text-color: #333;
+  --vh: 100vh;
+  @supports (height: 100dvh) {
+    --vh: 100dvh;
+  }
 }
 
 body {
