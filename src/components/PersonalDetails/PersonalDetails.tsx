@@ -1,5 +1,5 @@
 import styles from './PersonalDetails.module.scss'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { z } from 'zod'
 import { debounce } from 'lodash'
 
@@ -78,54 +78,39 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   const [touched, setTouched] = useState<
     Partial<Record<keyof PersonalDetailsFormValues, boolean>>
   >({})
-  const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
-  // This will be utilized if the user is not logged in
   useEffect(() => {
-    const savedData = localStorage.getItem('resumint_personalDetails')
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData)
-        const result = formSchema.safeParse(parsedData)
-        const valid = result.success
-        if (valid) {
-          setFormValues(parsedData)
-        }
-        onUpdate?.({ data: parsedData, isValid: valid })
-      } catch (error) {
-        console.error(
-          'Failed to load personal details from localStorage:',
-          error
+    setFormValues(data)
+  }, [data])
+
+  const validateField = useCallback(
+    (
+      field: keyof PersonalDetailsFormValues,
+      value: string | undefined
+    ): string => {
+      // Validates only the current field
+      const pickObj = { [field]: true } as { [K in typeof field]: true }
+      const partialSchema = formSchema.pick(pickObj)
+      const result = partialSchema.safeParse({ [field]: value })
+      if (!result.success) {
+        const error = result.error.issues.find(
+          (issue) => issue.path[0] === field
         )
-        onUpdate?.({ data: formValues, isValid: false })
+        return error?.message || ''
       }
-    } else {
-      onUpdate?.({ data: formValues, isValid: false })
-    }
+      return ''
+    },
+    [formSchema]
+  )
 
-    setIsInitialized(true)
-  }, [])
-
-  const validateField = (
-    field: keyof PersonalDetailsFormValues,
-    value: string | undefined
-  ): string => {
-    // Validates only the current field
-    const pickObj = { [field]: true } as { [K in typeof field]: true }
-    const partialSchema = formSchema.pick(pickObj)
-    const result = partialSchema.safeParse({ [field]: value })
-    if (!result.success) {
-      const error = result.error.issues.find((issue) => issue.path[0] === field)
-      return error?.message || ''
-    }
-    return ''
-  }
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target
-    setFormValues({ ...formValues, [name]: value })
-    setTouched((prev) => ({ ...prev, [name]: true }))
-  }
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>): void => {
+      const { name, value } = e.target
+      setFormValues({ ...formValues, [name]: value })
+      setTouched((prev) => ({ ...prev, [name]: true }))
+    },
+    [formValues]
+  )
 
   const validateTouchedFields = debounce(
     (
@@ -154,7 +139,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
     return () => validateTouchedFields.cancel()
   }, [formValues, touched])
 
-  const validateAll = (): boolean => {
+  const validateAll = useCallback((): boolean => {
     const result = formSchema.safeParse(formValues)
     if (!result.success) {
       const newErrors: ValidationErrors = {}
@@ -167,13 +152,16 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
     }
     setErrors({})
     return true
-  }
+  }, [formValues, formSchema])
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const valid = validateAll()
-    onUpdate?.({ data: formValues, isValid: valid })
-  }
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault()
+      const valid = validateAll()
+      onUpdate?.({ data: formValues, isValid: valid })
+    },
+    [formValues, validateAll, onUpdate]
+  )
 
   return (
     <form className={styles.formSection} onSubmit={handleSubmit}>
@@ -186,9 +174,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.name}
           onChange={handleChange}
         />
-        {isInitialized && errors.name && (
-          <p className={styles.formError}>{errors.name}</p>
-        )}
+        {errors.name && <p className={styles.formError}>{errors.name}</p>}
       </div>
       <div className={styles.formField}>
         <input
@@ -198,9 +184,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.email}
           onChange={handleChange}
         />
-        {isInitialized && errors.email && (
-          <p className={styles.formError}>{errors.email}</p>
-        )}
+        {errors.email && <p className={styles.formError}>{errors.email}</p>}
       </div>
       <div className={styles.formField}>
         <input
@@ -210,9 +194,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.phone}
           onChange={handleChange}
         />
-        {isInitialized && errors.phone && (
-          <p className={styles.formError}>{errors.phone}</p>
-        )}
+        {errors.phone && <p className={styles.formError}>{errors.phone}</p>}
       </div>
       <div className={styles.formField}>
         <input
@@ -222,7 +204,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.location}
           onChange={handleChange}
         />
-        {isInitialized && errors.location && (
+        {errors.location && (
           <p className={styles.formError}>{errors.location}</p>
         )}
       </div>
@@ -234,7 +216,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.linkedin}
           onChange={handleChange}
         />
-        {isInitialized && errors.linkedin && (
+        {errors.linkedin && (
           <p className={styles.formError}>{errors.linkedin}</p>
         )}
       </div>
@@ -246,9 +228,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.github}
           onChange={handleChange}
         />
-        {isInitialized && errors.github && (
-          <p className={styles.formError}>{errors.github}</p>
-        )}
+        {errors.github && <p className={styles.formError}>{errors.github}</p>}
       </div>
       <div className={styles.formField}>
         <input
@@ -258,9 +238,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.website}
           onChange={handleChange}
         />
-        {isInitialized && errors.website && (
-          <p className={styles.formError}>{errors.website}</p>
-        )}
+        {errors.website && <p className={styles.formError}>{errors.website}</p>}
       </div>
       <button type='submit' className={styles.formButton}>
         Save
