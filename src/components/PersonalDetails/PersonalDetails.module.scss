@@ -1,36 +1,99 @@
-.section {
-  background-color: #f9f9f9;
-  padding: 15px;
-  border-radius: 5px;
+@import '../../styles/variables';
+
+.formSection {
+  background: $color-background;
+  padding: 24px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  max-width: 640px;
+  width: 100%;
+}
+
+.formTitle {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: $color-text;
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  position: relative;
 }
 
 .formInput {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 16px;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 10px;
-}
-
-.errorMessage {
-  color: red;
+  font-family: $font-family-base;
+  padding: 12px 0px;
   font-size: 14px;
-  margin-top: 4px;
+  border: none;
+  border-bottom: 2px solid $color-border;
+  border-radius: 2px;
+  background: transparent;
+  color: $color-text;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 2px 0 0 $color-primary;
+  }
+
+  &::placeholder {
+    color: $color-placeholder;
+    font-weight: 500;
+  }
+}
+
+.formError {
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-error;
+  margin-top: 6px;
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .formButton {
-  padding: 10px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+  font-family: $font-family-base;
+  padding: 12px 24px;
   font-size: 16px;
-  margin-top: 10px;
+  font-weight: 800;
+  color: $color-background;
+  background: $color-primary;
+  border: 2px solid $color-primary;
+  border-radius: 6px;
+  cursor: pointer;
+  transform: translateY(0);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    background: $color-primary-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px $color-border;
+  }
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  &:disabled {
+    background: $color-border;
+    border-color: $color-border;
+    color: $color-disabled;
+    cursor: not-allowed;
+    transform: translateY(0);
+    box-shadow: none;
+  }
 }

@@ -119,23 +119,14 @@ type LatexResponseData = {
   fileId: string
 }
 
-const initialFormState: FormState = {
-  personalDetails: {
-    data: {
-      name: '',
-      email: '',
-      phone: '',
-      location: '',
-      linkedin: '',
-      github: '',
-      website: '',
-    },
-    isValid: false,
-  },
-  workExperience: {
-    data: [],
-    isValid: false,
-  },
+const initialPersonalDetails: PersonalDetailsFormValues = {
+  name: '',
+  email: '',
+  phone: '',
+  location: '',
+  linkedin: '',
+  github: '',
+  website: '',
 }
 
 export const FormsContainer: React.FC = () => {
@@ -147,15 +138,25 @@ export const FormsContainer: React.FC = () => {
     maxCharsPerBullet: 0,
   })
 
-  const [formState, setFormState] = useState<FormState>(initialFormState)
-
+  // Application States
   const [sessionId, setSessionId] = useState<string>('')
+
+  // UI States
+  const [view, setView] = useState<'input' | 'preview'>('input')
+  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
   const [pdfGenerating, setPdfGenerating] = useState(false)
+
+  // Form States
+  const [allFormsValidity, setAllFormsValidity] = useState<{
+    [key: string]: boolean
+  }>({
+    personalDetails: false,
+    // workExperience: false, TODO: implement
+  })
+  const [personalDetails, setPersonalDetails] =
+    useState<PersonalDetailsFormValues>(initialPersonalDetails)
   const [experienceData, setExperienceData] =
     useState<ExperienceBlockData[]>(dummyExperienceData)
-  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
-  const [view, setView] = useState<'input' | 'preview'>('input')
-  const [showWarning, setShowWarning] = useState<boolean>(false)
 
   const [state, formAction, isPending] = useActionState(
     async (_previousState: ResumeFormState | null, formData: FormData) => {
@@ -189,6 +190,18 @@ export const FormsContainer: React.FC = () => {
       const newId = uuidv4()
       window.localStorage.setItem('sessionId', newId)
       setSessionId(newId)
+    }
+  }, [])
+
+  // Load personal details
+  useEffect(() => {
+    // TODO: Check if user is logged in. If yes, load personal details from DB
+    // If no, load personal details from local storage
+    const storedPersonalDetails = window.localStorage.getItem(
+      'resumint_personalDetails'
+    )
+    if (storedPersonalDetails) {
+      setPersonalDetails(JSON.parse(storedPersonalDetails))
     }
   }, [])
 
@@ -326,11 +339,13 @@ export const FormsContainer: React.FC = () => {
     if (isValid) {
       localStorage.setItem('resumint_personalDetails', JSON.stringify(data))
     }
-    // TODO: update local state
+    setAllFormsValidity((prev) => ({ ...prev, personalDetails: isValid }))
+    setPersonalDetails(data)
   }
 
-  // TODO: implement validation of all forms
-  const handleFormsValidation = () => {}
+  useEffect(() => {
+    console.log('allFormsValidity', allFormsValidity)
+  }, [allFormsValidity])
 
   const experienceBlocks = useMemo(() => {
     return experienceData.map((experience) => (
@@ -364,7 +379,10 @@ export const FormsContainer: React.FC = () => {
         </div>
         <div className={styles.tabContent}>
           {activeTab === Tabs.PERSONAL_DETAILS && (
-            <PersonalDetails onUpdate={handlePersonalDetailsUpdate} />
+            <PersonalDetails
+              data={personalDetails}
+              onUpdate={handlePersonalDetailsUpdate}
+            />
           )}
           {activeTab === Tabs.JOB_DESCRIPTION && (
             <form className={styles.section} action={formAction}>

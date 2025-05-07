@@ -1,27 +1,9 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  overscroll-behavior: none;
-}
+@import '../styles/variables';
+@import '../styles/base';
 
 :root {
-  --primary-color: #1976d6;
-  --text-color: #333;
   --vh: 100vh;
   @supports (height: 100dvh) {
     --vh: 100dvh;
   }
-}
-
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  color: var(--text-color);
-  line-height: 1.5;
-}
-
-.container {
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 16px;
 }

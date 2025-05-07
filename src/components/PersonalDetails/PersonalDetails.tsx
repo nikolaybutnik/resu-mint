@@ -18,7 +18,7 @@ type ValidationErrors = {
 }
 
 interface PersonalDetailsProps {
-  initialValues?: PersonalDetailsFormValues
+  data: PersonalDetailsFormValues
   onUpdate?: ({
     data,
     isValid,
@@ -69,26 +69,15 @@ const formSchema = z.object({
     ),
 })
 
-// TODO: pass initialValues from parent component
 const PersonalDetails: React.FC<PersonalDetailsProps> = ({
-  initialValues = {
-    name: '',
-    email: '',
-    phone: '',
-    location: '',
-    linkedin: '',
-    github: '',
-    website: '',
-  },
+  data,
   onUpdate,
 }) => {
-  const [formValues, setFormValues] =
-    useState<PersonalDetailsFormValues>(initialValues)
+  const [formValues, setFormValues] = useState<PersonalDetailsFormValues>(data)
   const [errors, setErrors] = useState<ValidationErrors>({})
   const [touched, setTouched] = useState<
     Partial<Record<keyof PersonalDetailsFormValues, boolean>>
   >({})
-  const [isValid, setIsValid] = useState<boolean>(false)
   const [isInitialized, setIsInitialized] = useState<boolean>(false)
 
   // This will be utilized if the user is not logged in
@@ -102,18 +91,15 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
         if (valid) {
           setFormValues(parsedData)
         }
-        setIsValid(valid)
         onUpdate?.({ data: parsedData, isValid: valid })
       } catch (error) {
         console.error(
           'Failed to load personal details from localStorage:',
           error
         )
-        setIsValid(false)
         onUpdate?.({ data: formValues, isValid: false })
       }
     } else {
-      setIsValid(false)
       onUpdate?.({ data: formValues, isValid: false })
     }
 
@@ -186,38 +172,37 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const valid = validateAll()
-    setIsValid(valid)
     onUpdate?.({ data: formValues, isValid: valid })
   }
 
   return (
-    <form className={styles.section} onSubmit={handleSubmit}>
+    <form className={styles.formSection} onSubmit={handleSubmit}>
       <h2>Personal Details</h2>
-      <div className={styles.field}>
+      <div className={styles.formField}>
         <input
           name='name'
-          placeholder='Full Name'
+          placeholder='Full Name *'
           className={styles.formInput}
           value={formValues.name}
           onChange={handleChange}
         />
         {isInitialized && errors.name && (
-          <p className={styles.errorMessage}>{errors.name}</p>
+          <p className={styles.formError}>{errors.name}</p>
         )}
       </div>
-      <div className={styles.field}>
+      <div className={styles.formField}>
         <input
           name='email'
-          placeholder='Email'
+          placeholder='Email *'
           className={styles.formInput}
           value={formValues.email}
           onChange={handleChange}
         />
         {isInitialized && errors.email && (
-          <p className={styles.errorMessage}>{errors.email}</p>
+          <p className={styles.formError}>{errors.email}</p>
         )}
       </div>
-      <div className={styles.field}>
+      <div className={styles.formField}>
         <input
           name='phone'
           placeholder='Phone (e.g., +1234567890)'
@@ -226,10 +211,10 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           onChange={handleChange}
         />
         {isInitialized && errors.phone && (
-          <p className={styles.errorMessage}>{errors.phone}</p>
+          <p className={styles.formError}>{errors.phone}</p>
         )}
       </div>
-      <div className={styles.field}>
+      <div className={styles.formField}>
         <input
           name='location'
           placeholder='Location (e.g., New York, NY)'
@@ -238,43 +223,43 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           onChange={handleChange}
         />
         {isInitialized && errors.location && (
-          <p className={styles.errorMessage}>{errors.location}</p>
+          <p className={styles.formError}>{errors.location}</p>
         )}
       </div>
-      <div className={styles.field}>
+      <div className={styles.formField}>
         <input
           name='linkedin'
-          placeholder='LinkedIn URL (optional)'
+          placeholder='LinkedIn URL'
           className={styles.formInput}
           value={formValues.linkedin}
           onChange={handleChange}
         />
         {isInitialized && errors.linkedin && (
-          <p className={styles.errorMessage}>{errors.linkedin}</p>
+          <p className={styles.formError}>{errors.linkedin}</p>
         )}
       </div>
-      <div className={styles.field}>
+      <div className={styles.formField}>
         <input
           name='github'
-          placeholder='GitHub URL (optional)'
+          placeholder='GitHub URL'
           className={styles.formInput}
           value={formValues.github}
           onChange={handleChange}
         />
         {isInitialized && errors.github && (
-          <p className={styles.errorMessage}>{errors.github}</p>
+          <p className={styles.formError}>{errors.github}</p>
         )}
       </div>
-      <div className={styles.field}>
+      <div className={styles.formField}>
         <input
           name='website'
-          placeholder='Website URL (optional)'
+          placeholder='Website URL'
           className={styles.formInput}
           value={formValues.website}
           onChange={handleChange}
         />
         {isInitialized && errors.website && (
-          <p className={styles.errorMessage}>{errors.website}</p>
+          <p className={styles.formError}>{errors.website}</p>
         )}
       </div>
       <button type='submit' className={styles.formButton}>
