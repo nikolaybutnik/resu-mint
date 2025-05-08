@@ -1,12 +1,6 @@
 'use client'
 import styles from './FormsContainer.module.scss'
-import {
-  useActionState,
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-} from 'react'
+import { useActionState, useState, useEffect } from 'react'
 import { z } from 'zod'
 import {
   formatErrorsForClient,
@@ -15,7 +9,6 @@ import {
 } from '@/lib/types/errors'
 import { v4 as uuidv4 } from 'uuid'
 import { saveAs } from 'file-saver'
-import ExperienceBlock from '@/components/ExperienceBlock/ExperienceBlock'
 import {
   ExperienceBlockData,
   Month,
@@ -24,6 +17,7 @@ import Preview from '@/components/ResumePreview/ResumePreview'
 import PersonalDetails, {
   PersonalDetailsFormValues,
 } from '@/components/PersonalDetails/PersonalDetails'
+import WorkExperience from '../WorkExperience/WorkExperience'
 
 enum Tabs {
   PERSONAL_DETAILS = 'PersonalDetails',
@@ -33,56 +27,15 @@ enum Tabs {
   SKILLS = 'Skills',
 }
 
-interface FormState {
-  personalDetails: {
-    data: PersonalDetailsFormValues
-    isValid: boolean
-  }
-  workExperience: {
-    data: ExperienceBlockData[]
-    isValid: boolean
-  }
-  // To be expanded with other forms when needed
-}
-
 const tabs = [
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
-  { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
   { id: Tabs.WORK_EXPERIENCE, label: 'Work Experience' },
-  { id: Tabs.EDUCATION, label: 'Education' },
-  { id: Tabs.SKILLS, label: 'Skills' },
+  // { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
+  // { id: Tabs.EDUCATION, label: 'Education' },
+  // { id: Tabs.SKILLS, label: 'Skills' },
 ]
 
-const dummyExperienceData = [
-  {
-    id: '1',
-    jobTitle: 'Software Engineer',
-    companyName: 'Google',
-    startDate: { month: 'Jan' as Month, year: '2020' },
-    endDate: { month: 'Dec' as Month, year: '2022', isPresent: false },
-    location: 'Mountain View, CA',
-    bulletPoints: [
-      'Developed and maintained web applications using React and Node.js',
-      'Collaborated with cross-functional teams to implement new features',
-      'Optimized application performance for better user experience',
-    ],
-  },
-  {
-    id: '2',
-    jobTitle: 'Frontend Developer',
-    companyName: 'Microsoft',
-    startDate: { month: 'Jun' as Month, year: '2019' },
-    endDate: { month: 'Dec' as Month, year: '2022', isPresent: false },
-    location: 'Redmond, WA',
-    bulletPoints: [
-      'Built responsive UI components using TypeScript and React hooks',
-      'Implemented state management solutions with Redux and Context API',
-      'Improved accessibility compliance across multiple web applications',
-      'Developed and maintained web applications using React and Node.js',
-    ],
-  },
-]
-
+// TODO: retire this schema when job description tab is in place
 const formSchema = z.object({
   experience: z
     .string()
@@ -91,7 +44,7 @@ const formSchema = z.object({
   jobDescription: z
     .string()
     .min(10, 'Job description must be at least 10 characters')
-    .nonempty('Job description is required'),
+    .nonempty('Experience is required'),
   numBulletsPerExperience: z
     .number()
     .min(1, 'Number of bullets must be at least 1')
@@ -128,9 +81,10 @@ const initialPersonalDetails: PersonalDetailsFormValues = {
   github: '',
   website: '',
 }
+const initialWorkExperience: ExperienceBlockData[] = []
 
 export const FormsContainer: React.FC = () => {
-  // TODO: break this out into separate sections, and create controls
+  // TODO: retire this formValues state when job description tab is in place
   const [formValues, setFormValues] = useState<FormFields>({
     experience: '',
     jobDescription: '',
@@ -143,7 +97,7 @@ export const FormsContainer: React.FC = () => {
 
   // UI States
   const [view, setView] = useState<'input' | 'preview'>('input')
-  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
+  const [activeTab, setActiveTab] = useState<string>(Tabs.WORK_EXPERIENCE)
   const [pdfGenerating, setPdfGenerating] = useState(false)
 
   // Form States
@@ -151,12 +105,13 @@ export const FormsContainer: React.FC = () => {
     [key: string]: boolean
   }>({
     personalDetails: false,
-    // workExperience: false, TODO: implement
+    workExperience: false,
   })
   const [personalDetails, setPersonalDetails] =
     useState<PersonalDetailsFormValues>(initialPersonalDetails)
-  const [experienceData, setExperienceData] =
-    useState<ExperienceBlockData[]>(dummyExperienceData)
+  const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
+    initialWorkExperience
+  )
 
   const [state, formAction, isPending] = useActionState(
     async (_previousState: ResumeFormState | null, formData: FormData) => {
@@ -195,13 +150,21 @@ export const FormsContainer: React.FC = () => {
 
   // Load personal details
   useEffect(() => {
-    // TODO: Check if user is logged in. If yes, load personal details from DB
-    // If no, load personal details from local storage
     const storedPersonalDetails = window.localStorage.getItem(
       'resumint_personalDetails'
     )
     if (storedPersonalDetails) {
       setPersonalDetails(JSON.parse(storedPersonalDetails))
+    }
+  }, [])
+
+  // Load work experience
+  useEffect(() => {
+    const storedWorkExperience = window.localStorage.getItem(
+      'resumint_workExperience'
+    )
+    if (storedWorkExperience) {
+      setWorkExperience(JSON.parse(storedWorkExperience))
     }
   }, [])
 
@@ -306,58 +269,39 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
-  const onUpdate = useCallback((id: string, data: ExperienceBlockData) => {
-    setExperienceData((prev) =>
-      prev.map((exp) => (exp.id === id ? { ...data, id: exp.id } : exp))
-    )
-  }, [])
+  const handlePersonalDetailsUpdate = (data: PersonalDetailsFormValues) => {
+    setPersonalDetails(data)
+  }
 
-  const onDelete = useCallback((id: string) => {
-    setExperienceData((prev) => prev.filter((exp) => exp.id !== id))
-  }, [])
-
-  const addExperienceBlock = useCallback(() => {
-    const newBlock: ExperienceBlockData = {
-      id: uuidv4(),
-      jobTitle: '',
-      startDate: { month: 'Jan' as Month, year: '' },
-      endDate: { month: '', year: '', isPresent: false },
-      companyName: '',
-      location: '',
-      bulletPoints: [],
-    }
-    setExperienceData((prev) => [...prev, newBlock])
-  }, [])
-
-  const handlePersonalDetailsUpdate = ({
+  const handlePersonalDetailsSave = ({
     data,
     isValid,
   }: {
     data: PersonalDetailsFormValues
     isValid: boolean
   }) => {
+    setAllFormsValidity((prev) => ({ ...prev, personalDetails: isValid }))
     if (isValid) {
       localStorage.setItem('resumint_personalDetails', JSON.stringify(data))
     }
-    setAllFormsValidity((prev) => ({ ...prev, personalDetails: isValid }))
-    setPersonalDetails(data)
   }
 
-  useEffect(() => {
-    console.log('allFormsValidity', allFormsValidity)
-  }, [allFormsValidity])
+  const handleWorkExperienceUpdate = (data: ExperienceBlockData[]) => {
+    setWorkExperience(data)
+  }
 
-  const experienceBlocks = useMemo(() => {
-    return experienceData.map((experience) => (
-      <ExperienceBlock
-        key={experience.id}
-        id={experience.id}
-        data={experience}
-        onUpdate={onUpdate}
-        onDelete={onDelete}
-      />
-    ))
-  }, [experienceData])
+  const handleWorkExperienceSave = ({
+    data,
+    isValid,
+  }: {
+    data: ExperienceBlockData[]
+    isValid: boolean
+  }) => {
+    setAllFormsValidity((prev) => ({ ...prev, workExperience: isValid }))
+    if (isValid && data.length > 0) {
+      localStorage.setItem('resumint_workExperience', JSON.stringify(data))
+    }
+  }
 
   return (
     <div className={styles.container}>
@@ -382,98 +326,27 @@ export const FormsContainer: React.FC = () => {
             <PersonalDetails
               data={personalDetails}
               onUpdate={handlePersonalDetailsUpdate}
+              onSave={handlePersonalDetailsSave}
             />
           )}
-          {activeTab === Tabs.JOB_DESCRIPTION && (
-            <form className={styles.section} action={formAction}>
-              <h2>Job Description</h2>
-              <textarea
-                name='experience'
-                placeholder='Work Experience'
-                className={styles.formInput}
-                value={formValues.experience}
-                onChange={handleChange}
-              />
-              {state?.errors?.experience && (
-                <p className={styles.errorMessage}>{state.errors.experience}</p>
-              )}
-              <textarea
-                name='jobDescription'
-                placeholder='Job Description'
-                className={styles.formInput}
-                value={formValues.jobDescription}
-                onChange={handleChange}
-              />
-              {state?.errors?.jobDescription && (
-                <p className={styles.errorMessage}>
-                  {state.errors.jobDescription}
-                </p>
-              )}
-              <input
-                name='numBulletsPerExperience'
-                autoComplete='off'
-                placeholder='Number of Bullets'
-                className={styles.formInput}
-                value={formValues.numBulletsPerExperience || ''}
-                onChange={handleChange}
-              />
-              {state?.errors?.numBulletsPerExperience && (
-                <p className={styles.errorMessage}>
-                  {state.errors.numBulletsPerExperience}
-                </p>
-              )}
-              <input
-                name='maxCharsPerBullet'
-                autoComplete='off'
-                placeholder='Max Characters'
-                className={styles.formInput}
-                value={formValues.maxCharsPerBullet || ''}
-                onChange={handleChange}
-              />
-              {state?.errors?.maxCharsPerBullet && (
-                <p className={styles.errorMessage}>
-                  {state.errors.maxCharsPerBullet}
-                </p>
-              )}
-              <button
-                type='submit'
-                className={styles.formButton}
-                disabled={isPending}
-              >
-                Generate Bullets
-              </button>
-            </form>
-          )}
           {activeTab === Tabs.WORK_EXPERIENCE && (
-            <div className={styles.section}>
-              <h2>Work Experience</h2>
-              <button
-                type='button'
-                className={styles.formButton}
-                onClick={addExperienceBlock}
-              >
-                Add Experience
-              </button>
-              {experienceBlocks}
-            </div>
+            <WorkExperience
+              data={workExperience}
+              onUpdate={handleWorkExperienceUpdate}
+              onSave={handleWorkExperienceSave}
+            />
           )}
-          {activeTab === Tabs.EDUCATION && (
-            <div className={styles.section}>
-              <h2>Education</h2>
-              <p>Add education details here.</p>
-            </div>
-          )}
-          {activeTab === Tabs.SKILLS && (
-            <div className={styles.section}>
-              <h2>Skills</h2>
-              <p>Add skills here (AI-generated in future).</p>
-            </div>
-          )}
+
+          {/* TODO: this button needs to be moved somewhere easier to reach */}
           <button
             type='button'
             className={styles.formButton}
             disabled={
-              !state?.generatedSections?.length || isPending || pdfGenerating
+              !allFormsValidity.personalDetails ||
+              !allFormsValidity.workExperience ||
+              !state?.generatedSections?.length ||
+              isPending ||
+              pdfGenerating
             }
             onClick={handlePDFGeneration}
           >

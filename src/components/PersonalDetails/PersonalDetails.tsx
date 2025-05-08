@@ -1,7 +1,6 @@
 import styles from './PersonalDetails.module.scss'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { z } from 'zod'
-import { debounce } from 'lodash'
 
 export interface PersonalDetailsFormValues {
   name: string
@@ -19,7 +18,8 @@ type ValidationErrors = {
 
 interface PersonalDetailsProps {
   data: PersonalDetailsFormValues
-  onUpdate?: ({
+  onUpdate: (data: PersonalDetailsFormValues) => void
+  onSave: ({
     data,
     isValid,
   }: {
@@ -72,9 +72,9 @@ const formSchema = z.object({
 const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   data,
   onUpdate,
+  onSave,
 }) => {
   const [formValues, setFormValues] = useState<PersonalDetailsFormValues>(data)
-  const [errors, setErrors] = useState<ValidationErrors>({})
   const [touched, setTouched] = useState<
     Partial<Record<keyof PersonalDetailsFormValues, boolean>>
   >({})
@@ -83,84 +83,36 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
     setFormValues(data)
   }, [data])
 
-  const validateField = useCallback(
-    (
-      field: keyof PersonalDetailsFormValues,
-      value: string | undefined
-    ): string => {
-      // Validates only the current field
-      const pickObj = { [field]: true } as { [K in typeof field]: true }
-      const partialSchema = formSchema.pick(pickObj)
-      const result = partialSchema.safeParse({ [field]: value })
-      if (!result.success) {
-        const error = result.error.issues.find(
-          (issue) => issue.path[0] === field
-        )
-        return error?.message || ''
-      }
-      return ''
-    },
-    [formSchema]
-  )
+  const { isValid, errors } = useMemo(() => {
+    const result = formSchema.safeParse(formValues)
+    if (result.success) {
+      return { isValid: true, errors: {} as ValidationErrors }
+    }
+    const errors: ValidationErrors = {}
+    result.error.issues.forEach((issue) => {
+      const field = issue.path[0] as keyof PersonalDetailsFormValues
+      errors[field] = issue.message
+    })
+    return { isValid: false, errors }
+  }, [formValues])
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>): void => {
       const { name, value } = e.target
-      setFormValues({ ...formValues, [name]: value })
+      const updatedValues = { ...formValues, [name]: value }
+      setFormValues(updatedValues)
       setTouched((prev) => ({ ...prev, [name]: true }))
+      onUpdate(updatedValues)
     },
-    [formValues]
+    [formValues, onUpdate]
   )
-
-  const validateTouchedFields = debounce(
-    (
-      formValues: PersonalDetailsFormValues,
-      touched: Partial<Record<keyof PersonalDetailsFormValues, boolean>>,
-      setErrors: React.Dispatch<React.SetStateAction<ValidationErrors>>
-    ): void => {
-      Object.keys(formValues).forEach((key) => {
-        if (touched[key as keyof PersonalDetailsFormValues]) {
-          const error = validateField(
-            key as keyof PersonalDetailsFormValues,
-            formValues[key as keyof PersonalDetailsFormValues]
-          )
-          setErrors((prev) => ({
-            ...prev,
-            [key]: error || undefined,
-          }))
-        }
-      })
-    },
-    300
-  )
-
-  useEffect(() => {
-    validateTouchedFields(formValues, touched, setErrors)
-    return () => validateTouchedFields.cancel()
-  }, [formValues, touched])
-
-  const validateAll = useCallback((): boolean => {
-    const result = formSchema.safeParse(formValues)
-    if (!result.success) {
-      const newErrors: ValidationErrors = {}
-      result.error.issues.forEach((issue) => {
-        const field = issue.path[0] as keyof PersonalDetailsFormValues
-        newErrors[field] = issue.message
-      })
-      setErrors(newErrors)
-      return false
-    }
-    setErrors({})
-    return true
-  }, [formValues, formSchema])
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
-      const valid = validateAll()
-      onUpdate?.({ data: formValues, isValid: valid })
+      onSave({ data: formValues, isValid })
     },
-    [formValues, validateAll, onUpdate]
+    [formValues, isValid, onSave]
   )
 
   return (
@@ -174,7 +126,9 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.name}
           onChange={handleChange}
         />
-        {errors.name && <p className={styles.formError}>{errors.name}</p>}
+        {touched.name && errors.name && (
+          <p className={styles.formError}>{errors.name}</p>
+        )}
       </div>
       <div className={styles.formField}>
         <input
@@ -184,27 +138,31 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           value={formValues.email}
           onChange={handleChange}
         />
-        {errors.email && <p className={styles.formError}>{errors.email}</p>}
+        {touched.email && errors.email && (
+          <p className={styles.formError}>{errors.email}</p>
+        )}
       </div>
       <div className={styles.formField}>
         <input
           name='phone'
           placeholder='Phone (e.g., +1234567890)'
           className={styles.formInput}
-          value={formValues.phone}
+          value={formValues.phone || ''}
           onChange={handleChange}
         />
-        {errors.phone && <p className={styles.formError}>{errors.phone}</p>}
+        {touched.phone && errors.phone && (
+          <p className={styles.formError}>{errors.phone}</p>
+        )}
       </div>
       <div className={styles.formField}>
         <input
           name='location'
           placeholder='Location (e.g., New York, NY)'
           className={styles.formInput}
-          value={formValues.location}
+          value={formValues.location || ''}
           onChange={handleChange}
         />
-        {errors.location && (
+        {touched.location && errors.location && (
           <p className={styles.formError}>{errors.location}</p>
         )}
       </div>
@@ -213,10 +171,10 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           name='linkedin'
           placeholder='LinkedIn URL'
           className={styles.formInput}
-          value={formValues.linkedin}
+          value={formValues.linkedin || ''}
           onChange={handleChange}
         />
-        {errors.linkedin && (
+        {touched.linkedin && errors.linkedin && (
           <p className={styles.formError}>{errors.linkedin}</p>
         )}
       </div>
@@ -225,22 +183,26 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           name='github'
           placeholder='GitHub URL'
           className={styles.formInput}
-          value={formValues.github}
+          value={formValues.github || ''}
           onChange={handleChange}
         />
-        {errors.github && <p className={styles.formError}>{errors.github}</p>}
+        {touched.github && errors.github && (
+          <p className={styles.formError}>{errors.github}</p>
+        )}
       </div>
       <div className={styles.formField}>
         <input
           name='website'
           placeholder='Website URL'
           className={styles.formInput}
-          value={formValues.website}
+          value={formValues.website || ''}
           onChange={handleChange}
         />
-        {errors.website && <p className={styles.formError}>{errors.website}</p>}
+        {touched.website && errors.website && (
+          <p className={styles.formError}>{errors.website}</p>
+        )}
       </div>
-      <button type='submit' className={styles.formButton}>
+      <button type='submit' className={styles.formButton} disabled={!isValid}>
         Save
       </button>
     </form>
