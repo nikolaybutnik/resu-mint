@@ -28,6 +28,20 @@ type EndDate = {
   isPresent: boolean
 }
 
+enum FieldType {
+  JOB_TITLE = 'jobTitle',
+  COMPANY_NAME = 'companyName',
+  LOCATION = 'location',
+  START_DATE = 'startDate',
+  END_DATE = 'endDate',
+  BULLET_POINTS = 'bulletPoints',
+  START_DATE_MONTH = 'startDate.month',
+  START_DATE_YEAR = 'startDate.year',
+  END_DATE_IS_PRESENT = 'endDate.isPresent',
+  END_DATE_MONTH = 'endDate.month',
+  END_DATE_YEAR = 'endDate.year',
+}
+
 export interface ExperienceBlockData {
   id: string
   jobTitle: string
@@ -182,71 +196,85 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     return errors
   }, [debouncedFormData])
 
-  const handleChange = useCallback((field: string, value: string | boolean) => {
-    setFormData((prev) => {
-      if (field === 'jobTitle') {
-        return { ...prev, jobTitle: value as string }
-      }
-      if (field === 'companyName') {
-        return { ...prev, companyName: value as string }
-      }
-      if (field === 'location') {
-        return { ...prev, location: value as string }
-      }
-      if (field === 'startDate.month') {
-        return {
+  const sanitizeYear = (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4)
+
+  const handleChange = useCallback(
+    (field: FieldType, value: string | boolean, bulletIndex?: number) => {
+      const updateHandlers: Record<
+        string,
+        (
+          prev: ExperienceBlockData,
+          val: string | boolean
+        ) => ExperienceBlockData
+      > = {
+        [FieldType.JOB_TITLE]: (prev, val) => ({
           ...prev,
-          startDate: { ...prev.startDate, month: value as Month },
-        }
-      }
-      if (field === 'startDate.year') {
-        const digits = (value as string).replace(/[^0-9]/g, '').slice(0, 4)
-        return { ...prev, startDate: { ...prev.startDate, year: digits } }
-      }
-      if (field === 'endDate.isPresent') {
-        return {
+          jobTitle: val as string,
+        }),
+        [FieldType.COMPANY_NAME]: (prev, val) => ({
           ...prev,
-          endDate: value
+          companyName: val as string,
+        }),
+        [FieldType.LOCATION]: (prev, val) => ({
+          ...prev,
+          location: val as string,
+        }),
+        [FieldType.START_DATE]: (prev, val) => ({
+          ...prev,
+          startDate: { ...prev.startDate, month: val as Month },
+        }),
+        [FieldType.START_DATE_YEAR]: (prev, val) => ({
+          ...prev,
+          startDate: { ...prev.startDate, year: sanitizeYear(val as string) },
+        }),
+        [FieldType.END_DATE_IS_PRESENT]: (prev, val) => ({
+          ...prev,
+          endDate: val
             ? { month: '', year: '', isPresent: true }
             : { ...prev.endDate, isPresent: false },
-        }
-      }
-      if (field === 'endDate.month') {
-        return {
+        }),
+        [FieldType.END_DATE_MONTH]: (prev, val) => ({
           ...prev,
-          endDate: { ...prev.endDate, month: value as Month, isPresent: false },
-        }
-      }
-      if (field === 'endDate.year') {
-        const digits = (value as string).replace(/[^0-9]/g, '').slice(0, 4)
-        return {
+          endDate: { ...prev.endDate, month: val as Month, isPresent: false },
+        }),
+        [FieldType.END_DATE_YEAR]: (prev, val) => ({
           ...prev,
-          endDate: { ...prev.endDate, year: digits, isPresent: false },
-        }
+          endDate: {
+            ...prev.endDate,
+            year: sanitizeYear(val as string),
+            isPresent: false,
+          },
+        }),
       }
-      if (field.startsWith('bulletPoints.')) {
-        const index = parseInt(field.split('.')[1], 10)
-        return {
-          ...prev,
-          bulletPoints: [
-            ...prev.bulletPoints.slice(0, index),
-            value as string,
-            ...prev.bulletPoints.slice(index + 1),
-          ],
+
+      setFormData((prev) => {
+        if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
+          return {
+            ...prev,
+            bulletPoints: [
+              ...prev.bulletPoints.slice(0, bulletIndex),
+              value as string,
+              ...prev.bulletPoints.slice(bulletIndex + 1),
+            ],
+          }
         }
-      }
-      return prev
-    })
-    setTouched((prev) => ({
-      ...prev,
-      [field]: true,
-      ...(field === 'endDate.isPresent'
-        ? { endDate: true, 'endDate.month': true, 'endDate.year': true }
-        : field.startsWith('endDate')
-        ? { endDate: true }
-        : {}),
-    }))
-  }, [])
+
+        const handler = updateHandlers[field]
+        return handler ? handler(prev, value) : prev
+      })
+
+      setTouched((prev) => ({
+        ...prev,
+        [field]: true,
+        ...(field === 'endDate.isPresent'
+          ? { endDate: true, 'endDate.month': true, 'endDate.year': true }
+          : field.startsWith('endDate')
+          ? { endDate: true }
+          : {}),
+      }))
+    },
+    []
+  )
 
   const handleAddBulletPoint = useCallback(() => {
     setFormData((prev) => ({
@@ -301,7 +329,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='text'
             className={styles.formInput}
             value={formData.jobTitle}
-            onChange={(e) => handleChange('jobTitle', e.target.value)}
+            onChange={(e) => handleChange(FieldType.JOB_TITLE, e.target.value)}
           />
           {debouncedTouched.jobTitle && errors.jobTitle && (
             <p className={styles.formError}>{errors.jobTitle}</p>
@@ -314,7 +342,9 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='text'
             className={styles.formInput}
             value={formData.companyName}
-            onChange={(e) => handleChange('companyName', e.target.value)}
+            onChange={(e) =>
+              handleChange(FieldType.COMPANY_NAME, e.target.value)
+            }
           />
           {debouncedTouched.companyName && errors.companyName && (
             <p className={styles.formError}>{errors.companyName}</p>
@@ -327,7 +357,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='text'
             className={styles.formInput}
             value={formData.location}
-            onChange={(e) => handleChange('location', e.target.value)}
+            onChange={(e) => handleChange(FieldType.LOCATION, e.target.value)}
           />
           {debouncedTouched.location && errors.location && (
             <p className={styles.formError}>{errors.location}</p>
@@ -340,7 +370,9 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             <select
               className={styles.formInput}
               value={formData.startDate.month}
-              onChange={(e) => handleChange('startDate.month', e.target.value)}
+              onChange={(e) =>
+                handleChange(FieldType.START_DATE_MONTH, e.target.value)
+              }
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
@@ -364,15 +396,23 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                     .slice(0, 4)
                 }
               }}
-              onChange={(e) => handleChange('startDate.year', e.target.value)}
+              onChange={(e) =>
+                handleChange(FieldType.START_DATE_YEAR, e.target.value)
+              }
             />
           </div>
-          {debouncedTouched['startDate.month'] && errors['startDate.month'] && (
-            <p className={styles.formError}>{errors['startDate.month']}</p>
-          )}
-          {debouncedTouched['startDate.year'] && errors['startDate.year'] && (
-            <p className={styles.formError}>{errors['startDate.year']}</p>
-          )}
+          {debouncedTouched[FieldType.START_DATE_MONTH] &&
+            errors[FieldType.START_DATE_MONTH] && (
+              <p className={styles.formError}>
+                {errors[FieldType.START_DATE_MONTH]}
+              </p>
+            )}
+          {debouncedTouched[FieldType.START_DATE_YEAR] &&
+            errors[FieldType.START_DATE_YEAR] && (
+              <p className={styles.formError}>
+                {errors[FieldType.START_DATE_YEAR]}
+              </p>
+            )}
         </div>
 
         <div className={styles.formField}>
@@ -382,7 +422,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               type='checkbox'
               checked={formData.endDate.isPresent}
               onChange={(e) =>
-                handleChange('endDate.isPresent', e.target.checked)
+                handleChange(FieldType.END_DATE_IS_PRESENT, e.target.checked)
               }
             />
             <label className={styles.checkboxLabel}>Present</label>
@@ -392,7 +432,9 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               className={styles.formInput}
               value={formData.endDate.month}
               disabled={formData.endDate.isPresent}
-              onChange={(e) => handleChange('endDate.month', e.target.value)}
+              onChange={(e) =>
+                handleChange(FieldType.END_DATE_MONTH, e.target.value)
+              }
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
@@ -417,7 +459,9 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                     .slice(0, 4)
                 }
               }}
-              onChange={(e) => handleChange('endDate.year', e.target.value)}
+              onChange={(e) =>
+                handleChange(FieldType.END_DATE_YEAR, e.target.value)
+              }
             />
           </div>
           {debouncedTouched['endDate.month'] && errors['endDate.month'] && (
@@ -442,7 +486,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                 className={styles.formInput}
                 value={bullet}
                 onChange={(e) =>
-                  handleChange(`bulletPoints.${index}`, e.target.value)
+                  handleChange(FieldType.BULLET_POINTS, e.target.value, index)
                 }
               />
               <button

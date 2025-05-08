@@ -51,12 +51,14 @@ export const DraggableExperienceBlock: React.FC<
         </div>
       </div>
 
-      <button
-        className={styles.drawerToggleButton}
-        onClick={() => setIsExpanded((prev) => !prev)}
-      >
-        {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
-      </button>
+      {data.bulletPoints.length > 0 && (
+        <button
+          className={styles.drawerToggleButton}
+          onClick={() => setIsExpanded((prev) => !prev)}
+        >
+          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+        </button>
+      )}
 
       <div
         className={`${styles.experienceBlockDrawer} ${
