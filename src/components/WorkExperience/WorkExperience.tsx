@@ -37,7 +37,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({ data, onSave }) => {
     const newBlock: ExperienceBlockData = {
       id: uuidv4(),
       jobTitle: '',
-      startDate: { month: 'Jan' as Month, year: '' },
+      startDate: { month: '' as Month, year: '' },
       endDate: { month: '' as Month, year: '', isPresent: false },
       companyName: '',
       location: '',

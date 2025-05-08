@@ -2,6 +2,7 @@ import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { z } from 'zod'
 import { useDebounce } from '@/lib/utils'
 import styles from './EditableExperienceBlock.module.scss'
+import { FaXmark } from 'react-icons/fa6'
 
 export type Month =
   | 'Jan'
@@ -32,8 +33,6 @@ enum FieldType {
   JOB_TITLE = 'jobTitle',
   COMPANY_NAME = 'companyName',
   LOCATION = 'location',
-  START_DATE = 'startDate',
-  END_DATE = 'endDate',
   BULLET_POINTS = 'bulletPoints',
   START_DATE_MONTH = 'startDate.month',
   START_DATE_YEAR = 'startDate.year',
@@ -92,7 +91,7 @@ const monthToNumber: Record<Month, number> = {
 
 const startDateSchema = z.object({
   month: z.enum(months as [Month, ...Month[]], {
-    message: 'Month must be a valid month (e.g., Jan)',
+    message: 'Month is required',
   }),
   year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
 })
@@ -106,7 +105,7 @@ const endDateSchema = z.discriminatedUnion('isPresent', [
   z.object({
     isPresent: z.literal(false),
     month: z.enum(months as [Month, ...Month[]], {
-      message: 'Month must be a valid month (e.g., Jan)',
+      message: 'Month is required',
     }),
     year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
   }),
@@ -219,7 +218,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           ...prev,
           location: val as string,
         }),
-        [FieldType.START_DATE]: (prev, val) => ({
+        [FieldType.START_DATE_MONTH]: (prev, val) => ({
           ...prev,
           startDate: { ...prev.startDate, month: val as Month },
         }),
@@ -304,27 +303,14 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   return (
     <section className={styles.experienceBlock}>
       <header className={styles.header}>
-        {!isNew && (
-          <button
-            type='button'
-            className={`${styles.formButton} ${styles.formButtonSecondary}`}
-            onClick={() => onDelete(formData.id)}
-          >
-            Delete
-          </button>
-        )}
-        <button
-          type='button'
-          className={`${styles.formButton} ${styles.formButtonSecondary}`}
-          onClick={onClose}
-        >
-          Close
+        <button type='button' className={styles.closeButton} onClick={onClose}>
+          <FaXmark />
         </button>
       </header>
 
-      <fieldset className={styles.jobDetails}>
+      <div className={styles.jobDetails}>
         <div className={styles.formField}>
-          <label className={styles.label}>Job Title</label>
+          <label className={styles.label}>Job Title *</label>
           <input
             type='text'
             className={styles.formInput}
@@ -337,7 +323,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Company Name</label>
+          <label className={styles.label}>Company Name *</label>
           <input
             type='text'
             className={styles.formInput}
@@ -352,7 +338,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Location</label>
+          <label className={styles.label}>Location *</label>
           <input
             type='text'
             className={styles.formInput}
@@ -365,10 +351,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Start Date</label>
+          <label className={styles.label}>Start Date *</label>
           <div className={styles.dateInputs}>
             <select
-              className={styles.formInput}
+              className={[styles.formInput, styles.monthInput].join(' ')}
               value={formData.startDate.month}
               onChange={(e) =>
                 handleChange(FieldType.START_DATE_MONTH, e.target.value)
@@ -385,7 +371,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               type='text'
               name='startDate.year'
               placeholder='YYYY'
-              className={styles.formInput}
+              className={[styles.formInput, styles.yearInput].join(' ')}
               value={formData.startDate.year}
               maxLength={4}
               onInput={(e) => {
@@ -416,20 +402,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>End Date</label>
-          <div className={styles.checkboxField}>
-            <input
-              type='checkbox'
-              checked={formData.endDate.isPresent}
-              onChange={(e) =>
-                handleChange(FieldType.END_DATE_IS_PRESENT, e.target.checked)
-              }
-            />
-            <label className={styles.checkboxLabel}>Present</label>
-          </div>
+          <label className={styles.label}>End Date *</label>
           <div className={styles.dateInputs}>
             <select
-              className={styles.formInput}
+              className={[styles.formInput, styles.monthInput].join(' ')}
               value={formData.endDate.month}
               disabled={formData.endDate.isPresent}
               onChange={(e) =>
@@ -447,7 +423,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               type='text'
               name='endDate.year'
               placeholder='YYYY'
-              className={styles.formInput}
+              className={[styles.formInput, styles.yearInput].join(' ')}
               disabled={formData.endDate.isPresent}
               value={formData.endDate.year}
               maxLength={4}
@@ -464,6 +440,17 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               }
             />
           </div>
+          <div className={styles.checkboxField}>
+            <input
+              type='checkbox'
+              checked={formData.endDate.isPresent}
+              onChange={(e) =>
+                handleChange(FieldType.END_DATE_IS_PRESENT, e.target.checked)
+              }
+            />
+            <label className={styles.checkboxLabel}>Present</label>
+          </div>
+
           {debouncedTouched['endDate.month'] && errors['endDate.month'] && (
             <p className={styles.formError}>{errors['endDate.month']}</p>
           )}
@@ -474,16 +461,16 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             <p className={styles.formError}>{errors.endDate}</p>
           )}
         </div>
-      </fieldset>
+      </div>
 
-      <fieldset className={styles.bulletPoints}>
-        <legend className={styles.legend}>Bullet Points</legend>
+      <div className={styles.bulletPoints}>
+        <h3>Bullet Points</h3>
         <ul className={styles.bulletList}>
           {formData.bulletPoints.map((bullet, index) => (
             <li key={index} className={styles.bulletItem}>
               <input
                 type='text'
-                className={styles.formInput}
+                className={styles.bulletInput}
                 value={bullet}
                 onChange={(e) =>
                   handleChange(FieldType.BULLET_POINTS, e.target.value, index)
@@ -496,10 +483,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               >
                 Remove
               </button>
-              {debouncedTouched[`bulletPoints.${index}`] &&
-                errors[`bulletPoints.${index}`] && (
+              {debouncedTouched[FieldType.BULLET_POINTS] &&
+                errors[`${FieldType.BULLET_POINTS}.${index}`] && (
                   <p className={styles.formError}>
-                    {errors[`bulletPoints.${index}`]}
+                    {errors[`${FieldType.BULLET_POINTS}.${index}`]}
                   </p>
                 )}
             </li>
@@ -512,7 +499,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         >
           Add Bullet
         </button>
-      </fieldset>
+      </div>
 
       <button
         type='button'
@@ -522,6 +509,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       >
         Save
       </button>
+      {!isNew && (
+        <button
+          type='button'
+          className={styles.deleteButton}
+          onClick={() => onDelete(formData.id)}
+        >
+          Delete
+        </button>
+      )}
     </section>
   )
 }
