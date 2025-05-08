@@ -1,0 +1,86 @@
+@import '../../styles/variables.scss';
+
+.draggableExperienceBlock {
+  display: flex;
+  flex-direction: row;
+  border: 1px solid #ccc;
+  padding: 8px;
+  gap: 8px;
+}
+
+.draggableExperienceBlockContainer {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.experienceBlockContent {
+  flex: 1;
+  cursor: default;
+}
+
+.experienceBlockActions {
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.experienceBlockDraggableArea {
+  border-radius: 4px;
+  cursor: grab;
+  background-color: #eee;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editButton {
+  background-color: #eee;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  flex: 1;
+}
+
+.drawerToggleButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 4px 0;
+  background-color: #f5f5f5;
+  border: 1px solid #ccc;
+  border-top: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #e0e0e0;
+  }
+}
+
+.experienceBlockDrawer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
+  border-left: 1px solid #ccc;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+
+  &.expanded {
+    max-height: 2000px;
+    transition: max-height 0.5s cubic-bezier(0.5, 0, 0.1, 1);
+  }
+}
+
+.experienceBlockBullet {
+  padding: 8px 16px;
+  margin: 0;
+  border-bottom: 1px solid #eee;
+
+  &:last-child {
+    border-bottom: none;
+  }
+}

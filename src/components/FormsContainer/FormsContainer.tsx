@@ -9,11 +9,8 @@ import {
 } from '@/lib/types/errors'
 import { v4 as uuidv4 } from 'uuid'
 import { saveAs } from 'file-saver'
-import {
-  ExperienceBlockData,
-  Month,
-} from '@/components/ExperienceBlock/ExperienceBlock'
-import Preview from '@/components/ResumePreview/ResumePreview'
+import { ExperienceBlockData } from '@/components/EditableExperienceBlock/EditableExperienceBlock'
+import ResumePreview from '@/components/ResumePreview/ResumePreview'
 import PersonalDetails, {
   PersonalDetailsFormValues,
 } from '@/components/PersonalDetails/PersonalDetails'
@@ -101,12 +98,6 @@ export const FormsContainer: React.FC = () => {
   const [pdfGenerating, setPdfGenerating] = useState(false)
 
   // Form States
-  const [allFormsValidity, setAllFormsValidity] = useState<{
-    [key: string]: boolean
-  }>({
-    personalDetails: false,
-    workExperience: false,
-  })
   const [personalDetails, setPersonalDetails] =
     useState<PersonalDetailsFormValues>(initialPersonalDetails)
   const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
@@ -136,7 +127,6 @@ export const FormsContainer: React.FC = () => {
   )
 
   // Placeholder until user authentication is implemented
-  // sessionId will be replaced with user id
   useEffect(() => {
     const storedId = window.localStorage.getItem('sessionId')
     if (storedId) {
@@ -211,18 +201,18 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
-  const handleChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = event.target
-    setFormValues((prev) => ({
-      ...prev,
-      [name]:
-        name === 'numBulletsPerExperience' || name === 'maxCharsPerBullet'
-          ? Number(value) || 0
-          : value,
-    }))
-  }
+  // const handleChange = (
+  //   event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  // ) => {
+  //   const { name, value } = event.target
+  //   setFormValues((prev) => ({
+  //     ...prev,
+  //     [name]:
+  //       name === 'numBulletsPerExperience' || name === 'maxCharsPerBullet'
+  //         ? Number(value) || 0
+  //         : value,
+  //   }))
+  // }
 
   const handlePDFGeneration = async () => {
     try {
@@ -230,10 +220,10 @@ export const FormsContainer: React.FC = () => {
 
       const payload = {
         sessionId,
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        phone: '1234567890',
-        generatedSections: state?.generatedSections,
+        name: personalDetails.name || 'John Doe',
+        email: personalDetails.email || 'john.doe@example.com',
+        phone: personalDetails.phone || '1234567890',
+        workExperience,
       }
 
       const response = await fetch('/api/generate-latex', {
@@ -269,36 +259,14 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
-  const handlePersonalDetailsUpdate = (data: PersonalDetailsFormValues) => {
+  const handlePersonalDetailsSave = (data: PersonalDetailsFormValues) => {
     setPersonalDetails(data)
+    localStorage.setItem('resumint_personalDetails', JSON.stringify(data))
   }
 
-  const handlePersonalDetailsSave = ({
-    data,
-    isValid,
-  }: {
-    data: PersonalDetailsFormValues
-    isValid: boolean
-  }) => {
-    setAllFormsValidity((prev) => ({ ...prev, personalDetails: isValid }))
-    if (isValid) {
-      localStorage.setItem('resumint_personalDetails', JSON.stringify(data))
-    }
-  }
-
-  const handleWorkExperienceUpdate = (data: ExperienceBlockData[]) => {
+  const handleWorkExperienceSave = (data: ExperienceBlockData[]) => {
     setWorkExperience(data)
-  }
-
-  const handleWorkExperienceSave = ({
-    data,
-    isValid,
-  }: {
-    data: ExperienceBlockData[]
-    isValid: boolean
-  }) => {
-    setAllFormsValidity((prev) => ({ ...prev, workExperience: isValid }))
-    if (isValid && data.length > 0) {
+    if (data.length > 0) {
       localStorage.setItem('resumint_workExperience', JSON.stringify(data))
     }
   }
@@ -325,26 +293,22 @@ export const FormsContainer: React.FC = () => {
           {activeTab === Tabs.PERSONAL_DETAILS && (
             <PersonalDetails
               data={personalDetails}
-              onUpdate={handlePersonalDetailsUpdate}
               onSave={handlePersonalDetailsSave}
             />
           )}
           {activeTab === Tabs.WORK_EXPERIENCE && (
             <WorkExperience
               data={workExperience}
-              onUpdate={handleWorkExperienceUpdate}
               onSave={handleWorkExperienceSave}
             />
           )}
-
-          {/* TODO: this button needs to be moved somewhere easier to reach */}
           <button
             type='button'
             className={styles.formButton}
             disabled={
-              !allFormsValidity.personalDetails ||
-              !allFormsValidity.workExperience ||
-              !state?.generatedSections?.length ||
+              !personalDetails.name ||
+              !personalDetails.email ||
+              !workExperience.length ||
               isPending ||
               pdfGenerating
             }
@@ -359,7 +323,7 @@ export const FormsContainer: React.FC = () => {
           view === 'preview' ? styles.active : ''
         }`}
       >
-        <Preview />
+        <ResumePreview />
       </div>
       <div className={styles.bottomNav}>
         <button className={styles.navItem} onClick={() => setView('input')}>

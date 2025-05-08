@@ -1,6 +1,7 @@
 import styles from './PersonalDetails.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { z } from 'zod'
+import { useDebounce } from '@/lib/utils'
 
 export interface PersonalDetailsFormValues {
   name: string
@@ -18,14 +19,7 @@ type ValidationErrors = {
 
 interface PersonalDetailsProps {
   data: PersonalDetailsFormValues
-  onUpdate: (data: PersonalDetailsFormValues) => void
-  onSave: ({
-    data,
-    isValid,
-  }: {
-    data: PersonalDetailsFormValues
-    isValid: boolean
-  }) => void
+  onSave: (data: PersonalDetailsFormValues) => void
 }
 
 const formSchema = z.object({
@@ -69,11 +63,7 @@ const formSchema = z.object({
     ),
 })
 
-const PersonalDetails: React.FC<PersonalDetailsProps> = ({
-  data,
-  onUpdate,
-  onSave,
-}) => {
+const PersonalDetails: React.FC<PersonalDetailsProps> = ({ data, onSave }) => {
   const [formValues, setFormValues] = useState<PersonalDetailsFormValues>(data)
   const [touched, setTouched] = useState<
     Partial<Record<keyof PersonalDetailsFormValues, boolean>>
@@ -81,43 +71,51 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
 
   useEffect(() => {
     setFormValues(data)
+    setTouched({})
   }, [data])
 
-  const { isValid, errors } = useMemo(() => {
-    const result = formSchema.safeParse(formValues)
+  const isValid = useMemo(
+    () => formSchema.safeParse(formValues).success,
+    [formValues]
+  )
+
+  const debouncedFormValues = useDebounce(formValues, 300)
+
+  const errors = useMemo(() => {
+    const result = formSchema.safeParse(debouncedFormValues)
     if (result.success) {
-      return { isValid: true, errors: {} as ValidationErrors }
+      return {} as ValidationErrors
     }
     const errors: ValidationErrors = {}
     result.error.issues.forEach((issue) => {
       const field = issue.path[0] as keyof PersonalDetailsFormValues
       errors[field] = issue.message
     })
-    return { isValid: false, errors }
-  }, [formValues])
+    return errors
+  }, [debouncedFormValues])
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>): void => {
       const { name, value } = e.target
-      const updatedValues = { ...formValues, [name]: value }
-      setFormValues(updatedValues)
+      setFormValues((prev) => ({ ...prev, [name]: value }))
       setTouched((prev) => ({ ...prev, [name]: true }))
-      onUpdate(updatedValues)
     },
-    [formValues, onUpdate]
+    []
   )
 
   const handleSubmit = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault()
-      onSave({ data: formValues, isValid })
+      if (isValid) {
+        onSave(formValues)
+      }
     },
     [formValues, isValid, onSave]
   )
 
   return (
     <form className={styles.formSection} onSubmit={handleSubmit}>
-      <h2>Personal Details</h2>
+      <h2 className={styles.formTitle}>Personal Details</h2>
       <div className={styles.formField}>
         <input
           name='name'
