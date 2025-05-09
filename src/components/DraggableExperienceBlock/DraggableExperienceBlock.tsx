@@ -1,13 +1,12 @@
+import styles from './DraggableExperienceBlock.module.scss'
+import { useState } from 'react'
 import {
   FaChevronDown,
   FaChevronUp,
-  FaEdit,
   FaGripVertical,
   FaPen,
 } from 'react-icons/fa'
 import { ExperienceBlockData } from '../EditableExperienceBlock/EditableExperienceBlock'
-import styles from './DraggableExperienceBlock.module.scss'
-import { useState } from 'react'
 
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
@@ -22,7 +21,12 @@ export const DraggableExperienceBlock: React.FC<
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className={styles.draggableExperienceBlockContainer}>
+    <div
+      className={[
+        styles.draggableExperienceBlockContainer,
+        'prevent-select',
+      ].join(' ')}
+    >
       <div className={styles.draggableExperienceBlock}>
         <div className={styles.experienceBlockContent}>
           <h3 className={styles.experienceBlockHeader}>{data.jobTitle}</h3>
@@ -37,6 +41,7 @@ export const DraggableExperienceBlock: React.FC<
             }`}
           </p>
         </div>
+
         <div className={styles.experienceBlockActions}>
           <button
             type='button'

@@ -39,6 +39,7 @@ enum FieldType {
   END_DATE_IS_PRESENT = 'endDate.isPresent',
   END_DATE_MONTH = 'endDate.month',
   END_DATE_YEAR = 'endDate.year',
+  DESCRIPTION = 'description',
 }
 
 export interface ExperienceBlockData {
@@ -48,6 +49,7 @@ export interface ExperienceBlockData {
   endDate: EndDate
   companyName: string
   location: string
+  description: string
   bulletPoints: string[]
 }
 
@@ -243,6 +245,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             year: sanitizeYear(val as string),
             isPresent: false,
           },
+        }),
+        [FieldType.DESCRIPTION]: (prev, val) => ({
+          ...prev,
+          description: val as string,
         }),
       }
 
@@ -460,6 +466,18 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           {debouncedTouched.endDate && errors.endDate && (
             <p className={styles.formError}>{errors.endDate}</p>
           )}
+        </div>
+
+        <div className={styles.formField}>
+          <label className={styles.label}>Description</label>
+          <textarea
+            className={styles.formTextarea}
+            value={formData.description}
+            placeholder='Describe your responsibilities and achievements. Go into detail, metrics are encouraged. Format however you like.'
+            onChange={(e) =>
+              handleChange(FieldType.DESCRIPTION, e.target.value)
+            }
+          />
         </div>
       </div>
 

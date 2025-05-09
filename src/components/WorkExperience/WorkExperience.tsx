@@ -41,6 +41,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({ data, onSave }) => {
       endDate: { month: '' as Month, year: '', isPresent: false },
       companyName: '',
       location: '',
+      description: '',
       bulletPoints: [],
     }
     const updatedData = [...localData, newBlock]
@@ -54,20 +55,11 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({ data, onSave }) => {
   }, [])
 
   const handleBlockClose = useCallback(() => {
-    if (
-      selectedBlockId &&
-      localData.find((block) => block.id === selectedBlockId)?.bulletPoints
-        .length === 0
-    ) {
-      const updatedData = localData.filter(
-        (block) => block.id !== selectedBlockId
-      )
-      setLocalData(updatedData)
-      onSave(updatedData)
-    }
+    // TODO: ask user if the want to save their changes (if form is valid and changes were made)
     setSelectedBlockId(null)
     setNewBlockId(null)
-  }, [localData, selectedBlockId, onSave])
+    setLocalData(data)
+  }, [])
 
   const handleSave = useCallback(
     (updatedBlock: ExperienceBlockData) => {

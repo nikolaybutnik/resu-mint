@@ -18,15 +18,23 @@ import WorkExperience from '../WorkExperience/WorkExperience'
 
 enum Tabs {
   PERSONAL_DETAILS = 'PersonalDetails',
+  EXPERIENCE = 'Experience',
+  PROJECTS = 'Projects',
   JOB_DESCRIPTION = 'JobDescription',
-  WORK_EXPERIENCE = 'WorkExperience',
   EDUCATION = 'Education',
   SKILLS = 'Skills',
 }
 
+enum StorageKeys {
+  SESSION_ID = 'resumint_sessionId',
+  PERSONAL_DETAILS = 'resumint_personalDetails',
+  EXPERIENCE = 'resumint_experience',
+}
+
 const tabs = [
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
-  { id: Tabs.WORK_EXPERIENCE, label: 'Work Experience' },
+  { id: Tabs.EXPERIENCE, label: 'Experience' },
+  // { id: Tabs.PROJECTS, label: 'Projects' },
   // { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
   // { id: Tabs.EDUCATION, label: 'Education' },
   // { id: Tabs.SKILLS, label: 'Skills' },
@@ -94,7 +102,7 @@ export const FormsContainer: React.FC = () => {
 
   // UI States
   const [view, setView] = useState<'input' | 'preview'>('input')
-  const [activeTab, setActiveTab] = useState<string>(Tabs.WORK_EXPERIENCE)
+  const [activeTab, setActiveTab] = useState<string>(Tabs.EXPERIENCE)
   const [pdfGenerating, setPdfGenerating] = useState(false)
 
   // Form States
@@ -128,12 +136,12 @@ export const FormsContainer: React.FC = () => {
 
   // Placeholder until user authentication is implemented
   useEffect(() => {
-    const storedId = window.localStorage.getItem('sessionId')
+    const storedId = window.localStorage.getItem(StorageKeys.SESSION_ID)
     if (storedId) {
       setSessionId(storedId)
     } else {
       const newId = uuidv4()
-      window.localStorage.setItem('sessionId', newId)
+      window.localStorage.setItem(StorageKeys.SESSION_ID, newId)
       setSessionId(newId)
     }
   }, [])
@@ -141,7 +149,7 @@ export const FormsContainer: React.FC = () => {
   // Load personal details
   useEffect(() => {
     const storedPersonalDetails = window.localStorage.getItem(
-      'resumint_personalDetails'
+      StorageKeys.PERSONAL_DETAILS
     )
     if (storedPersonalDetails) {
       setPersonalDetails(JSON.parse(storedPersonalDetails))
@@ -151,7 +159,7 @@ export const FormsContainer: React.FC = () => {
   // Load work experience
   useEffect(() => {
     const storedWorkExperience = window.localStorage.getItem(
-      'resumint_workExperience'
+      StorageKeys.EXPERIENCE
     )
     if (storedWorkExperience) {
       setWorkExperience(JSON.parse(storedWorkExperience))
@@ -261,13 +269,13 @@ export const FormsContainer: React.FC = () => {
 
   const handlePersonalDetailsSave = (data: PersonalDetailsFormValues) => {
     setPersonalDetails(data)
-    localStorage.setItem('resumint_personalDetails', JSON.stringify(data))
+    localStorage.setItem(StorageKeys.PERSONAL_DETAILS, JSON.stringify(data))
   }
 
   const handleWorkExperienceSave = (data: ExperienceBlockData[]) => {
     setWorkExperience(data)
     if (data.length > 0) {
-      localStorage.setItem('resumint_workExperience', JSON.stringify(data))
+      localStorage.setItem(StorageKeys.EXPERIENCE, JSON.stringify(data))
     }
   }
 
@@ -296,7 +304,7 @@ export const FormsContainer: React.FC = () => {
               onSave={handlePersonalDetailsSave}
             />
           )}
-          {activeTab === Tabs.WORK_EXPERIENCE && (
+          {activeTab === Tabs.EXPERIENCE && (
             <WorkExperience
               data={workExperience}
               onSave={handleWorkExperienceSave}
