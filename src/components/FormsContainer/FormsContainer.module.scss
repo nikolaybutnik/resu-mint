@@ -1,7 +1,10 @@
-.container {
+@import '../../styles/variables.scss';
+
+.formsContainer {
   display: flex;
   height: calc(var(--vh) - 80px);
   width: 100%;
+  position: relative;
 }
 
 .sidebar {
@@ -137,5 +140,43 @@
     &:hover {
       color: #007bff;
     }
+  }
+}
+
+.mintButton {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  font-family: $font-family-base;
+  padding: 8px 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: $color-background;
+  background: $color-primary;
+  border: 2px solid $color-primary;
+  border-radius: 6px;
+  cursor: pointer;
+  transform: translateY(0);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    background: $color-primary-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px $color-border;
+  }
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  &:disabled {
+    background: $color-border;
+    border-color: $color-border;
+    color: $color-disabled;
+    cursor: not-allowed;
+    transform: translateY(0);
+    box-shadow: none;
   }
 }

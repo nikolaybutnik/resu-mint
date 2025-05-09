@@ -7,13 +7,19 @@ import {
 import EditableExperienceBlock from '@/components/EditableExperienceBlock/EditableExperienceBlock'
 import { DraggableExperienceBlock } from '@/components/DraggableExperienceBlock/DraggableExperienceBlock'
 import styles from './WorkExperience.module.scss'
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
 
 interface WorkExperienceProps {
   data: ExperienceBlockData[]
+  loading: boolean
   onSave: (data: ExperienceBlockData[]) => void
 }
 
-const WorkExperience: React.FC<WorkExperienceProps> = ({ data, onSave }) => {
+const WorkExperience: React.FC<WorkExperienceProps> = ({
+  data,
+  loading,
+  onSave,
+}) => {
   const [localData, setLocalData] = useState<ExperienceBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
@@ -75,42 +81,48 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({ data, onSave }) => {
   )
 
   return (
-    <div className={styles.workExperience}>
-      <h2 className={styles.formTitle}>Work Experience</h2>
-      <button
-        type='button'
-        className={styles.addButton}
-        disabled={!!selectedBlockId}
-        onClick={handleBlockAdd}
-      >
-        Add Experience
-      </button>
-      <div className={styles.experienceContainer}>
-        {selectedBlockId
-          ? localData
-              .filter((experience) => experience.id === selectedBlockId)
-              .map((experience) => {
-                const isNew = experience.id === newBlockId
-                return (
-                  <EditableExperienceBlock
+    <>
+      {loading ? (
+        <LoadingSpinner text='Saving your experience...' size='lg' />
+      ) : (
+        <div className={styles.workExperience}>
+          <h2 className={styles.formTitle}>Experience</h2>
+          <button
+            type='button'
+            className={styles.addButton}
+            disabled={!!selectedBlockId}
+            onClick={handleBlockAdd}
+          >
+            Add Experience
+          </button>
+          <div className={styles.experienceContainer}>
+            {selectedBlockId
+              ? localData
+                  .filter((experience) => experience.id === selectedBlockId)
+                  .map((experience) => {
+                    const isNew = experience.id === newBlockId
+                    return (
+                      <EditableExperienceBlock
+                        key={experience.id}
+                        data={experience}
+                        isNew={isNew}
+                        onDelete={handleBlockDelete}
+                        onClose={handleBlockClose}
+                        onSave={handleSave}
+                      />
+                    )
+                  })
+              : localData.map((experience) => (
+                  <DraggableExperienceBlock
                     key={experience.id}
                     data={experience}
-                    isNew={isNew}
-                    onDelete={handleBlockDelete}
-                    onClose={handleBlockClose}
-                    onSave={handleSave}
+                    onBlockSelect={handleBlockSelect}
                   />
-                )
-              })
-          : localData.map((experience) => (
-              <DraggableExperienceBlock
-                key={experience.id}
-                data={experience}
-                onBlockSelect={handleBlockSelect}
-              />
-            ))}
-      </div>
-    </div>
+                ))}
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 

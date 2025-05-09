@@ -2,6 +2,7 @@ import styles from './PersonalDetails.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { z } from 'zod'
 import { useDebounce } from '@/lib/utils'
+import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
 
 export interface PersonalDetailsFormValues {
   name: string
@@ -19,6 +20,7 @@ type ValidationErrors = {
 
 interface PersonalDetailsProps {
   data: PersonalDetailsFormValues
+  loading: boolean
   onSave: (data: PersonalDetailsFormValues) => void
 }
 
@@ -63,7 +65,11 @@ const formSchema = z.object({
     ),
 })
 
-const PersonalDetails: React.FC<PersonalDetailsProps> = ({ data, onSave }) => {
+const PersonalDetails: React.FC<PersonalDetailsProps> = ({
+  data,
+  loading,
+  onSave,
+}) => {
   const [formValues, setFormValues] = useState<PersonalDetailsFormValues>(data)
   const [touched, setTouched] = useState<
     Partial<Record<keyof PersonalDetailsFormValues, boolean>>
@@ -114,96 +120,106 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({ data, onSave }) => {
   )
 
   return (
-    <form className={styles.formSection} onSubmit={handleSubmit}>
-      <h2 className={styles.formTitle}>Personal Details</h2>
-      <div className={styles.formField}>
-        <input
-          name='name'
-          placeholder='Full Name *'
-          className={styles.formInput}
-          value={formValues.name}
-          onChange={handleChange}
-        />
-        {touched.name && errors.name && (
-          <p className={styles.formError}>{errors.name}</p>
-        )}
-      </div>
-      <div className={styles.formField}>
-        <input
-          name='email'
-          placeholder='Email *'
-          className={styles.formInput}
-          value={formValues.email}
-          onChange={handleChange}
-        />
-        {touched.email && errors.email && (
-          <p className={styles.formError}>{errors.email}</p>
-        )}
-      </div>
-      <div className={styles.formField}>
-        <input
-          name='phone'
-          placeholder='Phone (e.g., +1234567890)'
-          className={styles.formInput}
-          value={formValues.phone || ''}
-          onChange={handleChange}
-        />
-        {touched.phone && errors.phone && (
-          <p className={styles.formError}>{errors.phone}</p>
-        )}
-      </div>
-      <div className={styles.formField}>
-        <input
-          name='location'
-          placeholder='Location (e.g., New York, NY)'
-          className={styles.formInput}
-          value={formValues.location || ''}
-          onChange={handleChange}
-        />
-        {touched.location && errors.location && (
-          <p className={styles.formError}>{errors.location}</p>
-        )}
-      </div>
-      <div className={styles.formField}>
-        <input
-          name='linkedin'
-          placeholder='LinkedIn URL'
-          className={styles.formInput}
-          value={formValues.linkedin || ''}
-          onChange={handleChange}
-        />
-        {touched.linkedin && errors.linkedin && (
-          <p className={styles.formError}>{errors.linkedin}</p>
-        )}
-      </div>
-      <div className={styles.formField}>
-        <input
-          name='github'
-          placeholder='GitHub URL'
-          className={styles.formInput}
-          value={formValues.github || ''}
-          onChange={handleChange}
-        />
-        {touched.github && errors.github && (
-          <p className={styles.formError}>{errors.github}</p>
-        )}
-      </div>
-      <div className={styles.formField}>
-        <input
-          name='website'
-          placeholder='Website URL'
-          className={styles.formInput}
-          value={formValues.website || ''}
-          onChange={handleChange}
-        />
-        {touched.website && errors.website && (
-          <p className={styles.formError}>{errors.website}</p>
-        )}
-      </div>
-      <button type='submit' className={styles.formButton} disabled={!isValid}>
-        Save
-      </button>
-    </form>
+    <>
+      {loading ? (
+        <LoadingSpinner text='Saving your details...' size='lg' />
+      ) : (
+        <form className={styles.formSection} onSubmit={handleSubmit}>
+          <h2 className={styles.formTitle}>Personal Details</h2>
+          <div className={styles.formField}>
+            <input
+              name='name'
+              placeholder='Full Name *'
+              className={styles.formInput}
+              value={formValues.name}
+              onChange={handleChange}
+            />
+            {touched.name && errors.name && (
+              <p className={styles.formError}>{errors.name}</p>
+            )}
+          </div>
+          <div className={styles.formField}>
+            <input
+              name='email'
+              placeholder='Email *'
+              className={styles.formInput}
+              value={formValues.email}
+              onChange={handleChange}
+            />
+            {touched.email && errors.email && (
+              <p className={styles.formError}>{errors.email}</p>
+            )}
+          </div>
+          <div className={styles.formField}>
+            <input
+              name='phone'
+              placeholder='Phone (e.g., +1234567890)'
+              className={styles.formInput}
+              value={formValues.phone || ''}
+              onChange={handleChange}
+            />
+            {touched.phone && errors.phone && (
+              <p className={styles.formError}>{errors.phone}</p>
+            )}
+          </div>
+          <div className={styles.formField}>
+            <input
+              name='location'
+              placeholder='Location (e.g., New York, NY)'
+              className={styles.formInput}
+              value={formValues.location || ''}
+              onChange={handleChange}
+            />
+            {touched.location && errors.location && (
+              <p className={styles.formError}>{errors.location}</p>
+            )}
+          </div>
+          <div className={styles.formField}>
+            <input
+              name='linkedin'
+              placeholder='LinkedIn URL'
+              className={styles.formInput}
+              value={formValues.linkedin || ''}
+              onChange={handleChange}
+            />
+            {touched.linkedin && errors.linkedin && (
+              <p className={styles.formError}>{errors.linkedin}</p>
+            )}
+          </div>
+          <div className={styles.formField}>
+            <input
+              name='github'
+              placeholder='GitHub URL'
+              className={styles.formInput}
+              value={formValues.github || ''}
+              onChange={handleChange}
+            />
+            {touched.github && errors.github && (
+              <p className={styles.formError}>{errors.github}</p>
+            )}
+          </div>
+          <div className={styles.formField}>
+            <input
+              name='website'
+              placeholder='Website URL'
+              className={styles.formInput}
+              value={formValues.website || ''}
+              onChange={handleChange}
+            />
+            {touched.website && errors.website && (
+              <p className={styles.formError}>{errors.website}</p>
+            )}
+          </div>
+          <button
+            type='submit'
+            className={styles.formButton}
+            disabled={!isValid}
+          >
+            Save
+          </button>
+        </form>
+      )}
+    </>
   )
 }
 

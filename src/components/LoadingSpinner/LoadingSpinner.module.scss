@@ -1,0 +1,109 @@
+@import '../../styles/variables';
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-family: $font-family-base;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  position: relative;
+  display: inline-block;
+}
+
+.spinnerRing {
+  border-radius: 50%;
+  box-sizing: border-box;
+  border: 4px solid transparent;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  &:nth-child(1) {
+    border-top-color: $color-primary;
+    border-right-color: $color-primary;
+    animation: spin 1.2s linear infinite;
+  }
+
+  &:nth-child(2) {
+    border-bottom-color: $color-primary-hover;
+    transform: scale(0.8);
+    animation: spin-reverse 1.2s linear infinite;
+  }
+}
+
+// Sizes
+.sm {
+  width: 24px;
+  height: 24px;
+}
+
+.md {
+  width: 36px;
+  height: 36px;
+}
+
+.lg {
+  width: 56px;
+  height: 56px;
+}
+
+// Colors
+.primary {
+  color: $color-primary;
+}
+
+.light {
+  color: $color-background;
+}
+
+.dark {
+  color: $color-text;
+}
+
+.text {
+  font-family: $font-family-base;
+  font-size: 16px;
+  font-weight: 500;
+  color: $color-disabled;
+  margin: 0;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-reverse {
+  0% {
+    transform: scale(0.8) rotate(0deg);
+  }
+  100% {
+    transform: scale(0.8) rotate(-360deg);
+  }
+}

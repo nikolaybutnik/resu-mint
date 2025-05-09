@@ -1,0 +1,134 @@
+@import '../../styles/variables';
+
+.settings {
+  background: $color-background; /* #ffffff */
+  padding: 24px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  font-family: $font-family-base;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08); /* Subtle lift */
+  }
+}
+
+.formTitle {
+  font-family: $font-family-base;
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 24px;
+  color: $color-text;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+
+  label {
+    font-family: $font-family-base;
+    font-size: 16px;
+    font-weight: 500;
+    color: $color-text;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    span {
+      font-size: 14px;
+      font-weight: 400;
+      color: $color-disabled;
+      background: $color-background;
+      border: 1px solid $color-border;
+      padding: 2px 8px;
+      border-radius: 10px;
+      line-height: 1.4;
+      transition: border-color 0.2s ease;
+    }
+  }
+}
+
+.rangeInput {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: $color-border;
+  outline: none;
+  transition: background 0.2s ease;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: $color-primary;
+    cursor: pointer;
+    border: 2px solid $color-background;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      background: $color-primary-hover;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: $color-primary;
+    cursor: pointer;
+    border: 2px solid $color-background;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      background: $color-primary-hover;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  &:hover {
+    background: lighten($color-border, 5%);
+  }
+
+  &:focus {
+    background: lighten($color-border, 5%);
+    &::-webkit-slider-thumb {
+      background: $color-primary-hover;
+      transform: scale(1.15);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    &::-moz-range-thumb {
+      background: $color-primary-hover;
+      transform: scale(1.15);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: $color-border;
+    &::-webkit-slider-thumb {
+      background: $color-disabled;
+      border-color: $color-background;
+      box-shadow: none;
+    }
+    &::-moz-range-thumb {
+      background: $color-disabled;
+      border-color: $color-background;
+      box-shadow: none;
+    }
+  }
+}

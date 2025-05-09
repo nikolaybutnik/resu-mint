@@ -15,6 +15,7 @@ import PersonalDetails, {
   PersonalDetailsFormValues,
 } from '@/components/PersonalDetails/PersonalDetails'
 import WorkExperience from '../WorkExperience/WorkExperience'
+import { Settings, SettingsFormValues } from '../Settings/Settings'
 
 enum Tabs {
   PERSONAL_DETAILS = 'PersonalDetails',
@@ -23,17 +24,20 @@ enum Tabs {
   JOB_DESCRIPTION = 'JobDescription',
   EDUCATION = 'Education',
   SKILLS = 'Skills',
+  SETTINGS = 'Settings',
 }
 
 enum StorageKeys {
   SESSION_ID = 'resumint_sessionId',
   PERSONAL_DETAILS = 'resumint_personalDetails',
   EXPERIENCE = 'resumint_experience',
+  SETTINGS = 'resumint_settings',
 }
 
 const tabs = [
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
   { id: Tabs.EXPERIENCE, label: 'Experience' },
+  { id: Tabs.SETTINGS, label: 'Settings' },
   // { id: Tabs.PROJECTS, label: 'Projects' },
   // { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
   // { id: Tabs.EDUCATION, label: 'Education' },
@@ -87,23 +91,29 @@ const initialPersonalDetails: PersonalDetailsFormValues = {
   website: '',
 }
 const initialWorkExperience: ExperienceBlockData[] = []
+const initialSettings: SettingsFormValues = {
+  bulletsPerExperienceBlock: 4,
+  bulletsPerProjectBlock: 3,
+  maxCharsPerBullet: 125,
+}
 
 export const FormsContainer: React.FC = () => {
   // TODO: retire this formValues state when job description tab is in place
-  const [formValues, setFormValues] = useState<FormFields>({
-    experience: '',
-    jobDescription: '',
-    numBulletsPerExperience: 0,
-    maxCharsPerBullet: 0,
-  })
+  // const [formValues, setFormValues] = useState<FormFields>({
+  //   experience: '',
+  //   jobDescription: '',
+  //   numBulletsPerExperience: 0,
+  //   maxCharsPerBullet: 0,
+  // })
 
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
 
   // UI States
   const [view, setView] = useState<'input' | 'preview'>('input')
-  const [activeTab, setActiveTab] = useState<string>(Tabs.EXPERIENCE)
+  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
   const [pdfGenerating, setPdfGenerating] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   // Form States
   const [personalDetails, setPersonalDetails] =
@@ -111,6 +121,7 @@ export const FormsContainer: React.FC = () => {
   const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
     initialWorkExperience
   )
+  const [settings, setSettings] = useState<SettingsFormValues>(initialSettings)
 
   const [state, formAction, isPending] = useActionState(
     async (_previousState: ResumeFormState | null, formData: FormData) => {
@@ -148,22 +159,43 @@ export const FormsContainer: React.FC = () => {
 
   // Load personal details
   useEffect(() => {
+    setLoading(true)
     const storedPersonalDetails = window.localStorage.getItem(
       StorageKeys.PERSONAL_DETAILS
     )
     if (storedPersonalDetails) {
       setPersonalDetails(JSON.parse(storedPersonalDetails))
     }
+    setLoading(false)
   }, [])
 
   // Load work experience
   useEffect(() => {
+    setLoading(true)
     const storedWorkExperience = window.localStorage.getItem(
       StorageKeys.EXPERIENCE
     )
     if (storedWorkExperience) {
       setWorkExperience(JSON.parse(storedWorkExperience))
     }
+    setLoading(false)
+  }, [])
+
+  // Load settings
+  useEffect(() => {
+    setLoading(true)
+    const storedSettings = window.localStorage.getItem(StorageKeys.SETTINGS)
+
+    if (storedSettings) {
+      setSettings(JSON.parse(storedSettings))
+    } else {
+      window.localStorage.setItem(
+        StorageKeys.SETTINGS,
+        JSON.stringify(initialSettings)
+      )
+      setSettings(initialSettings)
+    }
+    setLoading(false)
   }, [])
 
   const handleDataSubmit = async (
@@ -222,49 +254,52 @@ export const FormsContainer: React.FC = () => {
   //   }))
   // }
 
-  const handlePDFGeneration = async () => {
-    try {
-      setPdfGenerating(true)
+  const handleMintResume = async () => {
+    // temporary deisable
+    console.log('Mint!')
 
-      const payload = {
-        sessionId,
-        name: personalDetails.name || 'John Doe',
-        email: personalDetails.email || 'john.doe@example.com',
-        phone: personalDetails.phone || '1234567890',
-        workExperience,
-      }
+    // try {
+    //   setPdfGenerating(true)
 
-      const response = await fetch('/api/generate-latex', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
+    //   const payload = {
+    //     sessionId,
+    //     name: personalDetails.name || 'John Doe',
+    //     email: personalDetails.email || 'john.doe@example.com',
+    //     phone: personalDetails.phone || '1234567890',
+    //     workExperience,
+    //   }
 
-      const apiResult =
-        (await response.json()) as ApiResponse<LatexResponseData>
+    //   const response = await fetch('/api/generate-latex', {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(payload),
+    //   })
 
-      if (apiResult.status === ResponseStatus.ERROR) {
-        console.error(apiResult.errors)
-        return
-      }
+    //   const apiResult =
+    //     (await response.json()) as ApiResponse<LatexResponseData>
 
-      const fileId = apiResult.data.fileId
-      const downloadResponse = await fetch(
-        `/api/download-pdf/${fileId}?sessionId=${sessionId}`
-      )
+    //   if (apiResult.status === ResponseStatus.ERROR) {
+    //     console.error(apiResult.errors)
+    //     return
+    //   }
 
-      if (!downloadResponse.ok) {
-        console.error('Failed to download PDF')
-      }
+    //   const fileId = apiResult.data.fileId
+    //   const downloadResponse = await fetch(
+    //     `/api/download-pdf/${fileId}?sessionId=${sessionId}`
+    //   )
 
-      const blob = await downloadResponse.blob()
+    //   if (!downloadResponse.ok) {
+    //     console.error('Failed to download PDF')
+    //   }
 
-      saveAs(blob, 'resume.pdf')
-    } catch (error) {
-      console.error('API error:', error)
-    } finally {
-      setPdfGenerating(false)
-    }
+    //   const blob = await downloadResponse.blob()
+
+    //   saveAs(blob, 'resume.pdf')
+    // } catch (error) {
+    //   console.error('API error:', error)
+    // } finally {
+    //   setPdfGenerating(false)
+    // }
   }
 
   const handlePersonalDetailsSave = (data: PersonalDetailsFormValues) => {
@@ -279,8 +314,13 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
+  const handleSettingsSave = (data: SettingsFormValues) => {
+    setSettings(data)
+    localStorage.setItem(StorageKeys.SETTINGS, JSON.stringify(data))
+  }
+
   return (
-    <div className={styles.container}>
+    <div className={styles.formsContainer}>
       <div
         className={`${styles.sidebar} ${view === 'input' ? styles.active : ''}`}
       >
@@ -301,29 +341,24 @@ export const FormsContainer: React.FC = () => {
           {activeTab === Tabs.PERSONAL_DETAILS && (
             <PersonalDetails
               data={personalDetails}
+              loading={loading}
               onSave={handlePersonalDetailsSave}
             />
           )}
           {activeTab === Tabs.EXPERIENCE && (
             <WorkExperience
               data={workExperience}
+              loading={loading}
               onSave={handleWorkExperienceSave}
             />
           )}
-          <button
-            type='button'
-            className={styles.formButton}
-            disabled={
-              !personalDetails.name ||
-              !personalDetails.email ||
-              !workExperience.length ||
-              isPending ||
-              pdfGenerating
-            }
-            onClick={handlePDFGeneration}
-          >
-            Generate PDF
-          </button>
+          {activeTab === Tabs.SETTINGS && (
+            <Settings
+              data={settings}
+              loading={loading}
+              onSave={handleSettingsSave}
+            />
+          )}
         </div>
       </div>
       <div
@@ -341,6 +376,21 @@ export const FormsContainer: React.FC = () => {
           Preview
         </button>
       </div>
+
+      <button
+        type='button'
+        className={styles.mintButton}
+        disabled={
+          !personalDetails.name ||
+          !personalDetails.email ||
+          !workExperience.length ||
+          isPending ||
+          pdfGenerating
+        }
+        onClick={handleMintResume}
+      >
+        Mint Resume!
+      </button>
     </div>
   )
 }
