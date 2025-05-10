@@ -1,5 +1,6 @@
 export type ErrorType =
   | 'validation'
+  | 'missing_data'
   | 'server'
   | 'ai_generation'
   | 'format'
@@ -7,6 +8,7 @@ export type ErrorType =
   | 'pdf_generation'
   | 'missing_session_id'
   | 'read_pdf'
+  | 'resume_generation'
 
 export enum ResponseStatus {
   SUCCESS = 'success',

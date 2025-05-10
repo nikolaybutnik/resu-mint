@@ -5,35 +5,28 @@ export const generateResumeBulletPointsTool = (
   type: 'function' as const,
   function: {
     name: 'generate_resume_bullets',
-    description:
-      'Generate tailored resume bullet points based on job description and experience',
+    description: `Generate ${numBullets} resume bullet points per work experience.`,
     parameters: {
       type: 'object',
       properties: {
-        job_sections: {
+        experience_bullets: {
           type: 'array',
-          description: 'Array of job sections with titles and bullet points',
+          description: `Array of objects with experience ID and ${numBullets} STAR-format bullet points.`,
           items: {
             type: 'object',
             properties: {
-              title: {
-                type: 'string',
-                description: 'Job title extracted from experience',
-              },
-              bullet_points: {
+              id: { type: 'string', description: 'Experience ID.' },
+              bullets: {
                 type: 'array',
-                description: `${numBullets} bullet points tailored to the job description`,
-                items: {
-                  type: 'string',
-                  description: `Resume bullet point of max ${maxChars} characters`,
-                },
+                description: `Array of ${numBullets} STAR-format bullet points, each ≤${maxChars} chars.`,
+                items: { type: 'string' },
               },
             },
-            required: ['title', 'bullet_points'],
+            required: ['id', 'bullets'],
           },
         },
       },
-      required: ['job_sections'],
+      required: ['experience_bullets'],
     },
   },
 })

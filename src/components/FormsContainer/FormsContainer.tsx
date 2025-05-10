@@ -16,6 +16,7 @@ import PersonalDetails, {
 } from '@/components/PersonalDetails/PersonalDetails'
 import WorkExperience from '../WorkExperience/WorkExperience'
 import { Settings, SettingsFormValues } from '../Settings/Settings'
+import { JobDescription } from '../JobDescription/JobDescription'
 
 enum Tabs {
   PERSONAL_DETAILS = 'PersonalDetails',
@@ -29,17 +30,26 @@ enum Tabs {
 
 enum StorageKeys {
   SESSION_ID = 'resumint_sessionId',
+  JOB_DESCRIPTION = 'resumint_jobDescription',
   PERSONAL_DETAILS = 'resumint_personalDetails',
   EXPERIENCE = 'resumint_experience',
   SETTINGS = 'resumint_settings',
 }
 
+interface MintResumePayload {
+  sessionId: string
+  personalDetails: PersonalDetailsFormValues
+  workExperience: ExperienceBlockData[]
+  jobDescription: string
+  settings: SettingsFormValues
+}
+
 const tabs = [
+  { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
   { id: Tabs.EXPERIENCE, label: 'Experience' },
   { id: Tabs.SETTINGS, label: 'Settings' },
   // { id: Tabs.PROJECTS, label: 'Projects' },
-  // { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
   // { id: Tabs.EDUCATION, label: 'Education' },
   // { id: Tabs.SKILLS, label: 'Skills' },
 ]
@@ -73,8 +83,9 @@ export type ResumeFormState = {
   errors?: ClientErrors | null
 }
 
-type ResumeResponseData = {
-  generatedSections: { [key: string]: string[] }[]
+type GeneratedBulletPointsResponseData = {
+  data: { id: string; bullets: string[] }[]
+  status: ResponseStatus
 }
 
 type LatexResponseData = {
@@ -96,26 +107,21 @@ const initialSettings: SettingsFormValues = {
   bulletsPerProjectBlock: 3,
   maxCharsPerBullet: 125,
 }
-
+const initialJobDescription: string = ''
 export const FormsContainer: React.FC = () => {
-  // TODO: retire this formValues state when job description tab is in place
-  // const [formValues, setFormValues] = useState<FormFields>({
-  //   experience: '',
-  //   jobDescription: '',
-  //   numBulletsPerExperience: 0,
-  //   maxCharsPerBullet: 0,
-  // })
-
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
 
   // UI States
   const [view, setView] = useState<'input' | 'preview'>('input')
-  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
-  const [pdfGenerating, setPdfGenerating] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DESCRIPTION)
+  const [mintingResume, setMintingResume] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Form States
+  const [jobDescription, setJobDescription] = useState<string>(
+    initialJobDescription
+  )
   const [personalDetails, setPersonalDetails] =
     useState<PersonalDetailsFormValues>(initialPersonalDetails)
   const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
@@ -155,6 +161,18 @@ export const FormsContainer: React.FC = () => {
       window.localStorage.setItem(StorageKeys.SESSION_ID, newId)
       setSessionId(newId)
     }
+  }, [])
+
+  // Load job description
+  useEffect(() => {
+    setLoading(true)
+    const storedJobDescription = window.localStorage.getItem(
+      StorageKeys.JOB_DESCRIPTION
+    )
+    if (storedJobDescription) {
+      setJobDescription(storedJobDescription)
+    }
+    setLoading(false)
   }, [])
 
   // Load personal details
@@ -201,62 +219,83 @@ export const FormsContainer: React.FC = () => {
   const handleDataSubmit = async (
     data: FormFields
   ): Promise<ResumeFormState> => {
-    const validatedData = formSchema.safeParse(data)
+    // temporary disable
+    return Promise.resolve({
+      data,
+      generatedSections: [],
+      errors: null,
+    })
+    // const validatedData = formSchema.safeParse(data)
 
-    if (!validatedData.success) {
-      const errors: ClientErrors = {}
-      validatedData.error.issues.forEach((issue) => {
-        const field = issue.path[0] as string
-        errors[field] = issue.message
-      })
+    // if (!validatedData.success) {
+    //   const errors: ClientErrors = {}
+    //   validatedData.error.issues.forEach((issue) => {
+    //     const field = issue.path[0] as string
+    //     errors[field] = issue.message
+    //   })
 
-      return { errors }
-    } else {
-      try {
-        const response = await fetch('/api/generate-resume', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(validatedData.data),
-        })
+    //   return { errors }
+    // } else {
+    //   try {
+    //     const response = await fetch('/api/generate-resume', {
+    //       method: 'POST',
+    //       headers: { 'Content-Type': 'application/json' },
+    //       body: JSON.stringify(validatedData.data),
+    //     })
 
-        const apiResult =
-          (await response.json()) as ApiResponse<ResumeResponseData>
+    //     const apiResult =
+    //       (await response.json()) as ApiResponse<ResumeResponseData>
 
-        if (!response.ok || apiResult.status === ResponseStatus.ERROR) {
-          return {
-            errors:
-              apiResult.status === ResponseStatus.ERROR
-                ? formatErrorsForClient(apiResult.errors)
-                : { server: 'Failed to generate bullet points' },
-          }
-        }
+    //     if (!response.ok || apiResult.status === ResponseStatus.ERROR) {
+    //       return {
+    //         errors:
+    //           apiResult.status === ResponseStatus.ERROR
+    //             ? formatErrorsForClient(apiResult.errors)
+    //             : { server: 'Failed to generate bullet points' },
+    //       }
+    //     }
 
-        return {
-          generatedSections: apiResult.data.generatedSections,
-        }
-      } catch (error) {
-        console.error('API error:', error)
-        return { errors: { server: 'Network error occurred' } }
-      }
-    }
+    //     return {
+    //       generatedSections: apiResult.data.generatedSections,
+    //     }
+    //   } catch (error) {
+    //     console.error('API error:', error)
+    //     return { errors: { server: 'Network error occurred' } }
+    //   }
+    // }
   }
 
-  // const handleChange = (
-  //   event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  // ) => {
-  //   const { name, value } = event.target
-  //   setFormValues((prev) => ({
-  //     ...prev,
-  //     [name]:
-  //       name === 'numBulletsPerExperience' || name === 'maxCharsPerBullet'
-  //         ? Number(value) || 0
-  //         : value,
-  //   }))
-  // }
-
   const handleMintResume = async () => {
-    // temporary deisable
-    console.log('Mint!')
+    try {
+      setMintingResume(true)
+
+      const payload: MintResumePayload = {
+        sessionId,
+        jobDescription,
+        workExperience,
+        personalDetails,
+        settings,
+      }
+
+      const response = await fetch('/api/mint-resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+
+      const apiResult =
+        (await response.json()) as ApiResponse<GeneratedBulletPointsResponseData>
+
+      if (apiResult.status === ResponseStatus.SUCCESS) {
+        console.log(apiResult.data)
+      } else {
+        console.error('API error:', apiResult.errors)
+      }
+    } catch (error) {
+      console.error('API error:', error)
+    } finally {
+      setMintingResume(false)
+    }
 
     // try {
     //   setPdfGenerating(true)
@@ -302,6 +341,11 @@ export const FormsContainer: React.FC = () => {
     // }
   }
 
+  const handleJobDescriptionSave = (data: string) => {
+    setJobDescription(data)
+    localStorage.setItem(StorageKeys.JOB_DESCRIPTION, data)
+  }
+
   const handlePersonalDetailsSave = (data: PersonalDetailsFormValues) => {
     setPersonalDetails(data)
     localStorage.setItem(StorageKeys.PERSONAL_DETAILS, JSON.stringify(data))
@@ -338,6 +382,13 @@ export const FormsContainer: React.FC = () => {
           ))}
         </div>
         <div className={styles.tabContent}>
+          {activeTab === Tabs.JOB_DESCRIPTION && (
+            <JobDescription
+              data={jobDescription}
+              loading={loading}
+              onSave={handleJobDescriptionSave}
+            />
+          )}
           {activeTab === Tabs.PERSONAL_DETAILS && (
             <PersonalDetails
               data={personalDetails}
@@ -380,16 +431,10 @@ export const FormsContainer: React.FC = () => {
       <button
         type='button'
         className={styles.mintButton}
-        disabled={
-          !personalDetails.name ||
-          !personalDetails.email ||
-          !workExperience.length ||
-          isPending ||
-          pdfGenerating
-        }
+        disabled={mintingResume}
         onClick={handleMintResume}
       >
-        Mint Resume!
+        {mintingResume ? 'Minting...' : 'Mint Resume!'}
       </button>
     </div>
   )

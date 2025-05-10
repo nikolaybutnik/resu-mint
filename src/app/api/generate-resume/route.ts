@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
       ),
     ]
     const prompt = generateResumeBulletPointsPrompt(
-      experience,
+      experience as any,
       jobDescription,
       numBulletsPerExperience,
       maxCharsPerBullet
