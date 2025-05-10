@@ -2,12 +2,21 @@ import {
   BulletGenerationError,
   generateBulletPoints,
 } from '@/lib/ai/generateBulletPoints'
+import { generateLatex } from '@/lib/template/generateLatex'
 import {
   createError,
   createErrorResponse,
   createSuccessResponse,
 } from '@/lib/types/errors'
+import { exec } from 'child_process'
+import { access, readFile, unlink } from 'fs/promises'
+import { writeFile } from 'fs/promises'
 import { NextRequest, NextResponse } from 'next/server'
+import { tmpdir } from 'os'
+import { join } from 'path'
+import { promisify } from 'util'
+
+const execPromise = promisify(exec)
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,9 +35,31 @@ export async function POST(request: NextRequest) {
       settings
     )
 
-    // Temporary response
+    const hydratedLatex = await generateLatex(
+      generatedBulletPoints.experience_bullets,
+      workExperience,
+      personalDetails
+    )
+
+    console.log('Generated LaTeX:', hydratedLatex)
+
+    const texFilePath = join(tmpdir(), `resume-${sessionId}.tex`)
+    const pdfFilePath = join(tmpdir(), `resume-${sessionId}.pdf`)
+
+    await writeFile(texFilePath, hydratedLatex)
+
+    await execPromise(`tectonic ${texFilePath} -o ${tmpdir()}`)
+
+    const pdfBuffer = await readFile(pdfFilePath)
+
+    if (texFilePath) await unlink(texFilePath)
+    if (pdfFilePath) await unlink(pdfFilePath)
+
     return NextResponse.json(
-      createSuccessResponse(generatedBulletPoints.experience_bullets)
+      createSuccessResponse({
+        bullets: generatedBulletPoints.experience_bullets,
+        pdf: pdfBuffer.toString('base64'),
+      })
     )
   } catch (error) {
     console.error('Server error:', error)

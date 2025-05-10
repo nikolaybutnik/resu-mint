@@ -16,6 +16,11 @@ export class BulletGenerationError extends Error {
   }
 }
 
+// Notes:
+// one token is approximately 4 characters (including spaces)
+// a word is usually 1 - 3 tokens
+// 100 characters is approximately 25 tokens
+
 export const generateBulletPoints = async (
   workExperience: ExperienceBlockData[],
   jobDescription: string,

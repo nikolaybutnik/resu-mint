@@ -85,6 +85,7 @@ export type ResumeFormState = {
 
 type GeneratedBulletPointsResponseData = {
   data: { id: string; bullets: string[] }[]
+  pdf: string
   status: ResponseStatus
 }
 
@@ -287,7 +288,19 @@ export const FormsContainer: React.FC = () => {
         (await response.json()) as ApiResponse<GeneratedBulletPointsResponseData>
 
       if (apiResult.status === ResponseStatus.SUCCESS) {
-        console.log(apiResult.data)
+        if (apiResult.data.pdf) {
+          const byteCharacters = atob(apiResult.data.pdf)
+          const byteNumbers = new Array(byteCharacters.length)
+
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i)
+          }
+
+          const byteArray = new Uint8Array(byteNumbers)
+          const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
+
+          saveAs(pdfBlob, 'resume.pdf')
+        }
       } else {
         console.error('API error:', apiResult.errors)
       }
