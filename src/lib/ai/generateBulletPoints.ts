@@ -4,8 +4,10 @@ import { generateResumeBulletPointsPrompt } from '@/lib/ai/prompts'
 import { SettingsFormValues } from '@/components/Settings/Settings'
 import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { ApiError } from '../types/errors'
+import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
 
 interface GeneratedBulletsResponseModel {
+  project_bullets: { id: string; bullets: string[] }[]
   experience_bullets: { id: string; bullets: string[] }[]
 }
 
@@ -24,7 +26,8 @@ export class BulletGenerationError extends Error {
 export const generateBulletPoints = async (
   workExperience: ExperienceBlockData[],
   jobDescription: string,
-  settings: SettingsFormValues
+  settings: SettingsFormValues,
+  projects?: ProjectBlockData[]
 ): Promise<GeneratedBulletsResponseModel> => {
   if (!workExperience) {
     throw new BulletGenerationError({
@@ -53,6 +56,7 @@ export const generateBulletPoints = async (
     const tools = [
       generateResumeBulletPointsTool(
         settings.bulletsPerExperienceBlock,
+        settings.bulletsPerProjectBlock,
         settings.maxCharsPerBullet
       ),
     ]
@@ -60,7 +64,9 @@ export const generateBulletPoints = async (
       workExperience,
       jobDescription,
       settings.bulletsPerExperienceBlock,
-      settings.maxCharsPerBullet
+      settings.bulletsPerProjectBlock,
+      settings.maxCharsPerBullet,
+      projects
     )
 
     const completion = await openai.chat.completions.create({

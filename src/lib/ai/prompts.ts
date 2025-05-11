@@ -1,4 +1,5 @@
 import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
+import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
 
 const formatWorkExperienceForAI = (
   workExperience: ExperienceBlockData[]
@@ -63,12 +64,6 @@ ${exp.id}
 <position>
 ${exp.jobTitle}
 </position>
-<company>
-${exp.companyName}
-</company>
-<location>
-${exp.location}
-</location>
 <duration>
 ${formattedDuration}
 </duration>
@@ -81,18 +76,62 @@ ${exp.description}
     .join('\n---\n')
 }
 
+const formatProjectsForAI = (projects: ProjectBlockData[]): string => {
+  if (!projects || projects.length === 0) {
+    return 'No projects provided.'
+  }
+
+  return projects
+    .map((project, index) => {
+      const dateRange = project.endDate.isPresent
+        ? `${project.startDate.month} ${project.startDate.year} - Present`
+        : `${project.startDate.month} ${project.startDate.year} - ${project.endDate.month} ${project.endDate.year}`
+
+      return `
+<project_${index + 1}>
+<id>
+${project.id}
+</id>
+<title>
+${project.title}
+</title>
+<duration>
+${dateRange}
+</duration>
+<technologies>
+${project.technologies?.length ? project.technologies.join(', ') : ''}
+</technologies>
+<description>
+${project.description || ''}
+</description>
+</project_${index + 1}>
+`
+    })
+    .join('\n---\n')
+}
+
 export const generateResumeBulletPointsPrompt = (
   workExperience: ExperienceBlockData[],
   jobDescription: string,
   numBulletsPerExperience: number,
-  maxCharsPerBullet: number
+  numBulletsPerProject: number,
+  maxCharsPerBullet: number,
+  projects?: ProjectBlockData[]
 ) => {
   const formattedWorkExperience = formatWorkExperienceForAI(workExperience)
+  const formattedProjects = formatProjectsForAI(projects || [])
 
   return `
-You are a professional resume writer. Generate tailored resume bullet points for each work experience based on the job description, using the "generate_resume_bullets" tool.
+You're a resume writer generating bullets for work experiences AND projects using the "generate_resume_bullets" tool.
 
-**CRITICAL**: NEVER fabricate information. Only use skills, achievements, and metrics EXPLICITLY stated in the work experience.
+<CRITICAL RULES>
+- NEVER fabricate information
+- DO use metrics from source text; NEVER invent them
+- NEVER substitute technologies (e.g., don't change "Angular" to "React")
+- Technology names must match the original EXACTLY
+- For experiences: ${numBulletsPerExperience} bullets each
+- For projects: ${numBulletsPerProject} bullets each
+</CRITICAL RULES>
 
 <JOB_DESCRIPTION>
 ${jobDescription}
@@ -102,49 +141,64 @@ ${jobDescription}
 ${formattedWorkExperience}
 </WORK_EXPERIENCE>
 
+<PROJECTS>
+${formattedProjects}
+</PROJECTS>
+
+<TECHNOLOGY ACCURACY>
+- ONLY use technologies EXPLICITLY stated in the original content
+- NEVER substitute one technology for another even if similar
+- CHECK all technology names against the source before submitting
+</TECHNOLOGY ACCURACY>
+
+<METRICS USAGE>
+- DO use metrics explicitly stated in the original text
+- ACTIVELY SEARCH for and include existing metrics
+- NEVER invent or estimate metrics not in the source
+- If no metrics exist, focus on qualitative impact
+</METRICS USAGE>
+
 <INSTRUCTIONS>
-1. STRICT CHARACTER LIMIT: Each bullet point MUST be LESS THAN OR EQUAL TO ${maxCharsPerBullet} characters - this is a HARD CEILING. Count every character (including spaces) to ensure you don't exceed this limit.
-2. For each <WORK_EXPERIENCE>, generate exactly ${numBulletsPerExperience} bullet points.
-3. CREATIVE REWRITING: Rephrase and restructure the original text while maintaining factual accuracy:
+1. CHARACTER LIMIT: Each bullet must be ≤${maxCharsPerBullet} chars (hard ceiling)
+
+2. CONTENT SEPARATION:
+   - Work experiences: ${numBulletsPerExperience} bullets each
+   - Projects: ${numBulletsPerProject} bullets each
+   
+3. IMPROVE ORIGINAL CONTENT:
    - Keep all skills, technologies, and metrics mentioned
-   - Use your own wording and structure to present the information more effectively
-   - Focus on impact and relevance to the job description
-4. IMPROVE ON ORIGINAL: Don't just copy the original wording - enhance it:
-   - Sharpen the action verbs (e.g., "Created" → "Engineered" or "Spearheaded")
-   - Clarify technical implementations (e.g., "web app" → "React-based dashboard with real-time updates")
-   - Connect technologies to their business impact more explicitly
-5. TECHNICAL PRECISION: Show the purpose behind technical choices:
-   - BAD: "Used Angular"
-   - GOOD: "Built responsive UI with Angular to handle complex data visualization needs"
-6. NO VAGUE STATEMENTS: Every bullet must include specific technical details and measurable impact:
-   - BAD: "Collaborated with UX/UI to refine user flows, optimizing loading and rendering"
-   - GOOD: "Partnered with UX/UI team to implement lazy-loading components and image optimization, reducing page load time by 40% and increasing user retention"
-7. MAINTAIN FACTUAL ACCURACY: Use only technologies, achievements, and metrics mentioned in the original
-8. TENSE RULE: Present tense for current jobs, past tense for previous roles
-9. PRIORITY - MAXIMIZE CHARACTER USAGE WHILE RESPECTING THE LIMIT:
-   - Each bullet MUST use 90-100% of the available ${maxCharsPerBullet} characters
-   - NEVER exceed the ${maxCharsPerBullet} character limit for any reason
-   - Count characters for each bullet before finalizing it
-   - Every bullet MUST be a complete, grammatically correct sentence
-   - If hitting character limit requires awkward phrasing, restructure the sentence
-10. ATS OPTIMIZATION: Naturally incorporate relevant keywords from the job description
+   - Sharpen verbs (e.g., "Created" → "Engineered")
+   - Add technical specificity
+   - Connect technologies to business impact
+   
+4. EXPERIENCE BULLETS:
+   - Focus on accomplishments and impact
+   - Highlight skills relevant to job description
+   
+5. PROJECT BULLETS:
+   - Emphasize technologies exactly as listed
+   - Focus on implementation details
+   - Explain HOW technologies were used
+   
+6. TENSE: Present for positions marked '- Present' in <duration>, past otherwise
+
+7. MAXIMIZE IMPACT:
+   - Use 90-100% of available ${maxCharsPerBullet} characters
+   - Every bullet must be complete and grammatical
+   - Naturally incorporate job description keywords
 </INSTRUCTIONS>
 
-<EXAMPLES OF GOOD ALIGNMENT>
-Original text: "Modernized legacy workflows for U.S. and Mexico manufacturing plants by designing a production-grade Angular web application, driving 10% operational efficiency gains."
+<OUTPUT FORMAT>
+TWO arrays:
+1. "experience_bullets": One entry per work experience, each with EXACTLY ${numBulletsPerExperience} bullets
+2. "project_bullets": One entry per project, each with EXACTLY ${numBulletsPerProject} bullets
+</OUTPUT FORMAT>
 
-❌ TOO VAGUE: "Modernized workflows through web app development, driving 10% operational efficiency gains."
-✅ CONCISE & SPECIFIC: "Modernized workflows by implementing real-time Angular-based dashboard, driving 10% efficiency gains."
-
-Original text: "Optimized Angular front-end performance with NgRx state management and modular architecture, reducing UI latency by 20% through streamlined asynchronous workflows."
-
-❌ TOO VAGUE: "Optimized Angular front-end with NgRx, reducing latency by 20%."
-✅ CONCISE & SPECIFIC: "Optimized Angular front-end with NgRx state management, reducing UI latency by 20% through improved async workflows."
-
-Original text: "Elevated software quality and delivery speed by increasing test coverage from 15% to 70%, cutting production bugs by 25%."
-
-❌ TOO VAGUE: "Increased test coverage and reduced bugs."
-✅ CONCISE & SPECIFIC: "Expanded test coverage from 15% to 70%, cutting production bugs by 25% and accelerating release cycles."
-</EXAMPLES OF GOOD ALIGNMENT>
+<EXAMPLES>
+Original: "Modernized legacy workflows using Angular, driving 10% efficiency gains."
+✅ GOOD: "Modernized legacy workflows by implementing Angular-based dashboard, driving 10% efficiency gains."
+❌ BAD: "Modernized workflows using React, driving 10% efficiency gains." (Technology changed)
+❌ BAD: "Modernized workflows using Angular, driving 20% efficiency gains." (Metric changed)
+</EXAMPLES>
 `
 }

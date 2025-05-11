@@ -37,6 +37,7 @@ interface MintResumePayload {
   sessionId: string
   personalDetails: PersonalDetailsFormValues
   workExperience: ExperienceBlockData[]
+  projects: ProjectBlockData[]
   jobDescription: string
   settings: SettingsFormValues
 }
@@ -175,6 +176,7 @@ export const FormsContainer: React.FC = () => {
         sessionId,
         jobDescription,
         workExperience,
+        projects,
         personalDetails,
         settings,
       }

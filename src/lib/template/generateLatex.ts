@@ -1,6 +1,7 @@
 import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { PersonalDetailsFormValues } from '@/components/PersonalDetails/PersonalDetails'
 import { ApiError } from '../types/errors'
+import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
 
 export class LatexGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -12,7 +13,9 @@ export class LatexGenerationError extends Error {
 export const generateLatex = async (
   experienceBullets: { id: string; bullets: string[] }[],
   workExperience: ExperienceBlockData[],
-  personalDetails: PersonalDetailsFormValues
+  personalDetails: PersonalDetailsFormValues,
+  projects: ProjectBlockData[],
+  projectBullets: { id: string; bullets: string[] }[]
 ): Promise<string> => {
   const { name, email, linkedin, github, location } = personalDetails
   const extractedGitHub = github?.replace(/\/$/, '').split('/').pop() || ''
@@ -101,6 +104,60 @@ ${bulletPoints}
       \\resumeItemListEnd`
     })
     .join('\n\n')
+
+  const projectsSection =
+    projects && projects.length > 0
+      ? projects
+          .map((project) => {
+            const dateRange = project.endDate.isPresent
+              ? `${project.startDate.month} ${project.startDate.year} -- Present`
+              : `${project.startDate.month} ${project.startDate.year} -- ${project.endDate.month} ${project.endDate.year}`
+
+            const technologies = project.technologies?.length
+              ? `${project.technologies
+                  .join(', ')
+                  .replace(/&/g, '\\&')
+                  .replace(/%/g, '\\%')
+                  .replace(/_/g, '\\_')
+                  .replace(/\$/g, '\\$')
+                  .replace(/\#/g, '\\#')
+                  .replace(/\{/g, '\\{')
+                  .replace(/\}/g, '\\}')}`
+              : ''
+
+            const projBullets =
+              projectBullets?.find((pb) => pb.id === project.id)?.bullets || []
+
+            const bulletPoints = projBullets
+              .map((bullet) => {
+                const cleanBullet = bullet
+                  .trim()
+                  .replace(/&/g, '\\&')
+                  .replace(/%/g, '\\%')
+                  .replace(/_/g, '\\_')
+                  .replace(/\$/g, '\\$')
+                  .replace(/\#/g, '\\#')
+                  .replace(/\{/g, '\\{')
+                  .replace(/\}/g, '\\}')
+                  .replace(/\r?\n|\r/g, ' ')
+                  .replace(/\s+/g, ' ')
+
+                return `    \\resumeItem{${cleanBullet}\\mbox{}}`
+              })
+              .join('\n')
+
+            return `
+      \\resumeProjectHeading
+        {\\textbf{${project.title
+          .replace(/&/g, '\\&')
+          .replace(/%/g, '\\%')
+          .replace(/_/g, '\\_')}} $|$ \\emph{${technologies}}}{${dateRange}}
+        \\resumeItemListStart
+  ${bulletPoints}
+        \\resumeItemListEnd`
+          })
+          .join('\n\n')
+      : ''
 
   return `
 %-------------------------
@@ -226,6 +283,12 @@ ${bulletPoints}
 \\section{Experience}
   \\resumeSubHeadingListStart
 ${experienceSection}
+  \\resumeSubHeadingListEnd
+
+%-----------PROJECTS-----------
+\\section{Projects}
+  \\resumeSubHeadingListStart
+${projectsSection}
   \\resumeSubHeadingListEnd
 
 \\end{document}
