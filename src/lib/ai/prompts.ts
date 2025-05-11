@@ -103,41 +103,48 @@ ${formattedWorkExperience}
 </WORK_EXPERIENCE>
 
 <INSTRUCTIONS>
-1. Analyze the <JOB_DESCRIPTION> to identify key skills and requirements.
-2. For each <WORK_EXPERIENCE>, generate exactly ${numBulletsPerExperience} bullet points, each up to ${maxCharsPerBullet} characters.
-3. Use the STAR format (Situation, Task, Action, Result) with quantifiable results when stated.
-4. TENSE RULE - STRICT: Check the <duration></duration> tag for each position:
-   - If it ends with "- Present" → Use present tense (e.g., "Developing", "Leading")
-   - If it has an end date → Use past tense (e.g., "Developed", "Led")
-5. Incorporate job description keywords for ATS optimization (max 3 repetitions per keyword).
-6. Use the experience ID from each <id> tag as the id property in the output.
-7. CRITICAL: Generated bullets MUST align with the <JOB_DESCRIPTION> and <WORK_EXPERIENCE>.
-8: CRITICAL: Use keywords and exact key phrases (defined as a string of around 3 words) from the <JOB_DESCRIPTION> in the generated bullets when possible. You must do everything you can to achieve maximum keyword alignment to the <JOB_DESCRIPTION>.
+1. STRICT CHARACTER LIMIT: Each bullet point MUST be LESS THAN OR EQUAL TO ${maxCharsPerBullet} characters - this is a HARD CEILING. Count every character (including spaces) to ensure you don't exceed this limit.
+2. For each <WORK_EXPERIENCE>, generate exactly ${numBulletsPerExperience} bullet points.
+3. CREATIVE REWRITING: Rephrase and restructure the original text while maintaining factual accuracy:
+   - Keep all skills, technologies, and metrics mentioned
+   - Use your own wording and structure to present the information more effectively
+   - Focus on impact and relevance to the job description
+4. IMPROVE ON ORIGINAL: Don't just copy the original wording - enhance it:
+   - Sharpen the action verbs (e.g., "Created" → "Engineered" or "Spearheaded")
+   - Clarify technical implementations (e.g., "web app" → "React-based dashboard with real-time updates")
+   - Connect technologies to their business impact more explicitly
+5. TECHNICAL PRECISION: Show the purpose behind technical choices:
+   - BAD: "Used Angular"
+   - GOOD: "Built responsive UI with Angular to handle complex data visualization needs"
+6. NO VAGUE STATEMENTS: Every bullet must include specific technical details and measurable impact:
+   - BAD: "Collaborated with UX/UI to refine user flows, optimizing loading and rendering"
+   - GOOD: "Partnered with UX/UI team to implement lazy-loading components and image optimization, reducing page load time by 40% and increasing user retention"
+7. MAINTAIN FACTUAL ACCURACY: Use only technologies, achievements, and metrics mentioned in the original
+8. TENSE RULE: Present tense for current jobs, past tense for previous roles
+9. PRIORITY - MAXIMIZE CHARACTER USAGE WHILE RESPECTING THE LIMIT:
+   - Each bullet MUST use 90-100% of the available ${maxCharsPerBullet} characters
+   - NEVER exceed the ${maxCharsPerBullet} character limit for any reason
+   - Count characters for each bullet before finalizing it
+   - Every bullet MUST be a complete, grammatically correct sentence
+   - If hitting character limit requires awkward phrasing, restructure the sentence
+10. ATS OPTIMIZATION: Naturally incorporate relevant keywords from the job description
 </INSTRUCTIONS>
 
-<OUTPUT>
-Return the bullet points in the "generate_resume_bullets" tool with the JSON structure:
-{
-  "experience_bullets": {
-    "id": <experience_id>,
-    "bullets": ["bullet 1", "bullet 2", ..., "bullet ${numBulletsPerExperience}"]
-  }
-}
-</OUTPUT>
+<EXAMPLES OF GOOD ALIGNMENT>
+Original text: "Modernized legacy workflows for U.S. and Mexico manufacturing plants by designing a production-grade Angular web application, driving 10% operational efficiency gains."
 
-<EXAMPLE_TOOL_CALL_OUTPUT>
-{
-  "experience_bullets": {
-    "id": "2dce1db3-61df-4af1-be28-ecdb837f3fdf"
-    "bullets": [
-      "Developed real-time inventory dashboard using JavaScript, enabling 15% faster stock updates for 200 retail clients",
-      "Optimized Node.js backend queries, reducing API response time by 30% and enhancing user experience",
-      "Led API integration with third-party logistics, cutting delivery scheduling errors by 25%"
-    ]
-  }
-}
-</EXAMPLE_TOOL_CALL_OUTPUT>
+❌ TOO VAGUE: "Modernized workflows through web app development, driving 10% operational efficiency gains."
+✅ CONCISE & SPECIFIC: "Modernized workflows by implementing real-time Angular-based dashboard, driving 10% efficiency gains."
 
-Generate the bullet points and return them in the specified JSON structure via the "generate_resume_bullets" tool.
+Original text: "Optimized Angular front-end performance with NgRx state management and modular architecture, reducing UI latency by 20% through streamlined asynchronous workflows."
+
+❌ TOO VAGUE: "Optimized Angular front-end with NgRx, reducing latency by 20%."
+✅ CONCISE & SPECIFIC: "Optimized Angular front-end with NgRx state management, reducing UI latency by 20% through improved async workflows."
+
+Original text: "Elevated software quality and delivery speed by increasing test coverage from 15% to 70%, cutting production bugs by 25%."
+
+❌ TOO VAGUE: "Increased test coverage and reduced bugs."
+✅ CONCISE & SPECIFIC: "Expanded test coverage from 15% to 70%, cutting production bugs by 25% and accelerating release cycles."
+</EXAMPLES OF GOOD ALIGNMENT>
 `
 }

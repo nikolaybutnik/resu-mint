@@ -9,7 +9,7 @@ import {
   createSuccessResponse,
 } from '@/lib/types/errors'
 import { exec } from 'child_process'
-import { access, readFile, unlink } from 'fs/promises'
+import { readFile, unlink } from 'fs/promises'
 import { writeFile } from 'fs/promises'
 import { NextRequest, NextResponse } from 'next/server'
 import { tmpdir } from 'os'
@@ -40,8 +40,6 @@ export async function POST(request: NextRequest) {
       workExperience,
       personalDetails
     )
-
-    console.log('Generated LaTeX:', hydratedLatex)
 
     const texFilePath = join(tmpdir(), `resume-${sessionId}.tex`)
     const pdfFilePath = join(tmpdir(), `resume-${sessionId}.pdf`)

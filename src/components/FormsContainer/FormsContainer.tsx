@@ -1,6 +1,6 @@
 'use client'
 import styles from './FormsContainer.module.scss'
-import { useActionState, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { z } from 'zod'
 import {
   formatErrorsForClient,
@@ -130,28 +130,6 @@ export const FormsContainer: React.FC = () => {
   )
   const [settings, setSettings] = useState<SettingsFormValues>(initialSettings)
 
-  const [state, formAction, isPending] = useActionState(
-    async (_previousState: ResumeFormState | null, formData: FormData) => {
-      const data: FormFields = {
-        experience: formData.get('experience') as string,
-        jobDescription: formData.get('jobDescription') as string,
-        numBulletsPerExperience: Number(
-          formData.get('numBulletsPerExperience') || 0
-        ),
-        maxCharsPerBullet: Number(formData.get('maxCharsPerBullet') || 0),
-      }
-
-      const apiResult = await handleDataSubmit(data)
-
-      return {
-        data,
-        generatedSections: apiResult.generatedSections,
-        errors: apiResult.errors || null,
-      }
-    },
-    null
-  )
-
   // Placeholder until user authentication is implemented
   useEffect(() => {
     const storedId = window.localStorage.getItem(StorageKeys.SESSION_ID)
@@ -217,55 +195,6 @@ export const FormsContainer: React.FC = () => {
     setLoading(false)
   }, [])
 
-  const handleDataSubmit = async (
-    data: FormFields
-  ): Promise<ResumeFormState> => {
-    // temporary disable
-    return Promise.resolve({
-      data,
-      generatedSections: [],
-      errors: null,
-    })
-    // const validatedData = formSchema.safeParse(data)
-
-    // if (!validatedData.success) {
-    //   const errors: ClientErrors = {}
-    //   validatedData.error.issues.forEach((issue) => {
-    //     const field = issue.path[0] as string
-    //     errors[field] = issue.message
-    //   })
-
-    //   return { errors }
-    // } else {
-    //   try {
-    //     const response = await fetch('/api/generate-resume', {
-    //       method: 'POST',
-    //       headers: { 'Content-Type': 'application/json' },
-    //       body: JSON.stringify(validatedData.data),
-    //     })
-
-    //     const apiResult =
-    //       (await response.json()) as ApiResponse<ResumeResponseData>
-
-    //     if (!response.ok || apiResult.status === ResponseStatus.ERROR) {
-    //       return {
-    //         errors:
-    //           apiResult.status === ResponseStatus.ERROR
-    //             ? formatErrorsForClient(apiResult.errors)
-    //             : { server: 'Failed to generate bullet points' },
-    //       }
-    //     }
-
-    //     return {
-    //       generatedSections: apiResult.data.generatedSections,
-    //     }
-    //   } catch (error) {
-    //     console.error('API error:', error)
-    //     return { errors: { server: 'Network error occurred' } }
-    //   }
-    // }
-  }
-
   const handleMintResume = async () => {
     try {
       setMintingResume(true)
@@ -289,6 +218,7 @@ export const FormsContainer: React.FC = () => {
 
       if (apiResult.status === ResponseStatus.SUCCESS) {
         if (apiResult.data.pdf) {
+          // TODO: do this on the backend
           const byteCharacters = atob(apiResult.data.pdf)
           const byteNumbers = new Array(byteCharacters.length)
 

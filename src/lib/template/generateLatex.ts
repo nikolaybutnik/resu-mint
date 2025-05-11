@@ -14,9 +14,93 @@ export const generateLatex = async (
   workExperience: ExperienceBlockData[],
   personalDetails: PersonalDetailsFormValues
 ): Promise<string> => {
-  const { name, email, phone, linkedin, github, location } = personalDetails
+  const { name, email, linkedin, github, location } = personalDetails
   const extractedGitHub = github?.replace(/\/$/, '').split('/').pop() || ''
   const extractedLinkedIn = linkedin?.replace(/\/$/, '').split('/').pop() || ''
+
+  const sortedExperience = [...workExperience].sort((a, b) => {
+    if (a.endDate.isPresent && !b.endDate.isPresent) return -1
+    if (!a.endDate.isPresent && b.endDate.isPresent) return 1
+
+    const aYear = parseInt(
+      a.endDate.isPresent ? new Date().getFullYear().toString() : a.endDate.year
+    )
+    const bYear = parseInt(
+      b.endDate.isPresent ? new Date().getFullYear().toString() : b.endDate.year
+    )
+
+    if (aYear !== bYear) return bYear - aYear
+
+    const monthOrder = {
+      Jan: 0,
+      Feb: 1,
+      Mar: 2,
+      Apr: 3,
+      May: 4,
+      Jun: 5,
+      Jul: 6,
+      Aug: 7,
+      Sep: 8,
+      Oct: 9,
+      Nov: 10,
+      Dec: 11,
+    }
+
+    const aMonth = a.endDate.isPresent
+      ? 12
+      : monthOrder[a.endDate.month as keyof typeof monthOrder]
+    const bMonth = b.endDate.isPresent
+      ? 12
+      : monthOrder[b.endDate.month as keyof typeof monthOrder]
+
+    return bMonth - aMonth
+  })
+
+  const experienceSection = sortedExperience
+    .map((exp) => {
+      const dateRange = exp.endDate.isPresent
+        ? `${exp.startDate.month} ${exp.startDate.year} -- Present`
+        : `${exp.startDate.month} ${exp.startDate.year} -- ${exp.endDate.month} ${exp.endDate.year}`
+
+      const expBullets =
+        experienceBullets.find((eb) => eb.id === exp.id)?.bullets || []
+
+      const bulletPoints = expBullets
+        .map((bullet) => {
+          const cleanBullet = bullet
+            .trim()
+            .replace(/&/g, '\\&')
+            .replace(/%/g, '\\%')
+            .replace(/_/g, '\\_')
+            .replace(/\$/g, '\\$')
+            .replace(/\#/g, '\\#')
+            .replace(/\{/g, '\\{')
+            .replace(/\}/g, '\\}')
+            .replace(/\r?\n|\r/g, ' ')
+            .replace(/\s+/g, ' ')
+
+          return `    \\resumeItem{${cleanBullet}\\mbox{}}`
+        })
+        .join('\n')
+
+      return `
+    \\resumeSubheading
+      {${exp.jobTitle
+        .replace(/&/g, '\\&')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')}}{${dateRange}}
+      {${exp.companyName
+        .replace(/&/g, '\\&')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')}}{${exp.location
+        .replace(/&/g, '\\&')
+        .replace(/%/g, '\\%')
+        .replace(/_/g, '\\_')}}
+      \\resumeItemListStart
+${bulletPoints}
+      \\resumeItemListEnd`
+    })
+    .join('\n\n')
 
   return `
 %-------------------------
@@ -39,7 +123,7 @@ export const generateLatex = async (
 \\usepackage{fancyhdr}
 \\usepackage[english]{babel}
 \\usepackage{tabularx}
-% \\input{glyphtounicode} % Commented out until the file can be provided
+% \\input{glyphtounicode} % Commented out temporarily - will be enabled when file is available
 
 %----------FONT OPTIONS----------
 % sans-serif
@@ -76,8 +160,8 @@ export const generateLatex = async (
   \\vspace{-4pt}\\scshape\\raggedright\\large
 }{}{0em}{}[\\color{black}\\titlerule \\vspace{-5pt}]
 
-% Comment out for now to avoid engine-specific issues
-% \\pdfgentounicode=1
+% Ensure that generate pdf is machine readable/ATS parsable
+% \\pdfgentounicode=1 % Commented out temporarily - will be enabled when compiler supports it
 
 %-------------------------
 % Custom commands
@@ -136,7 +220,13 @@ export const generateLatex = async (
     } $|$ \\href{mailto:${email}}{\\underline{${email}}} $|$ 
     \\href{https://linkedin.com/in/${extractedLinkedIn}}{\\underline{linkedin.com/in/${extractedLinkedIn}}} $|$
     \\href{https://github.com/${extractedGitHub}}{\\underline{github.com/${extractedGitHub}}}
-\u005Cend{center}
+\\end{center}
+
+%-----------EXPERIENCE-----------
+\\section{Experience}
+  \\resumeSubHeadingListStart
+${experienceSection}
+  \\resumeSubHeadingListEnd
 
 \\end{document}
   `
