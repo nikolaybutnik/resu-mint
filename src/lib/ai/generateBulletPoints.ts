@@ -2,7 +2,7 @@ import OpenAI from 'openai'
 import { generateResumeBulletPointsTool } from '@/lib/ai/tools'
 import { generateResumeBulletPointsPrompt } from '@/lib/ai/prompts'
 import { SettingsFormValues } from '@/components/Settings/Settings'
-import { ExperienceBlockData } from '@/components/EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { ApiError } from '../types/errors'
 
 interface GeneratedBulletsResponseModel {

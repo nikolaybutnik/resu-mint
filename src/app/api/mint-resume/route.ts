@@ -29,6 +29,8 @@ export async function POST(request: NextRequest) {
       sessionId,
     } = data
 
+    // TODO: this functionality may need to be separated later on
+    // The idea is that the bullet points are already generated when teh user mints the resume
     const generatedBulletPoints = await generateBulletPoints(
       workExperience,
       jobDescription,
@@ -53,12 +55,12 @@ export async function POST(request: NextRequest) {
     if (texFilePath) await unlink(texFilePath)
     if (pdfFilePath) await unlink(pdfFilePath)
 
-    return NextResponse.json(
-      createSuccessResponse({
-        bullets: generatedBulletPoints.experience_bullets,
-        pdf: pdfBuffer.toString('base64'),
-      })
-    )
+    return new NextResponse(pdfBuffer, {
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': 'attachment; filename="resume.pdf"',
+      },
+    })
   } catch (error) {
     console.error('Server error:', error)
     if (error instanceof BulletGenerationError) {

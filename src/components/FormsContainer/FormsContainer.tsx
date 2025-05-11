@@ -1,22 +1,18 @@
 'use client'
 import styles from './FormsContainer.module.scss'
 import { useState, useEffect } from 'react'
-import { z } from 'zod'
-import {
-  formatErrorsForClient,
-  ApiResponse,
-  ResponseStatus,
-} from '@/lib/types/errors'
 import { v4 as uuidv4 } from 'uuid'
 import { saveAs } from 'file-saver'
-import { ExperienceBlockData } from '@/components/EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import ResumePreview from '@/components/ResumePreview/ResumePreview'
 import PersonalDetails, {
   PersonalDetailsFormValues,
 } from '@/components/PersonalDetails/PersonalDetails'
-import WorkExperience from '../WorkExperience/WorkExperience'
+import WorkExperience from '../Experience/WorkExperience/WorkExperience'
 import { Settings, SettingsFormValues } from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
+import Projects from '../Projects/Projects/Projects'
+import { ProjectBlockData } from '../Projects/EditableProjectBlock/EditableProjectBlock'
 
 enum Tabs {
   PERSONAL_DETAILS = 'PersonalDetails',
@@ -33,6 +29,7 @@ enum StorageKeys {
   JOB_DESCRIPTION = 'resumint_jobDescription',
   PERSONAL_DETAILS = 'resumint_personalDetails',
   EXPERIENCE = 'resumint_experience',
+  PROJECTS = 'resumint_projects',
   SETTINGS = 'resumint_settings',
 }
 
@@ -48,50 +45,11 @@ const tabs = [
   { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
   { id: Tabs.EXPERIENCE, label: 'Experience' },
+  { id: Tabs.PROJECTS, label: 'Projects' },
   { id: Tabs.SETTINGS, label: 'Settings' },
-  // { id: Tabs.PROJECTS, label: 'Projects' },
   // { id: Tabs.EDUCATION, label: 'Education' },
   // { id: Tabs.SKILLS, label: 'Skills' },
 ]
-
-// TODO: retire this schema when job description tab is in place
-const formSchema = z.object({
-  experience: z
-    .string()
-    .min(10, 'Experience must be at least 10 characters')
-    .nonempty('Experience is required'),
-  jobDescription: z
-    .string()
-    .min(10, 'Job description must be at least 10 characters')
-    .nonempty('Experience is required'),
-  numBulletsPerExperience: z
-    .number()
-    .min(1, 'Number of bullets must be at least 1')
-    .max(10, 'Number of bullets cannot exceed 10'),
-  maxCharsPerBullet: z
-    .number()
-    .min(50, 'Max characters must be at least 50')
-    .max(200, 'Max characters cannot exceed 200'),
-})
-
-type FormFields = z.infer<typeof formSchema>
-type ClientErrors = { [key: string]: string }
-
-export type ResumeFormState = {
-  data?: FormFields
-  generatedSections?: { [key: string]: string[] }[]
-  errors?: ClientErrors | null
-}
-
-type GeneratedBulletPointsResponseData = {
-  data: { id: string; bullets: string[] }[]
-  pdf: string
-  status: ResponseStatus
-}
-
-type LatexResponseData = {
-  fileId: string
-}
 
 const initialPersonalDetails: PersonalDetailsFormValues = {
   name: '',
@@ -109,6 +67,8 @@ const initialSettings: SettingsFormValues = {
   maxCharsPerBullet: 125,
 }
 const initialJobDescription: string = ''
+const initialProjects: ProjectBlockData[] = []
+
 export const FormsContainer: React.FC = () => {
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
@@ -128,6 +88,7 @@ export const FormsContainer: React.FC = () => {
   const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
     initialWorkExperience
   )
+  const [projects, setProjects] = useState<ProjectBlockData[]>(initialProjects)
   const [settings, setSettings] = useState<SettingsFormValues>(initialSettings)
 
   // Placeholder until user authentication is implemented
@@ -166,7 +127,7 @@ export const FormsContainer: React.FC = () => {
     setLoading(false)
   }, [])
 
-  // Load work experience
+  // Load experience
   useEffect(() => {
     setLoading(true)
     const storedWorkExperience = window.localStorage.getItem(
@@ -174,6 +135,16 @@ export const FormsContainer: React.FC = () => {
     )
     if (storedWorkExperience) {
       setWorkExperience(JSON.parse(storedWorkExperience))
+    }
+    setLoading(false)
+  }, [])
+
+  // Load projects
+  useEffect(() => {
+    setLoading(true)
+    const storedProjects = window.localStorage.getItem(StorageKeys.PROJECTS)
+    if (storedProjects) {
+      setProjects(JSON.parse(storedProjects))
     }
     setLoading(false)
   }, [])
@@ -199,6 +170,7 @@ export const FormsContainer: React.FC = () => {
     try {
       setMintingResume(true)
 
+      // TODO: pass generated bullets to server?
       const payload: MintResumePayload = {
         sessionId,
         jobDescription,
@@ -213,75 +185,23 @@ export const FormsContainer: React.FC = () => {
         body: JSON.stringify(payload),
       })
 
-      const apiResult =
-        (await response.json()) as ApiResponse<GeneratedBulletPointsResponseData>
-
-      if (apiResult.status === ResponseStatus.SUCCESS) {
-        if (apiResult.data.pdf) {
-          // TODO: do this on the backend
-          const byteCharacters = atob(apiResult.data.pdf)
-          const byteNumbers = new Array(byteCharacters.length)
-
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i)
-          }
-
-          const byteArray = new Uint8Array(byteNumbers)
-          const pdfBlob = new Blob([byteArray], { type: 'application/pdf' })
-
-          saveAs(pdfBlob, 'resume.pdf')
-        }
+      if (response.ok) {
+        const pdfBlob = await response.blob()
+        saveAs(
+          pdfBlob,
+          `${personalDetails.name
+            .replace(/\s+/g, '-')
+            .toLowerCase()}-resume.pdf`
+        )
       } else {
-        console.error('API error:', apiResult.errors)
+        const errorData = await response.json()
+        console.error('API error:', errorData)
       }
     } catch (error) {
       console.error('API error:', error)
     } finally {
       setMintingResume(false)
     }
-
-    // try {
-    //   setPdfGenerating(true)
-
-    //   const payload = {
-    //     sessionId,
-    //     name: personalDetails.name || 'John Doe',
-    //     email: personalDetails.email || 'john.doe@example.com',
-    //     phone: personalDetails.phone || '1234567890',
-    //     workExperience,
-    //   }
-
-    //   const response = await fetch('/api/generate-latex', {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(payload),
-    //   })
-
-    //   const apiResult =
-    //     (await response.json()) as ApiResponse<LatexResponseData>
-
-    //   if (apiResult.status === ResponseStatus.ERROR) {
-    //     console.error(apiResult.errors)
-    //     return
-    //   }
-
-    //   const fileId = apiResult.data.fileId
-    //   const downloadResponse = await fetch(
-    //     `/api/download-pdf/${fileId}?sessionId=${sessionId}`
-    //   )
-
-    //   if (!downloadResponse.ok) {
-    //     console.error('Failed to download PDF')
-    //   }
-
-    //   const blob = await downloadResponse.blob()
-
-    //   saveAs(blob, 'resume.pdf')
-    // } catch (error) {
-    //   console.error('API error:', error)
-    // } finally {
-    //   setPdfGenerating(false)
-    // }
   }
 
   const handleJobDescriptionSave = (data: string) => {
@@ -298,6 +218,13 @@ export const FormsContainer: React.FC = () => {
     setWorkExperience(data)
     if (data.length > 0) {
       localStorage.setItem(StorageKeys.EXPERIENCE, JSON.stringify(data))
+    }
+  }
+
+  const handleProjectsSave = (data: ProjectBlockData[]) => {
+    setProjects(data)
+    if (data.length > 0) {
+      localStorage.setItem(StorageKeys.PROJECTS, JSON.stringify(data))
     }
   }
 
@@ -344,6 +271,13 @@ export const FormsContainer: React.FC = () => {
               data={workExperience}
               loading={loading}
               onSave={handleWorkExperienceSave}
+            />
+          )}
+          {activeTab === Tabs.PROJECTS && (
+            <Projects
+              data={projects}
+              loading={loading}
+              onSave={handleProjectsSave}
             />
           )}
           {activeTab === Tabs.SETTINGS && (

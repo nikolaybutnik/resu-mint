@@ -6,7 +6,7 @@ import {
   Month,
 } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { DraggableExperienceBlock } from '@/components/DraggableExperienceBlock/DraggableExperienceBlock'
+import { DraggableExperienceBlock } from '../DraggableExperienceBlock/DraggableExperienceBlock'
 import LoadingSpinner from '../../LoadingSpinner/LoadingSpinner'
 
 interface WorkExperienceProps {
@@ -83,7 +83,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   return (
     <>
       {loading ? (
-        <LoadingSpinner text='Saving your experience...' size='lg' />
+        <LoadingSpinner text='Loading your experience...' size='lg' />
       ) : (
         <div className={styles.workExperience}>
           <h2 className={styles.formTitle}>Experience</h2>

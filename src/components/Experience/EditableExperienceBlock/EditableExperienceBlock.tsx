@@ -1,7 +1,7 @@
+import styles from './EditableExperienceBlock.module.scss'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { z } from 'zod'
 import { useDebounce } from '@/lib/utils'
-import styles from './EditableExperienceBlock.module.scss'
 import { FaXmark } from 'react-icons/fa6'
 
 export type Month =
@@ -18,12 +18,12 @@ export type Month =
   | 'Nov'
   | 'Dec'
 
-type StartDate = {
+export type StartDate = {
   month: Month
   year: string
 }
 
-type EndDate = {
+export type EndDate = {
   month: Month | ''
   year: string
   isPresent: boolean
@@ -124,7 +124,7 @@ export const experienceBlockSchema = z
     companyName: z
       .string()
       .min(1, 'Company name is required')
-      .max(100, 'Company name must be 100 characters or less'),
+      .max(500, 'Company name must be 500 characters or less'),
     location: z
       .string()
       .min(1, 'Location is required')
@@ -307,7 +307,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   }, [formData, isValid, onSave])
 
   return (
-    <section className={styles.experienceBlock}>
+    <section className={styles.editableExperienceBlock}>
       <header className={styles.header}>
         <button type='button' className={styles.closeButton} onClick={onClose}>
           <FaXmark />
@@ -521,7 +521,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
       <button
         type='button'
-        className={styles.formButton}
+        className={styles.saveButton}
         onClick={handleSave}
         disabled={!isValid}
       >

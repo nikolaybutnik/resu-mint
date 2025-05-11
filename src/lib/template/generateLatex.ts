@@ -1,4 +1,4 @@
-import { ExperienceBlockData } from '@/components/EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { PersonalDetailsFormValues } from '@/components/PersonalDetails/PersonalDetails'
 import { ApiError } from '../types/errors'
 

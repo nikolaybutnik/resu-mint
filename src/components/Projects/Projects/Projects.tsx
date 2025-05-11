@@ -1,26 +1,20 @@
-import styles from './WorkExperience.module.scss'
-import React, { useCallback, useState, useEffect } from 'react'
+import styles from './Projects.module.scss'
+import { useState, useEffect, useCallback } from 'react'
+import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 import { v4 as uuidv4 } from 'uuid'
-import {
-  ExperienceBlockData,
-  Month,
-} from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { DraggableExperienceBlock } from '@/components/DraggableExperienceBlock/DraggableExperienceBlock'
-import LoadingSpinner from '../../LoadingSpinner/LoadingSpinner'
+import { Month } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
+import { ProjectBlockData } from '../EditableProjectBlock/EditableProjectBlock'
+import EditableProjectBlock from '../EditableProjectBlock/EditableProjectBlock'
+import { DraggableProjectBlock } from '../DraggableProjectBlock/DraggableProjectBlock'
 
-interface WorkExperienceProps {
-  data: ExperienceBlockData[]
+interface ProjectsProps {
+  data: ProjectBlockData[]
   loading: boolean
-  onSave: (data: ExperienceBlockData[]) => void
+  onSave: (data: ProjectBlockData[]) => void
 }
 
-const WorkExperience: React.FC<WorkExperienceProps> = ({
-  data,
-  loading,
-  onSave,
-}) => {
-  const [localData, setLocalData] = useState<ExperienceBlockData[]>(data)
+const Projects = ({ data, loading, onSave }: ProjectsProps) => {
+  const [localData, setLocalData] = useState<ProjectBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
 
@@ -30,7 +24,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
 
   const handleBlockDelete = useCallback(
     (id: string) => {
-      const updatedData = localData.filter((exp) => exp.id !== id)
+      const updatedData = localData.filter((project) => project.id !== id)
       setLocalData(updatedData)
       setSelectedBlockId(null)
       setNewBlockId(null)
@@ -40,15 +34,15 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   )
 
   const handleBlockAdd = useCallback(() => {
-    const newBlock: ExperienceBlockData = {
+    const newBlock: ProjectBlockData = {
       id: uuidv4(),
-      jobTitle: '',
+      title: '',
+      technologies: [],
+      description: '',
       startDate: { month: '' as Month, year: '' },
       endDate: { month: '' as Month, year: '', isPresent: false },
-      companyName: '',
-      location: '',
-      description: '',
       bulletPoints: [],
+      link: '',
     }
     const updatedData = [...localData, newBlock]
     setLocalData(updatedData)
@@ -68,7 +62,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   }, [])
 
   const handleSave = useCallback(
-    (updatedBlock: ExperienceBlockData) => {
+    (updatedBlock: ProjectBlockData) => {
       const updatedData = localData.map((block) =>
         block.id === updatedBlock.id ? updatedBlock : block
       )
@@ -83,28 +77,28 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   return (
     <>
       {loading ? (
-        <LoadingSpinner text='Saving your experience...' size='lg' />
+        <LoadingSpinner text='Loading your projects...' size='lg' />
       ) : (
-        <div className={styles.workExperience}>
-          <h2 className={styles.formTitle}>Experience</h2>
+        <div className={styles.projects}>
+          <h2 className={styles.formTitle}>Projects</h2>
           <button
             type='button'
             className={styles.addButton}
             disabled={!!selectedBlockId}
             onClick={handleBlockAdd}
           >
-            Add Experience
+            Add Project
           </button>
-          <div className={styles.experienceContainer}>
+          <div className={styles.projectsContainer}>
             {selectedBlockId
               ? localData
-                  .filter((experience) => experience.id === selectedBlockId)
-                  .map((experience) => {
-                    const isNew = experience.id === newBlockId
+                  .filter((project) => project.id === selectedBlockId)
+                  .map((project) => {
+                    const isNew = project.id === newBlockId
                     return (
-                      <EditableExperienceBlock
-                        key={experience.id}
-                        data={experience}
+                      <EditableProjectBlock
+                        key={project.id}
+                        data={project}
                         isNew={isNew}
                         onDelete={handleBlockDelete}
                         onClose={handleBlockClose}
@@ -112,10 +106,10 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       />
                     )
                   })
-              : localData.map((experience) => (
-                  <DraggableExperienceBlock
-                    key={experience.id}
-                    data={experience}
+              : localData.map((project) => (
+                  <DraggableProjectBlock
+                    key={project.id}
+                    data={project}
                     onBlockSelect={handleBlockSelect}
                   />
                 ))}
@@ -126,4 +120,4 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   )
 }
 
-export default WorkExperience
+export default Projects

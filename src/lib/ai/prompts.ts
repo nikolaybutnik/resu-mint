@@ -1,4 +1,4 @@
-import { ExperienceBlockData } from '@/components/EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 
 const formatWorkExperienceForAI = (
   workExperience: ExperienceBlockData[]

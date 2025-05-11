@@ -1,0 +1,120 @@
+@import '../../../styles/variables';
+
+.editableExperienceBlock {
+  background: $color-background;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+
+  .closeButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    svg {
+      height: 24px;
+      width: 24px;
+      color: $color-text;
+    }
+  }
+}
+
+.formField {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.formInput {
+  font-family: $font-family-base;
+  padding: 12px 0px;
+  font-size: 14px;
+  border: none;
+  border-bottom: 2px solid $color-border;
+  border-radius: 2px;
+  background: transparent;
+  color: $color-text;
+  transition: border-color 0.15s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 2px 0 0 $color-primary;
+  }
+
+  &::placeholder {
+    color: $color-placeholder;
+    font-weight: 500;
+  }
+
+  &:disabled {
+    background-color: $color-border;
+    opacity: 0.3;
+  }
+}
+
+.dateInputs {
+  display: flex;
+  flex-direction: row;
+
+  .monthInput {
+    width: 125px;
+    margin-right: 12px;
+  }
+
+  .yearInput {
+    flex: 1;
+  }
+}
+
+.checkboxField {
+  padding: 12px 0px;
+  display: flex;
+  align-items: center;
+
+  input {
+    height: 20px;
+    width: 20px;
+    margin-right: 8px;
+    cursor: pointer;
+  }
+}
+
+.formTextarea {
+  font-family: $font-family-base;
+  padding: 8px;
+  font-size: 14px;
+  border: 2px solid $color-border;
+  border-radius: 4px;
+  min-width: 100%;
+  max-width: 100%;
+  min-height: 80px;
+  margin-top: 12px;
+
+  &::placeholder {
+    color: $color-placeholder;
+  }
+}
+
+.formError {
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-error;
+  margin-top: 6px;
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideIn 0.3s ease forwards;
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

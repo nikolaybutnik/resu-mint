@@ -19,6 +19,14 @@ export const DraggableExperienceBlock: React.FC<
   DraggableExperienceBlockProps
 > = ({ data, onBlockSelect }) => {
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+
+  const handleToggle = () => {
+    if (isTransitioning) return
+    setIsTransitioning(true)
+    setIsExpanded((prev) => !prev)
+    setTimeout(() => setIsTransitioning(false), 400)
+  }
 
   return (
     <div
@@ -57,10 +65,7 @@ export const DraggableExperienceBlock: React.FC<
       </div>
 
       {data.bulletPoints.length > 0 && (
-        <button
-          className={styles.drawerToggleButton}
-          onClick={() => setIsExpanded((prev) => !prev)}
-        >
+        <button className={styles.drawerToggleButton} onClick={handleToggle}>
           {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
         </button>
       )}
