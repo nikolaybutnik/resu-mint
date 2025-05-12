@@ -1,9 +1,10 @@
 import styles from './EditableProjectBlock.module.scss'
-import { z } from 'zod'
 import { Month } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { useDebounce } from '@/lib/utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
+import { projectBlockSchema } from '@/lib/validationSchemas'
+import { months } from '@/lib/constants'
 
 export interface ProjectBlockData {
   id: string
@@ -36,105 +37,6 @@ enum FieldType {
   BULLET_POINTS = 'bulletPoints',
   LINK = 'link',
 }
-
-const months: Month[] = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-
-const monthToNumber: Record<Month, number> = {
-  Jan: 0,
-  Feb: 1,
-  Mar: 2,
-  Apr: 3,
-  May: 4,
-  Jun: 5,
-  Jul: 6,
-  Aug: 7,
-  Sep: 8,
-  Oct: 9,
-  Nov: 10,
-  Dec: 11,
-}
-
-const startDateSchema = z.object({
-  month: z.enum(months as [Month, ...Month[]], {
-    message: 'Month is required',
-  }),
-  year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
-})
-
-const endDateSchema = z.discriminatedUnion('isPresent', [
-  z.object({
-    isPresent: z.literal(true),
-    month: z.literal(''),
-    year: z.literal(''),
-  }),
-  z.object({
-    isPresent: z.literal(false),
-    month: z.enum(months as [Month, ...Month[]], {
-      message: 'Month is required',
-    }),
-    year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
-  }),
-])
-
-export const projectBlockSchema = z
-  .object({
-    title: z
-      .string()
-      .min(1, 'Title is required')
-      .max(100, 'Title must be 100 characters or less'),
-    startDate: startDateSchema,
-    endDate: endDateSchema,
-    technologies: z.array(z.string()).optional(),
-    link: z.union([z.string().url('Invalid URL'), z.literal('')]).optional(),
-    description: z
-      .string()
-      .max(1000, 'Description must be 1000 characters or less')
-      .optional(),
-    bulletPoints: z
-      .array(
-        z
-          .string()
-          .min(1, 'Bullet point cannot be empty')
-          .max(500, 'Bullet point must be 500 characters or less')
-      )
-      .optional()
-      .default([]),
-  })
-  .refine(
-    (data) => {
-      if (data.endDate.isPresent || !data.endDate.month || !data.endDate.year) {
-        return true
-      }
-      const startDate = new Date(
-        parseInt(data.startDate.year),
-        monthToNumber[data.startDate.month],
-        1
-      )
-      const endDate = new Date(
-        parseInt(data.endDate.year),
-        monthToNumber[data.endDate.month],
-        1
-      )
-      return endDate >= startDate
-    },
-    {
-      message: 'End date must be on or after start date',
-      path: ['endDate'],
-    }
-  )
 
 const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   data,

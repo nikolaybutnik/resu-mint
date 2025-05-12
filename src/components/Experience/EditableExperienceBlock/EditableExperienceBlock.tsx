@@ -1,8 +1,9 @@
 import styles from './EditableExperienceBlock.module.scss'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
-import { z } from 'zod'
 import { useDebounce } from '@/lib/utils'
 import { FaXmark } from 'react-icons/fa6'
+import { months } from '@/lib/constants'
+import { experienceBlockSchema } from '@/lib/validationSchemas'
 
 export type Month =
   | 'Jan'
@@ -60,107 +61,6 @@ interface EditableExperienceBlockProps {
   onClose: () => void
   onSave: (data: ExperienceBlockData) => void
 }
-
-const months: Month[] = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-]
-
-const monthToNumber: Record<Month, number> = {
-  Jan: 0,
-  Feb: 1,
-  Mar: 2,
-  Apr: 3,
-  May: 4,
-  Jun: 5,
-  Jul: 6,
-  Aug: 7,
-  Sep: 8,
-  Oct: 9,
-  Nov: 10,
-  Dec: 11,
-}
-
-const startDateSchema = z.object({
-  month: z.enum(months as [Month, ...Month[]], {
-    message: 'Month is required',
-  }),
-  year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
-})
-
-const endDateSchema = z.discriminatedUnion('isPresent', [
-  z.object({
-    isPresent: z.literal(true),
-    month: z.literal(''),
-    year: z.literal(''),
-  }),
-  z.object({
-    isPresent: z.literal(false),
-    month: z.enum(months as [Month, ...Month[]], {
-      message: 'Month is required',
-    }),
-    year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
-  }),
-])
-
-export const experienceBlockSchema = z
-  .object({
-    jobTitle: z
-      .string()
-      .min(1, 'Job title is required')
-      .max(100, 'Job title must be 100 characters or less'),
-    startDate: startDateSchema,
-    endDate: endDateSchema,
-    companyName: z
-      .string()
-      .min(1, 'Company name is required')
-      .max(500, 'Company name must be 500 characters or less'),
-    location: z
-      .string()
-      .min(1, 'Location is required')
-      .max(100, 'Location must be 100 characters or less'),
-    bulletPoints: z
-      .array(
-        z
-          .string()
-          .min(1, 'Bullet point cannot be empty')
-          .max(200, 'Bullet point must be 200 characters or less')
-      )
-      .optional()
-      .default([]),
-  })
-  .refine(
-    (data) => {
-      if (data.endDate.isPresent || !data.endDate.month || !data.endDate.year) {
-        return true
-      }
-      const startDate = new Date(
-        parseInt(data.startDate.year),
-        monthToNumber[data.startDate.month],
-        1
-      )
-      const endDate = new Date(
-        parseInt(data.endDate.year),
-        monthToNumber[data.endDate.month],
-        1
-      )
-      return endDate >= startDate
-    },
-    {
-      message: 'End date must be on or after start date',
-      path: ['endDate'],
-    }
-  )
 
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,

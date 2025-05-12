@@ -1,8 +1,8 @@
 import styles from './PersonalDetails.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { z } from 'zod'
 import { useDebounce } from '@/lib/utils'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
+import { personalDetailsSchema } from '@/lib/validationSchemas'
 
 export interface PersonalDetailsFormValues {
   name: string
@@ -24,47 +24,6 @@ interface PersonalDetailsProps {
   onSave: (data: PersonalDetailsFormValues) => void
 }
 
-const formSchema = z.object({
-  name: z.string().min(1, 'Full name is required'),
-  email: z.string().email('Valid email address is required'),
-  phone: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || /^(\+\d+|\d+)$/.test(val),
-      'Phone number can only contain numbers, and an optional + at the beginning'
-    )
-    .refine(
-      (val) => !val || (val.length >= 10 && val.length <= 15),
-      'Phone number must be 10 to 15 characters'
-    ),
-  location: z
-    .string()
-    .max(100, 'Location must be 100 characters or less')
-    .optional(),
-  linkedin: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || /^https?:\/\/(www\.)?linkedin\.com\/.*$/.test(val),
-      'Please enter a valid LinkedIn URL'
-    ),
-  github: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || /^https?:\/\/(www\.)?github\.com\/.*$/.test(val),
-      'Please enter a valid GitHub URL'
-    ),
-  website: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || /^https?:\/\/(www\.)?.*$/.test(val),
-      'Please enter a valid website URL'
-    ),
-})
-
 const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   data,
   loading,
@@ -81,14 +40,14 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   }, [data])
 
   const isValid = useMemo(
-    () => formSchema.safeParse(formValues).success,
+    () => personalDetailsSchema.safeParse(formValues).success,
     [formValues]
   )
 
   const debouncedFormValues = useDebounce(formValues, 300)
 
   const errors = useMemo(() => {
-    const result = formSchema.safeParse(debouncedFormValues)
+    const result = personalDetailsSchema.safeParse(debouncedFormValues)
     if (result.success) {
       return {} as ValidationErrors
     }

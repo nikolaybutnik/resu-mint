@@ -8,53 +8,11 @@ const formatWorkExperienceForAI = (
     return 'No work experience provided.'
   }
 
-  const sortedExperience = [...workExperience].sort((a, b) => {
-    const aYear = parseInt(
-      a.endDate.isPresent ? new Date().getFullYear().toString() : a.endDate.year
-    )
-    const bYear = parseInt(
-      b.endDate.isPresent ? new Date().getFullYear().toString() : b.endDate.year
-    )
-
-    if (aYear !== bYear) return bYear - aYear
-
-    if (a.endDate.isPresent) return -1
-    if (b.endDate.isPresent) return 1
-
-    const monthOrder = {
-      Jan: 0,
-      Feb: 1,
-      Mar: 2,
-      Apr: 3,
-      May: 4,
-      Jun: 5,
-      Jul: 6,
-      Aug: 7,
-      Sep: 8,
-      Oct: 9,
-      Nov: 10,
-      Dec: 11,
-    }
-
-    return (
-      monthOrder[b.endDate.month as keyof typeof monthOrder] -
-      monthOrder[a.endDate.month as keyof typeof monthOrder]
-    )
-  })
-
-  return sortedExperience
+  return workExperience
     .map((exp, index) => {
       const formattedDuration = exp.endDate.isPresent
         ? `${exp.startDate.month} ${exp.startDate.year} - Present`
         : `${exp.startDate.month} ${exp.startDate.year} - ${exp.endDate.month} ${exp.endDate.year}`
-
-      // TODO: implement when bullet locking is implemented
-      // const existingBullets =
-      //   exp.bulletPoints.length > 0
-      //     ? `\nExisting bullet points:\n${exp.bulletPoints
-      //         .map((point) => `• ${point}`)
-      //         .join('\n')}`
-      //     : ''
 
       return `
 <position_${index + 1}>
@@ -129,8 +87,9 @@ You're a resume writer generating bullets for work experiences AND projects usin
 - DO use metrics from source text; NEVER invent them
 - NEVER substitute technologies (e.g., don't change "Angular" to "React")
 - Technology names must match the original EXACTLY
-- For experiences: ${numBulletsPerExperience} bullets each
-- For projects: ${numBulletsPerProject} bullets each
+- For work <WORK_EXPERIENCE>: generate STRICTLY ${numBulletsPerExperience} bullets each - NO EXCEPTIONS
+- For projects <PROJECTS>: generate STRICTLY ${numBulletsPerProject} bullets each - NO EXCEPTIONS
+- MUST RETURN EXACTLY ${numBulletsPerExperience} bullets per experience and ${numBulletsPerProject} per project
 </CRITICAL RULES>
 
 <JOB_DESCRIPTION>
@@ -162,8 +121,10 @@ ${formattedProjects}
 1. CHARACTER LIMIT: Each bullet must be ≤${maxCharsPerBullet} chars (hard ceiling)
 
 2. CONTENT SEPARATION:
-   - Work experiences: ${numBulletsPerExperience} bullets each
-   - Projects: ${numBulletsPerProject} bullets each
+   - Work experiences: ${numBulletsPerExperience} bullets each - ALWAYS
+   - Projects: ${numBulletsPerProject} bullets each - ALWAYS
+   - When content is sparse: split details into multiple bullets, highlight different aspects of the same work
+   - NEVER return fewer bullets than required, even if content seems limited
    
 3. IMPROVE ORIGINAL CONTENT:
    - Keep all skills, technologies, and metrics mentioned
@@ -190,8 +151,8 @@ ${formattedProjects}
 
 <OUTPUT FORMAT>
 TWO arrays:
-1. "experience_bullets": One entry per work experience, each with EXACTLY ${numBulletsPerExperience} bullets
-2. "project_bullets": One entry per project, each with EXACTLY ${numBulletsPerProject} bullets
+1. "experience_bullets": One entry per work experience, each MUST contain EXACTLY ${numBulletsPerExperience} bullet points - no more, no less
+2. "project_bullets": One entry per project, each MUST contain EXACTLY ${numBulletsPerProject} bullet points - no more, no less
 </OUTPUT FORMAT>
 
 <EXAMPLES>
@@ -200,5 +161,20 @@ Original: "Modernized legacy workflows using Angular, driving 10% efficiency gai
 ❌ BAD: "Modernized workflows using React, driving 10% efficiency gains." (Technology changed)
 ❌ BAD: "Modernized workflows using Angular, driving 20% efficiency gains." (Metric changed)
 </EXAMPLES>
+
+<FINAL VERIFICATION>
+Before submitting, count that each work experience has EXACTLY ${numBulletsPerExperience} bullets and each project has EXACTLY ${numBulletsPerProject} bullets, at or under ${maxCharsPerBullet} characters each.
+If any entry has too few bullets:
+- Split existing content into more granular points
+- Highlight different aspects of the same technologies or accomplishments
+- Focus on skills, implementation, impact, collaboration, or process separately
+
+If any entry has too many bullets:
+- Combine related points
+- Remove the least impressive bullets
+
+If any entry has bullets over ${maxCharsPerBullet} characters:
+- Rework the bullet to be at most ${maxCharsPerBullet} characters
+</FINAL VERIFICATION>
 `
 }

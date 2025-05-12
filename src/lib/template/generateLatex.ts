@@ -21,45 +21,7 @@ export const generateLatex = async (
   const extractedGitHub = github?.replace(/\/$/, '').split('/').pop() || ''
   const extractedLinkedIn = linkedin?.replace(/\/$/, '').split('/').pop() || ''
 
-  const sortedExperience = [...workExperience].sort((a, b) => {
-    if (a.endDate.isPresent && !b.endDate.isPresent) return -1
-    if (!a.endDate.isPresent && b.endDate.isPresent) return 1
-
-    const aYear = parseInt(
-      a.endDate.isPresent ? new Date().getFullYear().toString() : a.endDate.year
-    )
-    const bYear = parseInt(
-      b.endDate.isPresent ? new Date().getFullYear().toString() : b.endDate.year
-    )
-
-    if (aYear !== bYear) return bYear - aYear
-
-    const monthOrder = {
-      Jan: 0,
-      Feb: 1,
-      Mar: 2,
-      Apr: 3,
-      May: 4,
-      Jun: 5,
-      Jul: 6,
-      Aug: 7,
-      Sep: 8,
-      Oct: 9,
-      Nov: 10,
-      Dec: 11,
-    }
-
-    const aMonth = a.endDate.isPresent
-      ? 12
-      : monthOrder[a.endDate.month as keyof typeof monthOrder]
-    const bMonth = b.endDate.isPresent
-      ? 12
-      : monthOrder[b.endDate.month as keyof typeof monthOrder]
-
-    return bMonth - aMonth
-  })
-
-  const experienceSection = sortedExperience
+  const experienceSection = workExperience
     .map((exp) => {
       const dateRange = exp.endDate.isPresent
         ? `${exp.startDate.month} ${exp.startDate.year} -- Present`
