@@ -8,6 +8,25 @@ import {
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { DraggableExperienceBlock } from '../DraggableExperienceBlock/DraggableExperienceBlock'
 import LoadingSpinner from '../../LoadingSpinner/LoadingSpinner'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from '@dnd-kit/modifiers'
 
 interface WorkExperienceProps {
   data: ExperienceBlockData[]
@@ -23,6 +42,17 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const [localData, setLocalData] = useState<ExperienceBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     setLocalData(data)
@@ -60,7 +90,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setSelectedBlockId(id)
   }, [])
 
-  const handleBlockClose = useCallback(() => {
+  const handleBlockClose = useCallback((): void => {
     // TODO: ask user if the want to save their changes (if form is valid and changes were made)
     setSelectedBlockId(null)
     setNewBlockId(null)
@@ -68,7 +98,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   }, [])
 
   const handleSave = useCallback(
-    (updatedBlock: ExperienceBlockData) => {
+    (updatedBlock: ExperienceBlockData): void => {
       const updatedData = localData.map((block) =>
         block.id === updatedBlock.id ? updatedBlock : block
       )
@@ -79,6 +109,21 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     },
     [localData, onSave]
   )
+
+  const handleDragEnd = useCallback((event: DragEndEvent): void => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      setLocalData((items) => {
+        const oldIndex = items.findIndex((item) => item.id === active.id)
+        const newIndex = items.findIndex((item) => item.id === over.id)
+
+        const newOrder = arrayMove(items, oldIndex, newIndex)
+        onSave(newOrder)
+        return newOrder
+      })
+    }
+  }, [])
 
   return (
     <>
@@ -96,29 +141,43 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             Add Experience
           </button>
           <div className={styles.experienceContainer}>
-            {selectedBlockId
-              ? localData
-                  .filter((experience) => experience.id === selectedBlockId)
-                  .map((experience) => {
-                    const isNew = experience.id === newBlockId
-                    return (
-                      <EditableExperienceBlock
-                        key={experience.id}
-                        data={experience}
-                        isNew={isNew}
-                        onDelete={handleBlockDelete}
-                        onClose={handleBlockClose}
-                        onSave={handleSave}
-                      />
-                    )
-                  })
-              : localData.map((experience) => (
-                  <DraggableExperienceBlock
-                    key={experience.id}
-                    data={experience}
-                    onBlockSelect={handleBlockSelect}
-                  />
-                ))}
+            {selectedBlockId ? (
+              localData
+                .filter((experience) => experience.id === selectedBlockId)
+                .map((experience) => {
+                  const isNew = experience.id === newBlockId
+                  return (
+                    <EditableExperienceBlock
+                      key={experience.id}
+                      data={experience}
+                      isNew={isNew}
+                      onDelete={handleBlockDelete}
+                      onClose={handleBlockClose}
+                      onSave={handleSave}
+                    />
+                  )
+                })
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+              >
+                <SortableContext
+                  items={localData.map((item) => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {localData.map((experience) => (
+                    <DraggableExperienceBlock
+                      key={experience.id}
+                      data={experience}
+                      onBlockSelect={handleBlockSelect}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+            )}
           </div>
         </div>
       )}

@@ -1,25 +1,36 @@
 import styles from './DraggableExperienceBlock.module.scss'
 import { useState } from 'react'
-import {
-  FaChevronDown,
-  FaChevronUp,
-  FaGripVertical,
-  FaPen,
-} from 'react-icons/fa'
+import { FaChevronDown, FaChevronUp, FaPen } from 'react-icons/fa'
 import { ExperienceBlockData } from '../EditableExperienceBlock/EditableExperienceBlock'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
   onBlockSelect: (id: string) => void
 }
 
-// TODO: add drag and drop functionality with dnd-kit
-
 export const DraggableExperienceBlock: React.FC<
   DraggableExperienceBlockProps
 > = ({ data, onBlockSelect }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: data.id })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.8 : 1,
+  }
 
   const handleToggle = () => {
     if (isTransitioning) return
@@ -30,9 +41,14 @@ export const DraggableExperienceBlock: React.FC<
 
   return (
     <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
       className={[
         styles.draggableExperienceBlockContainer,
         'prevent-select',
+        isDragging ? styles.isDragging : '',
       ].join(' ')}
     >
       <div className={styles.draggableExperienceBlock}>
@@ -53,14 +69,12 @@ export const DraggableExperienceBlock: React.FC<
         <div className={styles.experienceBlockActions}>
           <button
             type='button'
+            data-no-dnd='true'
             className={styles.editButton}
             onClick={() => onBlockSelect(data.id)}
           >
             <FaPen />
           </button>
-          <div className={styles.experienceBlockDraggableArea}>
-            <FaGripVertical />
-          </div>
         </div>
       </div>
 
