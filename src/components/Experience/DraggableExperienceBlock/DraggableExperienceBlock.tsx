@@ -8,29 +8,27 @@ import { CSS } from '@dnd-kit/utilities'
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
   onBlockSelect: (id: string) => void
+  isOverlay?: boolean
+  isDropping?: boolean
 }
 
 export const DraggableExperienceBlock: React.FC<
   DraggableExperienceBlockProps
-> = ({ data, onBlockSelect }) => {
+> = ({ data, onBlockSelect, isOverlay = false, isDropping = false }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
 
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: data.id })
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useSortable({ id: data.id, disabled: isOverlay })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    zIndex: isDragging ? 10 : 1,
-    opacity: isDragging ? 0.8 : 1,
-  }
+  const style = isOverlay
+    ? { zIndex: 100 }
+    : {
+        transform: CSS.Translate.toString(transform),
+        transition: isDropping || isDragging ? 'none' : 'transform 0.2s ease',
+        zIndex: isDragging ? 10 : 1,
+        opacity: isDragging ? 0 : 1,
+      }
 
   const handleToggle = () => {
     if (isTransitioning) return
@@ -41,14 +39,13 @@ export const DraggableExperienceBlock: React.FC<
 
   return (
     <div
-      ref={setNodeRef}
+      ref={isOverlay ? null : setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...(isOverlay ? {} : { ...attributes, ...listeners })}
       className={[
         styles.draggableExperienceBlockContainer,
         'prevent-select',
-        isDragging ? styles.isDragging : '',
+        isDragging || isOverlay ? styles.isDragging : '',
       ].join(' ')}
     >
       <div className={styles.draggableExperienceBlock}>
@@ -72,6 +69,7 @@ export const DraggableExperienceBlock: React.FC<
             data-no-dnd='true'
             className={styles.editButton}
             onClick={() => onBlockSelect(data.id)}
+            disabled={isDragging || isOverlay}
           >
             <FaPen />
           </button>
@@ -84,17 +82,19 @@ export const DraggableExperienceBlock: React.FC<
         </button>
       )}
 
-      <div
-        className={`${styles.experienceBlockDrawer} ${
-          isExpanded ? styles.expanded : ''
-        }`}
-      >
-        {data.bulletPoints.map((bullet, index) => (
-          <p key={index} className={styles.experienceBlockBullet}>
-            {bullet}
-          </p>
-        ))}
-      </div>
+      {data.bulletPoints.length > 0 && (
+        <div
+          className={`${styles.experienceBlockDrawer} ${
+            isExpanded ? styles.expanded : ''
+          }`}
+        >
+          {data.bulletPoints.map((bullet, index) => (
+            <p key={index} className={styles.experienceBlockBullet}>
+              {bullet}
+            </p>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

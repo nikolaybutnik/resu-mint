@@ -5,7 +5,16 @@
   margin-bottom: 16px;
   border: 2px solid $color-border;
   border-radius: 4px;
-  will-change: transform;
+  background-color: transparent;
+  opacity: 1;
+
+  &.isDragging {
+    background-color: $color-action-item-background;
+    opacity: 0.8;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    cursor: grabbing;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+  }
 }
 
 .draggableExperienceBlock {
@@ -19,7 +28,6 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  cursor: default;
   gap: 8px;
   cursor: ns-resize;
 }

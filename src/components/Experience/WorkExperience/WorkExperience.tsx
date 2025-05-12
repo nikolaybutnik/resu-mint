@@ -12,11 +12,13 @@ import {
   DndContext,
   closestCenter,
   KeyboardSensor,
-  PointerSensor,
   useSensor,
   useSensors,
   DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
 } from '@dnd-kit/core'
+import { PointerSensor } from '@/lib/utils'
 import {
   arrayMove,
   SortableContext,
@@ -42,6 +44,8 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const [localData, setLocalData] = useState<ExperienceBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [isDropping, setIsDropping] = useState(false)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -59,7 +63,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   }, [data])
 
   const handleBlockDelete = useCallback(
-    (id: string) => {
+    (id: string): void => {
       const updatedData = localData.filter((exp) => exp.id !== id)
       setLocalData(updatedData)
       setSelectedBlockId(null)
@@ -69,7 +73,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [localData, onSave]
   )
 
-  const handleBlockAdd = useCallback(() => {
+  const handleBlockAdd = useCallback((): void => {
     const newBlock: ExperienceBlockData = {
       id: uuidv4(),
       jobTitle: '',
@@ -86,16 +90,15 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setNewBlockId(newBlock.id)
   }, [localData])
 
-  const handleBlockSelect = useCallback((id: string) => {
+  const handleBlockSelect = useCallback((id: string): void => {
     setSelectedBlockId(id)
   }, [])
 
   const handleBlockClose = useCallback((): void => {
-    // TODO: ask user if the want to save their changes (if form is valid and changes were made)
     setSelectedBlockId(null)
     setNewBlockId(null)
     setLocalData(data)
-  }, [])
+  }, [data])
 
   const handleSave = useCallback(
     (updatedBlock: ExperienceBlockData): void => {
@@ -110,20 +113,31 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [localData, onSave]
   )
 
-  const handleDragEnd = useCallback((event: DragEndEvent): void => {
-    const { active, over } = event
+  const handleDragStart = (event: DragStartEvent): void => {
+    setActiveId(event.active.id as string)
+  }
 
-    if (over && active.id !== over.id) {
-      setLocalData((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id)
-        const newIndex = items.findIndex((item) => item.id === over.id)
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent): void => {
+      const { active, over } = event
 
-        const newOrder = arrayMove(items, oldIndex, newIndex)
-        onSave(newOrder)
-        return newOrder
-      })
-    }
-  }, [])
+      if (over && active.id !== over.id) {
+        setLocalData((items) => {
+          const oldIndex = items.findIndex((item) => item.id === active.id)
+          const newIndex = items.findIndex((item) => item.id === over.id)
+          const newOrder = arrayMove(items, oldIndex, newIndex)
+          setTimeout(() => onSave(newOrder), 0)
+          return newOrder
+        })
+      }
+      setActiveId(null)
+      setIsDropping(true)
+      setTimeout(() => setIsDropping(false), 250) // Match DragOverlay drop animation duration
+    },
+    [onSave]
+  )
+
+  const activeItem = localData.find((item) => item.id === activeId)
 
   return (
     <>
@@ -161,6 +175,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
                 modifiers={[restrictToVerticalAxis, restrictToParentElement]}
               >
@@ -173,9 +188,19 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       key={experience.id}
                       data={experience}
                       onBlockSelect={handleBlockSelect}
+                      isDropping={isDropping}
                     />
                   ))}
                 </SortableContext>
+                <DragOverlay>
+                  {activeItem ? (
+                    <DraggableExperienceBlock
+                      data={activeItem}
+                      onBlockSelect={handleBlockSelect}
+                      isOverlay={true}
+                    />
+                  ) : null}
+                </DragOverlay>
               </DndContext>
             )}
           </div>
