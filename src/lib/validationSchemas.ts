@@ -206,3 +206,56 @@ export const resumeMintRequestSchema = z.object({
   jobDescription: z.string(),
   settings: settingsSchema,
 })
+
+export const analyzeJobDescriptionRequestSchema = z.object({
+  sessionId: z.string().uuid('Invalid session ID'),
+  jobDescription: z.string().min(1, 'Job description is required'),
+})
+
+export const JobDescriptionAnalysisSchema = z.object({
+  skillsRequired: z.object({
+    hard: z
+      .array(z.string())
+      .describe('Technical skills/tools, e.g., ["React", "TypeScript"]'),
+    soft: z
+      .array(z.string())
+      .describe(
+        'Non-technical skills, e.g., ["Collaboration", "Communication"]'
+      ),
+  }),
+  jobTitle: z
+    .string()
+    .describe('Exact job title, e.g., "Software Engineer II"'),
+  jobSummary: z
+    .string()
+    .describe('Concise summary of role and responsibilities, 100-150 words'),
+  specialInstructions: z
+    .string()
+    .describe(
+      'Application requirements, e.g., "Submit portfolio to hiring@example.com", or empty string if none'
+    ),
+  location: z.object({
+    type: z
+      .enum(['remote', 'hybrid', 'on-site'])
+      .describe('Primary work arrangement'),
+    details: z
+      .string()
+      .describe(
+        'Clarifications, e.g., "Remote, but requires quarterly on-site meetings"'
+      ),
+    listedLocation: z
+      .string()
+      .describe('Raw location from posting, e.g., "Ottawa, ON (Remote)"'),
+  }),
+  companyName: z.string().describe('Exact company name, e.g., "Google"'),
+  companyDescription: z
+    .string()
+    .describe(
+      'Brief company summary (50-100 words) based on the job posting, covering mission, industry, or focus'
+    ),
+  contextualTechnologies: z
+    .array(z.string())
+    .describe(
+      'Technologies mentioned in the tech stack or environment but not explicitly mentioned as required, e.g., ["AWS", "Docker", "Kafka"]'
+    ),
+})

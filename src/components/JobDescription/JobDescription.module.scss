@@ -15,18 +15,242 @@
   color: $color-text;
 }
 
+.textareaWrapper {
+  position: relative;
+  margin-bottom: 8px;
+}
+
 .formTextarea {
   font-family: $font-family-base;
-  padding: 8px;
+  padding: 16px;
   font-size: 14px;
-  border: 2px solid $color-border;
-  border-radius: 4px;
+  border: 1px solid $color-border;
+  border-radius: 6px;
   min-width: 100%;
   max-width: 100%;
-  min-height: 450px;
-  margin-top: 12px;
+  min-height: 180px;
+  margin-top: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  line-height: 1.6;
+  resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &::placeholder {
     color: $color-placeholder;
+    font-style: italic;
+    opacity: 0.7;
+  }
+
+  &:hover {
+    border-color: darken($color-border, 10%);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1),
+      inset 0 2px 4px rgba(0, 0, 0, 0.03);
+  }
+
+  &::selection {
+    background-color: rgba($color-primary, 0.3);
+    color: $color-text;
+  }
+
+  &:disabled {
+    background-color: #f9fafb;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+}
+
+.jobDescription {
+  background: $color-background;
+  padding: 24px;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
+  width: 100%;
+}
+
+.formTitle {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: $color-text;
+}
+
+.jobDescriptionContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.jobDescriptionAnalysis {
+  background: #f9fafb;
+  border-radius: 4px;
+  padding: 16px;
+  border: 1px solid $color-border;
+}
+
+.analysisTitle {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: $color-text;
+  padding-bottom: 10px;
+  border-bottom: 1px solid $color-border;
+}
+
+.jobTitleSection {
+  background: white;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.jobTitleHeading {
+  font-size: 18px;
+  font-weight: 600;
+  color: $color-text;
+  margin: 0;
+  flex: 1;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.workType {
+  flex-shrink: 0;
+}
+
+.workTypeBadge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-transform: capitalize;
+  display: inline-block;
+
+  &.remote {
+    background-color: $color-badge-green-background;
+    color: $color-badge-green;
+  }
+
+  &.hybrid {
+    background-color: $color-badge-blue-background;
+    color: $color-badge-blue;
+  }
+
+  &.on-site {
+    background-color: $color-badge-red-background;
+    color: $color-badge-red;
+  }
+}
+
+.analysisGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100%, 1fr));
+  gap: 20px;
+}
+
+.analysisItem {
+  padding: 12px;
+  background: white;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.analysisLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: $color-primary;
+  margin-bottom: 8px;
+}
+
+.analysisText {
+  color: $color-text;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.skillsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.skillTag {
+  background: rgba($color-primary, 0.1);
+  color: $color-primary;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.companyInfo {
+  margin-bottom: 10px;
+
+  p {
+    margin: 5px 0;
+    font-size: 14px;
+  }
+}
+
+.emptyState {
+  color: $color-disabled;
+  font-style: italic;
+  font-size: 14px;
+}
+
+.summaryContainer {
+  position: relative;
+  max-height: 100px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+
+  &.expanded {
+    max-height: 1000px;
+  }
+}
+
+.locationDetails {
+  color: $color-disabled;
+  font-style: italic;
+}
+
+.fadeOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 40px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.8) 50%,
+    rgba(255, 255, 255, 1) 100%
+  );
+  pointer-events: none;
+}
+
+.expandButton {
+  font-size: 12px;
+  color: $color-primary;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  margin-top: 4px;
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 500;
+
+  &:hover {
+    color: $color-primary-hover;
   }
 }

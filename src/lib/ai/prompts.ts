@@ -92,6 +92,10 @@ You're a resume writer generating bullets for work experiences AND projects usin
 - MUST RETURN EXACTLY ${numBulletsPerExperience} bullets per experience and ${numBulletsPerProject} per project
 </CRITICAL RULES>
 
+<NOTE>
+Important: For each work experience listed under <WORK_EXPERIENCE>, you MUST generate exactly ${numBulletsPerExperience} bullet points, no matter how short or long the description is. Similarly, for each project under <PROJECTS>, you MUST generate exactly ${numBulletsPerProject} bullet points. If the description is sparse, split the information into more granular points or highlight different aspects of the work, such as technologies used, implementation details, impact, or collaboration. Do not let the number of original bullet points influence your output.
+</NOTE>
+
 <JOB_DESCRIPTION>
 ${jobDescription}
 </JOB_DESCRIPTION>
@@ -125,6 +129,7 @@ ${formattedProjects}
    - Projects: ${numBulletsPerProject} bullets each - ALWAYS
    - When content is sparse: split details into multiple bullets, highlight different aspects of the same work
    - NEVER return fewer bullets than required, even if content seems limited
+   - You must generate exactly ${numBulletsPerExperience} bullets for each work experience and exactly ${numBulletsPerProject} bullets for each project, without exception.
    
 3. IMPROVE ORIGINAL CONTENT:
    - Keep all skills, technologies, and metrics mentioned
@@ -175,6 +180,33 @@ If any entry has too many bullets:
 
 If any entry has bullets over ${maxCharsPerBullet} characters:
 - Rework the bullet to be at most ${maxCharsPerBullet} characters
+
+Double-check that you have generated exactly ${numBulletsPerExperience} bullets for each work experience and ${numBulletsPerProject} for each project. If not, adjust your output accordingly before submitting.
 </FINAL VERIFICATION>
 `
+}
+
+export const generateJobDescriptionAnalysisPrompt = (
+  jobDescription: string
+) => {
+  return `
+<INSTRUCTIONS>
+Analyze the job description and return structured data using the "generate_job_description_analysis" tool. Follow these rules:
+- skillsRequired.hard: List technical skills/tools explicitly required (e.g., "React", "TypeScript"). Exclude technologies only mentioned as part of the stack or environment.
+- skillsRequired.soft: List non-technical skills (e.g., "Collaboration", "Problem-solving").
+- jobTitle: Extract the exact job title.
+- jobSummary: Summarize role and responsibilities in 80 - 100 words, focusing on duties and goals.
+- specialInstructions: Note application requirements (e.g., "Submit portfolio"). Return empty string if none.
+- location.type: Classify as "remote", "hybrid", or "on-site" based on primary arrangement.
+- location.details: Clarify nuances (e.g., "Flexible/hybrid remote work options").
+- location.listedLocation: Quote raw location (e.g., "Canada").
+- companyName: Extract the exact company name (e.g., "Google").
+- companyDescription: Summarize the company's mission, industry, or focus in 50-100 words based on the posting.
+- contextualTechnologies: List technologies mentioned in the tech stack or deployment environment but not explicitly required (e.g., "AWS", "Docker"). Include tools used in the company’s infrastructure or mentioned as context.
+</INSTRUCTIONS>
+
+<JOB_DESCRIPTION>
+${jobDescription}
+</JOB_DESCRIPTION>
+  `
 }

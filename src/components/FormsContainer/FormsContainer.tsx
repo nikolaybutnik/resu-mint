@@ -13,25 +13,29 @@ import { Settings, SettingsFormValues } from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
 import { ProjectBlockData } from '../Projects/EditableProjectBlock/EditableProjectBlock'
+import { ROUTES } from '@/lib/constants'
+import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
+import { JobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
 
-enum Tabs {
-  PERSONAL_DETAILS = 'PersonalDetails',
-  EXPERIENCE = 'Experience',
-  PROJECTS = 'Projects',
-  JOB_DESCRIPTION = 'JobDescription',
-  EDUCATION = 'Education',
-  SKILLS = 'Skills',
-  SETTINGS = 'Settings',
-}
+const Tabs = {
+  PERSONAL_DETAILS: 'PersonalDetails',
+  EXPERIENCE: 'Experience',
+  PROJECTS: 'Projects',
+  JOB_DESCRIPTION: 'JobDescription',
+  EDUCATION: 'Education',
+  SKILLS: 'Skills',
+  SETTINGS: 'Settings',
+} as const
 
-enum StorageKeys {
-  SESSION_ID = 'resumint_sessionId',
-  JOB_DESCRIPTION = 'resumint_jobDescription',
-  PERSONAL_DETAILS = 'resumint_personalDetails',
-  EXPERIENCE = 'resumint_experience',
-  PROJECTS = 'resumint_projects',
-  SETTINGS = 'resumint_settings',
-}
+const StorageKeys = {
+  SESSION_ID: 'resumint_sessionId',
+  JOB_DESCRIPTION: 'resumint_jobDescription',
+  JOB_DESCRIPTION_ANALYSIS: 'resumint_jobDescriptionAnalysis',
+  PERSONAL_DETAILS: 'resumint_personalDetails',
+  EXPERIENCE: 'resumint_experience',
+  PROJECTS: 'resumint_projects',
+  SETTINGS: 'resumint_settings',
+} as const
 
 interface MintResumePayload {
   sessionId: string
@@ -68,6 +72,16 @@ const initialSettings: SettingsFormValues = {
   maxCharsPerBullet: 125,
 }
 const initialJobDescription: string = ''
+const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
+  skillsRequired: { hard: [], soft: [] },
+  jobTitle: '',
+  jobSummary: '',
+  specialInstructions: '',
+  location: { type: 'remote', details: '', listedLocation: '' },
+  companyName: '',
+  companyDescription: '',
+  contextualTechnologies: [],
+}
 const initialProjects: ProjectBlockData[] = []
 
 export const FormsContainer: React.FC = () => {
@@ -79,11 +93,14 @@ export const FormsContainer: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DESCRIPTION)
   const [mintingResume, setMintingResume] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [analyzingJob, setAnalyzingJob] = useState(false)
 
   // Form States
   const [jobDescription, setJobDescription] = useState<string>(
     initialJobDescription
   )
+  const [jobDescriptionAnalysis, setJobDescriptionAnalysis] =
+    useState<JobDescriptionAnalysis>(initialJobDescriptionAnalysis)
   const [personalDetails, setPersonalDetails] =
     useState<PersonalDetailsFormValues>(initialPersonalDetails)
   const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
@@ -112,6 +129,18 @@ export const FormsContainer: React.FC = () => {
     )
     if (storedJobDescription) {
       setJobDescription(storedJobDescription)
+    }
+    setLoading(false)
+  }, [])
+
+  // Load job description analysis
+  useEffect(() => {
+    setLoading(true)
+    const storedAnalysis = window.localStorage.getItem(
+      StorageKeys.JOB_DESCRIPTION_ANALYSIS
+    )
+    if (storedAnalysis) {
+      setJobDescriptionAnalysis(JSON.parse(storedAnalysis))
     }
     setLoading(false)
   }, [])
@@ -181,7 +210,7 @@ export const FormsContainer: React.FC = () => {
         settings,
       }
 
-      const response = await fetch('/api/mint-resume', {
+      const response = await fetch(ROUTES.MINT_RESUME, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -206,9 +235,47 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
-  const handleJobDescriptionSave = (data: string) => {
+  const handleJobDescriptionSave = async (data: string) => {
     setJobDescription(data)
     localStorage.setItem(StorageKeys.JOB_DESCRIPTION, data)
+
+    try {
+      setAnalyzingJob(true)
+
+      const response = await fetch(ROUTES.ANALYZE_JOB_DESCRIPTION, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, jobDescription: data }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('API error:', errorData)
+      }
+
+      const result = await response.json()
+      if (result.status !== 'success' || !result.data) {
+        throw new Error('Invalid analysis response')
+      }
+
+      const validationResult = JobDescriptionAnalysisSchema.safeParse(
+        result.data
+      )
+      if (!validationResult.success) {
+        console.error('Validation errors:', validationResult.error.flatten())
+      }
+
+      const analysis = validationResult.data as JobDescriptionAnalysis
+      setJobDescriptionAnalysis(analysis)
+      localStorage.setItem(
+        StorageKeys.JOB_DESCRIPTION_ANALYSIS,
+        JSON.stringify(analysis)
+      )
+    } catch (error) {
+      console.error('Job analysis error:', error)
+    } finally {
+      setAnalyzingJob(false)
+    }
   }
 
   const handlePersonalDetailsSave = (data: PersonalDetailsFormValues) => {
@@ -258,6 +325,8 @@ export const FormsContainer: React.FC = () => {
             <JobDescription
               data={jobDescription}
               loading={loading}
+              analyzing={analyzingJob}
+              jobDescriptionAnalysis={jobDescriptionAnalysis}
               onSave={handleJobDescriptionSave}
             />
           )}
@@ -310,7 +379,7 @@ export const FormsContainer: React.FC = () => {
       <button
         type='button'
         className={styles.mintButton}
-        disabled={mintingResume}
+        disabled={mintingResume || analyzingJob}
         onClick={handleMintResume}
       >
         {mintingResume ? 'Minting...' : 'Mint Resume!'}

@@ -9,6 +9,7 @@ export type ErrorType =
   | 'missing_session_id'
   | 'read_pdf'
   | 'resume_generation'
+  | 'job_analysis'
 
 export enum ResponseStatus {
   SUCCESS = 'success',
