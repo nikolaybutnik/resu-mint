@@ -59,9 +59,7 @@ export const personalDetailsSchema = z.object({
 })
 
 export const startDateSchema = z.object({
-  month: z.enum(months as [Month, ...Month[]], {
-    message: 'Month is required',
-  }),
+  month: z.union([z.enum(months as [Month, ...Month[]]), z.literal('')]),
   year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
 })
 
@@ -73,9 +71,7 @@ export const endDateSchema = z.discriminatedUnion('isPresent', [
   }),
   z.object({
     isPresent: z.literal(false),
-    month: z.enum(months as [Month, ...Month[]], {
-      message: 'Month is required',
-    }),
+    month: z.union([z.enum(months as [Month, ...Month[]]), z.literal('')]),
     year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
   }),
 ])
@@ -113,9 +109,16 @@ export const experienceBlockSchema = z
   })
   .refine(
     (data) => {
-      if (data.endDate.isPresent || !data.endDate.month || !data.endDate.year) {
+      if (data.endDate.isPresent || !data.endDate.year) {
         return true
       }
+
+      if (!data.startDate.month || !data.endDate.month) {
+        const startYear = parseInt(data.startDate.year)
+        const endYear = parseInt(data.endDate.year)
+        return endYear >= startYear
+      }
+
       const startDate = new Date(
         parseInt(data.startDate.year),
         monthToNumber[data.startDate.month],
@@ -161,9 +164,16 @@ export const projectBlockSchema = z
   })
   .refine(
     (data) => {
-      if (data.endDate.isPresent || !data.endDate.month || !data.endDate.year) {
+      if (data.endDate.isPresent || !data.endDate.year) {
         return true
       }
+
+      if (!data.startDate.month || !data.endDate.month) {
+        const startYear = parseInt(data.startDate.year)
+        const endYear = parseInt(data.endDate.year)
+        return endYear >= startYear
+      }
+
       const startDate = new Date(
         parseInt(data.startDate.year),
         monthToNumber[data.startDate.month],

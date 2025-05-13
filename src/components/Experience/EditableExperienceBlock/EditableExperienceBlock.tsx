@@ -20,12 +20,12 @@ export type Month =
   | 'Dec'
 
 export type StartDate = {
-  month: Month
+  month?: Month | ''
   year: string
 }
 
 export type EndDate = {
-  month: Month | ''
+  month?: Month | ''
   year: string
   isPresent: boolean
 }
@@ -171,10 +171,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       setTouched((prev) => ({
         ...prev,
         [field]: true,
-        ...(field === 'endDate.isPresent'
-          ? { endDate: true, 'endDate.month': true, 'endDate.year': true }
-          : field.startsWith('endDate')
+        ...(field === FieldType.END_DATE_YEAR ||
+        field === FieldType.END_DATE_MONTH
           ? { endDate: true }
+          : field === FieldType.END_DATE_IS_PRESENT
+          ? { endDate: true, 'endDate.month': true, 'endDate.year': true }
           : {}),
       }))
     },
