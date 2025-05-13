@@ -1,24 +1,37 @@
 import styles from './DraggableProjectBlock.module.scss'
 import { ProjectBlockData } from '../EditableProjectBlock/EditableProjectBlock'
-import { useState, useEffect } from 'react'
-import {
-  FaPen,
-  FaGripVertical,
-  FaChevronDown,
-  FaChevronUp,
-} from 'react-icons/fa'
+import { useState } from 'react'
+import { FaPen, FaChevronDown, FaChevronUp } from 'react-icons/fa'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
   onBlockSelect: (id: string) => void
+  isOverlay?: boolean
+  isDropping?: boolean
 }
 
 export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   data,
   onBlockSelect,
+  isOverlay = false,
+  isDropping = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
+
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useSortable({ id: data.id, disabled: isOverlay })
+
+  const style = isOverlay
+    ? { zIndex: 100 }
+    : {
+        transform: CSS.Translate.toString(transform),
+        transition: isDropping || isDragging ? 'none' : 'transform 0.2s ease',
+        zIndex: isDragging ? 10 : 1,
+        opacity: isDragging ? 0 : 1,
+      }
 
   const handleToggle = () => {
     if (isTransitioning) return
@@ -27,13 +40,16 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     setTimeout(() => setIsTransitioning(false), 400)
   }
 
-  // TODO: add drag and drop functionality with dnd-kit
-
   return (
     <div
-      className={[styles.draggableProjectBlockContainer, 'prevent-select'].join(
-        ' '
-      )}
+      ref={isOverlay ? null : setNodeRef}
+      style={style}
+      {...(isOverlay ? {} : { ...attributes, ...listeners })}
+      className={[
+        styles.draggableProjectBlockContainer,
+        'prevent-select',
+        isDragging || isOverlay ? styles.isDragging : '',
+      ].join(' ')}
     >
       <div className={styles.draggableProjectBlock}>
         <div className={styles.projectBlockContent}>
@@ -51,14 +67,13 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         <div className={styles.projectBlockActions}>
           <button
             type='button'
+            data-no-dnd='true'
             className={styles.editButton}
             onClick={() => onBlockSelect(data.id)}
+            disabled={isDragging || isOverlay}
           >
             <FaPen />
           </button>
-          <div className={styles.projectBlockDraggableArea}>
-            <FaGripVertical />
-          </div>
         </div>
       </div>
 

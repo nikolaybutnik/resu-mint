@@ -5,6 +5,16 @@
   margin-bottom: 16px;
   border: 2px solid $color-border;
   border-radius: 4px;
+  background-color: transparent;
+  opacity: 1;
+
+  &.isDragging {
+    background-color: $color-action-item-background;
+    opacity: 0.8;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    cursor: grabbing;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+  }
 }
 
 .draggableProjectBlock {
@@ -20,6 +30,7 @@
   flex: 1;
   cursor: default;
   gap: 8px;
+  cursor: ns-resize;
 }
 
 .projectBlockActions {
@@ -28,16 +39,6 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 8px;
-}
-
-.projectBlockDraggableArea {
-  border-radius: 4px;
-  cursor: grab;
-  background-color: $color-action-item-background;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .editButton {

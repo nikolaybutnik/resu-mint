@@ -1,5 +1,5 @@
 import styles from './WorkExperience.module.scss'
-import React, { useCallback, useState, useEffect } from 'react'
+import React, { useCallback, useState, useEffect, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import {
   ExperienceBlockData,
@@ -113,9 +113,9 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [localData, onSave]
   )
 
-  const handleDragStart = (event: DragStartEvent): void => {
+  const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
-  }
+  }, [])
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent): void => {
@@ -137,7 +137,10 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [onSave]
   )
 
-  const activeItem = localData.find((item) => item.id === activeId)
+  const activeItem = useMemo(
+    () => localData.find((item) => item.id === activeId),
+    [localData, activeId]
+  )
 
   return (
     <>

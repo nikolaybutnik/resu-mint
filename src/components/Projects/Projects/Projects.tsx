@@ -1,11 +1,32 @@
 import styles from './Projects.module.scss'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 import { v4 as uuidv4 } from 'uuid'
 import { Month } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { ProjectBlockData } from '../EditableProjectBlock/EditableProjectBlock'
 import EditableProjectBlock from '../EditableProjectBlock/EditableProjectBlock'
 import { DraggableProjectBlock } from '../DraggableProjectBlock/DraggableProjectBlock'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  DragStartEvent,
+  DragOverlay,
+} from '@dnd-kit/core'
+import { PointerSensor } from '@/lib/utils'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  restrictToVerticalAxis,
+  restrictToParentElement,
+} from '@dnd-kit/modifiers'
 
 interface ProjectsProps {
   data: ProjectBlockData[]
@@ -17,6 +38,19 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
   const [localData, setLocalData] = useState<ProjectBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [isDropping, setIsDropping] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   useEffect(() => {
     setLocalData(data)
@@ -74,6 +108,35 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
     [localData, onSave]
   )
 
+  const handleDragStart = useCallback((event: DragStartEvent): void => {
+    setActiveId(event.active.id as string)
+  }, [])
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent): void => {
+      const { active, over } = event
+
+      if (over && active.id !== over.id) {
+        setLocalData((items) => {
+          const oldIndex = items.findIndex((item) => item.id === active.id)
+          const newIndex = items.findIndex((item) => item.id === over.id)
+          const newOrder = arrayMove(items, oldIndex, newIndex)
+          setTimeout(() => onSave(newOrder), 0)
+          return newOrder
+        })
+      }
+      setActiveId(null)
+      setIsDropping(true)
+      setTimeout(() => setIsDropping(false), 250) // Match DragOverlay drop animation duration
+    },
+    [onSave]
+  )
+
+  const activeItem = useMemo(
+    () => localData.find((item) => item.id === activeId),
+    [localData, activeId]
+  )
+
   return (
     <>
       {loading ? (
@@ -90,29 +153,54 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
             Add Project
           </button>
           <div className={styles.projectsContainer}>
-            {selectedBlockId
-              ? localData
-                  .filter((project) => project.id === selectedBlockId)
-                  .map((project) => {
-                    const isNew = project.id === newBlockId
-                    return (
-                      <EditableProjectBlock
-                        key={project.id}
-                        data={project}
-                        isNew={isNew}
-                        onDelete={handleBlockDelete}
-                        onClose={handleBlockClose}
-                        onSave={handleSave}
-                      />
-                    )
-                  })
-              : localData.map((project) => (
-                  <DraggableProjectBlock
-                    key={project.id}
-                    data={project}
-                    onBlockSelect={handleBlockSelect}
-                  />
-                ))}
+            {selectedBlockId ? (
+              localData
+                .filter((project) => project.id === selectedBlockId)
+                .map((project) => {
+                  const isNew = project.id === newBlockId
+                  return (
+                    <EditableProjectBlock
+                      key={project.id}
+                      data={project}
+                      isNew={isNew}
+                      onDelete={handleBlockDelete}
+                      onClose={handleBlockClose}
+                      onSave={handleSave}
+                    />
+                  )
+                })
+            ) : (
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+              >
+                <SortableContext
+                  items={localData.map((item) => item.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {localData.map((project) => (
+                    <DraggableProjectBlock
+                      key={project.id}
+                      data={project}
+                      onBlockSelect={handleBlockSelect}
+                      isDropping={isDropping}
+                    />
+                  ))}
+                </SortableContext>
+                <DragOverlay>
+                  {activeItem ? (
+                    <DraggableProjectBlock
+                      data={activeItem}
+                      onBlockSelect={handleBlockSelect}
+                      isOverlay={true}
+                    />
+                  ) : null}
+                </DragOverlay>
+              </DndContext>
+            )}
           </div>
         </div>
       )}
