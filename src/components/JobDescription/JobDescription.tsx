@@ -1,7 +1,7 @@
 import styles from './JobDescription.module.scss'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
 import { useDebouncedCallback } from '@/lib/utils'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
 
 interface JobDescriptionProps {
@@ -76,6 +76,17 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                         </span>
                       )}
                     </div>
+                  </div>
+                )}
+
+                {jobDescriptionAnalysis.specialInstructions && (
+                  <div className={styles.specialInstructionsSection}>
+                    <div className={styles.specialInstructionsLabel}>
+                      Important Application Instructions
+                    </div>
+                    <p className={styles.specialInstructionsText}>
+                      {jobDescriptionAnalysis.specialInstructions}
+                    </p>
                   </div>
                 )}
 
@@ -210,16 +221,6 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                         {expandedCompanyDesc ? 'Show less' : 'Show more'}
                       </button>
                     )}
-                  </div>
-
-                  <div className={styles.analysisItem}>
-                    <h4 className={styles.analysisLabel}>
-                      Special Instructions
-                    </h4>
-                    <p className={styles.analysisText}>
-                      {jobDescriptionAnalysis.specialInstructions ||
-                        'None provided'}
-                    </p>
                   </div>
                 </div>
               </div>
