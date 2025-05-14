@@ -187,6 +187,7 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
                       data={project}
                       onBlockSelect={handleBlockSelect}
                       onEditBullet={handleSave}
+                      onDeleteBullet={handleSave}
                       isDropping={isDropping}
                     />
                   ))}
@@ -196,6 +197,8 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
                     <DraggableProjectBlock
                       data={activeItem}
                       onBlockSelect={handleBlockSelect}
+                      onEditBullet={handleSave}
+                      onDeleteBullet={handleSave}
                       isOverlay={true}
                     />
                   ) : null}

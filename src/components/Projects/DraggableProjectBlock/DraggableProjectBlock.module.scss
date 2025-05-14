@@ -194,21 +194,7 @@
 .bulletContainer {
   display: flex;
   align-items: stretch;
-  padding: 8px 12px;
-  margin: 0;
-  border-bottom: 1px solid $color-border;
-  background-color: $color-background;
-  transition: background-color 0.2s ease;
-  gap: 8px;
-  min-height: 80px;
-
-  &:hover {
-    background-color: rgba($color-primary, 0.03);
-  }
-
-  &:last-child {
-    border-bottom: none;
-  }
+  position: relative;
 }
 
 .bulletText {
@@ -218,16 +204,16 @@
   line-height: 1.5;
   color: $color-text;
   word-break: break-word;
-  padding-right: 4px;
   user-select: text;
   -webkit-user-select: text;
   -moz-user-select: text;
   -ms-user-select: text;
+  margin: 8px 8px 8px 0;
   cursor: text;
   min-height: 80px;
 }
 
-.bulletInput {
+.bulletInputArea {
   flex: 1;
   font-family: $font-family-base;
   font-size: 14px;
@@ -240,6 +226,7 @@
   outline: none;
   resize: vertical;
   min-height: 80px;
+  margin-right: 8px;
 
   &:focus {
     box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
@@ -253,6 +240,7 @@
   justify-content: space-between;
   height: 100%;
   max-height: 80px;
+  margin: 8px 8px 8px 0;
 }
 
 %button-base {
@@ -320,4 +308,55 @@
 
 .bulletViewContainer {
   display: none;
+}
+
+.bulletDeleteWrapper {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.bulletDeleteContainer {
+  position: relative;
+  width: 12px;
+  padding-right: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+
+  .bulletDeleteButton {
+    width: 12px;
+    background: $color-error;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    margin: 0;
+    font-size: 12px;
+    color: $color-text;
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+
+    svg {
+      color: $color-background;
+      opacity: 0;
+    }
+  }
+}
+
+.bulletDeleteContainer.expanded {
+  width: 40px;
+  padding-right: 8px;
+
+  .bulletDeleteButton {
+    width: 40px;
+    pointer-events: auto;
+
+    svg {
+      opacity: 1;
+    }
+  }
 }

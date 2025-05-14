@@ -74,10 +74,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     return errors
   }, [debouncedFormData])
 
-  useEffect(() => {
-    console.log(errors)
-  }, [errors])
-
   const sanitizeYear = (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4)
 
   const handleChange = useCallback(

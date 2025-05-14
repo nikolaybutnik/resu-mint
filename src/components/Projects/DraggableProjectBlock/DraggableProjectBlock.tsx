@@ -10,6 +10,7 @@ import {
   FaPencilAlt,
   FaCheck,
   FaTimes,
+  FaTrash,
 } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -17,10 +18,11 @@ import { CSS } from '@dnd-kit/utilities'
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
   onBlockSelect: (id: string) => void
+  onEditBullet: (updatedBlock: ProjectBlockData) => void
+  onDeleteBullet: (updatedBlock: ProjectBlockData) => void
   isOverlay?: boolean
   isDropping?: boolean
   onGenerateAllBullets?: (sectionId: string) => void
-  onEditBullet?: (updatedBlock: ProjectBlockData) => void
   onRegenerateBullet?: (sectionId: string, index: number) => void
 }
 
@@ -31,9 +33,11 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   isDropping = false,
   onGenerateAllBullets,
   onEditBullet,
+  onDeleteBullet,
   onRegenerateBullet,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
+  const deleteRevealRef = useRef<HTMLDivElement>(null)
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -41,9 +45,13 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     null
   )
   const [editingBulletText, setEditingBulletText] = useState('')
+  const [deleteExpanded, setDeleteExpanded] = useState<null | number>(null)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useSortable({ id: data.id, disabled: isOverlay })
+    useSortable({
+      id: data.id,
+      disabled: isOverlay,
+    })
 
   useEffect(() => {
     if (editingBulletIndex !== null && editInputRef.current) {
@@ -98,10 +106,21 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           idx === editingBulletIndex ? editingBulletText : bullet
         ),
       }
-
-      onEditBullet?.(updatedData)
+      onEditBullet(updatedData)
       setEditingBulletIndex(null)
     }
+  }
+
+  // TODO: implement confirmation modal
+  const handleDeleteBullet = (index: number) => {
+    const updatedData = {
+      ...data,
+      bulletPoints: data.bulletPoints.filter(
+        (_bullet, bulletIndex) => bulletIndex !== index
+      ),
+    }
+    onDeleteBullet(updatedData)
+    setDeleteExpanded(null)
   }
 
   const handleKeyDown = (
@@ -137,8 +156,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         <div className={styles.projectBlockContent}>
           <h3 className={styles.projectBlockHeader}>{data.title}</h3>
           <p className={styles.projectBlockDate}>
-            {`${data.startDate.month} ${data.startDate.year} -
-            ${
+            {`${data.startDate.month} ${data.startDate.year} - ${
               data.endDate.isPresent
                 ? 'Present'
                 : `${data.endDate.month} ${data.endDate.year}`
@@ -188,10 +206,41 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       >
         {data.bulletPoints.map((bullet, index) => (
           <div key={index} className={styles.bulletContainer}>
+            <div className={styles.bulletDeleteWrapper}>
+              <div
+                className={[
+                  styles.bulletDeleteContainer,
+                  deleteExpanded === index ? styles.expanded : '',
+                ].join(' ')}
+                onTouchStart={(e) => {
+                  if (deleteExpanded !== index) {
+                    setTimeout(() => setDeleteExpanded(index), 200)
+                    e.stopPropagation()
+                  }
+                }}
+                onMouseEnter={() => {
+                  if (deleteExpanded !== index) {
+                    setTimeout(() => setDeleteExpanded(index), 200)
+                  }
+                }}
+                onMouseLeave={() => {
+                  setDeleteExpanded(null)
+                }}
+              >
+                <button
+                  className={styles.bulletDeleteButton}
+                  onClick={() => handleDeleteBullet(index)}
+                  disabled={deleteExpanded !== index}
+                  tabIndex={deleteExpanded === index ? 0 : -1}
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            </div>
             {editingBulletIndex === index ? (
               <textarea
                 ref={editInputRef}
-                className={styles.bulletInput}
+                className={styles.bulletInputArea}
                 value={editingBulletText}
                 onChange={(e) => setEditingBulletText(e.target.value)}
                 onKeyDown={(e) => handleKeyDown(e, index)}
