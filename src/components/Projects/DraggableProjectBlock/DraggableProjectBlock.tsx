@@ -1,7 +1,16 @@
 import styles from './DraggableProjectBlock.module.scss'
 import { ProjectBlockData } from '../EditableProjectBlock/EditableProjectBlock'
-import { useState } from 'react'
-import { FaPen, FaChevronDown, FaChevronUp } from 'react-icons/fa'
+import { useEffect, useRef, useState } from 'react'
+import {
+  FaPen,
+  FaChevronDown,
+  FaChevronUp,
+  FaMagic,
+  FaRedo,
+  FaPencilAlt,
+  FaCheck,
+  FaTimes,
+} from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -10,6 +19,9 @@ interface DraggableProjectBlockProps {
   onBlockSelect: (id: string) => void
   isOverlay?: boolean
   isDropping?: boolean
+  onGenerateAllBullets?: (sectionId: string) => void
+  onEditBullet?: (updatedBlock: ProjectBlockData) => void
+  onRegenerateBullet?: (sectionId: string, index: number) => void
 }
 
 export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
@@ -17,12 +29,27 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   onBlockSelect,
   isOverlay = false,
   isDropping = false,
+  onGenerateAllBullets,
+  onEditBullet,
+  onRegenerateBullet,
 }) => {
+  const editInputRef = useRef<HTMLTextAreaElement>(null)
+
   const [isExpanded, setIsExpanded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
+  const [editingBulletIndex, setEditingBulletIndex] = useState<number | null>(
+    null
+  )
+  const [editingBulletText, setEditingBulletText] = useState('')
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({ id: data.id, disabled: isOverlay })
+
+  useEffect(() => {
+    if (editingBulletIndex !== null && editInputRef.current) {
+      editInputRef.current.focus()
+    }
+  }, [editingBulletIndex])
 
   const style = isOverlay
     ? { zIndex: 100 }
@@ -38,6 +65,61 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     setIsTransitioning(true)
     setIsExpanded((prev) => !prev)
     setTimeout(() => setIsTransitioning(false), 400)
+  }
+
+  const handleGenerateAllBullets = (e: React.MouseEvent) => {
+    // TODO: implement
+    e.stopPropagation()
+    onGenerateAllBullets?.(data.id)
+  }
+
+  const handleRegenerateBullet = (index: number, e: React.MouseEvent) => {
+    // TODO: implement
+    e.stopPropagation()
+    onRegenerateBullet?.(data.id, index)
+  }
+
+  const handleEditBullet = (index: number, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setEditingBulletIndex(index)
+    setEditingBulletText(data.bulletPoints[index])
+  }
+
+  const handleCancelEdit = () => {
+    setEditingBulletIndex(null)
+    setEditingBulletText('')
+  }
+
+  const handleSaveBullet = () => {
+    if (editingBulletIndex !== null) {
+      const updatedData = {
+        ...data,
+        bulletPoints: data.bulletPoints.map((bullet, idx) =>
+          idx === editingBulletIndex ? editingBulletText : bullet
+        ),
+      }
+
+      onEditBullet?.(updatedData)
+      setEditingBulletIndex(null)
+    }
+  }
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLTextAreaElement>,
+    bulletIndex: number
+  ) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      e.stopPropagation()
+      handleSaveBullet()
+      console.log(bulletIndex)
+    } else if (e.key === 'Enter' && e.shiftKey) {
+      e.stopPropagation()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      handleCancelEdit()
+    }
   }
 
   return (
@@ -68,6 +150,16 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           <button
             type='button'
             data-no-dnd='true'
+            className={styles.generateAllButton}
+            onClick={handleGenerateAllBullets}
+            disabled={isDragging || isOverlay}
+          >
+            <FaMagic size={12} />
+            <span>Generate</span>
+          </button>
+          <button
+            type='button'
+            data-no-dnd='true'
             className={styles.editButton}
             onClick={() => onBlockSelect(data.id)}
             disabled={isDragging || isOverlay}
@@ -78,20 +170,78 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       </div>
 
       {data.bulletPoints.length > 0 && (
-        <button className={styles.drawerToggleButton} onClick={handleToggle}>
+        <button
+          className={`${styles.drawerToggleButton} ${
+            isExpanded ? styles.noRadius : ''
+          }`}
+          onClick={handleToggle}
+        >
           {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
         </button>
       )}
 
       <div
+        data-no-dnd='true'
         className={`${styles.projectBlockDrawer} ${
           isExpanded ? styles.expanded : ''
         }`}
       >
         {data.bulletPoints.map((bullet, index) => (
-          <p key={index} className={styles.projectBlockBullet}>
-            {bullet}
-          </p>
+          <div key={index} className={styles.bulletContainer}>
+            {editingBulletIndex === index ? (
+              <textarea
+                ref={editInputRef}
+                className={styles.bulletInput}
+                value={editingBulletText}
+                onChange={(e) => setEditingBulletText(e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+                data-no-dnd='true'
+                rows={4}
+                autoFocus
+              />
+            ) : (
+              <p className={styles.bulletText}>{bullet}</p>
+            )}
+            <div className={styles.bulletButtons}>
+              {editingBulletIndex === index ? (
+                <>
+                  <button
+                    className={styles.saveButton}
+                    onClick={handleSaveBullet}
+                    data-no-dnd='true'
+                    title='Save (Enter)'
+                  >
+                    <FaCheck size={12} />
+                  </button>
+                  <button
+                    className={styles.cancelButton}
+                    onClick={handleCancelEdit}
+                    data-no-dnd='true'
+                    title='Cancel (Esc)'
+                  >
+                    <FaTimes size={12} />
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    className={styles.editButton}
+                    onClick={(e) => handleEditBullet(index, e)}
+                    data-no-dnd='true'
+                  >
+                    <FaPencilAlt size={12} />
+                  </button>
+                  <button
+                    className={styles.regenerateButton}
+                    onClick={(e) => handleRegenerateBullet(index, e)}
+                    data-no-dnd='true'
+                  >
+                    <FaRedo size={12} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
         ))}
       </div>
     </div>

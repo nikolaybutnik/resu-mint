@@ -3,50 +3,142 @@
 .draggableProjectBlockContainer {
   position: relative;
   margin-bottom: 16px;
-  border: 2px solid $color-border;
-  border-radius: 4px;
-  background-color: transparent;
+  border: 1px solid rgba($color-primary, 0.4);
+  border-radius: 6px;
+  background-color: $color-background;
   opacity: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  overflow: hidden;
+  min-width: 0;
+  touch-action: none;
+
+  &:hover {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+  }
 
   &.isDragging {
     background-color: $color-action-item-background;
-    opacity: 0.8;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0.95;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
     cursor: grabbing;
-    transition: background-color 0.3s ease, opacity 0.3s ease;
+    border-color: $color-primary;
+    transform: scale(1.02);
   }
 }
 
 .draggableProjectBlock {
   display: flex;
   flex-direction: row;
-  padding: 8px;
+  padding: 8px 12px;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  cursor: ns-resize;
 }
 
 .projectBlockContent {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  cursor: default;
-  gap: 8px;
-  cursor: ns-resize;
+  flex: 1 1 180px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.projectBlockHeader {
+  font-weight: 600;
+  font-size: 16px;
+  color: $color-text;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projectBlockDate {
+  font-size: 13px;
+  color: $color-disabled;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .projectBlockActions {
-  width: 40px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  flex-direction: row;
   gap: 8px;
+  align-items: stretch;
+  height: 100%;
+  justify-content: stretch;
 }
 
 .editButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: $color-action-item-background;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  flex: 1;
+  padding: 6px;
+  color: $color-text;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: $color-action-item-background-hover;
+    color: $color-primary;
+  }
+}
+
+.generateAllButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-primary, 0.12);
+  color: $color-primary;
+  border: 1.5px solid $color-primary;
+  border-radius: 4px;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 6px;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s,
+    box-shadow 0.18s, opacity 0.18s;
+
+  svg {
+    margin-right: 2px;
+    color: $color-primary;
+    filter: none;
+  }
+
+  &:hover,
+  &:focus {
+    background: $color-primary;
+    color: $color-background;
+    border-color: $color-primary;
+    box-shadow: 0 2px 8px rgba($color-primary, 0.1);
+
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &:active {
+    opacity: 0.85;
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    box-shadow: none;
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
 }
 
 .drawerToggleButton {
@@ -55,14 +147,32 @@
   justify-content: center;
   width: 100%;
   padding: 4px 0;
-  background-color: $color-action-item-background;
+  background: rgba($color-primary, 0.12);
   border: none;
-  border-top: 2px solid $color-border;
+  border-top: 1px solid rgba($color-primary, 0.4);
   cursor: pointer;
-  transition: background-color 0.2s;
+  color: $color-disabled;
+  border-radius: 0 0 6px 6px;
+  transition: background-color 0.2s ease, color 0.2s ease,
+    border-radius 0.2s ease-in-out;
+
+  svg {
+    pointer-events: none;
+  }
 
   &:hover {
-    background-color: $color-action-item-background-hover;
+    background-color: $color-primary;
+    color: $color-text;
+
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &.noRadius {
+    border-radius: 0;
+    transition: background-color 0.2s ease, color 0.2s ease,
+      border-radius 0.2s ease-in-out;
   }
 }
 
@@ -70,19 +180,144 @@
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease-in-out;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
 
   &.expanded {
     max-height: 1000px;
-    transition: max-height 0.3s ease-in-out;
+    transition: max-height 0.5s ease-in-out;
   }
 }
 
-.projectBlockBullet {
-  padding: 8px 16px;
+.bulletContainer {
+  display: flex;
+  align-items: stretch;
+  padding: 8px 12px;
   margin: 0;
-  border-bottom: 1px solid $color-action-item-background;
+  border-bottom: 1px solid $color-border;
+  background-color: $color-background;
+  transition: background-color 0.2s ease;
+  gap: 8px;
+  min-height: 80px;
+
+  &:hover {
+    background-color: rgba($color-primary, 0.03);
+  }
 
   &:last-child {
     border-bottom: none;
   }
+}
+
+.bulletText {
+  flex: 1;
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: $color-text;
+  word-break: break-word;
+  padding-right: 4px;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: text;
+  min-height: 80px;
+}
+
+.bulletInput {
+  flex: 1;
+  font-family: $font-family-base;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1px solid $color-primary;
+  border-radius: 4px;
+  background-color: white;
+  color: $color-text;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+
+  &:focus {
+    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+  }
+}
+
+.bulletButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: space-between;
+  height: 100%;
+  max-height: 80px;
+}
+
+%button-base {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: $color-action-item-background;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px;
+  color: $color-disabled;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  width: 32px;
+  height: calc((80px - 8px) / 2);
+  flex-grow: 1;
+
+  svg {
+    pointer-events: none;
+  }
+
+  &:hover {
+    background-color: $color-action-item-background-hover;
+  }
+}
+
+.editButton,
+.regenerateButton,
+.saveButton,
+.cancelButton {
+  @extend %button-base;
+}
+
+.editButton:hover,
+.saveButton:hover {
+  color: $color-primary;
+}
+
+.saveButton:hover {
+  color: $color-badge-green;
+}
+
+.regenerateButton:hover,
+.cancelButton:hover {
+  color: $color-secondary;
+}
+
+.bulletEditContainer {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  align-items: stretch;
+  padding: 4px 0;
+  min-height: 80px;
+}
+
+.bulletEditActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: space-between;
+  max-height: 80px;
+  height: 100%;
+}
+
+.bulletViewContainer {
+  display: none;
 }

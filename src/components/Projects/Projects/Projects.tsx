@@ -186,6 +186,7 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
                       key={project.id}
                       data={project}
                       onBlockSelect={handleBlockSelect}
+                      onEditBullet={handleSave}
                       isDropping={isDropping}
                     />
                   ))}
