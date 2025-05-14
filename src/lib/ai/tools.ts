@@ -51,6 +51,31 @@ export const generateResumeBulletPointsTool = (
   },
 })
 
+export const generateSectionBulletPointsTool = (
+  maxCharsPerBullet: number,
+  missingCount?: number
+) => ({
+  type: 'function' as const,
+  function: {
+    name: 'generate_section_bullets',
+    description:
+      'Generate bullet points for a specific work experience section.',
+    parameters: {
+      type: 'object',
+      properties: {
+        bullets: {
+          type: 'array',
+          items: { type: 'string', maxLength: maxCharsPerBullet },
+          ...(missingCount
+            ? { minItems: missingCount, maxItems: missingCount }
+            : { minItems: 1 }),
+        },
+      },
+      required: ['bullets'],
+    },
+  },
+})
+
 export const generateJobDescriptionAnalysisTool = () => ({
   type: 'function' as const,
   function: {

@@ -1,6 +1,12 @@
 import OpenAI from 'openai'
-import { generateResumeBulletPointsTool } from '@/lib/ai/tools'
-import { generateResumeBulletPointsPrompt } from '@/lib/ai/prompts'
+import {
+  generateResumeBulletPointsTool,
+  generateSectionBulletPointsTool,
+} from '@/lib/ai/tools'
+import {
+  generateResumeBulletPointsPrompt,
+  generateSectionBulletPointsPrompt,
+} from '@/lib/ai/prompts'
 import { SettingsFormValues } from '@/components/Settings/Settings'
 import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { ApiError } from '../types/errors'
@@ -20,9 +26,103 @@ export class BulletGenerationError extends Error {
 }
 
 // Notes:
-// one token is approximately 4 characters (including spaces)
-// a word is usually 1 - 3 tokens
-// 100 characters is approximately 25 tokens
+// one token is approximately 4 characters
+// 115 characters (max per bullet) is ~29 tokens, so 100 tokens per bullet is safe
+
+const model = 'gpt-4o'
+
+async function generateSectionBulletPoints(
+  sectionId: string,
+  description: string,
+  existingBullets: string[], // Will support { text: string, locked?: boolean } later
+  jobDescriptionAnalysis: JobDescriptionAnalysis,
+  targetBulletCount: number,
+  maxCharsPerBullet: number,
+  openai: OpenAI
+): Promise<string[]> {
+  const missingCount = targetBulletCount - existingBullets.length
+  if (missingCount <= 0) {
+    return existingBullets.slice(0, targetBulletCount)
+  }
+
+  // TODO: When locking is implemented, filter out locked bullets from existingBullets
+  // const unlockedBullets = existingBullets.filter(b => !b.locked);
+
+  const prompt = generateSectionBulletPointsPrompt(
+    description,
+    existingBullets, // Use all bullets for context; locking will filter later
+    jobDescriptionAnalysis,
+    missingCount,
+    maxCharsPerBullet
+  )
+
+  const tools = [
+    generateSectionBulletPointsTool(maxCharsPerBullet, missingCount),
+  ]
+
+  const completion = await openai.chat.completions.create({
+    model,
+    messages: [{ role: 'user', content: prompt }],
+    max_tokens: missingCount * 100 + 500, // 500 for structure
+    tools,
+    tool_choice: {
+      type: 'function',
+      function: { name: 'generate_section_bullets' },
+    },
+  })
+
+  const toolCall = completion.choices[0].message.tool_calls?.[0]
+  if (!toolCall) {
+    console.error(
+      'No tool call in completion for section ID:',
+      sectionId,
+      JSON.stringify(completion, null, 2)
+    )
+    throw new BulletGenerationError({
+      field: 'openai',
+      message: `Failed to generate bullets for section ID ${sectionId}: No tool call`,
+      type: 'ai_generation',
+    })
+  }
+
+  let newBullets: string[]
+  try {
+    const toolResult = JSON.parse(toolCall.function.arguments)
+    newBullets = toolResult.bullets
+  } catch (parseError) {
+    console.error('JSON parse error for section ID:', sectionId, parseError)
+    throw new BulletGenerationError({
+      field: 'openai',
+      message: `Failed to parse tool call JSON for section ID ${sectionId}`,
+      type: 'ai_generation',
+    })
+  }
+
+  if (newBullets.length !== missingCount) {
+    console.warn(
+      `Expected ${missingCount} bullets for section ID ${sectionId}, got ${newBullets.length}`
+    )
+    // TODO: possibly implement manual bullet generation as fallback in the future
+  }
+
+  const finalBullets = [
+    ...existingBullets,
+    ...newBullets.slice(0, missingCount),
+  ]
+
+  if (finalBullets.length !== targetBulletCount) {
+    console.error(
+      `Final bullet count for section ID ${sectionId}: Expected ${targetBulletCount}, got ${finalBullets.length}`
+    )
+    throw new BulletGenerationError({
+      field: 'openai',
+      message: `Expected ${targetBulletCount} bullets, got ${finalBullets.length} for section ID ${sectionId}`,
+      type: 'ai_generation',
+    })
+  }
+
+  return finalBullets
+}
 
 export const generateBulletPoints = async (
   workExperience: ExperienceBlockData[],
@@ -69,13 +169,15 @@ export const generateBulletPoints = async (
       settings.maxCharsPerBullet,
       projects
     )
+
     const totalBullets =
       workExperience.length * settings.bulletsPerExperienceBlock +
       (projects?.length || 0) * settings.bulletsPerProjectBlock
-    const max_tokens = totalBullets * 100 + 1000
+    // TODO: re-exmine this to account for variable char limit inputs
+    const max_tokens = totalBullets * 100 + 2500 // 2500 for structure
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model,
       messages: [{ role: 'user', content: prompt }],
       max_tokens,
       tools,
@@ -87,6 +189,10 @@ export const generateBulletPoints = async (
 
     const toolCall = completion.choices[0].message.tool_calls?.[0]
     if (!toolCall) {
+      console.error(
+        'No tool call in completion:',
+        JSON.stringify(completion, null, 2)
+      )
       throw new BulletGenerationError({
         field: 'openai',
         message: 'Bullet generation failed: No tool call',
@@ -112,16 +218,82 @@ export const generateBulletPoints = async (
       !toolResult.experience_bullets ||
       toolResult.experience_bullets.length === 0
     ) {
+      console.error('Empty experience bullets:', toolResult)
       throw new BulletGenerationError({
         field: 'openai',
         message: 'Bullet generation failed: Empty experience bullets',
         type: 'ai_generation',
       })
     }
+
+    // Handle missing bullets for work experience
+    for (let exp of toolResult.experience_bullets) {
+      if (exp.bullets.length < settings.bulletsPerExperienceBlock) {
+        const experience = workExperience.find((w) => w.id === exp.id)
+        if (!experience) {
+          console.error(`Experience ID ${exp.id} not found in workExperience`)
+          throw new BulletGenerationError({
+            field: 'client',
+            message: `Experience ID ${exp.id} not found`,
+            type: 'missing_data',
+          })
+        }
+
+        exp.bullets = await generateSectionBulletPoints(
+          exp.id,
+          experience.description,
+          exp.bullets,
+          jobDescriptionAnalysis,
+          settings.bulletsPerExperienceBlock,
+          settings.maxCharsPerBullet,
+          openai
+        )
+      }
+    }
+
+    toolResult.project_bullets.forEach((proj) => {
+      if (proj.bullets.length !== settings.bulletsPerProjectBlock) {
+        console.error(
+          `Validation failed for project ID ${proj.id}: Expected ${settings.bulletsPerProjectBlock} bullets, got ${proj.bullets.length}`
+        )
+        throw new BulletGenerationError({
+          field: 'openai',
+          message: `Expected ${settings.bulletsPerProjectBlock} bullets, got ${proj.bullets.length} for project ID ${proj.id}`,
+          type: 'ai_generation',
+        })
+      }
+    })
+
+    // Handle missing bullets for projects
+    for (let proj of toolResult.project_bullets) {
+      if (proj.bullets.length < settings.bulletsPerProjectBlock) {
+        const project = projects?.find((p) => p.id === proj.id)
+        if (!project) {
+          console.error(`Project ID ${proj.id} not found in projects`)
+          throw new BulletGenerationError({
+            field: 'client',
+            message: `Project ID ${proj.id} not found`,
+            type: 'missing_data',
+          })
+        }
+
+        proj.bullets = await generateSectionBulletPoints(
+          proj.id,
+          project.description,
+          proj.bullets,
+          jobDescriptionAnalysis,
+          settings.bulletsPerProjectBlock,
+          settings.maxCharsPerBullet,
+          openai
+        )
+      }
+    }
+
+    // Final validation for experiences
     toolResult.experience_bullets.forEach((exp) => {
       if (exp.bullets.length !== settings.bulletsPerExperienceBlock) {
         console.error(
-          `Validation failed for experience ID ${exp.id}: Expected ${settings.bulletsPerExperienceBlock} bullets, got ${exp.bullets.length}`
+          `Final validation failed for experience ID ${exp.id}: Expected ${settings.bulletsPerExperienceBlock} bullets, got ${exp.bullets.length}`
         )
         throw new BulletGenerationError({
           field: 'openai',
@@ -130,10 +302,12 @@ export const generateBulletPoints = async (
         })
       }
     })
+
+    // Final validation for projects
     toolResult.project_bullets.forEach((proj) => {
       if (proj.bullets.length !== settings.bulletsPerProjectBlock) {
         console.error(
-          `Validation failed for project ID ${proj.id}: Expected ${settings.bulletsPerProjectBlock} bullets, got ${proj.bullets.length}`
+          `Final validation failed for project ID ${proj.id}: Expected ${settings.bulletsPerProjectBlock} bullets, got ${proj.bullets.length}`
         )
         throw new BulletGenerationError({
           field: 'openai',
@@ -156,3 +330,5 @@ export const generateBulletPoints = async (
     })
   }
 }
+
+// TODO: consider manual bullet generation as a last resort fallback

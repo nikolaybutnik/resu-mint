@@ -82,7 +82,7 @@ ${
   jobDescriptionAnalysis.skillsRequired?.hard?.length
     ? jobDescriptionAnalysis.skillsRequired.hard
         .map((skill) => `• ${skill}`)
-        .join('\n      ')
+        .join('\n')
     : 'None identified'
 }
 </hard_skills>
@@ -91,7 +91,7 @@ ${
   jobDescriptionAnalysis.skillsRequired?.soft?.length
     ? jobDescriptionAnalysis.skillsRequired.soft
         .map((skill) => `• ${skill}`)
-        .join('\n      ')
+        .join('\n')
     : 'None identified'
 }
 </soft_skills>
@@ -122,44 +122,27 @@ export const generateResumeBulletPointsPrompt = (
   numBulletsPerExperience: number,
   numBulletsPerProject: number,
   maxCharsPerBullet: number,
-  projects?: ProjectBlockData[]
+  projects: ProjectBlockData[] = []
 ) => {
   const formattedWorkExperience = formatWorkExperienceForAI(workExperience)
-  const formattedProjects = formatProjectsForAI(projects || [])
+  const formattedProjects = formatProjectsForAI(projects)
   const formattedJobDescription = formatJobDescriptionForAI(
     jobDescriptionAnalysis
   )
+
   return `
-Generate tailored bullet points for work experiences and projects using the "generate_resume_bullets" tool.
-
-<CRITICAL_NOTES>
-IMPORTANT REQUIREMENTS:
-- WORK EXPERIENCE BULLETS: You MUST generate EXACTLY ${numBulletsPerExperience} bullets for EACH WORK EXPERIENCE 
-- PROJECT BULLETS: You MUST generate EXACTLY ${numBulletsPerProject} bullets for EACH PROJECT
-- These are DIFFERENT requirements - do NOT confuse them!
-
-<WORK_EXPERIENCE> contains professional job roles (e.g., ${
-    workExperience?.length && workExperience[0]?.jobTitle
-      ? workExperience[0].jobTitle
-      : 'Front-End Developer'
-  }) with employment details.
-<PROJECTS> contains side/personal projects (e.g., ${
-    projects?.length && projects[0]?.title
-      ? projects[0].title
-      : 'Project Compass'
-  }).
-
-IGNORE the number of input bullet points or formatting (e.g., 3 bullets); only the content matters.
-For entries with sparse content, split tasks or highlight technologies/impact to reach the required number of bullets.
-</CRITICAL_NOTES>
+Generate bullet points for <WORK_EXPERIENCE> and <PROJECTS> using the "generate_resume_bullets" tool.
 
 <RULES>
-- Never fabricate data, metrics, or skills.
-- Use exact technology names (e.g., "React", not "Angular").
-- Include metrics only if stated; else, focus on qualitative impact.
-- Generate EXACTLY ${numBulletsPerExperience} bullets per work experience, ${numBulletsPerProject} per project.
-- Each bullet ≤${maxCharsPerBullet} characters.
-- Use present tense for "- Present" roles, past tense otherwise.
+1. Generate EXACTLY ${numBulletsPerExperience} bullets per work experience, ${numBulletsPerProject} per project.
+2. Base tasks and metrics ONLY on <WORK_EXPERIENCE> or <PROJECTS> (e.g., UI optimization, 15% engagement).
+3. ONLY use <JOB_ANALYSIS> skills explicitly mentioned or directly tied to technologies/tasks in <WORK_EXPERIENCE> or <PROJECTS> (e.g., Python for FastAPI, JavaScript for React, not AWS unless mentioned).
+4. DO NOT fabricate tasks, metrics, or skills; metrics must be explicitly stated in input (e.g., 15% engagement, not "significant improvement").
+5. Each bullet MUST use 95-100% of ${maxCharsPerBullet} characters (e.g., 109-115 for 115) for maximum impact.
+6. Use past tense for completed roles, present tense for ongoing ("- Present").
+7. Ensure bullets are distinct from existing content in <WORK_EXPERIENCE> or <PROJECTS>.
+8. Align with <JOB_ANALYSIS> company mission (e.g., Solink’s analytics).
+9. Avoid vague terms (e.g., "strategic enhancements", "significant improvements"); use specific tasks/technologies from input.
 </RULES>
 
 <JOB_ANALYSIS>
@@ -175,52 +158,43 @@ ${formattedProjects}
 </PROJECTS>
 
 <INSTRUCTIONS>
-1. Tailor bullets to JOB_ANALYSIS, using hard/soft skills (2–3 keyword mentions max per entire document) only if they match the user's experience/projects. Do not force unrelated skills.
-2. Incorporate contextual_technologies, if present, only when relevant to the user's experience or projects.
-3. Personalize bullets using company context (name, description) to align with the employer's mission.
-4. Follow STAR method (Situation, Task, Action, Result) for each bullet, prioritizing measurable results.
-5. For sparse content, split details or highlight technologies, impact, or collaboration to meet bullet count.
-6. Sharpen verbs (e.g., "Built" → "Engineered") and add technical specificity.
-7. Maximize impact, using 90-100% of ${maxCharsPerBullet} characters.
+1. Extract only explicit tasks (e.g., UI optimization, microservices), metrics (e.g., 15% engagement), and technologies (e.g., React, FastAPI) from <WORK_EXPERIENCE> or <PROJECTS>.
+2. Select <JOB_ANALYSIS> skills explicitly mentioned or directly tied to these technologies/tasks (e.g., Python for FastAPI, JavaScript for React, not AWS unless mentioned).
+3. Generate ${numBulletsPerExperience} bullets per work experience, ${numBulletsPerProject} per project, using precise tasks/technologies from input, avoiding generic phrases.
+4. MUST craft bullets using 95-100% of ${maxCharsPerBullet} characters with detailed, specific content, ensuring they are distinct and follow STAR method.
+5. For sparse content, split tasks (e.g., UI vs. accessibility) or add specific details to reach 95-100% length.
 </INSTRUCTIONS>
+
+<EXAMPLES>
+Correct:
+Input (Work Experience): "Developed microservices with FastAPI, ensuring scalable back-end solutions. Engineered React UI, boosting engagement by 15%."
+Output:
+- Developed FastAPI microservices using Python, enabling highly scalable back-end solutions for Solink’s analytics-driven platform.
+- Engineered React UI with JavaScript, boosting user engagement by 15% for Solink’s e-commerce analytics platform.
+Note: Bullets MUST use 95-100% of ${maxCharsPerBullet} characters to maximize impact. Skills listed after bullets (e.g., Python) show <JOB_ANALYSIS> keywords tied to input technologies, not literal output.
+
+Incorrect:
+- Enhanced UI with strategic code, significantly improving load speeds. // Vague, unverified metric, too short
+- Developed microservices with AWS, improving reliability by 25%. // Unmentioned AWS, fabricated metric
+</EXAMPLES>
+
+<VERIFICATION>
+Note: Short or vague bullets reduce impact; prioritize specific, detailed content to reach 95-100% of ${maxCharsPerBullet} characters.
+1. Confirm EXACTLY ${numBulletsPerExperience} bullets per work experience, ${numBulletsPerProject} per project.
+2. Verify tasks and metrics ONLY from <WORK_EXPERIENCE> or <PROJECTS>.
+3. Ensure <JOB_ANALYSIS> skills are tied to input technologies/tasks (e.g., Python for FastAPI, not AWS).
+4. Reject bullets <95% of ${maxCharsPerBullet} characters (e.g., <109 for 115) or >${maxCharsPerBullet}; ensure distinctness.
+5. Reject vague or unverified metrics (e.g., "significant improvement" unless input specifies).
+6. Reject bullets using <JOB_ANALYSIS> skills not mentioned or tied to input (e.g., AWS for FastAPI).
+7. Reject vague phrases (e.g., "strategic enhancements"); ensure specific tasks/technologies.
+</VERIFICATION>
 
 <OUTPUT>
 {
-  "experience_bullets": [
-    { "id": "<id>", "bullets": ["<bullet>", ...] } // Exactly ${numBulletsPerExperience} bullets
-  ],
-  "project_bullets": [
-    { "id": "<id>", "bullets": ["<bullet>", ...] } // Exactly ${numBulletsPerProject} bullets
-  ]
+  "experience_bullets": [{ "id": "<id>", "bullets": ["<bullet>", ...] }],
+  "project_bullets": [{ "id": "<id>", "bullets": ["<bullet>", ...] }]
 }
 </OUTPUT>
-
-<EXAMPLE>
-Input (Work Experience): 
-"• Engineered a React e-commerce front-end, ensuring WCAG-compliant accessibility, boosting engagement by 15%.
-• Implemented secure e-commerce features, ensuring PCI-compliant payment flows via Viax.io platform.
-• Drove a 15% increase in user engagement by implementing lazy loading, optimizing rendering, and collaborating with UX/UI designers."
-Output (6 bullets):
-- Engineered React e-commerce UI, enhancing responsiveness for Solink’s retail clients (React, Collaboration).
-- Ensured WCAG compliance via axe-core, improving accessibility for diverse users (Problem-solving).
-- Optimized rendering with lazy loading, boosting engagement by 15% per heatmap data (React).
-- Secured PCI-compliant payment flows, enabling seamless B2C transactions (JavaScript).
-- Collaborated with UX designers to streamline flows, supporting Solink’s analytics goals (Collaboration).
-- Deployed features to AWS, ensuring scalable infrastructure for Solink’s platform (AWS, Problem-solving).
-Incorrect:
-- Built React UI, improved speed by 20%. // Fabricated metric
-- Added TypeScript features. // Unmentioned skill
-- Generated 4 bullets. // Wrong count
-</EXAMPLE>
-
-<VERIFICATION>
-FINAL CHECK - These are different requirements:
-1. Work Experience: EXACTLY ${numBulletsPerExperience} bullets per experience item
-2. Projects: EXACTLY ${numBulletsPerProject} bullets per project item
-3. All bullets ≤${maxCharsPerBullet} characters
-
-If any bullets are missing, add more detailed points. If too many, combine related points.
-</VERIFICATION>
 `
 }
 
@@ -247,4 +221,88 @@ Analyze the job description and return structured data using the "generate_job_d
 ${jobDescription}
 </JOB_DESCRIPTION>
   `
+}
+
+export const generateSectionBulletPointsPrompt = (
+  sectionDescription: string,
+  existingBullets: string[],
+  jobDescriptionAnalysis: JobDescriptionAnalysis,
+  numBullets: number,
+  maxCharsPerBullet: number
+) => {
+  const formattedJobDescription = formatJobDescriptionForAI(
+    jobDescriptionAnalysis
+  )
+
+  return `
+Generate ${numBullets} bullet points for <SECTION_DESCRIPTION> using the "generate_section_bullets" tool.
+
+<RULES>
+1. Generate EXACTLY ${numBullets} bullet points.
+2. Base tasks and metrics ONLY on <SECTION_DESCRIPTION> (e.g., UI optimization, 15% engagement).
+3. ONLY use <JOB_ANALYSIS> skills explicitly mentioned or directly tied to technologies/tasks in <SECTION_DESCRIPTION> (e.g., JavaScript for React, not AWS unless mentioned).
+4. DO NOT fabricate tasks, metrics, or skills; metrics must be explicitly stated in input (e.g., 15% engagement, not "significant improvement").
+5. Each bullet MUST use 95-100% of ${maxCharsPerBullet} characters (e.g., 109-115 for 115) for maximum impact.
+6. Use past tense for completed tasks, present tenseuşi for ongoing.
+7. Ensure bullets are distinct from <EXISTING_BULLETS>.
+8. Align with <JOB_ANALYSIS> company mission (e.g., Solink’s analytics).
+9. Avoid vague terms (e.g., "strategic enhancements", "significant improvements"); use specific tasks/technologies from input.
+</RULES>
+
+<SECTION_DESCRIPTION>
+${sectionDescription}
+</SECTION_DESCRIPTION>
+
+<EXISTING_BULLETS>
+${
+  existingBullets.length
+    ? existingBullets.map((b) => `- ${b}`).join('\n')
+    : 'None'
+}
+</EXISTING_BULLETS>
+
+<JOB_ANALYSIS>
+${formattedJobDescription}
+</JOB_ANALYSIS>
+
+<INSTRUCTIONS>
+1. Extract only explicit tasks (e.g., UI optimization), metrics (e.g., 15% engagement), and technologies (e.g., React) from <SECTION_DESCRIPTION>.
+2. Select <JOB_ANALYSIS> skills explicitly mentioned or directly tied to these technologies/tasks (e.g., JavaScript for React, not AWS unless mentioned).
+3. Generate ${numBullets} bullet points, using precise tasks/technologies from input, avoiding generic phrases.
+4. MUST craft bullets using 95-100% of ${maxCharsPerBullet} characters with detailed, specific content, ensuring they are distinct and follow STAR method.
+5. For sparse content, split tasks (e.g., UI vs. accessibility) or add specific details to reach 95-100% length.
+</INSTRUCTIONS>
+
+<EXAMPLES>
+Correct:
+<SECTION_DESCRIPTION>: "Engineered a React e-commerce front-end, ensuring WCAG-compliant accessibility, boosting engagement by 15%."
+<EXISTING_BULLETS>: 
+- Engineered React front-end, boosting engagement by 15%.
+Output:
+- Ensured WCAG-compliant accessibility using JavaScript, enhancing Solink’s user interface for diverse audience engagement.
+- Built modular React UI with TypeScript, enabling scalable e-commerce solutions for Solink’s analytics-driven platform.
+Note: Bullets MUST use 95-100% of ${maxCharsPerBullet} characters to maximize impact. Skills listed after bullets (e.g., JavaScript) show <JOB_ANALYSIS> keywords tied to input technologies, not literal output.
+
+Incorrect:
+- Enhanced UI with strategic code, significantly improving load speeds. // Vague, unverified metric, too short
+- Improved efficiency by 25% with AWS. // Fabricated metric, unrelated skill
+</EXAMPLES>
+
+<VERIFICATION>
+Note: Short or vague bullets reduce impact; prioritize specific, detailed content to reach 95-100% of ${maxCharsPerBullet} characters.
+1. Confirm EXACTLY ${numBullets} bullet points.
+2. Verify tasks and metrics ONLY from <SECTION_DESCRIPTION>.
+3. Ensure <JOB_ANALYSIS> skills are tied to input technologies/tasks (e.g., JavaScript for React, not AWS).
+4. Reject bullets <95% of ${maxCharsPerBullet} characters (e.g., <109 for 115) or >${maxCharsPerBullet}; ensure distinctness.
+5. Reject vague or unverified metrics (e.g., "significant improvement" unless input specifies).
+6. Reject bullets using <JOB_ANALYSIS> skills not mentioned or tied to input (e.g., AWS for UI).
+7. Reject vague phrases (e.g., "strategic enhancements"); ensure specific tasks/technologies.
+</VERIFICATION>
+
+<OUTPUT>
+{
+  "bullets": ["<bullet>", ...] // EXACTLY ${numBullets} bullets
+}
+</OUTPUT>
+`
 }
