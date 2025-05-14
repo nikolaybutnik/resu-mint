@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
+import { JobDescriptionAnalysis } from '../analyze-job-description/route'
 
 const execPromise = promisify(exec)
 
@@ -24,7 +25,7 @@ interface MintResumeRequestData {
   personalDetails: PersonalDetailsFormValues
   workExperience: ExperienceBlockData[]
   projects: ProjectBlockData[]
-  jobDescription: string
+  jobDescriptionAnalysis: JobDescriptionAnalysis
   settings: SettingsFormValues
 }
 
@@ -47,7 +48,7 @@ export async function POST(request: NextRequest) {
       personalDetails,
       workExperience,
       projects,
-      jobDescription,
+      jobDescriptionAnalysis,
       settings,
       sessionId,
     } = data
@@ -56,12 +57,10 @@ export async function POST(request: NextRequest) {
     // The idea is that the bullet points are already generated when teh user mints the resume
     const generatedBulletPoints = await generateBulletPoints(
       workExperience,
-      jobDescription,
+      jobDescriptionAnalysis,
       settings,
       projects
     )
-
-    // console.log('generatedBulletPoints', generatedBulletPoints)
 
     const hydratedLatex = await generateLatex(
       generatedBulletPoints.experience_bullets,

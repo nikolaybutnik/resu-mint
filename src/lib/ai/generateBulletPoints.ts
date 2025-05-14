@@ -5,6 +5,7 @@ import { SettingsFormValues } from '@/components/Settings/Settings'
 import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { ApiError } from '../types/errors'
 import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
+import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
 
 interface GeneratedBulletsResponseModel {
   project_bullets: { id: string; bullets: string[] }[]
@@ -25,7 +26,7 @@ export class BulletGenerationError extends Error {
 
 export const generateBulletPoints = async (
   workExperience: ExperienceBlockData[],
-  jobDescription: string,
+  jobDescriptionAnalysis: JobDescriptionAnalysis,
   settings: SettingsFormValues,
   projects?: ProjectBlockData[]
 ): Promise<GeneratedBulletsResponseModel> => {
@@ -36,10 +37,10 @@ export const generateBulletPoints = async (
       type: 'missing_data',
     })
   }
-  if (!jobDescription) {
+  if (!jobDescriptionAnalysis) {
     throw new BulletGenerationError({
       field: 'client',
-      message: 'Job description is required',
+      message: 'Job analysis is required',
       type: 'missing_data',
     })
   }
@@ -62,18 +63,21 @@ export const generateBulletPoints = async (
     ]
     const prompt = generateResumeBulletPointsPrompt(
       workExperience,
-      jobDescription,
+      jobDescriptionAnalysis,
       settings.bulletsPerExperienceBlock,
       settings.bulletsPerProjectBlock,
       settings.maxCharsPerBullet,
       projects
     )
+    const totalBullets =
+      workExperience.length * settings.bulletsPerExperienceBlock +
+      (projects?.length || 0) * settings.bulletsPerProjectBlock
+    const max_tokens = totalBullets * 100 + 1000
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens:
-        workExperience.length * settings.bulletsPerExperienceBlock * 500,
+      max_tokens,
       tools,
       tool_choice: {
         type: 'function',
@@ -90,20 +94,54 @@ export const generateBulletPoints = async (
       })
     }
 
-    const toolResult = JSON.parse(
-      toolCall.function.arguments
-    ) as GeneratedBulletsResponseModel
-
-    if (
-      !toolResult.experience_bullets ||
-      Object.keys(toolResult.experience_bullets).length === 0
-    ) {
+    let toolResult: GeneratedBulletsResponseModel
+    try {
+      toolResult = JSON.parse(
+        toolCall.function.arguments
+      ) as GeneratedBulletsResponseModel
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError)
       throw new BulletGenerationError({
         field: 'openai',
-        message: 'Bullet generation failed: Empty result',
+        message: 'Bullet generation failed: Invalid tool call JSON',
         type: 'ai_generation',
       })
     }
+
+    if (
+      !toolResult.experience_bullets ||
+      toolResult.experience_bullets.length === 0
+    ) {
+      throw new BulletGenerationError({
+        field: 'openai',
+        message: 'Bullet generation failed: Empty experience bullets',
+        type: 'ai_generation',
+      })
+    }
+    toolResult.experience_bullets.forEach((exp) => {
+      if (exp.bullets.length !== settings.bulletsPerExperienceBlock) {
+        console.error(
+          `Validation failed for experience ID ${exp.id}: Expected ${settings.bulletsPerExperienceBlock} bullets, got ${exp.bullets.length}`
+        )
+        throw new BulletGenerationError({
+          field: 'openai',
+          message: `Expected ${settings.bulletsPerExperienceBlock} bullets, got ${exp.bullets.length} for experience ID ${exp.id}`,
+          type: 'ai_generation',
+        })
+      }
+    })
+    toolResult.project_bullets.forEach((proj) => {
+      if (proj.bullets.length !== settings.bulletsPerProjectBlock) {
+        console.error(
+          `Validation failed for project ID ${proj.id}: Expected ${settings.bulletsPerProjectBlock} bullets, got ${proj.bullets.length}`
+        )
+        throw new BulletGenerationError({
+          field: 'openai',
+          message: `Expected ${settings.bulletsPerProjectBlock} bullets, got ${proj.bullets.length} for project ID ${proj.id}`,
+          type: 'ai_generation',
+        })
+      }
+    })
 
     return toolResult
   } catch (error) {

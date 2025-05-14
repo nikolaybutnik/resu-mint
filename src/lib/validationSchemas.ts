@@ -198,15 +198,6 @@ export const settingsSchema = z.object({
   maxCharsPerBullet: z.number().int().min(100).max(500),
 })
 
-export const resumeMintRequestSchema = z.object({
-  sessionId: z.string(),
-  personalDetails: personalDetailsSchema,
-  workExperience: z.array(experienceBlockSchema),
-  projects: z.array(projectBlockSchema),
-  jobDescription: z.string(),
-  settings: settingsSchema,
-})
-
 export const analyzeJobDescriptionRequestSchema = z.object({
   sessionId: z.string().uuid('Invalid session ID'),
   jobDescription: z.string().min(1, 'Job description is required'),
@@ -258,4 +249,13 @@ export const JobDescriptionAnalysisSchema = z.object({
     .describe(
       'Technologies mentioned in the tech stack or environment but not explicitly mentioned as required, e.g., ["AWS", "Docker", "Kafka"]'
     ),
+})
+
+export const resumeMintRequestSchema = z.object({
+  sessionId: z.string(),
+  personalDetails: personalDetailsSchema,
+  workExperience: z.array(experienceBlockSchema),
+  projects: z.array(projectBlockSchema),
+  jobDescriptionAnalysis: JobDescriptionAnalysisSchema,
+  settings: settingsSchema,
 })

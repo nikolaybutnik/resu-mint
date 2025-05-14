@@ -42,7 +42,7 @@ interface MintResumePayload {
   personalDetails: PersonalDetailsFormValues
   workExperience: ExperienceBlockData[]
   projects: ProjectBlockData[]
-  jobDescription: string
+  jobDescriptionAnalysis: JobDescriptionAnalysis
   settings: SettingsFormValues
 }
 
@@ -203,7 +203,7 @@ export const FormsContainer: React.FC = () => {
       // TODO: pass generated bullets to server?
       const payload: MintResumePayload = {
         sessionId,
-        jobDescription,
+        jobDescriptionAnalysis,
         workExperience,
         projects,
         personalDetails,

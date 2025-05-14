@@ -1,26 +1,28 @@
 export const generateResumeBulletPointsTool = (
-  numExperienceBullets: number,
-  numProjectBullets: number,
-  maxChars: number
+  bulletsPerExperience: number,
+  bulletsPerProject: number,
+  maxCharsPerBullet: number
 ) => ({
   type: 'function' as const,
   function: {
     name: 'generate_resume_bullets',
-    description: `Generate resume bullet points for both work experience and projects.`,
+    description:
+      'Generates bullet points for work experiences and projects based on provided data.',
     parameters: {
       type: 'object',
       properties: {
         experience_bullets: {
           type: 'array',
-          description: `Array of objects with experience ID and ${numExperienceBullets} STAR-format bullet points.`,
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string', description: 'Experience ID.' },
+              id: { type: 'string' },
               bullets: {
                 type: 'array',
-                description: `Array of ${numExperienceBullets} STAR-format bullet points, each ≤${maxChars} chars.`,
                 items: { type: 'string' },
+                minItems: bulletsPerExperience,
+                maxItems: bulletsPerExperience,
+                description: `Exactly ${bulletsPerExperience} bullet points, each ≤${maxCharsPerBullet} characters`,
               },
             },
             required: ['id', 'bullets'],
@@ -28,15 +30,16 @@ export const generateResumeBulletPointsTool = (
         },
         project_bullets: {
           type: 'array',
-          description: `Array of objects with project ID and ${numProjectBullets} STAR-format bullet points.`,
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string', description: 'Project ID.' },
+              id: { type: 'string' },
               bullets: {
                 type: 'array',
-                description: `Array of ${numProjectBullets} STAR-format bullet points focused on technologies, each ≤${maxChars} chars.`,
                 items: { type: 'string' },
+                minItems: bulletsPerProject,
+                maxItems: bulletsPerProject,
+                description: `Exactly ${bulletsPerProject} bullet points, each ≤${maxCharsPerBullet} characters`,
               },
             },
             required: ['id', 'bullets'],
