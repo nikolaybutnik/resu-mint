@@ -26,8 +26,6 @@ export class BulletGenerationError extends Error {
 // one token is approximately 4 characters
 // 115 characters (max per bullet) is ~29 tokens, so 100 tokens per bullet is safe
 
-const model = 'gpt-4o'
-
 async function generateSectionBulletPoints(
   sectionId: string,
   section: {
@@ -36,13 +34,13 @@ async function generateSectionBulletPoints(
   },
   existingBullets: BulletPoint[],
   jobDescriptionAnalysis: JobDescriptionAnalysis,
-  targetBulletCount: number,
-  maxCharsPerBullet: number,
-  openai: OpenAI
+  openai: OpenAI,
+  settings: AppSettings
 ): Promise<BulletPoint[]> {
-  const missingCount = targetBulletCount - existingBullets.length
+  const missingCount =
+    settings.bulletsPerExperienceBlock - existingBullets.length
   if (missingCount <= 0) {
-    return existingBullets.slice(0, targetBulletCount)
+    return existingBullets.slice(0, settings.bulletsPerExperienceBlock)
   }
 
   // TODO: When locking is implemented, filter out locked bullets from existingBullets
@@ -53,15 +51,15 @@ async function generateSectionBulletPoints(
     existingBullets, // Use all bullets for context; locking will filter later
     jobDescriptionAnalysis,
     missingCount,
-    maxCharsPerBullet
+    settings.maxCharsPerBullet
   )
 
   const tools = [
-    generateSectionBulletPointsTool(maxCharsPerBullet, missingCount),
+    generateSectionBulletPointsTool(settings.maxCharsPerBullet, missingCount),
   ]
 
   const completion = await openai.chat.completions.create({
-    model,
+    model: settings.languageModel,
     messages: [{ role: 'user', content: prompt }],
     max_tokens: missingCount * 100 + 500, // 500 for structure
     tools,
@@ -113,13 +111,13 @@ async function generateSectionBulletPoints(
     ...newBullets.slice(0, missingCount),
   ]
 
-  if (finalBullets.length !== targetBulletCount) {
+  if (finalBullets.length !== settings.bulletsPerExperienceBlock) {
     console.error(
-      `Final bullet count for section ID ${sectionId}: Expected ${targetBulletCount}, got ${finalBullets.length}`
+      `Final bullet count for section ID ${sectionId}: Expected ${settings.bulletsPerExperienceBlock}, got ${finalBullets.length}`
     )
     throw new BulletGenerationError({
       field: 'openai',
-      message: `Expected ${targetBulletCount} bullets, got ${finalBullets.length} for section ID ${sectionId}`,
+      message: `Expected ${settings.bulletsPerExperienceBlock} bullets, got ${finalBullets.length} for section ID ${sectionId}`,
       type: 'ai_generation',
     })
   }
@@ -180,7 +178,7 @@ export const generateBulletPoints = async (
     const max_tokens = totalBullets * 100 + 2500 // 2500 for structure
 
     const completion = await openai.chat.completions.create({
-      model,
+      model: settings.languageModel,
       messages: [{ role: 'user', content: prompt }],
       max_tokens,
       tools,
@@ -258,9 +256,8 @@ export const generateBulletPoints = async (
             },
             formattedBullets,
             jobDescriptionAnalysis,
-            settings.bulletsPerExperienceBlock,
-            settings.maxCharsPerBullet,
-            openai
+            openai,
+            settings
           )
         )?.map((bullet: BulletPoint) => bullet.text)
       }
@@ -308,9 +305,8 @@ export const generateBulletPoints = async (
             },
             formattedBullets,
             jobDescriptionAnalysis,
-            settings.bulletsPerProjectBlock,
-            settings.maxCharsPerBullet,
-            openai
+            openai,
+            settings
           )
         )?.map((bullet: BulletPoint) => bullet.text)
       }

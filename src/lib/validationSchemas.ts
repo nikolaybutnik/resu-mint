@@ -1,6 +1,7 @@
 import { months } from './constants'
 import { Month } from './types/projects'
 import z from 'zod'
+import { LanguageModel } from './types/settings'
 
 const bulletPointSchema = z.object({
   id: z.string(),
@@ -188,11 +189,13 @@ export const settingsSchema = z.object({
   bulletsPerExperienceBlock: z.number().int().min(1).max(10),
   bulletsPerProjectBlock: z.number().int().min(1).max(10),
   maxCharsPerBullet: z.number().int().min(100).max(500),
+  languageModel: z.nativeEnum(LanguageModel),
 })
 
 export const analyzeJobDescriptionRequestSchema = z.object({
   sessionId: z.string().uuid('Invalid session ID'),
   jobDescription: z.string().min(1, 'Job description is required'),
+  settings: settingsSchema,
 })
 
 export const JobDescriptionAnalysisSchema = z.object({

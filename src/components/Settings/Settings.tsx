@@ -1,12 +1,13 @@
 import styles from './Settings.module.scss'
 import { useState, useEffect } from 'react'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
-import { AppSettings } from '@/lib/types/settings'
+import { AppSettings, LanguageModel } from '@/lib/types/settings'
 
 enum SettingsFields {
   BULLETS_PER_EXPERIENCE_BLOCK = 'bulletsPerExperienceBlock',
   BULLETS_PER_PROJECT_BLOCK = 'bulletsPerProjectBlock',
   MAX_CHARS_PER_BULLET = 'maxCharsPerBullet',
+  LANGUAGE_MODEL = 'languageModel',
 }
 
 interface SettingsProps {
@@ -23,10 +24,13 @@ const Settings: React.FC<SettingsProps> = ({ data, loading, onSave }) => {
   }, [data])
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
     field: keyof AppSettings
   ) => {
-    const value = parseInt(e.target.value)
+    const value =
+      field === SettingsFields.LANGUAGE_MODEL
+        ? (e.target.value as LanguageModel)
+        : parseInt(e.target.value)
     const newValues = {
       ...formValues,
       [field]: value,
@@ -91,6 +95,20 @@ const Settings: React.FC<SettingsProps> = ({ data, loading, onSave }) => {
                 handleChange(e, SettingsFields.MAX_CHARS_PER_BULLET)
               }
             />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor={SettingsFields.LANGUAGE_MODEL}>
+              Language Model: {formValues.languageModel}
+            </label>
+            <select
+              className={styles.select}
+              value={formValues.languageModel}
+              onChange={(e) => handleChange(e, SettingsFields.LANGUAGE_MODEL)}
+            >
+              <option value={LanguageModel.GPT_4O_MINI}>GPT-4o-mini</option>
+              <option value={LanguageModel.GPT_4O}>GPT-4o</option>
+            </select>
           </div>
         </div>
       )}

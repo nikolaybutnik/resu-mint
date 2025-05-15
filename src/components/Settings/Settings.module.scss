@@ -130,3 +130,27 @@
     }
   }
 }
+
+.select {
+  font-family: $font-family-base;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 2px solid $color-border;
+  border-radius: 4px;
+  background: $color-background;
+  color: $color-text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  margin-top: 2px;
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 2px 0 0 $color-primary;
+  }
+
+  &:disabled {
+    background-color: $color-border;
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}

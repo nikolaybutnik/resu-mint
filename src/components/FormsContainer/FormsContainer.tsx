@@ -15,7 +15,7 @@ import { JobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { MintResumeRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
-import { AppSettings } from '@/lib/types/settings'
+import { AppSettings, LanguageModel } from '@/lib/types/settings'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -61,6 +61,7 @@ const initialSettings: AppSettings = {
   bulletsPerExperienceBlock: 4,
   bulletsPerProjectBlock: 3,
   maxCharsPerBullet: 125,
+  languageModel: LanguageModel.GPT_4O_MINI,
 }
 const initialJobDescription: string = ''
 const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
@@ -236,7 +237,11 @@ export const FormsContainer: React.FC = () => {
       const response = await fetch(ROUTES.ANALYZE_JOB_DESCRIPTION, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, jobDescription: data }),
+        body: JSON.stringify({
+          sessionId,
+          jobDescription: data,
+          settings,
+        }),
       })
 
       if (!response.ok) {

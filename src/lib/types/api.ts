@@ -1,7 +1,7 @@
 import { BulletPoint, ProjectBlockData } from './projects'
 import { PersonalDetails } from '@/lib/types/personalDetails'
-import { SettingsFormValues } from '@/components/Settings/Settings'
 import { ExperienceBlockData } from '@/lib/types/experience'
+import { AppSettings } from './settings'
 
 export interface MintResumeRequestData {
   sessionId: string
@@ -9,7 +9,7 @@ export interface MintResumeRequestData {
   workExperience: ExperienceBlockData[]
   projects: ProjectBlockData[]
   jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: SettingsFormValues
+  settings: AppSettings
 }
 
 export interface GenerateBulletsRequest {
@@ -34,12 +34,13 @@ export interface MintResumeRequest {
   workExperience: ExperienceBlockData[]
   projects: ProjectBlockData[]
   jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: SettingsFormValues
+  settings: AppSettings
 }
 
 export interface AnalyzeJobDescriptionRequest {
   sessionId: string
   jobDescription: string
+  settings: AppSettings
 }
 
 export interface JobDescriptionAnalysis {

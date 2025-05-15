@@ -25,14 +25,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { jobDescription } =
+    const { jobDescription, settings } =
       validationResult.data as AnalyzeJobDescriptionRequest
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
     const prompt = generateJobDescriptionAnalysisPrompt(jobDescription)
 
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
+      model: settings.languageModel,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 700,
       tools: [generateJobDescriptionAnalysisTool()],
