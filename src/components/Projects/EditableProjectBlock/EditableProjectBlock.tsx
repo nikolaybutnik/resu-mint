@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { projectBlockSchema } from '@/lib/validationSchemas'
 import { months } from '@/lib/constants'
+import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
 
 export interface ProjectBlockData {
   id: string

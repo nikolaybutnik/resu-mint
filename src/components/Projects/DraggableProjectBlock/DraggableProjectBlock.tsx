@@ -14,30 +14,29 @@ import {
 } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-
+import { ROUTES } from '@/lib/constants'
+import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
+import { SettingsFormValues } from '@/components/Settings/Settings'
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
+  jobDescriptionAnalysis: JobDescriptionAnalysis
   onBlockSelect: (id: string) => void
-  onEditBullet: (updatedBlock: ProjectBlockData) => void
-  onDeleteBullet: (updatedBlock: ProjectBlockData) => void
+  onEditBullets: (updatedBlock: ProjectBlockData) => void
+  settings: SettingsFormValues
   isOverlay?: boolean
   isDropping?: boolean
-  onGenerateAllBullets?: (sectionId: string) => void
-  onRegenerateBullet?: (sectionId: string, index: number) => void
 }
 
 export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   data,
+  jobDescriptionAnalysis,
   onBlockSelect,
+  settings,
   isOverlay = false,
   isDropping = false,
-  onGenerateAllBullets,
-  onEditBullet,
-  onDeleteBullet,
-  onRegenerateBullet,
+  onEditBullets,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
-  const deleteRevealRef = useRef<HTMLDivElement>(null)
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [isTransitioning, setIsTransitioning] = useState(false)
@@ -46,6 +45,9 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   )
   const [editingBulletText, setEditingBulletText] = useState('')
   const [deleteExpanded, setDeleteExpanded] = useState<null | number>(null)
+  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
+    null
+  )
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
@@ -78,13 +80,66 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   const handleGenerateAllBullets = (e: React.MouseEvent) => {
     // TODO: implement
     e.stopPropagation()
-    onGenerateAllBullets?.(data.id)
+    onEditBullets(data)
   }
 
-  const handleRegenerateBullet = (index: number, e: React.MouseEvent) => {
-    // TODO: implement
+  const handleRegenerateBullet = async (index: number, e: React.MouseEvent) => {
     e.stopPropagation()
-    onRegenerateBullet?.(data.id, index)
+
+    try {
+      setRegeneratingIndex(index)
+
+      const existingBullets =
+        data.bulletPoints.filter(
+          (_bullet, bulletIndex) => bulletIndex !== index
+        ) || []
+
+      const payload = {
+        section: {
+          type: 'project',
+          description: data.description,
+        },
+        existingBullets,
+        jobDescriptionAnalysis,
+        numBullets: 1,
+        maxCharsPerBullet: settings.maxCharsPerBullet,
+      }
+
+      const response = await fetch(ROUTES.GENERATE_BULLETS, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('API error:', errorData)
+      }
+
+      const result = await response.json()
+      if (result.status !== 'success' || !result.data || result.errors) {
+        console.error('Failed to generate bullets', result.errors)
+      }
+
+      const newBullet = result.data[0]
+      const updatedBullets = [
+        ...data.bulletPoints.slice(0, index),
+        newBullet,
+        ...data.bulletPoints.slice(index + 1),
+      ]
+
+      const updatedData = {
+        ...data,
+        bulletPoints: updatedBullets,
+      }
+      onEditBullets(updatedData)
+    } catch (error) {
+      console.error('Error regenerating bullet', error)
+    } finally {
+      setRegeneratingIndex(null)
+    }
   }
 
   const handleEditBullet = (index: number, e: React.MouseEvent) => {
@@ -106,7 +161,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           idx === editingBulletIndex ? editingBulletText : bullet
         ),
       }
-      onEditBullet(updatedData)
+      onEditBullets(updatedData)
       setEditingBulletIndex(null)
     }
   }
@@ -119,7 +174,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         (_bullet, bulletIndex) => bulletIndex !== index
       ),
     }
-    onDeleteBullet(updatedData)
+    onEditBullets(updatedData)
     setDeleteExpanded(null)
   }
 
@@ -131,7 +186,6 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       e.preventDefault()
       e.stopPropagation()
       handleSaveBullet()
-      console.log(bulletIndex)
     } else if (e.key === 'Enter' && e.shiftKey) {
       e.stopPropagation()
     } else if (e.key === 'Escape') {
@@ -205,7 +259,13 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         }`}
       >
         {data.bulletPoints.map((bullet, index) => (
-          <div key={index} className={styles.bulletContainer}>
+          <div
+            key={index}
+            className={[
+              styles.bulletContainer,
+              regeneratingIndex === index ? styles.regenerating : '',
+            ].join(' ')}
+          >
             <div className={styles.bulletDeleteWrapper}>
               <div
                 className={[
@@ -220,7 +280,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                 }}
                 onMouseEnter={() => {
                   if (deleteExpanded !== index) {
-                    setTimeout(() => setDeleteExpanded(index), 200)
+                    setDeleteExpanded(index)
                   }
                 }}
                 onMouseLeave={() => {

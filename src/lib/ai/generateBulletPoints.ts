@@ -33,7 +33,10 @@ const model = 'gpt-4o'
 
 async function generateSectionBulletPoints(
   sectionId: string,
-  description: string,
+  section: {
+    type: 'experience' | 'project'
+    description: string
+  },
   existingBullets: string[], // Will support { text: string, locked?: boolean } later
   jobDescriptionAnalysis: JobDescriptionAnalysis,
   targetBulletCount: number,
@@ -49,7 +52,7 @@ async function generateSectionBulletPoints(
   // const unlockedBullets = existingBullets.filter(b => !b.locked);
 
   const prompt = generateSectionBulletPointsPrompt(
-    description,
+    section,
     existingBullets, // Use all bullets for context; locking will filter later
     jobDescriptionAnalysis,
     missingCount,
@@ -241,7 +244,10 @@ export const generateBulletPoints = async (
 
         exp.bullets = await generateSectionBulletPoints(
           exp.id,
-          experience.description,
+          {
+            type: 'experience',
+            description: experience.description,
+          },
           exp.bullets,
           jobDescriptionAnalysis,
           settings.bulletsPerExperienceBlock,
@@ -279,7 +285,10 @@ export const generateBulletPoints = async (
 
         proj.bullets = await generateSectionBulletPoints(
           proj.id,
-          project.description,
+          {
+            type: 'project',
+            description: project.description,
+          },
           proj.bullets,
           jobDescriptionAnalysis,
           settings.bulletsPerProjectBlock,

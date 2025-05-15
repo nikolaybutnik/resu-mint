@@ -27,14 +27,23 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from '@dnd-kit/modifiers'
-
+import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
+import { SettingsFormValues } from '@/components/Settings/Settings'
 interface ProjectsProps {
   data: ProjectBlockData[]
+  jobDescriptionAnalysis: JobDescriptionAnalysis
+  settings: SettingsFormValues
   loading: boolean
   onSave: (data: ProjectBlockData[]) => void
 }
 
-const Projects = ({ data, loading, onSave }: ProjectsProps) => {
+const Projects = ({
+  data,
+  jobDescriptionAnalysis,
+  settings,
+  loading,
+  onSave,
+}: ProjectsProps) => {
   const [localData, setLocalData] = useState<ProjectBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
@@ -110,6 +119,7 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
 
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
+    // collapse all bullet drawers in draggable project block
   }, [])
 
   const handleDragEnd = useCallback(
@@ -185,9 +195,10 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
                     <DraggableProjectBlock
                       key={project.id}
                       data={project}
+                      settings={settings}
+                      jobDescriptionAnalysis={jobDescriptionAnalysis}
                       onBlockSelect={handleBlockSelect}
-                      onEditBullet={handleSave}
-                      onDeleteBullet={handleSave}
+                      onEditBullets={handleSave}
                       isDropping={isDropping}
                     />
                   ))}
@@ -196,9 +207,10 @@ const Projects = ({ data, loading, onSave }: ProjectsProps) => {
                   {activeItem ? (
                     <DraggableProjectBlock
                       data={activeItem}
+                      settings={settings}
+                      jobDescriptionAnalysis={jobDescriptionAnalysis}
                       onBlockSelect={handleBlockSelect}
-                      onEditBullet={handleSave}
-                      onDeleteBullet={handleSave}
+                      onEditBullets={handleSave}
                       isOverlay={true}
                     />
                   ) : null}

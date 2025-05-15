@@ -1,7 +1,8 @@
+@use 'sass:color';
 @import '../../styles/variables';
 
 .settings {
-  background: $color-background; /* #ffffff */
+  background: $color-background;
   padding: 24px;
   border-radius: 6px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -10,7 +11,7 @@
   transition: box-shadow 0.2s ease;
 
   &:hover {
-    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08); /* Subtle lift */
+    box-shadow: 0 6px 8px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.08);
   }
 }
 
@@ -96,11 +97,11 @@
   }
 
   &:hover {
-    background: lighten($color-border, 5%);
+    background: color.adjust($color-border, $lightness: 5%);
   }
 
   &:focus {
-    background: lighten($color-border, 5%);
+    background: color.adjust($color-border, $lightness: 5%);
     &::-webkit-slider-thumb {
       background: $color-primary-hover;
       transform: scale(1.15);

@@ -259,3 +259,14 @@ export const resumeMintRequestSchema = z.object({
   jobDescriptionAnalysis: JobDescriptionAnalysisSchema,
   settings: settingsSchema,
 })
+
+export const generateBulletsRequestSchema = z.object({
+  section: z.object({
+    type: z.enum(['experience', 'project']),
+    description: z.string().optional(),
+  }),
+  existingBullets: z.array(z.string()).default([]),
+  jobDescriptionAnalysis: JobDescriptionAnalysisSchema,
+  numBullets: z.number().int().min(1),
+  maxCharsPerBullet: z.number(),
+})

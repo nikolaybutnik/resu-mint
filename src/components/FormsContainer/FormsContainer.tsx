@@ -254,8 +254,8 @@ export const FormsContainer: React.FC = () => {
       }
 
       const result = await response.json()
-      if (result.status !== 'success' || !result.data) {
-        throw new Error('Invalid analysis response')
+      if (result.status !== 'success' || !result.data || result.errors) {
+        console.error('Invalid analysis response', result.errors)
       }
 
       const validationResult = JobDescriptionAnalysisSchema.safeParse(
@@ -348,6 +348,8 @@ export const FormsContainer: React.FC = () => {
             <Projects
               data={projects}
               loading={loading}
+              jobDescriptionAnalysis={jobDescriptionAnalysis}
+              settings={settings}
               onSave={handleProjectsSave}
             />
           )}

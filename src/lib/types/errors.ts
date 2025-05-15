@@ -10,6 +10,7 @@ export type ErrorType =
   | 'read_pdf'
   | 'resume_generation'
   | 'job_analysis'
+  | 'bullet_generation'
 
 export enum ResponseStatus {
   SUCCESS = 'success',

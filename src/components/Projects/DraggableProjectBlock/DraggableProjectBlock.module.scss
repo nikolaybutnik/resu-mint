@@ -195,6 +195,26 @@
   display: flex;
   align-items: stretch;
   position: relative;
+
+  &.regenerating {
+    opacity: 0.6;
+    background: linear-gradient(110deg, #f0f0f0 8%, #e0e0e0 18%, #f0f0f0 33%);
+    background-size: 200% 100%;
+    animation: shimmer 1.2s linear infinite;
+    position: relative;
+    overflow: hidden;
+    pointer-events: none;
+    cursor: default;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .bulletText {
@@ -318,7 +338,7 @@
 
 .bulletDeleteContainer {
   position: relative;
-  width: 12px;
+  width: 16px;
   padding-right: 12px;
   cursor: pointer;
   display: flex;

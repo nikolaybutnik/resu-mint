@@ -224,7 +224,10 @@ ${jobDescription}
 }
 
 export const generateSectionBulletPointsPrompt = (
-  sectionDescription: string,
+  section: {
+    type: 'experience' | 'project'
+    description: string
+  },
   existingBullets: string[],
   jobDescriptionAnalysis: JobDescriptionAnalysis,
   numBullets: number,
@@ -243,14 +246,15 @@ Generate ${numBullets} bullet points for <SECTION_DESCRIPTION> using the "genera
 3. ONLY use <JOB_ANALYSIS> skills explicitly mentioned or directly tied to technologies/tasks in <SECTION_DESCRIPTION> (e.g., JavaScript for React, not AWS unless mentioned).
 4. DO NOT fabricate tasks, metrics, or skills; metrics must be explicitly stated in input (e.g., 15% engagement, not "significant improvement").
 5. Each bullet MUST use 95-100% of ${maxCharsPerBullet} characters (e.g., 109-115 for 115) for maximum impact.
-6. Use past tense for completed tasks, present tenseuşi for ongoing.
+6. Use past tense for completed tasks, present tense for ongoing.
 7. Ensure bullets are distinct from <EXISTING_BULLETS>.
-8. Align with <JOB_ANALYSIS> company mission (e.g., Solink’s analytics).
+8. Ensure bullets are keyword optimized, matching requirements from <JOB_ANALYSIS> to user's achievements in <SECTION_DESCRIPTION>.
 9. Avoid vague terms (e.g., "strategic enhancements", "significant improvements"); use specific tasks/technologies from input.
 </RULES>
 
 <SECTION_DESCRIPTION>
-${sectionDescription}
+${section.type === 'experience' ? 'TYPE: Work Experience' : 'TYPE: Project'}
+${section.description}
 </SECTION_DESCRIPTION>
 
 <EXISTING_BULLETS>
@@ -271,6 +275,7 @@ ${formattedJobDescription}
 3. Generate ${numBullets} bullet points, using precise tasks/technologies from input, avoiding generic phrases.
 4. MUST craft bullets using 95-100% of ${maxCharsPerBullet} characters with detailed, specific content, ensuring they are distinct and follow STAR method.
 5. For sparse content, split tasks (e.g., UI vs. accessibility) or add specific details to reach 95-100% length.
+6. If <EXISTING_BULLETS> are provided, you MUST ensure the new bullet(s) are DISTINCT from the existing bullets.
 </INSTRUCTIONS>
 
 <EXAMPLES>
