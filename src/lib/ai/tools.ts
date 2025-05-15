@@ -152,6 +152,11 @@ export const generateJobDescriptionAnalysisTool = () => ({
           description:
             'Technologies mentioned in the tech stack or environment but not explicitly required, e.g., ["AWS", "Docker", "Kafka"]',
         },
+        salaryRange: {
+          type: 'string',
+          description:
+            'Salary range as listed in the job posting. Can be a range or a single value, e.g., "$100,000 - $120,000" or "$100,000"',
+        },
       },
       required: [
         'skillsRequired',
@@ -162,6 +167,7 @@ export const generateJobDescriptionAnalysisTool = () => ({
         'companyName',
         'companyDescription',
         'contextualTechnologies',
+        'salaryRange',
       ],
     },
   },

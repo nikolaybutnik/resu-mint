@@ -244,6 +244,11 @@ export const JobDescriptionAnalysisSchema = z.object({
     .describe(
       'Technologies mentioned in the tech stack or environment but not explicitly mentioned as required, e.g., ["AWS", "Docker", "Kafka"]'
     ),
+  salaryRange: z
+    .string()
+    .describe('Salary range as listed in the job posting')
+    .optional()
+    .default(''),
 })
 
 export const resumeMintRequestSchema = z.object({

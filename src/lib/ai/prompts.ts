@@ -215,6 +215,7 @@ Analyze the job description and return structured data using the "generate_job_d
 - companyName: Extract the exact company name (e.g., "Google").
 - companyDescription: Summarize the company's mission, industry, or focus in 50-100 words based on the posting.
 - contextualTechnologies: List technologies mentioned in the tech stack or deployment environment but not explicitly required (e.g., "AWS", "Docker"). Include tools used in the company’s infrastructure or mentioned as context.
+- salaryRange: Extract the salary range as listed in the job posting. Can be a range or a single value, e.g., "$100,000 - $120,000" or "$100,000". Return empty string if not listed.
 </INSTRUCTIONS>
 
 <JOB_DESCRIPTION>

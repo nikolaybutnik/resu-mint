@@ -59,4 +59,5 @@ export interface JobDescriptionAnalysis {
   companyName: string // e.g., "Billy Bob's Solutions"
   companyDescription: string // e.g., "Billy Bob's Solutions is a software development company that specializes in building custom software solutions for businesses..."
   contextualTechnologies: string[] // e.g., ["AWS", "Docker", "Kafka"]
+  salaryRange: string // e.g., "$100,000 - $120,000"
 }

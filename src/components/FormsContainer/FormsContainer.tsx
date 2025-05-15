@@ -73,6 +73,7 @@ const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
   companyName: '',
   companyDescription: '',
   contextualTechnologies: [],
+  salaryRange: '',
 }
 const initialProjects: ProjectBlockData[] = []
 

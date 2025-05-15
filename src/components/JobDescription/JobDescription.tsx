@@ -197,6 +197,16 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                           </span>
                         )}
                       </p>
+                      <p>
+                        <strong>Salary Range:</strong>{' '}
+                        {jobDescriptionAnalysis.salaryRange ? (
+                          jobDescriptionAnalysis.salaryRange
+                        ) : (
+                          <span className={styles.emptyState}>
+                            Not specified
+                          </span>
+                        )}
+                      </p>
                     </div>
                     <div
                       className={`${styles.summaryContainer} ${
