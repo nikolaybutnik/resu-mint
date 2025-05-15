@@ -2,7 +2,7 @@ import styles from './JobDescription.module.scss'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
 import { useDebouncedCallback } from '@/lib/utils'
 import { useEffect, useState } from 'react'
-import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
 
 interface JobDescriptionProps {
   data: string

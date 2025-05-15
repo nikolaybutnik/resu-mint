@@ -1,7 +1,3 @@
-import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { PersonalDetailsFormValues } from '@/components/PersonalDetails/PersonalDetails'
-import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
-import { SettingsFormValues } from '@/components/Settings/Settings'
 import {
   BulletGenerationError,
   generateBulletPoints,
@@ -16,18 +12,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
-import { JobDescriptionAnalysis } from '../analyze-job-description/route'
+import { MintResumeRequestData } from '@/lib/types/api'
 
 const execPromise = promisify(exec)
-
-interface MintResumeRequestData {
-  sessionId: string
-  personalDetails: PersonalDetailsFormValues
-  workExperience: ExperienceBlockData[]
-  projects: ProjectBlockData[]
-  jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: SettingsFormValues
-}
 
 export async function POST(request: NextRequest) {
   try {

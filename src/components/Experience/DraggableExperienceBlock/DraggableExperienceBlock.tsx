@@ -1,7 +1,7 @@
 import styles from './DraggableExperienceBlock.module.scss'
 import { useState } from 'react'
 import { FaChevronDown, FaChevronUp, FaPen } from 'react-icons/fa'
-import { ExperienceBlockData } from '../EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData } from '@/lib/types/experience'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -90,7 +90,7 @@ export const DraggableExperienceBlock: React.FC<
         >
           {data.bulletPoints.map((bullet, index) => (
             <p key={index} className={styles.experienceBlockBullet}>
-              {bullet}
+              {bullet.text}
             </p>
           ))}
         </div>

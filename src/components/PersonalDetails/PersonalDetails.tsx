@@ -3,25 +3,16 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useDebounce } from '@/lib/utils'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
 import { personalDetailsSchema } from '@/lib/validationSchemas'
-
-export interface PersonalDetailsFormValues {
-  name: string
-  email: string
-  phone?: string
-  location?: string
-  linkedin?: string
-  github?: string
-  website?: string
-}
+import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 
 type ValidationErrors = {
-  [key in keyof PersonalDetailsFormValues]?: string
+  [key in keyof PersonalDetailsType]?: string
 }
 
 interface PersonalDetailsProps {
-  data: PersonalDetailsFormValues
+  data: PersonalDetailsType
   loading: boolean
-  onSave: (data: PersonalDetailsFormValues) => void
+  onSave: (data: PersonalDetailsType) => void
 }
 
 const PersonalDetails: React.FC<PersonalDetailsProps> = ({
@@ -29,9 +20,9 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   loading,
   onSave,
 }) => {
-  const [formValues, setFormValues] = useState<PersonalDetailsFormValues>(data)
+  const [formValues, setFormValues] = useState<PersonalDetailsType>(data)
   const [touched, setTouched] = useState<
-    Partial<Record<keyof PersonalDetailsFormValues, boolean>>
+    Partial<Record<keyof PersonalDetailsType, boolean>>
   >({})
 
   useEffect(() => {
@@ -53,7 +44,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
     }
     const errors: ValidationErrors = {}
     result.error.issues.forEach((issue) => {
-      const field = issue.path[0] as keyof PersonalDetailsFormValues
+      const field = issue.path[0] as keyof PersonalDetailsType
       errors[field] = issue.message
     })
     return errors

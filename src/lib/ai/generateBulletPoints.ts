@@ -7,16 +7,13 @@ import {
   generateResumeBulletPointsPrompt,
   generateSectionBulletPointsPrompt,
 } from '@/lib/ai/prompts'
-import { SettingsFormValues } from '@/components/Settings/Settings'
-import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData } from '@/lib/types/experience'
 import { ApiError } from '../types/errors'
-import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
-import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
-
-interface GeneratedBulletsResponseModel {
-  project_bullets: { id: string; bullets: string[] }[]
-  experience_bullets: { id: string; bullets: string[] }[]
-}
+import { BulletPoint, ProjectBlockData } from '@/lib/types/projects'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { v4 as uuidv4 } from 'uuid'
+import { GeneratedBulletsResponseModel } from '@/lib/types/api'
+import { AppSettings } from '../types/settings'
 
 export class BulletGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -37,12 +34,12 @@ async function generateSectionBulletPoints(
     type: 'experience' | 'project'
     description: string
   },
-  existingBullets: string[], // Will support { text: string, locked?: boolean } later
+  existingBullets: BulletPoint[],
   jobDescriptionAnalysis: JobDescriptionAnalysis,
   targetBulletCount: number,
   maxCharsPerBullet: number,
   openai: OpenAI
-): Promise<string[]> {
+): Promise<BulletPoint[]> {
   const missingCount = targetBulletCount - existingBullets.length
   if (missingCount <= 0) {
     return existingBullets.slice(0, targetBulletCount)
@@ -88,10 +85,13 @@ async function generateSectionBulletPoints(
     })
   }
 
-  let newBullets: string[]
+  let newBullets: BulletPoint[] = []
   try {
     const toolResult = JSON.parse(toolCall.function.arguments)
-    newBullets = toolResult.bullets
+    newBullets = toolResult.bullets.map((generatedBullet: string) => ({
+      id: uuidv4(),
+      text: generatedBullet,
+    }))
   } catch (parseError) {
     console.error('JSON parse error for section ID:', sectionId, parseError)
     throw new BulletGenerationError({
@@ -108,7 +108,7 @@ async function generateSectionBulletPoints(
     // TODO: possibly implement manual bullet generation as fallback in the future
   }
 
-  const finalBullets = [
+  const finalBullets: BulletPoint[] = [
     ...existingBullets,
     ...newBullets.slice(0, missingCount),
   ]
@@ -130,9 +130,9 @@ async function generateSectionBulletPoints(
 export const generateBulletPoints = async (
   workExperience: ExperienceBlockData[],
   jobDescriptionAnalysis: JobDescriptionAnalysis,
-  settings: SettingsFormValues,
+  settings: AppSettings,
   projects?: ProjectBlockData[]
-): Promise<GeneratedBulletsResponseModel> => {
+) => {
   if (!workExperience) {
     throw new BulletGenerationError({
       field: 'client',
@@ -242,18 +242,27 @@ export const generateBulletPoints = async (
           })
         }
 
-        exp.bullets = await generateSectionBulletPoints(
-          exp.id,
-          {
-            type: 'experience',
-            description: experience.description,
-          },
-          exp.bullets,
-          jobDescriptionAnalysis,
-          settings.bulletsPerExperienceBlock,
-          settings.maxCharsPerBullet,
-          openai
-        )
+        // Temporary bandaid fix to ensure bullet formatting is consistent
+
+        const formattedBullets = exp.bullets.map((bullet) => ({
+          id: uuidv4(),
+          text: bullet,
+        }))
+
+        exp.bullets = await (
+          await generateSectionBulletPoints(
+            exp.id,
+            {
+              type: 'experience',
+              description: experience.description,
+            },
+            formattedBullets,
+            jobDescriptionAnalysis,
+            settings.bulletsPerExperienceBlock,
+            settings.maxCharsPerBullet,
+            openai
+          )
+        )?.map((bullet: BulletPoint) => bullet.text)
       }
     }
 
@@ -283,18 +292,27 @@ export const generateBulletPoints = async (
           })
         }
 
-        proj.bullets = await generateSectionBulletPoints(
-          proj.id,
-          {
-            type: 'project',
-            description: project.description,
-          },
-          proj.bullets,
-          jobDescriptionAnalysis,
-          settings.bulletsPerProjectBlock,
-          settings.maxCharsPerBullet,
-          openai
-        )
+        // Temporary bandaid fix to ensure bullet formatting is consistent
+
+        const formattedBullets = proj.bullets.map((bullet) => ({
+          id: uuidv4(),
+          text: bullet,
+        }))
+
+        proj.bullets = await (
+          await generateSectionBulletPoints(
+            proj.id,
+            {
+              type: 'project',
+              description: project.description,
+            },
+            formattedBullets,
+            jobDescriptionAnalysis,
+            settings.bulletsPerProjectBlock,
+            settings.maxCharsPerBullet,
+            openai
+          )
+        )?.map((bullet: BulletPoint) => bullet.text)
       }
     }
 

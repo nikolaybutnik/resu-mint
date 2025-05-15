@@ -2,21 +2,10 @@ import { createError, createSuccessResponse } from '@/lib/types/errors'
 import { createErrorResponse } from '@/lib/types/errors'
 import { generateBulletsRequestSchema } from '@/lib/validationSchemas'
 import { NextRequest, NextResponse } from 'next/server'
-import { JobDescriptionAnalysis } from '../analyze-job-description/route'
 import { generateSectionBulletPointsPrompt } from '@/lib/ai/prompts'
 import { generateSectionBulletPointsTool } from '@/lib/ai/tools'
 import OpenAI from 'openai'
-
-interface GenerateBulletsRequest {
-  section: {
-    type: 'experience' | 'project'
-    description: string
-  }
-  existingBullets: string[]
-  jobDescriptionAnalysis: JobDescriptionAnalysis
-  numBullets: number
-  maxCharsPerBullet: number
-}
+import { GenerateBulletsRequest } from '@/lib/types/api'
 
 export async function POST(request: NextRequest) {
   try {

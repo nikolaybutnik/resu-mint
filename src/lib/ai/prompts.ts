@@ -1,6 +1,6 @@
-import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
-import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { ExperienceBlockData } from '@/lib/types/experience'
+import { BulletPoint, ProjectBlockData } from '@/lib/types/projects'
 
 const formatWorkExperienceForAI = (
   workExperience: ExperienceBlockData[]
@@ -228,7 +228,7 @@ export const generateSectionBulletPointsPrompt = (
     type: 'experience' | 'project'
     description: string
   },
-  existingBullets: string[],
+  existingBullets: BulletPoint[],
   jobDescriptionAnalysis: JobDescriptionAnalysis,
   numBullets: number,
   maxCharsPerBullet: number
@@ -260,7 +260,7 @@ ${section.description}
 <EXISTING_BULLETS>
 ${
   existingBullets.length
-    ? existingBullets.map((b) => `- ${b}`).join('\n')
+    ? existingBullets.map((b) => `- ${b.text}`).join('\n')
     : 'None'
 }
 </EXISTING_BULLETS>

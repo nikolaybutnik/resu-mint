@@ -4,31 +4,8 @@ import { useDebounce } from '@/lib/utils'
 import { FaXmark } from 'react-icons/fa6'
 import { months } from '@/lib/constants'
 import { experienceBlockSchema } from '@/lib/validationSchemas'
-
-export type Month =
-  | 'Jan'
-  | 'Feb'
-  | 'Mar'
-  | 'Apr'
-  | 'May'
-  | 'Jun'
-  | 'Jul'
-  | 'Aug'
-  | 'Sep'
-  | 'Oct'
-  | 'Nov'
-  | 'Dec'
-
-export type StartDate = {
-  month?: Month | ''
-  year: string
-}
-
-export type EndDate = {
-  month?: Month | ''
-  year: string
-  isPresent: boolean
-}
+import { Month, ExperienceBlockData } from '@/lib/types/experience'
+import { v4 as uuidv4 } from 'uuid'
 
 enum FieldType {
   JOB_TITLE = 'jobTitle',
@@ -41,17 +18,6 @@ enum FieldType {
   END_DATE_MONTH = 'endDate.month',
   END_DATE_YEAR = 'endDate.year',
   DESCRIPTION = 'description',
-}
-
-export interface ExperienceBlockData {
-  id: string
-  jobTitle: string
-  startDate: StartDate
-  endDate: EndDate
-  companyName: string
-  location: string
-  description: string
-  bulletPoints: string[]
 }
 
 interface EditableExperienceBlockProps {
@@ -156,11 +122,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
           return {
             ...prev,
-            bulletPoints: [
-              ...prev.bulletPoints.slice(0, bulletIndex),
-              value as string,
-              ...prev.bulletPoints.slice(bulletIndex + 1),
-            ],
+            bulletPoints: prev.bulletPoints.map((bullet, index) =>
+              index === bulletIndex
+                ? { id: bullet.id, text: value as string }
+                : bullet
+            ),
           }
         }
 
@@ -185,7 +151,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const handleAddBulletPoint = useCallback(() => {
     setFormData((prev) => ({
       ...prev,
-      bulletPoints: [...prev.bulletPoints, ''],
+      bulletPoints: [...prev.bulletPoints, { id: uuidv4(), text: '' }],
     }))
   }, [])
 
@@ -269,8 +235,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
+                <option key={month.label} value={month.label}>
+                  {month.label}
                 </option>
               ))}
             </select>
@@ -321,8 +287,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
+                <option key={month.label} value={month.label}>
+                  {month.label}
                 </option>
               ))}
             </select>
@@ -390,7 +356,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               <input
                 type='text'
                 className={styles.bulletInput}
-                value={bullet}
+                value={bullet.text}
                 onChange={(e) =>
                   handleChange(FieldType.BULLET_POINTS, e.target.value, index)
                 }

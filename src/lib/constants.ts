@@ -1,4 +1,4 @@
-import { Month } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
+import { Month } from './types/projects'
 
 export const API_BASE_URL = 'http://localhost:3000/api'
 export const ROUTES = {
@@ -7,17 +7,17 @@ export const ROUTES = {
   GENERATE_BULLETS: `${API_BASE_URL}/generate-bullets`,
 }
 
-export const months: Month[] = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
+export const months: { label: Month; num: number }[] = [
+  { label: 'Jan', num: 0 },
+  { label: 'Feb', num: 1 },
+  { label: 'Mar', num: 2 },
+  { label: 'Apr', num: 3 },
+  { label: 'May', num: 4 },
+  { label: 'Jun', num: 5 },
+  { label: 'Jul', num: 6 },
+  { label: 'Aug', num: 7 },
+  { label: 'Sep', num: 8 },
+  { label: 'Oct', num: 9 },
+  { label: 'Nov', num: 10 },
+  { label: 'Dec', num: 11 },
 ]

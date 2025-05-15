@@ -1,7 +1,7 @@
-import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { PersonalDetailsFormValues } from '@/components/PersonalDetails/PersonalDetails'
+import { ExperienceBlockData } from '@/lib/types/experience'
+import { PersonalDetails } from '@/lib/types/personalDetails'
 import { ApiError } from '../types/errors'
-import { ProjectBlockData } from '@/components/Projects/EditableProjectBlock/EditableProjectBlock'
+import { ProjectBlockData } from '@/lib/types/projects'
 
 export class LatexGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -13,7 +13,7 @@ export class LatexGenerationError extends Error {
 export const generateLatex = async (
   experienceBullets: { id: string; bullets: string[] }[],
   workExperience: ExperienceBlockData[],
-  personalDetails: PersonalDetailsFormValues,
+  personalDetails: PersonalDetails,
   projects: ProjectBlockData[],
   projectBullets: { id: string; bullets: string[] }[]
 ): Promise<string> => {

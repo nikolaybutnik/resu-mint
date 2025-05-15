@@ -3,19 +3,19 @@ import styles from './FormsContainer.module.scss'
 import { useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { saveAs } from 'file-saver'
-import { ExperienceBlockData } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData } from '@/lib/types/experience'
 import ResumePreview from '@/components/ResumePreview/ResumePreview'
-import PersonalDetails, {
-  PersonalDetailsFormValues,
-} from '@/components/PersonalDetails/PersonalDetails'
+import PersonalDetails from '@/components/PersonalDetails/PersonalDetails'
 import WorkExperience from '../Experience/WorkExperience/WorkExperience'
-import { Settings, SettingsFormValues } from '../Settings/Settings'
+import Settings from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
-import { ProjectBlockData } from '../Projects/EditableProjectBlock/EditableProjectBlock'
 import { ROUTES } from '@/lib/constants'
-import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
 import { JobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
+import { ProjectBlockData } from '@/lib/types/projects'
+import { MintResumeRequest, JobDescriptionAnalysis } from '@/lib/types/api'
+import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
+import { AppSettings } from '@/lib/types/settings'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -37,15 +37,6 @@ const StorageKeys = {
   SETTINGS: 'resumint_settings',
 } as const
 
-interface MintResumePayload {
-  sessionId: string
-  personalDetails: PersonalDetailsFormValues
-  workExperience: ExperienceBlockData[]
-  projects: ProjectBlockData[]
-  jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: SettingsFormValues
-}
-
 const tabs = [
   { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
@@ -56,7 +47,7 @@ const tabs = [
   // { id: Tabs.SKILLS, label: 'Skills' },
 ]
 
-const initialPersonalDetails: PersonalDetailsFormValues = {
+const initialPersonalDetails: PersonalDetailsType = {
   name: '',
   email: '',
   phone: '',
@@ -66,7 +57,7 @@ const initialPersonalDetails: PersonalDetailsFormValues = {
   website: '',
 }
 const initialWorkExperience: ExperienceBlockData[] = []
-const initialSettings: SettingsFormValues = {
+const initialSettings: AppSettings = {
   bulletsPerExperienceBlock: 4,
   bulletsPerProjectBlock: 3,
   maxCharsPerBullet: 125,
@@ -101,13 +92,14 @@ export const FormsContainer: React.FC = () => {
   )
   const [jobDescriptionAnalysis, setJobDescriptionAnalysis] =
     useState<JobDescriptionAnalysis>(initialJobDescriptionAnalysis)
-  const [personalDetails, setPersonalDetails] =
-    useState<PersonalDetailsFormValues>(initialPersonalDetails)
+  const [personalDetails, setPersonalDetails] = useState<PersonalDetailsType>(
+    initialPersonalDetails
+  )
   const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
     initialWorkExperience
   )
   const [projects, setProjects] = useState<ProjectBlockData[]>(initialProjects)
-  const [settings, setSettings] = useState<SettingsFormValues>(initialSettings)
+  const [settings, setSettings] = useState<AppSettings>(initialSettings)
 
   // Placeholder until user authentication is implemented
   useEffect(() => {
@@ -200,8 +192,7 @@ export const FormsContainer: React.FC = () => {
     try {
       setMintingResume(true)
 
-      // TODO: pass generated bullets to server?
-      const payload: MintResumePayload = {
+      const payload: MintResumeRequest = {
         sessionId,
         jobDescriptionAnalysis,
         workExperience,
@@ -278,7 +269,7 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
-  const handlePersonalDetailsSave = (data: PersonalDetailsFormValues) => {
+  const handlePersonalDetailsSave = (data: PersonalDetailsType) => {
     setPersonalDetails(data)
     localStorage.setItem(StorageKeys.PERSONAL_DETAILS, JSON.stringify(data))
   }
@@ -297,7 +288,7 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
-  const handleSettingsSave = (data: SettingsFormValues) => {
+  const handleSettingsSave = (data: AppSettings) => {
     setSettings(data)
     localStorage.setItem(StorageKeys.SETTINGS, JSON.stringify(data))
   }

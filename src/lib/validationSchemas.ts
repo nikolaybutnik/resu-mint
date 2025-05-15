@@ -1,21 +1,29 @@
-import { Month } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { months } from './constants'
+import { Month } from './types/projects'
 import z from 'zod'
 
-const monthToNumber: Record<Month, number> = {
-  Jan: 0,
-  Feb: 1,
-  Mar: 2,
-  Apr: 3,
-  May: 4,
-  Jun: 5,
-  Jul: 6,
-  Aug: 7,
-  Sep: 8,
-  Oct: 9,
-  Nov: 10,
-  Dec: 11,
-}
+const bulletPointSchema = z.object({
+  id: z.string(),
+  text: z
+    .string()
+    .min(1, 'Bullet point cannot be empty')
+    .max(500, 'Bullet point must be 500 characters or less'),
+})
+
+const monthLabels = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
 
 export const personalDetailsSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
@@ -59,7 +67,7 @@ export const personalDetailsSchema = z.object({
 })
 
 export const startDateSchema = z.object({
-  month: z.union([z.enum(months as [Month, ...Month[]]), z.literal('')]),
+  month: z.union([z.enum(monthLabels), z.literal('')]),
   year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
 })
 
@@ -71,7 +79,7 @@ export const endDateSchema = z.discriminatedUnion('isPresent', [
   }),
   z.object({
     isPresent: z.literal(false),
-    month: z.union([z.enum(months as [Month, ...Month[]]), z.literal('')]),
+    month: z.union([z.enum(monthLabels), z.literal('')]),
     year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
   }),
 ])
@@ -97,15 +105,7 @@ export const experienceBlockSchema = z
       .string()
       .min(1, 'Location is required')
       .max(100, 'Location must be 100 characters or less'),
-    bulletPoints: z
-      .array(
-        z
-          .string()
-          .min(1, 'Bullet point cannot be empty')
-          .max(200, 'Bullet point must be 200 characters or less')
-      )
-      .optional()
-      .default([]),
+    bulletPoints: z.array(bulletPointSchema).optional().default([]),
   })
   .refine(
     (data) => {
@@ -121,12 +121,12 @@ export const experienceBlockSchema = z
 
       const startDate = new Date(
         parseInt(data.startDate.year),
-        monthToNumber[data.startDate.month],
+        months.find((m) => m.label === data.startDate.month)?.num || 0,
         1
       )
       const endDate = new Date(
         parseInt(data.endDate.year),
-        monthToNumber[data.endDate.month],
+        months.find((m) => m.label === data.endDate.month)?.num || 0,
         1
       )
       return endDate >= startDate
@@ -152,15 +152,7 @@ export const projectBlockSchema = z
       .string()
       .max(2000, 'Description must be 2000 characters or less')
       .optional(),
-    bulletPoints: z
-      .array(
-        z
-          .string()
-          .min(1, 'Bullet point cannot be empty')
-          .max(500, 'Bullet point must be 500 characters or less')
-      )
-      .optional()
-      .default([]),
+    bulletPoints: z.array(bulletPointSchema).optional().default([]),
   })
   .refine(
     (data) => {
@@ -176,12 +168,12 @@ export const projectBlockSchema = z
 
       const startDate = new Date(
         parseInt(data.startDate.year),
-        monthToNumber[data.startDate.month],
+        months.find((m) => m.label === data.startDate.month)?.num || 0,
         1
       )
       const endDate = new Date(
         parseInt(data.endDate.year),
-        monthToNumber[data.endDate.month],
+        months.find((m) => m.label === data.endDate.month)?.num || 0,
         1
       )
       return endDate >= startDate
@@ -265,7 +257,7 @@ export const generateBulletsRequestSchema = z.object({
     type: z.enum(['experience', 'project']),
     description: z.string().optional(),
   }),
-  existingBullets: z.array(z.string()).default([]),
+  existingBullets: z.array(bulletPointSchema).default([]),
   jobDescriptionAnalysis: JobDescriptionAnalysisSchema,
   numBullets: z.number().int().min(1),
   maxCharsPerBullet: z.number(),

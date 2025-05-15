@@ -1,5 +1,4 @@
 import styles from './DraggableProjectBlock.module.scss'
-import { ProjectBlockData } from '../EditableProjectBlock/EditableProjectBlock'
 import { useEffect, useRef, useState } from 'react'
 import {
   FaPen,
@@ -15,14 +14,16 @@ import {
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ROUTES } from '@/lib/constants'
-import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
-import { SettingsFormValues } from '@/components/Settings/Settings'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { ProjectBlockData } from '@/lib/types/projects'
+import { AppSettings } from '@/lib/types/settings'
+
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
   jobDescriptionAnalysis: JobDescriptionAnalysis
   onBlockSelect: (id: string) => void
   onEditBullets: (updatedBlock: ProjectBlockData) => void
-  settings: SettingsFormValues
+  settings: AppSettings
   isOverlay?: boolean
   isDropping?: boolean
 }
@@ -89,10 +90,10 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     try {
       setRegeneratingIndex(index)
 
-      const existingBullets =
-        data.bulletPoints.filter(
-          (_bullet, bulletIndex) => bulletIndex !== index
-        ) || []
+      const bulletToRegenerate = data.bulletPoints[index]
+      const existingBullets = data.bulletPoints.filter(
+        (bullet) => bullet.id !== bulletToRegenerate.id
+      )
 
       const payload = {
         section: {
@@ -123,12 +124,13 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         console.error('Failed to generate bullets', result.errors)
       }
 
-      const newBullet = result.data[0]
-      const updatedBullets = [
-        ...data.bulletPoints.slice(0, index),
-        newBullet,
-        ...data.bulletPoints.slice(index + 1),
-      ]
+      const newBullet = {
+        id: bulletToRegenerate.id,
+        text: result.data[0],
+      }
+      const updatedBullets = data.bulletPoints.map((bullet) =>
+        bullet.id === bulletToRegenerate.id ? newBullet : bullet
+      )
 
       const updatedData = {
         ...data,
@@ -145,7 +147,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   const handleEditBullet = (index: number, e: React.MouseEvent) => {
     e.stopPropagation()
     setEditingBulletIndex(index)
-    setEditingBulletText(data.bulletPoints[index])
+    setEditingBulletText(data.bulletPoints[index].text)
   }
 
   const handleCancelEdit = () => {
@@ -158,7 +160,9 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       const updatedData = {
         ...data,
         bulletPoints: data.bulletPoints.map((bullet, idx) =>
-          idx === editingBulletIndex ? editingBulletText : bullet
+          idx === editingBulletIndex
+            ? { ...bullet, text: editingBulletText }
+            : bullet
         ),
       }
       onEditBullets(updatedData)
@@ -309,7 +313,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                 autoFocus
               />
             ) : (
-              <p className={styles.bulletText}>{bullet}</p>
+              <p className={styles.bulletText}>{bullet.text}</p>
             )}
             <div className={styles.bulletButtons}>
               {editingBulletIndex === index ? (

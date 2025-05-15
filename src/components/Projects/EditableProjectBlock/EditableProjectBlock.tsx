@@ -1,22 +1,11 @@
 import styles from './EditableProjectBlock.module.scss'
-import { Month } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import { useDebounce } from '@/lib/utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { projectBlockSchema } from '@/lib/validationSchemas'
 import { months } from '@/lib/constants'
-import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
-
-export interface ProjectBlockData {
-  id: string
-  title: string
-  technologies: string[]
-  description: string
-  startDate: { month: Month; year: string }
-  endDate: { month: Month; year: string; isPresent: boolean }
-  bulletPoints: string[]
-  link: string
-}
+import { v4 as uuidv4 } from 'uuid'
+import { BulletPoint, Month, ProjectBlockData } from '@/lib/types/projects'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
@@ -80,14 +69,14 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const handleChange = useCallback(
     (
       field: FieldType,
-      value: string | string[] | boolean,
+      value: string | string[] | boolean | BulletPoint,
       bulletIndex?: number
     ) => {
       const updateHandlers: Record<
         string,
         (
           prev: ProjectBlockData,
-          val: string | string[] | boolean
+          val: string | string[] | boolean | BulletPoint
         ) => ProjectBlockData
       > = {
         [FieldType.TITLE]: (prev, val) => ({
@@ -138,11 +127,11 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
           return {
             ...prev,
-            bulletPoints: [
-              ...prev.bulletPoints.slice(0, bulletIndex),
-              value as string,
-              ...prev.bulletPoints.slice(bulletIndex + 1),
-            ],
+            bulletPoints: prev.bulletPoints.map((bullet, index) =>
+              index === bulletIndex
+                ? { id: bullet.id, text: value as string }
+                : bullet
+            ),
           }
         }
 
@@ -166,7 +155,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const handleAddBulletPoint = useCallback(() => {
     setFormData((prev) => ({
       ...prev,
-      bulletPoints: [...prev.bulletPoints, ''],
+      bulletPoints: [...prev.bulletPoints, { id: uuidv4(), text: '' }],
     }))
   }, [])
 
@@ -293,8 +282,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
+                <option key={month.label} value={month.label}>
+                  {month.label}
                 </option>
               ))}
             </select>
@@ -345,8 +334,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             >
               <option value=''>Select Month</option>
               {months.map((month) => (
-                <option key={month} value={month}>
-                  {month}
+                <option key={month.label} value={month.label}>
+                  {month.label}
                 </option>
               ))}
             </select>
@@ -414,7 +403,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               <input
                 type='text'
                 className={styles.bulletInput}
-                value={bullet}
+                value={bullet.text}
                 onChange={(e) =>
                   handleChange(FieldType.BULLET_POINTS, e.target.value, index)
                 }

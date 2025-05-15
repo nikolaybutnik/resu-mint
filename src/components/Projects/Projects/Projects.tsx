@@ -2,8 +2,6 @@ import styles from './Projects.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 import { v4 as uuidv4 } from 'uuid'
-import { Month } from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { ProjectBlockData } from '../EditableProjectBlock/EditableProjectBlock'
 import EditableProjectBlock from '../EditableProjectBlock/EditableProjectBlock'
 import { DraggableProjectBlock } from '../DraggableProjectBlock/DraggableProjectBlock'
 import {
@@ -27,12 +25,14 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from '@dnd-kit/modifiers'
-import { JobDescriptionAnalysis } from '@/app/api/analyze-job-description/route'
-import { SettingsFormValues } from '@/components/Settings/Settings'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { Month, ProjectBlockData } from '@/lib/types/projects'
+import { AppSettings } from '@/lib/types/settings'
+
 interface ProjectsProps {
   data: ProjectBlockData[]
   jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: SettingsFormValues
+  settings: AppSettings
   loading: boolean
   onSave: (data: ProjectBlockData[]) => void
 }

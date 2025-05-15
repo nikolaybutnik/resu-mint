@@ -1,12 +1,7 @@
 import styles from './Settings.module.scss'
 import { useState, useEffect } from 'react'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
-
-export interface SettingsFormValues {
-  bulletsPerExperienceBlock: number
-  bulletsPerProjectBlock: number
-  maxCharsPerBullet: number
-}
+import { AppSettings } from '@/lib/types/settings'
 
 enum SettingsFields {
   BULLETS_PER_EXPERIENCE_BLOCK = 'bulletsPerExperienceBlock',
@@ -15,17 +10,13 @@ enum SettingsFields {
 }
 
 interface SettingsProps {
-  data: SettingsFormValues
+  data: AppSettings
   loading: boolean
-  onSave: (data: SettingsFormValues) => void
+  onSave: (data: AppSettings) => void
 }
 
-export const Settings: React.FC<SettingsProps> = ({
-  data,
-  loading,
-  onSave,
-}) => {
-  const [formValues, setFormValues] = useState<SettingsFormValues>(data)
+const Settings: React.FC<SettingsProps> = ({ data, loading, onSave }) => {
+  const [formValues, setFormValues] = useState<AppSettings>(data)
 
   useEffect(() => {
     setFormValues(data)
@@ -33,7 +24,7 @@ export const Settings: React.FC<SettingsProps> = ({
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement>,
-    field: keyof SettingsFormValues
+    field: keyof AppSettings
   ) => {
     const value = parseInt(e.target.value)
     const newValues = {
@@ -106,3 +97,5 @@ export const Settings: React.FC<SettingsProps> = ({
     </>
   )
 }
+
+export default Settings
