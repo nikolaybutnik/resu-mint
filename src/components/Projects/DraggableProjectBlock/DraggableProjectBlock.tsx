@@ -1,5 +1,5 @@
 import styles from './DraggableProjectBlock.module.scss'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   FaPen,
   FaChevronDown,
@@ -10,6 +10,7 @@ import {
   FaCheck,
   FaTimes,
   FaTrash,
+  FaPlus,
 } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -17,6 +18,8 @@ import { ROUTES } from '@/lib/constants'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
+import { v4 as uuidv4 } from 'uuid'
+import { useDebouncedCallback } from '@/lib/utils'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
@@ -26,6 +29,12 @@ interface DraggableProjectBlockProps {
   settings: AppSettings
   isOverlay?: boolean
   isDropping?: boolean
+}
+
+type ErrorKey = 'bulletEmpty'
+
+type ValidationErrors = {
+  [K in ErrorKey]?: string[]
 }
 
 export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
@@ -49,12 +58,20 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null
   )
+  const [localData, setLocalData] = useState<ProjectBlockData>(data)
+  const [errors, setErrors] = useState<ValidationErrors>({
+    bulletEmpty: undefined,
+  })
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id: data.id,
       disabled: isOverlay,
     })
+
+  useEffect(() => {
+    setLocalData(data)
+  }, [data])
 
   useEffect(() => {
     if (editingBulletIndex !== null && editInputRef.current) {
@@ -71,95 +88,130 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         opacity: isDragging ? 0 : 1,
       }
 
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
     if (isTransitioning) return
     setIsTransitioning(true)
-    setIsExpanded((prev) => !prev)
-    setTimeout(() => setIsTransitioning(false), 400)
-  }
-
-  const handleGenerateAllBullets = (e: React.MouseEvent) => {
-    // TODO: implement
-    e.stopPropagation()
-    onEditBullets(data)
-  }
-
-  const handleRegenerateBullet = async (index: number, e: React.MouseEvent) => {
-    e.stopPropagation()
-
-    try {
-      setRegeneratingIndex(index)
-
-      const bulletToRegenerate = data.bulletPoints[index]
-      const existingBullets = data.bulletPoints.filter(
-        (bullet) => bullet.id !== bulletToRegenerate.id
-      )
-
-      const payload = {
-        section: {
-          type: 'project',
-          description: data.description,
-        },
-        existingBullets,
-        jobDescriptionAnalysis,
-        numBullets: 1,
-        maxCharsPerBullet: settings.maxCharsPerBullet,
+    let capturedIsExpanded = isExpanded
+    setIsExpanded(!capturedIsExpanded)
+    setTimeout(() => {
+      if (capturedIsExpanded) {
+        setErrors({})
       }
-
-      const response = await fetch(ROUTES.GENERATE_BULLETS, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('API error:', errorData)
+      if (editingBulletIndex !== null) {
+        setEditingBulletIndex(null)
+        setEditingBulletText('')
       }
-
-      const result = await response.json()
-      if (result.status !== 'success' || !result.data || result.errors) {
-        console.error('Failed to generate bullets', result.errors)
+      if (
+        localData.bulletPoints.length !== data.bulletPoints.length &&
+        capturedIsExpanded
+      ) {
+        setLocalData(data)
       }
+      setIsTransitioning(false)
+    }, 400)
+  }, [isExpanded, isTransitioning, editingBulletIndex, localData, data])
 
-      const newBullet = {
-        id: bulletToRegenerate.id,
-        text: result.data[0],
+  const handleGenerateAllBullets = useCallback(
+    (e: React.MouseEvent) => {
+      // TODO: implement
+      e.stopPropagation()
+      onEditBullets(data)
+    },
+    [onEditBullets, data]
+  )
+
+  const handleRegenerateBullet = useCallback(
+    async (index: number, e: React.MouseEvent) => {
+      e.stopPropagation()
+
+      try {
+        setRegeneratingIndex(index)
+
+        const bulletToRegenerate = localData.bulletPoints[index]
+        const existingBullets = localData.bulletPoints.filter(
+          (bullet) => bullet.id !== bulletToRegenerate.id
+        )
+
+        const payload = {
+          section: {
+            type: 'project',
+            description: data.description,
+          },
+          existingBullets,
+          jobDescriptionAnalysis,
+          numBullets: 1,
+          maxCharsPerBullet: settings.maxCharsPerBullet,
+        }
+
+        const response = await fetch(ROUTES.GENERATE_BULLETS, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error('API error:', errorData)
+        }
+
+        const result = await response.json()
+        if (result.status !== 'success' || !result.data || result.errors) {
+          console.error('Failed to generate bullets', result.errors)
+        }
+
+        const newBullet = {
+          id: bulletToRegenerate.id,
+          text: result.data[0],
+        }
+        const updatedBullets = localData.bulletPoints.map((bullet) =>
+          bullet.id === bulletToRegenerate.id ? newBullet : bullet
+        )
+
+        const updatedData = {
+          ...localData,
+          bulletPoints: updatedBullets,
+        }
+        onEditBullets(updatedData)
+      } catch (error) {
+        console.error('Error regenerating bullet', error)
+      } finally {
+        setRegeneratingIndex(null)
       }
-      const updatedBullets = data.bulletPoints.map((bullet) =>
-        bullet.id === bulletToRegenerate.id ? newBullet : bullet
-      )
+    },
+    [
+      localData,
+      data.description,
+      jobDescriptionAnalysis,
+      settings.maxCharsPerBullet,
+      onEditBullets,
+    ]
+  )
 
-      const updatedData = {
-        ...data,
-        bulletPoints: updatedBullets,
-      }
-      onEditBullets(updatedData)
-    } catch (error) {
-      console.error('Error regenerating bullet', error)
-    } finally {
-      setRegeneratingIndex(null)
-    }
-  }
+  const handleEditBullet = useCallback(
+    (index: number, e: React.MouseEvent) => {
+      e.stopPropagation()
+      setEditingBulletIndex(index)
+      setEditingBulletText(localData.bulletPoints[index].text)
+    },
+    [localData]
+  )
 
-  const handleEditBullet = (index: number, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setEditingBulletIndex(index)
-    setEditingBulletText(data.bulletPoints[index].text)
-  }
-
-  const handleCancelEdit = () => {
+  const handleCancelEdit = useCallback(() => {
     setEditingBulletIndex(null)
     setEditingBulletText('')
-  }
+    setErrors({})
+    if (localData.bulletPoints.length !== data.bulletPoints.length) {
+      setLocalData(data)
+    }
+  }, [data, localData])
 
-  const handleSaveBullet = () => {
-    if (editingBulletIndex !== null) {
+  const handleSaveBullet = useCallback(() => {
+    if (editingBulletIndex !== null && editingBulletText.trim() !== '') {
       const updatedData = {
-        ...data,
-        bulletPoints: data.bulletPoints.map((bullet, idx) =>
+        ...localData,
+        bulletPoints: localData.bulletPoints.map((bullet, idx) =>
           idx === editingBulletIndex
             ? { ...bullet, text: editingBulletText }
             : bullet
@@ -167,37 +219,99 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       }
       onEditBullets(updatedData)
       setEditingBulletIndex(null)
+    } else {
+      const errors: ValidationErrors = {
+        bulletEmpty: ['Bullet text cannot be empty'],
+      }
+      setErrors((prev) => ({
+        ...prev,
+        ...errors,
+      }))
     }
-  }
+  }, [localData, editingBulletIndex, editingBulletText, onEditBullets])
 
   // TODO: implement confirmation modal
-  const handleDeleteBullet = (index: number) => {
-    const updatedData = {
-      ...data,
-      bulletPoints: data.bulletPoints.filter(
-        (_bullet, bulletIndex) => bulletIndex !== index
-      ),
-    }
-    onEditBullets(updatedData)
-    setDeleteExpanded(null)
-  }
+  const handleDeleteBullet = useCallback(
+    (index: number) => {
+      const updatedData = {
+        ...localData,
+        bulletPoints: localData.bulletPoints.filter(
+          (_bullet, bulletIndex) => bulletIndex !== index
+        ),
+      }
+      onEditBullets(updatedData)
+      setDeleteExpanded(null)
+    },
+    [localData, onEditBullets]
+  )
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLTextAreaElement>,
-    bulletIndex: number
-  ) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        e.stopPropagation()
+        handleSaveBullet()
+      } else if (e.key === 'Enter' && e.shiftKey) {
+        e.stopPropagation()
+      } else if (e.key === ' ' || e.code === 'Space') {
+        e.stopPropagation()
+      } else if (e.key === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        handleCancelEdit()
+      }
+    },
+    [handleSaveBullet, handleCancelEdit]
+  )
+
+  const handleAddBullet = useCallback(
+    (e: React.MouseEvent) => {
       e.stopPropagation()
-      handleSaveBullet()
-    } else if (e.key === 'Enter' && e.shiftKey) {
-      e.stopPropagation()
-    } else if (e.key === 'Escape') {
-      e.preventDefault()
-      e.stopPropagation()
-      handleCancelEdit()
+      const newBullet = {
+        id: uuidv4(),
+        text: '',
+      }
+
+      let scopedData = localData
+      setLocalData((prev) => {
+        const newBullets = [...prev.bulletPoints, newBullet]
+        scopedData = {
+          ...prev,
+          bulletPoints: newBullets,
+        }
+
+        if (!isExpanded) {
+          handleToggle()
+        }
+
+        setEditingBulletIndex(scopedData.bulletPoints.length - 1)
+        setEditingBulletText('')
+
+        return scopedData
+      })
+    },
+    [isExpanded, localData, handleToggle]
+  )
+
+  const validateBulletText = useDebouncedCallback((text: string) => {
+    if (text.trim() === '') {
+      setErrors((prev) => ({
+        ...prev,
+        bulletEmpty: ['Bullet text cannot be empty'],
+      }))
+    } else {
+      errors.bulletEmpty &&
+        setErrors((prev) => ({ ...prev, bulletEmpty: undefined }))
     }
-  }
+  }, 300)
+
+  const handleTextareaChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      setEditingBulletText(e.target.value)
+      validateBulletText(e.target.value)
+    },
+    [validateBulletText]
+  )
 
   return (
     <div
@@ -228,7 +342,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             data-no-dnd='true'
             className={styles.generateAllButton}
             onClick={handleGenerateAllBullets}
-            disabled={isDragging || isOverlay}
+            disabled={isDragging || isOverlay || editingBulletIndex !== null}
           >
             <FaMagic size={12} />
             <span>Generate</span>
@@ -238,14 +352,14 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             data-no-dnd='true'
             className={styles.editButton}
             onClick={() => onBlockSelect(data.id)}
-            disabled={isDragging || isOverlay}
+            disabled={isDragging || isOverlay || editingBulletIndex !== null}
           >
             <FaPen />
           </button>
         </div>
       </div>
 
-      {data.bulletPoints.length > 0 && (
+      {localData.bulletPoints.length > 0 && (
         <button
           className={`${styles.drawerToggleButton} ${
             isExpanded ? styles.noRadius : ''
@@ -262,7 +376,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           isExpanded ? styles.expanded : ''
         }`}
       >
-        {data.bulletPoints.map((bullet, index) => (
+        {localData.bulletPoints.map((bullet, index) => (
           <div
             key={index}
             className={[
@@ -275,15 +389,22 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                 className={[
                   styles.bulletDeleteContainer,
                   deleteExpanded === index ? styles.expanded : '',
+                  editingBulletIndex !== null ? styles.deleteDisabled : '',
                 ].join(' ')}
                 onTouchStart={(e) => {
-                  if (deleteExpanded !== index) {
+                  if (
+                    deleteExpanded !== index &&
+                    editingBulletIndex !== index
+                  ) {
                     setTimeout(() => setDeleteExpanded(index), 200)
                     e.stopPropagation()
                   }
                 }}
                 onMouseEnter={() => {
-                  if (deleteExpanded !== index) {
+                  if (
+                    deleteExpanded !== index &&
+                    editingBulletIndex !== index
+                  ) {
                     setDeleteExpanded(index)
                   }
                 }}
@@ -295,23 +416,32 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                   className={styles.bulletDeleteButton}
                   onClick={() => handleDeleteBullet(index)}
                   disabled={deleteExpanded !== index}
-                  tabIndex={deleteExpanded === index ? 0 : -1}
+                  tabIndex={
+                    deleteExpanded === index && editingBulletIndex !== index
+                      ? 0
+                      : -1
+                  }
                 >
                   <FaTrash />
                 </button>
               </div>
             </div>
             {editingBulletIndex === index ? (
-              <textarea
-                ref={editInputRef}
-                className={styles.bulletInputArea}
-                value={editingBulletText}
-                onChange={(e) => setEditingBulletText(e.target.value)}
-                onKeyDown={(e) => handleKeyDown(e, index)}
-                data-no-dnd='true'
-                rows={4}
-                autoFocus
-              />
+              <div className={styles.bulletInputAreaWrapper}>
+                <textarea
+                  ref={editInputRef}
+                  className={styles.bulletInputArea}
+                  value={editingBulletText}
+                  onChange={handleTextareaChange}
+                  onKeyDown={handleKeyDown}
+                  data-no-dnd='true'
+                  rows={4}
+                  autoFocus
+                />
+                {errors.bulletEmpty && (
+                  <p className={styles.formError}>{errors.bulletEmpty}</p>
+                )}
+              </div>
             ) : (
               <p className={styles.bulletText}>{bullet.text}</p>
             )}
@@ -322,6 +452,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                     className={styles.saveButton}
                     onClick={handleSaveBullet}
                     data-no-dnd='true'
+                    disabled={editingBulletText.trim() === ''}
                     title='Save (Enter)'
                   >
                     <FaCheck size={12} />
@@ -339,6 +470,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                 <>
                   <button
                     className={styles.editButton}
+                    disabled={editingBulletIndex !== null}
                     onClick={(e) => handleEditBullet(index, e)}
                     data-no-dnd='true'
                   >
@@ -346,6 +478,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                   </button>
                   <button
                     className={styles.regenerateButton}
+                    disabled={editingBulletIndex !== null}
                     onClick={(e) => handleRegenerateBullet(index, e)}
                     data-no-dnd='true'
                   >
@@ -356,7 +489,27 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             </div>
           </div>
         ))}
+
+        <button
+          className={styles.addBulletButton}
+          onClick={handleAddBullet}
+          disabled={editingBulletIndex !== null}
+          data-no-dnd='true'
+        >
+          <FaPlus size={12} />
+        </button>
       </div>
+
+      {localData.bulletPoints.length === 0 && !isExpanded && (
+        <button
+          className={styles.addBulletButton}
+          onClick={handleAddBullet}
+          disabled={editingBulletIndex !== null}
+          data-no-dnd='true'
+        >
+          <FaPlus size={12} />
+        </button>
+      )}
     </div>
   )
 }
