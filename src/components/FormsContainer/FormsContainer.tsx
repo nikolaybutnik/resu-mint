@@ -21,7 +21,7 @@ const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
   EXPERIENCE: 'Experience',
   PROJECTS: 'Projects',
-  JOB_DESCRIPTION: 'JobDescription',
+  JOB_DETAILS: 'JobDetails',
   EDUCATION: 'Education',
   SKILLS: 'Skills',
   SETTINGS: 'Settings',
@@ -38,7 +38,7 @@ const StorageKeys = {
 } as const
 
 const tabs = [
-  { id: Tabs.JOB_DESCRIPTION, label: 'Job Description' },
+  { id: Tabs.JOB_DETAILS, label: 'Job Details' },
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
   { id: Tabs.EXPERIENCE, label: 'Experience' },
   { id: Tabs.PROJECTS, label: 'Projects' },
@@ -83,7 +83,7 @@ export const FormsContainer: React.FC = () => {
 
   // UI States
   const [view, setView] = useState<'input' | 'preview'>('input')
-  const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DESCRIPTION)
+  const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
   const [mintingResume, setMintingResume] = useState(false)
   const [loading, setLoading] = useState(true)
   const [analyzingJob, setAnalyzingJob] = useState(false)
@@ -318,7 +318,7 @@ export const FormsContainer: React.FC = () => {
           ))}
         </div>
         <div className={styles.tabContent}>
-          {activeTab === Tabs.JOB_DESCRIPTION && (
+          {activeTab === Tabs.JOB_DETAILS && (
             <JobDescription
               data={jobDescription}
               loading={loading}

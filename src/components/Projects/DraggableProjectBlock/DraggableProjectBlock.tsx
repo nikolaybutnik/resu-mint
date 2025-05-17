@@ -19,7 +19,7 @@ import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
 import { v4 as uuidv4 } from 'uuid'
-import { useDebouncedCallback } from '@/lib/utils'
+import { sanitizeResumeBullet, useDebouncedCallback } from '@/lib/utils'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
@@ -31,7 +31,7 @@ interface DraggableProjectBlockProps {
   isDropping?: boolean
 }
 
-type ErrorKey = 'bulletEmpty'
+type ErrorKey = 'bulletEmpty' | 'bulletTooLong'
 
 type ValidationErrors = {
   [K in ErrorKey]?: string[]
@@ -121,7 +121,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   )
 
   const handleRegenerateBullet = useCallback(
-    async (index: number, e: React.MouseEvent) => {
+    async (index: number, e: React.MouseEvent, isEditing = false) => {
       e.stopPropagation()
 
       try {
@@ -163,17 +163,23 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
 
         const newBullet = {
           id: bulletToRegenerate.id,
-          text: result.data[0],
+          text: sanitizeResumeBullet(result.data[0], true),
         }
-        const updatedBullets = localData.bulletPoints.map((bullet) =>
-          bullet.id === bulletToRegenerate.id ? newBullet : bullet
-        )
 
-        const updatedData = {
-          ...localData,
-          bulletPoints: updatedBullets,
+        if (isEditing) {
+          setEditingBulletText(newBullet.text)
+        } else {
+          const updatedBullets = localData.bulletPoints.map((bullet) =>
+            bullet.id === bulletToRegenerate.id ? newBullet : bullet
+          )
+
+          const updatedData = {
+            ...localData,
+            bulletPoints: updatedBullets,
+          }
+
+          onEditBullets(updatedData)
         }
-        onEditBullets(updatedData)
       } catch (error) {
         console.error('Error regenerating bullet', error)
       } finally {
@@ -208,13 +214,12 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   }, [data, localData])
 
   const handleSaveBullet = useCallback(() => {
-    if (editingBulletIndex !== null && editingBulletText.trim() !== '') {
+    const sanitized = sanitizeResumeBullet(editingBulletText, true)
+    if (editingBulletIndex !== null && sanitized.trim() !== '') {
       const updatedData = {
         ...localData,
         bulletPoints: localData.bulletPoints.map((bullet, idx) =>
-          idx === editingBulletIndex
-            ? { ...bullet, text: editingBulletText }
-            : bullet
+          idx === editingBulletIndex ? { ...bullet, text: sanitized } : bullet
         ),
       }
       onEditBullets(updatedData)
@@ -223,14 +228,10 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       const errors: ValidationErrors = {
         bulletEmpty: ['Bullet text cannot be empty'],
       }
-      setErrors((prev) => ({
-        ...prev,
-        ...errors,
-      }))
+      setErrors((prev) => ({ ...prev, ...errors }))
     }
   }, [localData, editingBulletIndex, editingBulletText, onEditBullets])
 
-  // TODO: implement confirmation modal
   const handleDeleteBullet = useCallback(
     (index: number) => {
       const updatedData = {
@@ -294,21 +295,26 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   )
 
   const validateBulletText = useDebouncedCallback((text: string) => {
+    const newErrors: ValidationErrors = {}
+
     if (text.trim() === '') {
-      setErrors((prev) => ({
-        ...prev,
-        bulletEmpty: ['Bullet text cannot be empty'],
-      }))
-    } else {
-      errors.bulletEmpty &&
-        setErrors((prev) => ({ ...prev, bulletEmpty: undefined }))
+      newErrors.bulletEmpty = ['Bullet text cannot be empty']
     }
+
+    if (text.length > settings.maxCharsPerBullet) {
+      newErrors.bulletTooLong = [
+        `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+      ]
+    }
+
+    setErrors(newErrors)
   }, 300)
 
   const handleTextareaChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      setEditingBulletText(e.target.value)
-      validateBulletText(e.target.value)
+      const sanitized = sanitizeResumeBullet(e.target.value, false)
+      setEditingBulletText(sanitized)
+      validateBulletText(sanitized)
     },
     [validateBulletText]
   )
@@ -432,61 +438,94 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                   ref={editInputRef}
                   className={styles.bulletInputArea}
                   value={editingBulletText}
+                  disabled={regeneratingIndex !== null}
                   onChange={handleTextareaChange}
                   onKeyDown={handleKeyDown}
                   data-no-dnd='true'
                   rows={4}
+                  maxLength={500}
                   autoFocus
                 />
+                <div className={styles.characterCount}>
+                  <span
+                    className={
+                      editingBulletText.length >
+                      settings.maxCharsPerBullet * 0.9
+                        ? editingBulletText.length > settings.maxCharsPerBullet
+                          ? styles.characterCountExceeded
+                          : styles.characterCountWarning
+                        : ''
+                    }
+                  >
+                    {`${editingBulletText.length}/${settings.maxCharsPerBullet} (max 500)`}
+                  </span>
+                </div>
                 {errors.bulletEmpty && (
                   <p className={styles.formError}>{errors.bulletEmpty}</p>
+                )}
+                {errors.bulletTooLong && (
+                  <p className={`${styles.formError} ${styles.flashWarning}`}>
+                    {errors.bulletTooLong}
+                  </p>
                 )}
               </div>
             ) : (
               <p className={styles.bulletText}>{bullet.text}</p>
             )}
-            <div className={styles.bulletButtons}>
-              {editingBulletIndex === index ? (
-                <>
-                  <button
-                    className={styles.saveButton}
-                    onClick={handleSaveBullet}
-                    data-no-dnd='true'
-                    disabled={editingBulletText.trim() === ''}
-                    title='Save (Enter)'
-                  >
-                    <FaCheck size={12} />
-                  </button>
-                  <button
-                    className={styles.cancelButton}
-                    onClick={handleCancelEdit}
-                    data-no-dnd='true'
-                    title='Cancel (Esc)'
-                  >
-                    <FaTimes size={12} />
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button
-                    className={styles.editButton}
-                    disabled={editingBulletIndex !== null}
-                    onClick={(e) => handleEditBullet(index, e)}
-                    data-no-dnd='true'
-                  >
-                    <FaPencilAlt size={12} />
-                  </button>
-                  <button
-                    className={styles.regenerateButton}
-                    disabled={editingBulletIndex !== null}
-                    onClick={(e) => handleRegenerateBullet(index, e)}
-                    data-no-dnd='true'
-                  >
-                    <FaRedo size={12} />
-                  </button>
-                </>
-              )}
-            </div>
+            {editingBulletIndex === index ? (
+              <div className={styles.editBulletButtonContainer}>
+                <button
+                  className={styles.saveButton}
+                  onClick={handleSaveBullet}
+                  data-no-dnd='true'
+                  disabled={
+                    editingBulletText.trim() === '' ||
+                    regeneratingIndex !== null
+                  }
+                  title='Save (Enter)'
+                >
+                  <FaCheck size={12} />
+                </button>
+                <button
+                  className={styles.cancelButton}
+                  onClick={handleCancelEdit}
+                  disabled={regeneratingIndex !== null}
+                  data-no-dnd='true'
+                  title='Cancel (Esc)'
+                >
+                  <FaTimes size={12} />
+                </button>
+                <button
+                  className={styles.regenerateButton}
+                  disabled={
+                    isDragging || isOverlay || regeneratingIndex !== null
+                  }
+                  onClick={(e) => handleRegenerateBullet(index, e, true)}
+                  data-no-dnd='true'
+                >
+                  <FaRedo size={12} />
+                </button>
+              </div>
+            ) : (
+              <div className={styles.viewBulletButtonContainer}>
+                <button
+                  className={styles.editButton}
+                  disabled={editingBulletIndex !== null}
+                  onClick={(e) => handleEditBullet(index, e)}
+                  data-no-dnd='true'
+                >
+                  <FaPencilAlt size={12} />
+                </button>
+                <button
+                  className={styles.regenerateButton}
+                  disabled={editingBulletIndex !== null}
+                  onClick={(e) => handleRegenerateBullet(index, e)}
+                  data-no-dnd='true'
+                >
+                  <FaRedo size={12} />
+                </button>
+              </div>
+            )}
           </div>
         ))}
 

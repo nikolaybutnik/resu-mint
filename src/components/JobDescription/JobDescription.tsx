@@ -37,10 +37,10 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
   return (
     <>
       {loading ? (
-        <LoadingSpinner text='Loading the job description...' size='lg' />
+        <LoadingSpinner text='Loading the job details...' size='lg' />
       ) : (
         <div className={styles.jobDescription}>
-          <h2 className={styles.formTitle}>Job Description</h2>
+          <h2 className={styles.formTitle}>Job Details</h2>
           {analyzing ? (
             <LoadingSpinner text='Analyzing the job description...' size='lg' />
           ) : (
