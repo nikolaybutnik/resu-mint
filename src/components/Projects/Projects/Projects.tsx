@@ -173,6 +173,7 @@ const Projects = ({
                       key={project.id}
                       data={project}
                       isNew={isNew}
+                      settings={settings}
                       onDelete={handleBlockDelete}
                       onClose={handleBlockClose}
                       onSave={handleSave}

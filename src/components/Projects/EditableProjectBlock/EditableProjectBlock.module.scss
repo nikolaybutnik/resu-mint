@@ -1,71 +1,150 @@
+@use 'sass:color';
 @import '../../../styles/variables';
 
 .editableProjectBlock {
   background: $color-background;
   width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
 }
 
 .header {
   display: flex;
   justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.closeButton {
+  display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  justify-content: center;
+  background: $color-action-item-background;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  color: $color-text;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
 
-  .closeButton {
-    background: none;
-    border: none;
-    cursor: pointer;
+  svg {
+    height: 18px;
+    width: 18px;
+  }
 
-    svg {
-      height: 24px;
-      width: 24px;
-      color: $color-text;
-    }
+  &:hover {
+    background: $color-primary;
+    color: white;
+    transform: scale(1.05);
+  }
+}
+
+.deleteButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1.5px solid $color-error;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: $color-error;
+  cursor: pointer;
+  margin-right: auto;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+
+  &:hover {
+    background: $color-error;
+    color: white;
+    transform: scale(1.02);
   }
 }
 
 .formField {
   display: flex;
   flex-direction: column;
-  margin-bottom: 16px;
-  position: relative;
+  margin-bottom: 12px;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: $color-text;
 }
 
 .formInput {
   font-family: $font-family-base;
-  padding: 12px 0px;
   font-size: 14px;
-  border: none;
-  border-bottom: 2px solid $color-border;
-  border-radius: 2px;
-  background: transparent;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1.5px solid $color-border;
+  border-radius: 4px;
+  background: white;
   color: $color-text;
-  transition: border-color 0.15s ease;
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
-    outline: none;
     border-color: $color-primary;
-    box-shadow: 0 2px 0 0 $color-primary;
+    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
   }
 
   &::placeholder {
     color: $color-placeholder;
-    font-weight: 500;
+    opacity: 0.7;
   }
 
   &:disabled {
-    background-color: $color-border;
-    opacity: 0.3;
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.6;
+  }
+}
+
+.formTextarea {
+  font-family: $font-family-base;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1.5px solid $color-border;
+  border-radius: 4px;
+  background: white;
+  color: $color-text;
+  outline: none;
+  resize: vertical;
+  min-height: 80px;
+  width: 100%;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+  }
+
+  &::placeholder {
+    color: $color-placeholder;
+    opacity: 0.7;
   }
 }
 
 .chipInputContainer {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
   align-items: stretch;
+  gap: 8px;
 
   .formInput {
     flex: 1;
@@ -75,23 +154,25 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: $color-action-item-background;
+    background: $color-action-item-background;
     border: none;
     border-radius: 4px;
-    padding: 4px 8px;
+    padding: 4px;
     cursor: pointer;
-    margin: 0;
-    min-height: 100%;
-    width: 48px;
+    color: $color-text;
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    width: 32px;
+    height: auto;
 
     svg {
-      height: 20px;
-      width: 20px;
-      color: $color-text;
+      height: 16px;
+      width: 16px;
     }
 
     &:hover {
-      background-color: $color-action-item-background-hover;
+      background: rgba($color-primary, 0.2);
+      color: $color-primary;
+      transform: scale(1.05);
     }
   }
 }
@@ -105,16 +186,24 @@
   .chip {
     display: flex;
     align-items: center;
-    background-color: $color-action-item-background;
+    background: linear-gradient(
+      135deg,
+      rgba($color-primary, 0.15),
+      rgba($color-primary, 0.1)
+    );
     border-radius: 4px;
-    padding: 6px 10px;
+    padding: 6px 12px;
     font-size: 14px;
     color: $color-text;
-    transition: background-color 0.15s ease;
-    cursor: default;
+    transition: background 0.2s ease, transform 0.2s ease;
 
     &:hover {
-      background-color: $color-action-item-background-hover;
+      background: linear-gradient(
+        135deg,
+        rgba($color-primary, 0.2),
+        rgba($color-primary, 0.15)
+      );
+      transform: scale(1.02);
     }
   }
 
@@ -124,70 +213,99 @@
     justify-content: center;
     background: none;
     border: none;
-    margin-left: 6px;
-    width: 16px;
-    height: 16px;
-    font-size: 14px;
-    line-height: 1;
+    margin-left: 8px;
+    width: 18px;
+    height: 18px;
+    font-size: 16px;
     color: $color-text;
     opacity: 0.7;
     cursor: pointer;
-    transition: opacity 0.15s ease;
+    transition: opacity 0.2s ease, color 0.2s ease;
 
     &:hover {
       opacity: 1;
+      color: $color-error;
     }
   }
 }
 
 .dateInputs {
-  display: flex;
-  flex-direction: row;
+  display: grid;
+  grid-template-columns: 140px 90px;
+  gap: 12px;
 
   .monthInput {
-    width: 125px;
-    margin-right: 12px;
+    width: 100%;
   }
 
   .yearInput {
-    flex: 1;
+    width: 100%;
   }
 }
 
 .checkboxField {
-  padding: 12px 0px;
   display: flex;
   align-items: center;
+  margin-top: 8px;
 
   input {
-    height: 20px;
-    width: 20px;
-    margin-right: 8px;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid $color-border;
+    border-radius: 4px;
     cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s ease, background 0.2s ease;
+
+    &:checked {
+      background: $color-primary;
+      border-color: $color-primary;
+    }
+
+    &:checked::after {
+      content: '\2713';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+  }
+
+  .checkboxLabel {
+    font-size: 14px;
+    margin-left: 8px;
+    cursor: pointer;
+    color: $color-text;
   }
 }
 
-.formTextarea {
-  font-family: $font-family-base;
-  padding: 8px;
-  font-size: 14px;
-  border: 2px solid $color-border;
-  border-radius: 4px;
-  min-width: 100%;
-  max-width: 100%;
-  min-height: 80px;
-  margin-top: 12px;
+.bulletPoints {
+  margin: 24px 0;
 
-  &::placeholder {
-    color: $color-placeholder;
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: $color-text;
   }
+}
+
+.bulletHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
 }
 
 .formError {
   font-size: 13px;
   font-weight: 500;
   color: $color-error;
-  margin-top: 6px;
+  margin: 6px 0;
   opacity: 0;
   transform: translateX(-10px);
   animation: slideIn 0.3s ease forwards;
@@ -197,5 +315,79 @@
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+.actionButtons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba($color-border, 0.3);
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  padding: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
+    box-shadow 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    pointer-events: none;
+  }
+}
+
+.saveButton {
+  @extend .button;
+  background: linear-gradient(135deg, $color-primary, $color-primary-hover);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      $color-primary-hover,
+      color.adjust($color-primary-hover, $lightness: -5%)
+    );
+    box-shadow: 0 2px 8px rgba($color-primary, 0.3);
+  }
+}
+
+.addButton {
+  @extend .button;
+  background: $color-action-item-background;
+  color: $color-text;
+  border: none;
+  width: 60px;
+  height: 36px;
+  font-size: 14px;
+
+  &:hover {
+    background: rgba($color-primary, 0.2);
+    color: $color-primary;
+  }
+
+  svg {
+    margin-right: 4px;
+    height: 12px;
+    width: 12px;
   }
 }

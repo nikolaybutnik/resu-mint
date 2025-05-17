@@ -1,36 +1,52 @@
 import styles from './EditableProjectBlock.module.scss'
-import { useDebounce } from '@/lib/utils'
+import {
+  sanitizeResumeBullet,
+  sanitizeResumeContent,
+  sanitizeUrl,
+  useDebounce,
+  useDebouncedCallback,
+} from '@/lib/utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { projectBlockSchema } from '@/lib/validationSchemas'
 import { months } from '@/lib/constants'
 import { v4 as uuidv4 } from 'uuid'
+import { BulletPoint as BulletPointComponent } from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPoint, Month, ProjectBlockData } from '@/lib/types/projects'
+import { AppSettings } from '@/lib/types/settings'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
   isNew: boolean
+  settings: AppSettings
   onDelete: (id: string) => void
   onClose: () => void
   onSave: (data: ProjectBlockData) => void
 }
 
-enum FieldType {
-  TITLE = 'title',
-  DESCRIPTION = 'description',
-  TECHNOLOGIES = 'technologies',
-  START_DATE_MONTH = 'startDate.month',
-  START_DATE_YEAR = 'startDate.year',
-  END_DATE_IS_PRESENT = 'endDate.isPresent',
-  END_DATE_MONTH = 'endDate.month',
-  END_DATE_YEAR = 'endDate.year',
-  BULLET_POINTS = 'bulletPoints',
-  LINK = 'link',
+type ErrorKey = 'bulletEmpty' | 'bulletTooLong'
+
+type ValidationErrors = {
+  [K in ErrorKey]?: string[]
 }
+
+const FieldType = {
+  TITLE: 'title',
+  DESCRIPTION: 'description',
+  TECHNOLOGIES: 'technologies',
+  START_DATE_MONTH: 'startDate.month',
+  START_DATE_YEAR: 'startDate.year',
+  END_DATE_IS_PRESENT: 'endDate.isPresent',
+  END_DATE_MONTH: 'endDate.month',
+  END_DATE_YEAR: 'endDate.year',
+  BULLET_POINTS: 'bulletPoints',
+  LINK: 'link',
+} as const
 
 const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   data,
   isNew,
+  settings,
   onDelete,
   onClose,
   onSave,
@@ -38,6 +54,16 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const [formData, setFormData] = useState<ProjectBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [techInput, setTechInput] = useState('')
+  const [editingBulletIndex, setEditingBulletIndex] = useState<number | null>(
+    null
+  )
+  const [editingBulletText, setEditingBulletText] = useState<string>('')
+  const [bulletPointErrors, setBulletPointErrors] = useState<
+    ValidationErrors[]
+  >(data.bulletPoints.map(() => ({})))
+  const [temporaryBulletId, setTemporaryBulletId] = useState<string | null>(
+    null
+  )
 
   const debouncedFormData = useDebounce(formData, 300)
   const debouncedTouched = useDebounce(touched, 300)
@@ -45,13 +71,16 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   useEffect(() => {
     setFormData(data)
     setTouched({})
+    setEditingBulletIndex(null)
+    setEditingBulletText('')
+    setBulletPointErrors(data.bulletPoints.map(() => ({})))
   }, [data])
 
   const isValid = useMemo(() => {
     return projectBlockSchema.safeParse(formData).success
   }, [formData])
 
-  const errors = useMemo(() => {
+  const fieldErrors = useMemo(() => {
     const result = projectBlockSchema.safeParse(debouncedFormData)
     if (result.success) {
       return {}
@@ -59,16 +88,44 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     const errors: Record<string, string> = {}
     result.error.issues.forEach((issue) => {
       const path = issue.path.join('.')
-      errors[path] = issue.message
+      if (!path.startsWith('bulletPoints.')) {
+        errors[path] = issue.message
+      }
     })
     return errors
   }, [debouncedFormData])
 
-  const sanitizeYear = (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4)
+  const validateBulletText = useDebouncedCallback(
+    (text: string, index: number) => {
+      const newErrors: ValidationErrors = {}
+
+      if (text.trim() === '') {
+        newErrors.bulletEmpty = ['Bullet text cannot be empty']
+      }
+
+      if (text.length > settings.maxCharsPerBullet) {
+        newErrors.bulletTooLong = [
+          `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+        ]
+      }
+
+      setBulletPointErrors((prev) => {
+        const updated = [...prev]
+        updated[index] = newErrors
+        return updated
+      })
+    },
+    300
+  )
+
+  const sanitizeYear = useCallback(
+    (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4),
+    []
+  )
 
   const handleChange = useCallback(
     (
-      field: FieldType,
+      field: (typeof FieldType)[keyof typeof FieldType],
       value: string | string[] | boolean | BulletPoint,
       bulletIndex?: number
     ) => {
@@ -85,7 +142,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         }),
         [FieldType.DESCRIPTION]: (prev, val) => ({
           ...prev,
-          description: val as string,
+          description: sanitizeResumeContent(val as string, true),
         }),
         [FieldType.TECHNOLOGIES]: (prev, val) => ({
           ...prev,
@@ -119,7 +176,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         }),
         [FieldType.LINK]: (prev, val) => ({
           ...prev,
-          link: val as string,
+          link: sanitizeUrl(val as string),
         }),
       }
 
@@ -129,7 +186,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             ...prev,
             bulletPoints: prev.bulletPoints.map((bullet, index) =>
               index === bulletIndex
-                ? { id: bullet.id, text: value as string }
+                ? {
+                    id: bullet.id,
+                    text: sanitizeResumeBullet(value as string, true),
+                  }
                 : bullet
             ),
           }
@@ -153,23 +213,110 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   )
 
   const handleAddBulletPoint = useCallback(() => {
+    const newBullet = { id: uuidv4(), text: '' }
+    setTemporaryBulletId(newBullet.id)
     setFormData((prev) => ({
       ...prev,
-      bulletPoints: [...prev.bulletPoints, { id: uuidv4(), text: '' }],
+      bulletPoints: [...prev.bulletPoints, newBullet],
     }))
-  }, [])
+    setBulletPointErrors((prev) => [...prev, {}])
+    setEditingBulletIndex(formData.bulletPoints.length)
+    setEditingBulletText('')
+  }, [formData.bulletPoints.length, temporaryBulletId])
 
-  const handleRemoveBulletPoint = useCallback((index: number) => {
+  const handleBulletDelete = useCallback((index: number) => {
     setFormData((prev) => ({
       ...prev,
       bulletPoints: prev.bulletPoints.filter((_, i) => i !== index),
     }))
+    setBulletPointErrors((prev) => prev.filter((_, i) => i !== index))
     setTouched((prev) => {
       const updated = { ...prev }
       delete updated[`bulletPoints.${index}`]
       return updated
     })
+    setEditingBulletIndex(null)
+    setEditingBulletText('')
   }, [])
+
+  const handleBulletSave = useCallback(() => {
+    if (editingBulletIndex !== null) {
+      const sanitized = sanitizeResumeBullet(editingBulletText, true)
+      if (sanitized.trim() !== '') {
+        handleChange(FieldType.BULLET_POINTS, sanitized, editingBulletIndex)
+        setBulletPointErrors((prev) => {
+          const updated = [...prev]
+          updated[editingBulletIndex] = {}
+          return updated
+        })
+        setEditingBulletIndex(null)
+        setEditingBulletText('')
+        setTemporaryBulletId(null)
+      } else {
+        setBulletPointErrors((prev) => {
+          const updated = [...prev]
+          updated[editingBulletIndex] = {
+            bulletEmpty: ['Bullet text cannot be empty'],
+          }
+          return updated
+        })
+      }
+    }
+  }, [editingBulletIndex, editingBulletText, handleChange])
+
+  const handleEditBullet = useCallback(
+    (index: number) => {
+      setEditingBulletIndex(index)
+      setEditingBulletText(formData.bulletPoints[index].text)
+    },
+    [formData.bulletPoints]
+  )
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingBulletIndex(null)
+    setEditingBulletText('')
+
+    if (temporaryBulletId) {
+      setFormData((prev) => ({
+        ...prev,
+        bulletPoints: prev.bulletPoints.filter(
+          (bullet) => bullet.id !== temporaryBulletId
+        ),
+      }))
+      setBulletPointErrors((prev) => prev.slice(0, -1))
+      setTemporaryBulletId(null)
+    }
+
+    if (editingBulletIndex !== null) {
+      setBulletPointErrors((prev) => {
+        const updated = [...prev]
+        updated[editingBulletIndex] = {}
+        return updated
+      })
+    }
+  }, [editingBulletIndex])
+
+  const handleTextareaChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const sanitized = sanitizeResumeBullet(e.target.value, false)
+      setEditingBulletText(sanitized)
+      if (editingBulletIndex !== null) {
+        validateBulletText(sanitized, editingBulletIndex)
+      }
+    },
+    [editingBulletIndex, validateBulletText]
+  )
+
+  const handleDelete = useCallback(() => {
+    // temporary confirmation window
+    if (
+      window.confirm(
+        'Are you sure you want to delete this project? This action cannot be undone.'
+      )
+    ) {
+      onDelete(formData.id)
+    }
+  }, [formData.id, onDelete])
 
   const handleSave = useCallback(() => {
     if (isValid) {
@@ -180,6 +327,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   return (
     <section className={styles.editableProjectBlock}>
       <header className={styles.header}>
+        {!isNew && (
+          <button
+            type='button'
+            className={styles.deleteButton}
+            onClick={handleDelete}
+          >
+            Delete
+          </button>
+        )}
         <button type='button' className={styles.closeButton} onClick={onClose}>
           <FaXmark />
         </button>
@@ -194,8 +350,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             value={formData.title}
             onChange={(e) => handleChange(FieldType.TITLE, e.target.value)}
           />
-          {debouncedTouched.title && errors.title && (
-            <p className={styles.formError}>{errors.title}</p>
+          {debouncedTouched.title && fieldErrors.title && (
+            <p className={styles.formError}>{fieldErrors.title}</p>
           )}
         </div>
 
@@ -207,10 +363,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             value={formData.link}
             onChange={(e) => handleChange(FieldType.LINK, e.target.value)}
           />
+          {debouncedTouched.link && fieldErrors.link && (
+            <p className={styles.formError}>{fieldErrors.link}</p>
+          )}
         </div>
-        {debouncedTouched.link && errors.link && (
-          <p className={styles.formError}>{errors.link}</p>
-        )}
 
         <div className={styles.formField}>
           <label className={styles.label}>Technologies</label>
@@ -263,7 +419,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                     )
                   }
                 >
-                  ×
+                  <FaXmark />
                 </button>
               </div>
             ))}
@@ -308,15 +464,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             />
           </div>
           {debouncedTouched[FieldType.START_DATE_MONTH] &&
-            errors[FieldType.START_DATE_MONTH] && (
+            fieldErrors[FieldType.START_DATE_MONTH] && (
               <p className={styles.formError}>
-                {errors[FieldType.START_DATE_MONTH]}
+                {fieldErrors[FieldType.START_DATE_MONTH]}
               </p>
             )}
           {debouncedTouched[FieldType.START_DATE_YEAR] &&
-            errors[FieldType.START_DATE_YEAR] && (
+            fieldErrors[FieldType.START_DATE_YEAR] && (
               <p className={styles.formError}>
-                {errors[FieldType.START_DATE_YEAR]}
+                {fieldErrors[FieldType.START_DATE_YEAR]}
               </p>
             )}
         </div>
@@ -371,14 +527,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             <label className={styles.checkboxLabel}>Present</label>
           </div>
 
-          {debouncedTouched['endDate.month'] && errors['endDate.month'] && (
-            <p className={styles.formError}>{errors['endDate.month']}</p>
+          {debouncedTouched['endDate.month'] &&
+            fieldErrors['endDate.month'] && (
+              <p className={styles.formError}>{fieldErrors['endDate.month']}</p>
+            )}
+          {debouncedTouched['endDate.year'] && fieldErrors['endDate.year'] && (
+            <p className={styles.formError}>{fieldErrors['endDate.year']}</p>
           )}
-          {debouncedTouched['endDate.year'] && errors['endDate.year'] && (
-            <p className={styles.formError}>{errors['endDate.year']}</p>
-          )}
-          {debouncedTouched.endDate && errors.endDate && (
-            <p className={styles.formError}>{errors.endDate}</p>
+          {debouncedTouched.endDate && fieldErrors.endDate && (
+            <p className={styles.formError}>{fieldErrors.endDate}</p>
           )}
         </div>
 
@@ -387,6 +544,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           <textarea
             className={styles.formTextarea}
             value={formData.description}
+            rows={4}
+            maxLength={1000}
             placeholder='Describe your project in detail. Format however you like.'
             onChange={(e) =>
               handleChange(FieldType.DESCRIPTION, e.target.value)
@@ -396,60 +555,51 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
       </div>
 
       <div className={styles.bulletPoints}>
-        <h3>Bullet Points</h3>
-        <ul className={styles.bulletList}>
+        <div className={styles.bulletHeader}>
+          <h3>Bullet Points</h3>
+          <button
+            type='button'
+            className={styles.addButton}
+            onClick={handleAddBulletPoint}
+          >
+            <FaPlus /> Add
+          </button>
+        </div>
+        <div>
           {formData.bulletPoints.map((bullet, index) => (
-            <li key={index} className={styles.bulletItem}>
-              <input
-                type='text'
-                className={styles.bulletInput}
-                value={bullet.text}
-                onChange={(e) =>
-                  handleChange(FieldType.BULLET_POINTS, e.target.value, index)
-                }
-              />
-              <button
-                type='button'
-                className={styles.removeButton}
-                onClick={() => handleRemoveBulletPoint(index)}
-              >
-                Remove
-              </button>
-              {debouncedTouched[FieldType.BULLET_POINTS] &&
-                errors[`${FieldType.BULLET_POINTS}.${index}`] && (
-                  <p className={styles.formError}>
-                    {errors[`${FieldType.BULLET_POINTS}.${index}`]}
-                  </p>
-                )}
-            </li>
+            <BulletPointComponent
+              key={bullet.id}
+              text={bullet.text}
+              editingText={editingBulletText}
+              index={index}
+              isRegenerating={false}
+              isEditing={editingBulletIndex === index}
+              disableAllControls={
+                editingBulletIndex !== null && editingBulletIndex !== index
+              }
+              errors={bulletPointErrors[index] || {}}
+              settings={settings}
+              onCancelEdit={handleCancelEdit}
+              onBulletDelete={handleBulletDelete}
+              onBulletSave={handleBulletSave}
+              onEditBullet={() => handleEditBullet(index)}
+              onRegenerateBullet={() => {}}
+              onTextareaChange={handleTextareaChange}
+            />
           ))}
-        </ul>
-        <button
-          type='button'
-          className={styles.addButton}
-          onClick={handleAddBulletPoint}
-        >
-          Add Bullet
-        </button>
+        </div>
       </div>
 
-      <button
-        type='button'
-        className={styles.saveButton}
-        onClick={handleSave}
-        disabled={!isValid}
-      >
-        Save
-      </button>
-      {!isNew && (
+      <div className={styles.actionButtons}>
         <button
           type='button'
-          className={styles.deleteButton}
-          onClick={() => onDelete(formData.id)}
+          className={styles.saveButton}
+          onClick={handleSave}
+          disabled={!isValid || editingBulletIndex !== null}
         >
-          Delete
+          Save
         </button>
-      )}
+      </div>
     </section>
   )
 }

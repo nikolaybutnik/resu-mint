@@ -9,10 +9,10 @@
 
 .sidebar {
   width: 40%;
-  background-color: #fff;
-  padding: 20px;
+  background-color: $color-background;
+  padding: 24px;
   overflow-y: auto;
-  border-right: 1px solid #ddd;
+  border-right: 1px solid $color-border;
 }
 
 .preview {

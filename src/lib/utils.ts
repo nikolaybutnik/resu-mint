@@ -199,8 +199,8 @@ export const sanitizeResumeBullet = (
  */
 export const sanitizeResumeContent = (
   input: string,
-  maxLength: number = 1000,
-  trimWhitespace: boolean = true
+  trimWhitespace: boolean = true,
+  maxLength: number = 1000
 ): string => {
   return sanitizeInput(input, {
     trimWhitespace,
