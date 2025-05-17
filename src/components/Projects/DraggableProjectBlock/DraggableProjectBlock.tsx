@@ -5,11 +5,6 @@ import {
   FaChevronDown,
   FaChevronUp,
   FaMagic,
-  FaRedo,
-  FaPencilAlt,
-  FaCheck,
-  FaTimes,
-  FaTrash,
   FaPlus,
 } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
@@ -20,6 +15,7 @@ import { ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
 import { v4 as uuidv4 } from 'uuid'
 import { sanitizeResumeBullet, useDebouncedCallback } from '@/lib/utils'
+import { BulletPoint } from '@/components/shared/BulletPoint/BulletPoint'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
@@ -54,7 +50,6 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     null
   )
   const [editingBulletText, setEditingBulletText] = useState('')
-  const [deleteExpanded, setDeleteExpanded] = useState<null | number>(null)
   const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
     null
   )
@@ -241,28 +236,8 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         ),
       }
       onEditBullets(updatedData)
-      setDeleteExpanded(null)
     },
     [localData, onEditBullets]
-  )
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault()
-        e.stopPropagation()
-        handleSaveBullet()
-      } else if (e.key === 'Enter' && e.shiftKey) {
-        e.stopPropagation()
-      } else if (e.key === ' ' || e.code === 'Space') {
-        e.stopPropagation()
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        e.stopPropagation()
-        handleCancelEdit()
-      }
-    },
-    [handleSaveBullet, handleCancelEdit]
   )
 
   const handleAddBullet = useCallback(
@@ -348,7 +323,12 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             data-no-dnd='true'
             className={styles.generateAllButton}
             onClick={handleGenerateAllBullets}
-            disabled={isDragging || isOverlay || editingBulletIndex !== null}
+            disabled={
+              isDragging ||
+              isOverlay ||
+              editingBulletIndex !== null ||
+              regeneratingIndex !== null
+            }
           >
             <FaMagic size={12} />
             <span>Generate</span>
@@ -358,7 +338,12 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             data-no-dnd='true'
             className={styles.editButton}
             onClick={() => onBlockSelect(data.id)}
-            disabled={isDragging || isOverlay || editingBulletIndex !== null}
+            disabled={
+              isDragging ||
+              isOverlay ||
+              editingBulletIndex !== null ||
+              regeneratingIndex !== null
+            }
           >
             <FaPen />
           </button>
@@ -383,150 +368,26 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         }`}
       >
         {localData.bulletPoints.map((bullet, index) => (
-          <div
+          <BulletPoint
             key={index}
-            className={[
-              styles.bulletContainer,
-              regeneratingIndex === index ? styles.regenerating : '',
-            ].join(' ')}
-          >
-            <div className={styles.bulletDeleteWrapper}>
-              <div
-                className={[
-                  styles.bulletDeleteContainer,
-                  deleteExpanded === index ? styles.expanded : '',
-                  editingBulletIndex !== null ? styles.deleteDisabled : '',
-                ].join(' ')}
-                onTouchStart={(e) => {
-                  if (
-                    deleteExpanded !== index &&
-                    editingBulletIndex !== index
-                  ) {
-                    setTimeout(() => setDeleteExpanded(index), 200)
-                    e.stopPropagation()
-                  }
-                }}
-                onMouseEnter={() => {
-                  if (
-                    deleteExpanded !== index &&
-                    editingBulletIndex !== index
-                  ) {
-                    setDeleteExpanded(index)
-                  }
-                }}
-                onMouseLeave={() => {
-                  setDeleteExpanded(null)
-                }}
-              >
-                <button
-                  className={styles.bulletDeleteButton}
-                  onClick={() => handleDeleteBullet(index)}
-                  disabled={deleteExpanded !== index}
-                  tabIndex={
-                    deleteExpanded === index && editingBulletIndex !== index
-                      ? 0
-                      : -1
-                  }
-                >
-                  <FaTrash />
-                </button>
-              </div>
-            </div>
-            {editingBulletIndex === index ? (
-              <div className={styles.bulletInputAreaWrapper}>
-                <textarea
-                  ref={editInputRef}
-                  className={styles.bulletInputArea}
-                  value={editingBulletText}
-                  disabled={regeneratingIndex !== null}
-                  onChange={handleTextareaChange}
-                  onKeyDown={handleKeyDown}
-                  data-no-dnd='true'
-                  rows={4}
-                  maxLength={500}
-                  autoFocus
-                />
-                <div className={styles.characterCount}>
-                  <span
-                    className={
-                      editingBulletText.length >
-                      settings.maxCharsPerBullet * 0.9
-                        ? editingBulletText.length > settings.maxCharsPerBullet
-                          ? styles.characterCountExceeded
-                          : styles.characterCountWarning
-                        : ''
-                    }
-                  >
-                    {`${editingBulletText.length}/${settings.maxCharsPerBullet} (max 500)`}
-                  </span>
-                </div>
-                {errors.bulletEmpty && (
-                  <p className={styles.formError}>{errors.bulletEmpty}</p>
-                )}
-                {errors.bulletTooLong && (
-                  <p className={`${styles.formError} ${styles.flashWarning}`}>
-                    {errors.bulletTooLong}
-                  </p>
-                )}
-              </div>
-            ) : (
-              <p className={styles.bulletText}>{bullet.text}</p>
-            )}
-            {editingBulletIndex === index ? (
-              <div className={styles.editBulletButtonContainer}>
-                <button
-                  className={styles.saveButton}
-                  onClick={handleSaveBullet}
-                  data-no-dnd='true'
-                  disabled={
-                    editingBulletText.trim() === '' ||
-                    regeneratingIndex !== null
-                  }
-                  title='Save (Enter)'
-                >
-                  <FaCheck size={12} />
-                </button>
-                <button
-                  className={styles.cancelButton}
-                  onClick={handleCancelEdit}
-                  disabled={regeneratingIndex !== null}
-                  data-no-dnd='true'
-                  title='Cancel (Esc)'
-                >
-                  <FaTimes size={12} />
-                </button>
-                <button
-                  className={styles.regenerateButton}
-                  disabled={
-                    isDragging || isOverlay || regeneratingIndex !== null
-                  }
-                  onClick={(e) => handleRegenerateBullet(index, e, true)}
-                  data-no-dnd='true'
-                >
-                  <FaRedo size={12} />
-                </button>
-              </div>
-            ) : (
-              <div className={styles.viewBulletButtonContainer}>
-                <button
-                  className={styles.editButton}
-                  disabled={editingBulletIndex !== null}
-                  onClick={(e) => handleEditBullet(index, e)}
-                  data-no-dnd='true'
-                >
-                  <FaPencilAlt size={12} />
-                </button>
-                <button
-                  className={styles.regenerateButton}
-                  disabled={editingBulletIndex !== null}
-                  onClick={(e) => handleRegenerateBullet(index, e)}
-                  data-no-dnd='true'
-                >
-                  <FaRedo size={12} />
-                </button>
-              </div>
-            )}
-          </div>
+            text={bullet.text}
+            editingText={editingBulletText}
+            index={index}
+            isRegenerating={regeneratingIndex === index}
+            isEditing={editingBulletIndex === index}
+            disableAllControls={
+              regeneratingIndex !== null ||
+              (editingBulletIndex !== null && editingBulletIndex !== index)
+            }
+            errors={errors}
+            settings={settings}
+            onCancelEdit={handleCancelEdit}
+            onBulletDelete={handleDeleteBullet}
+            onBulletSave={handleSaveBullet}
+            onEditBullet={handleEditBullet}
+            onRegenerateBullet={handleRegenerateBullet}
+            onTextareaChange={handleTextareaChange}
+          />
         ))}
 
         <button
