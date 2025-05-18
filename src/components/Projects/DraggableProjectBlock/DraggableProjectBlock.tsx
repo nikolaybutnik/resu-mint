@@ -1,5 +1,5 @@
 import styles from './DraggableProjectBlock.module.scss'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FaPen,
   FaChevronDown,
@@ -15,7 +15,8 @@ import { ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
 import { v4 as uuidv4 } from 'uuid'
 import { sanitizeResumeBullet, useDebouncedCallback } from '@/lib/utils'
-import { BulletPoint } from '@/components/shared/BulletPoint/BulletPoint'
+import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
+import { isEqual } from 'lodash'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
@@ -33,7 +34,7 @@ type ValidationErrors = {
   [K in ErrorKey]?: string[]
 }
 
-export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
+const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   data,
   jobDescriptionAnalysis,
   onBlockSelect,
@@ -54,9 +55,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     null
   )
   const [localData, setLocalData] = useState<ProjectBlockData>(data)
-  const [errors, setErrors] = useState<ValidationErrors>({
-    bulletEmpty: undefined,
-  })
+  const [errors, setErrors] = useState<ValidationErrors>({})
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
@@ -83,7 +82,7 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         opacity: isDragging ? 0 : 1,
       }
 
-  const handleToggle = useCallback(() => {
+  const handleToggle = () => {
     if (isTransitioning) return
     setIsTransitioning(true)
     let capturedIsExpanded = isExpanded
@@ -104,16 +103,29 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       }
       setIsTransitioning(false)
     }, 400)
-  }, [isExpanded, isTransitioning, editingBulletIndex, localData, data])
+  }
 
-  const handleGenerateAllBullets = useCallback(
-    (e: React.MouseEvent) => {
-      // TODO: implement
-      e.stopPropagation()
-      onEditBullets(data)
-    },
-    [onEditBullets, data]
-  )
+  const validateBulletText = useDebouncedCallback((text: string) => {
+    const newErrors: ValidationErrors = {}
+
+    if (text.trim() === '') {
+      newErrors.bulletEmpty = ['Bullet text cannot be empty']
+    }
+
+    if (text.length > settings.maxCharsPerBullet) {
+      newErrors.bulletTooLong = [
+        `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+      ]
+    }
+
+    setErrors((prev) => (isEqual(prev, newErrors) ? prev : newErrors))
+  }, 300)
+
+  const handleGenerateAllBullets = (e: React.MouseEvent) => {
+    // TODO: implement
+    e.stopPropagation()
+    onEditBullets(data)
+  }
 
   const handleRegenerateBullet = useCallback(
     async (index: number, e: React.MouseEvent, isEditing = false) => {
@@ -175,6 +187,8 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
 
           onEditBullets(updatedData)
         }
+
+        validateBulletText(newBullet.text)
       } catch (error) {
         console.error('Error regenerating bullet', error)
       } finally {
@@ -183,20 +197,26 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     },
     [
       localData,
-      data.description,
+      data,
       jobDescriptionAnalysis,
-      settings.maxCharsPerBullet,
+      settings,
       onEditBullets,
+      validateBulletText,
     ]
+  )
+
+  const bulletPoints = useMemo(
+    () => localData.bulletPoints,
+    [localData.bulletPoints]
   )
 
   const handleEditBullet = useCallback(
     (index: number, e: React.MouseEvent) => {
       e.stopPropagation()
       setEditingBulletIndex(index)
-      setEditingBulletText(localData.bulletPoints[index].text)
+      setEditingBulletText(bulletPoints[index].text)
     },
-    [localData]
+    [bulletPoints]
   )
 
   const handleCancelEdit = useCallback(() => {
@@ -240,50 +260,31 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     [localData, onEditBullets]
   )
 
-  const handleAddBullet = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      const newBullet = {
-        id: uuidv4(),
-        text: '',
+  const handleAddBullet = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const newBullet = {
+      id: uuidv4(),
+      text: '',
+    }
+
+    let scopedData = localData
+    setLocalData((prev) => {
+      const newBullets = [...prev.bulletPoints, newBullet]
+      scopedData = {
+        ...prev,
+        bulletPoints: newBullets,
       }
 
-      let scopedData = localData
-      setLocalData((prev) => {
-        const newBullets = [...prev.bulletPoints, newBullet]
-        scopedData = {
-          ...prev,
-          bulletPoints: newBullets,
-        }
+      if (!isExpanded) {
+        handleToggle()
+      }
 
-        if (!isExpanded) {
-          handleToggle()
-        }
+      setEditingBulletIndex(scopedData.bulletPoints.length - 1)
+      setEditingBulletText('')
 
-        setEditingBulletIndex(scopedData.bulletPoints.length - 1)
-        setEditingBulletText('')
-
-        return scopedData
-      })
-    },
-    [isExpanded, localData, handleToggle]
-  )
-
-  const validateBulletText = useDebouncedCallback((text: string) => {
-    const newErrors: ValidationErrors = {}
-
-    if (text.trim() === '') {
-      newErrors.bulletEmpty = ['Bullet text cannot be empty']
-    }
-
-    if (text.length > settings.maxCharsPerBullet) {
-      newErrors.bulletTooLong = [
-        `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
-      ]
-    }
-
-    setErrors(newErrors)
-  }, 300)
+      return scopedData
+    })
+  }
 
   const handleTextareaChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -292,6 +293,15 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       validateBulletText(sanitized)
     },
     [validateBulletText]
+  )
+
+  const emptyErrors = useMemo(() => ({}), [])
+  const bulletErrors = useMemo(
+    () =>
+      localData.bulletPoints.map((_, index) =>
+        editingBulletIndex === index ? errors : emptyErrors
+      ),
+    [errors, editingBulletIndex, localData.bulletPoints, emptyErrors]
   )
 
   return (
@@ -367,19 +377,19 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           isExpanded ? styles.expanded : ''
         }`}
       >
-        {localData.bulletPoints.map((bullet, index) => (
+        {bulletPoints.map((bullet, index) => (
           <BulletPoint
-            key={index}
-            text={bullet.text}
-            editingText={editingBulletText}
+            key={bullet.id}
             index={index}
+            text={bullet.text}
+            editingText={editingBulletIndex === index ? editingBulletText : ''}
             isRegenerating={regeneratingIndex === index}
             isEditing={editingBulletIndex === index}
             disableAllControls={
               regeneratingIndex !== null ||
               (editingBulletIndex !== null && editingBulletIndex !== index)
             }
-            errors={errors}
+            errors={bulletErrors[index]}
             settings={settings}
             onCancelEdit={handleCancelEdit}
             onBulletDelete={handleDeleteBullet}
@@ -413,3 +423,5 @@ export const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     </div>
   )
 }
+
+export default DraggableProjectBlock

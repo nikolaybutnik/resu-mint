@@ -1,6 +1,6 @@
 'use client'
 import styles from './FormsContainer.module.scss'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { saveAs } from 'file-saver'
 import { ExperienceBlockData } from '@/lib/types/experience'
@@ -115,73 +115,27 @@ export const FormsContainer: React.FC = () => {
     }
   }, [])
 
-  // Load job description
   useEffect(() => {
     setLoading(true)
-    const storedJobDescription = window.localStorage.getItem(
-      StorageKeys.JOB_DESCRIPTION
-    )
-    if (storedJobDescription) {
-      setJobDescription(storedJobDescription)
+    const stored = {
+      jobDescription: localStorage.getItem(StorageKeys.JOB_DESCRIPTION),
+      analysis: localStorage.getItem(StorageKeys.JOB_DESCRIPTION_ANALYSIS),
+      personalDetails: localStorage.getItem(StorageKeys.PERSONAL_DETAILS),
+      workExperience: localStorage.getItem(StorageKeys.EXPERIENCE),
+      projects: localStorage.getItem(StorageKeys.PROJECTS),
+      settings: localStorage.getItem(StorageKeys.SETTINGS),
     }
-    setLoading(false)
-  }, [])
-
-  // Load job description analysis
-  useEffect(() => {
-    setLoading(true)
-    const storedAnalysis = window.localStorage.getItem(
-      StorageKeys.JOB_DESCRIPTION_ANALYSIS
-    )
-    if (storedAnalysis) {
-      setJobDescriptionAnalysis(JSON.parse(storedAnalysis))
-    }
-    setLoading(false)
-  }, [])
-
-  // Load personal details
-  useEffect(() => {
-    setLoading(true)
-    const storedPersonalDetails = window.localStorage.getItem(
-      StorageKeys.PERSONAL_DETAILS
-    )
-    if (storedPersonalDetails) {
-      setPersonalDetails(JSON.parse(storedPersonalDetails))
-    }
-    setLoading(false)
-  }, [])
-
-  // Load experience
-  useEffect(() => {
-    setLoading(true)
-    const storedWorkExperience = window.localStorage.getItem(
-      StorageKeys.EXPERIENCE
-    )
-    if (storedWorkExperience) {
-      setWorkExperience(JSON.parse(storedWorkExperience))
-    }
-    setLoading(false)
-  }, [])
-
-  // Load projects
-  useEffect(() => {
-    setLoading(true)
-    const storedProjects = window.localStorage.getItem(StorageKeys.PROJECTS)
-    if (storedProjects) {
-      setProjects(JSON.parse(storedProjects))
-    }
-    setLoading(false)
-  }, [])
-
-  // Load settings
-  useEffect(() => {
-    setLoading(true)
-    const storedSettings = window.localStorage.getItem(StorageKeys.SETTINGS)
-
-    if (storedSettings) {
-      setSettings(JSON.parse(storedSettings))
+    if (stored.jobDescription) setJobDescription(stored.jobDescription)
+    if (stored.analysis) setJobDescriptionAnalysis(JSON.parse(stored.analysis))
+    if (stored.personalDetails)
+      setPersonalDetails(JSON.parse(stored.personalDetails))
+    if (stored.workExperience)
+      setWorkExperience(JSON.parse(stored.workExperience))
+    if (stored.projects) setProjects(JSON.parse(stored.projects))
+    if (stored.settings) {
+      setSettings(JSON.parse(stored.settings))
     } else {
-      window.localStorage.setItem(
+      localStorage.setItem(
         StorageKeys.SETTINGS,
         JSON.stringify(initialSettings)
       )
@@ -287,17 +241,24 @@ export const FormsContainer: React.FC = () => {
     }
   }
 
-  const handleProjectsSave = (data: ProjectBlockData[]) => {
+  const handleProjectsSave = useCallback((data: ProjectBlockData[]) => {
     setProjects(data)
     if (data.length > 0) {
       localStorage.setItem(StorageKeys.PROJECTS, JSON.stringify(data))
     }
-  }
+  }, [])
 
   const handleSettingsSave = (data: AppSettings) => {
     setSettings(data)
     localStorage.setItem(StorageKeys.SETTINGS, JSON.stringify(data))
   }
+
+  // Memoize fairly stable states. States like projects and experience are updated too often.
+  const memoizedSettings = useMemo(() => settings, [settings])
+  const memoizedJobDescriptionAnalysis = useMemo(
+    () => jobDescriptionAnalysis,
+    [jobDescriptionAnalysis]
+  )
 
   return (
     <div className={styles.formsContainer}>
@@ -345,8 +306,8 @@ export const FormsContainer: React.FC = () => {
             <Projects
               data={projects}
               loading={loading}
-              jobDescriptionAnalysis={jobDescriptionAnalysis}
-              settings={settings}
+              jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
+              settings={memoizedSettings}
               onSave={handleProjectsSave}
             />
           )}

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 import { v4 as uuidv4 } from 'uuid'
 import EditableProjectBlock from '../EditableProjectBlock/EditableProjectBlock'
-import { DraggableProjectBlock } from '../DraggableProjectBlock/DraggableProjectBlock'
+import DraggableProjectBlock from '../DraggableProjectBlock/DraggableProjectBlock'
 import {
   DndContext,
   closestCenter,
@@ -76,7 +76,7 @@ const Projects = ({
     [localData, onSave]
   )
 
-  const handleBlockAdd = useCallback(() => {
+  const handleBlockAdd = () => {
     const newBlock: ProjectBlockData = {
       id: uuidv4(),
       title: '',
@@ -91,7 +91,7 @@ const Projects = ({
     setLocalData(updatedData)
     setSelectedBlockId(newBlock.id)
     setNewBlockId(newBlock.id)
-  }, [localData])
+  }
 
   const handleBlockSelect = useCallback((id: string) => {
     setSelectedBlockId(id)
@@ -102,7 +102,7 @@ const Projects = ({
     setSelectedBlockId(null)
     setNewBlockId(null)
     setLocalData(data)
-  }, [])
+  }, [data])
 
   const handleSave = useCallback(
     (updatedBlock: ProjectBlockData) => {

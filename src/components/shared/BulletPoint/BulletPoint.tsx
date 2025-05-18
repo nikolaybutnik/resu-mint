@@ -2,7 +2,7 @@ import styles from './BulletPoint.module.scss'
 import { FaPencilAlt } from 'react-icons/fa'
 import { FaRedo, FaTimes, FaTrash } from 'react-icons/fa'
 import { FaCheck } from 'react-icons/fa'
-import { useCallback, useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { AppSettings } from '@/lib/types/settings'
 
 interface BulletPointProps {
@@ -29,7 +29,7 @@ interface BulletPointProps {
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
 
-export const BulletPoint: React.FC<BulletPointProps> = ({
+const BulletPoint: React.FC<BulletPointProps> = ({
   text,
   editingText,
   index,
@@ -49,28 +49,24 @@ export const BulletPoint: React.FC<BulletPointProps> = ({
 
   const [deleteExpanded, setDeleteExpanded] = useState<boolean>(false)
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault()
-        e.stopPropagation()
-        onBulletSave()
-      } else if (e.key === 'Enter' && e.shiftKey) {
-        e.stopPropagation()
-      } else if (e.key === ' ' || e.code === 'Space') {
-        e.stopPropagation()
-      } else if (e.key === 'Escape') {
-        e.preventDefault()
-        e.stopPropagation()
-        onCancelEdit()
-      }
-    },
-    [onCancelEdit, onBulletSave]
-  )
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      e.stopPropagation()
+      onBulletSave()
+    } else if (e.key === 'Enter' && e.shiftKey) {
+      e.stopPropagation()
+    } else if (e.key === ' ' || e.code === 'Space') {
+      e.stopPropagation()
+    } else if (e.key === 'Escape') {
+      e.preventDefault()
+      e.stopPropagation()
+      onCancelEdit()
+    }
+  }
 
   return (
     <div
-      key={index}
       className={[
         styles.bulletContainer,
         isRegenerating ? styles.regenerating : '',
@@ -204,3 +200,5 @@ export const BulletPoint: React.FC<BulletPointProps> = ({
     </div>
   )
 }
+
+export default memo(BulletPoint)
