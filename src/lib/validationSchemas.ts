@@ -3,6 +3,84 @@ import { Month } from './types/projects'
 import z from 'zod'
 import { LanguageModel } from './types/settings'
 
+const urlValidator = (errorMessage = 'Must be a valid URL') => {
+  return z.union([
+    z.string().refine(
+      (val) => {
+        if (val === '') return false // Empty strings handled by the second option
+
+        try {
+          // Check for trailing invalid punctuation
+          if (/[!@#$%^&*(){}[\]:;<>,.?~\\]$/.test(val)) {
+            return false
+          }
+
+          // Handle protocol
+          let urlToValidate = val
+
+          // Check for malformed protocol (like https:example.com without //)
+          if (val.match(/^https?:/i) && !val.match(/^https?:\/\//i)) {
+            return false
+          }
+
+          // If missing protocol entirely, prepend it
+          if (!val.match(/^https?:\/\//i)) {
+            urlToValidate = `https://${val}`
+          }
+
+          // Extract domain part for strict validation
+          let domain = ''
+          if (urlToValidate.includes('://')) {
+            domain = urlToValidate.split('://')[1].split('/')[0]
+
+            // Remove port number if present
+            if (domain.includes(':')) {
+              domain = domain.split(':')[0]
+            }
+          }
+
+          // Strictly validate domain format
+          // Valid domains only contain letters, numbers, hyphens, and dots as separators
+          // Each label (part between dots) must start and end with letter/number
+          if (domain) {
+            // Check for invalid characters
+            if (!/^[a-zA-Z0-9.-]+$/.test(domain)) {
+              return false
+            }
+
+            // Check each domain label (part between dots)
+            const labels = domain.split('.')
+            for (const label of labels) {
+              // Each label must start and end with alphanumeric character
+              if (!/^[a-zA-Z0-9].*[a-zA-Z0-9]$|^[a-zA-Z0-9]$/.test(label)) {
+                return false
+              }
+
+              // No consecutive hyphens
+              if (label.includes('--')) {
+                return false
+              }
+            }
+
+            // Must have at least two labels, and last label must be at least 2 chars
+            if (labels.length < 2 || labels[labels.length - 1].length < 2) {
+              return false
+            }
+          }
+
+          // Final URL object validation
+          const url = new URL(urlToValidate)
+          return true
+        } catch {
+          return false
+        }
+      },
+      { message: errorMessage }
+    ),
+    z.literal(''),
+  ])
+}
+
 const bulletPointSchema = z.object({
   id: z.string(),
   text: z
@@ -44,46 +122,45 @@ export const personalDetailsSchema = z.object({
     .string()
     .max(100, 'Location must be 100 characters or less')
     .optional(),
-  linkedin: z
-    .string()
+  linkedin: urlValidator('Please enter a valid LinkedIn URL')
     .optional()
     .refine(
-      (val) => !val || /^https?:\/\/(www\.)?linkedin\.com\/.*$/.test(val),
+      (val) => !val || val === '' || val.toLowerCase().includes('linkedin.com'),
       'Please enter a valid LinkedIn URL'
     ),
-  github: z
-    .string()
+  github: urlValidator('Please enter a valid GitHub URL')
     .optional()
     .refine(
-      (val) => !val || /^https?:\/\/(www\.)?github\.com\/.*$/.test(val),
+      (val) => !val || val === '' || val.toLowerCase().includes('github.com'),
       'Please enter a valid GitHub URL'
     ),
-  website: z
-    .string()
-    .optional()
-    .refine(
-      (val) => !val || /^https?:\/\/(www\.)?.*$/.test(val),
-      'Please enter a valid website URL'
-    ),
+  website: urlValidator('Please enter a valid website URL').optional(),
 })
 
+const monthSchema = z.union([z.enum(monthLabels), z.literal('')]).optional()
+
 export const startDateSchema = z.object({
-  month: z.union([z.enum(monthLabels), z.literal('')]),
+  month: monthSchema,
   year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
 })
 
-export const endDateSchema = z.discriminatedUnion('isPresent', [
-  z.object({
-    isPresent: z.literal(true),
-    month: z.literal(''),
-    year: z.literal(''),
-  }),
-  z.object({
-    isPresent: z.literal(false),
-    month: z.union([z.enum(monthLabels), z.literal('')]),
-    year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
-  }),
-])
+export const endDateSchema = z
+  .object({
+    isPresent: z.boolean(),
+    month: monthSchema,
+    year: z.string(),
+  })
+  .refine(
+    (data) => {
+      if (data.isPresent) return true
+
+      return /^\d{4}$/.test(data.year)
+    },
+    {
+      message: 'Year must be four digits (e.g., 2020) when not Present',
+      path: ['year'],
+    }
+  )
 
 export const experienceBlockSchema = z
   .object({
@@ -114,7 +191,7 @@ export const experienceBlockSchema = z
         return true
       }
 
-      if (!data.startDate.month || !data.endDate.month) {
+      if (!data.startDate.month && !data.endDate.month) {
         const startYear = parseInt(data.startDate.year)
         const endYear = parseInt(data.endDate.year)
         return endYear >= startYear
@@ -147,26 +224,34 @@ export const projectBlockSchema = z
       .max(100, 'Title must be 100 characters or less'),
     startDate: startDateSchema,
     endDate: endDateSchema,
-    technologies: z.array(z.string()).optional(),
-    link: z.union([z.string().url('Invalid URL'), z.literal('')]).optional(),
-    description: z
-      .string()
-      .max(2000, 'Description must be 2000 characters or less')
-      .optional(),
-    bulletPoints: z.array(bulletPointSchema).optional().default([]),
+    technologies: z.array(z.string()).default([]),
+    link: urlValidator().default(''),
+    description: z.string().default(''),
+    bulletPoints: z.array(bulletPointSchema).default([]),
   })
   .refine(
     (data) => {
-      if (data.endDate.isPresent || !data.endDate.year) {
+      // If present, no need to check date comparisons
+      if (data.endDate.isPresent) {
         return true
       }
 
-      if (!data.startDate.month || !data.endDate.month) {
+      // If both months are undefined, just compare years
+      if (!data.startDate.month && !data.endDate.month) {
         const startYear = parseInt(data.startDate.year)
         const endYear = parseInt(data.endDate.year)
         return endYear >= startYear
       }
 
+      // If one month is defined but the other isn't, invalid
+      if (
+        (data.startDate.month && !data.endDate.month) ||
+        (!data.startDate.month && data.endDate.month)
+      ) {
+        return false
+      }
+
+      // Both months are defined, compare full dates
       const startDate = new Date(
         parseInt(data.startDate.year),
         months.find((m) => m.label === data.startDate.month)?.num || 0,
@@ -181,6 +266,25 @@ export const projectBlockSchema = z
     },
     {
       message: 'End date must be on or after start date',
+      path: ['endDate'],
+    }
+  )
+  .refine(
+    (data) => {
+      // If present, skip this validation
+      if (data.endDate.isPresent) {
+        return true
+      }
+
+      // Both should be defined or both should be undefined
+      const startMonthDefined = data.startDate.month !== undefined
+      const endMonthDefined = data.endDate.month !== undefined
+
+      return startMonthDefined === endMonthDefined
+    },
+    {
+      message:
+        'If you specify a month for one date, you must specify it for both dates',
       path: ['endDate'],
     }
   )

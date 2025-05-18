@@ -13,6 +13,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { BulletPoint as BulletPointComponent } from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPoint, Month, ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
+import { useForm, Controller } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
@@ -60,6 +63,20 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   onClose,
   onSave,
 }) => {
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors, touchedFields, isValid: formIsValid },
+    reset,
+  } = useForm({
+    resolver: zodResolver(projectBlockSchema),
+    defaultValues: data,
+    mode: 'onChange',
+  })
+
   const [formData, setFormData] = useState<ProjectBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [fieldErrors, setFieldErrors] = useState<
