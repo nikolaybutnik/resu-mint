@@ -148,7 +148,7 @@ const Projects = ({
   )
 
   const handleBulletRegenerate = useCallback(
-    async (sectionId: string, index: number) => {
+    async (sectionId: string, index: number, isProjectEditForm: boolean) => {
       const projectData = findProject(sectionId)
       if (!projectData) return
 
@@ -171,7 +171,7 @@ const Projects = ({
         if (bullets.length > 0) {
           const regeneratedText = bullets[0]
 
-          // If bullet in edit mode, update textarea
+          // If bullet in edit mode, update textarea only
           if (
             editingBullet &&
             editingBullet.section === sectionId &&
@@ -182,7 +182,7 @@ const Projects = ({
               return { ...prev, text: regeneratedText }
             })
           } else {
-            // Else, save bullet
+            // Else, update bullet in local state
             const updatedBullets = projectData.bulletPoints.map((bullet) =>
               bullet.id === bulletToRegenerate.id
                 ? { ...bullet, text: regeneratedText }
@@ -195,11 +195,16 @@ const Projects = ({
             }
 
             updateProject(updatedProject)
-            onSave(
-              localData.map((project) =>
-                project.id === sectionId ? updatedProject : project
+
+            const shouldSaveToStorage = !isProjectEditForm
+
+            if (shouldSaveToStorage) {
+              onSave(
+                localData.map((project) =>
+                  project.id === sectionId ? updatedProject : project
+                )
               )
-            )
+            }
           }
         }
       } catch (error) {
@@ -240,7 +245,7 @@ const Projects = ({
   }, [])
 
   const handleAddBullet = useCallback(
-    (sectionId: string, shouldSave = true) => {
+    (sectionId: string, shouldSave = false) => {
       const project = findProject(sectionId)
       if (!project) return
 
@@ -481,7 +486,9 @@ const Projects = ({
                       onDelete={handleSectionDelete}
                       onClose={handleSectionClose}
                       onSave={handleProjectSave}
-                      onRegenerateBullet={handleBulletRegenerate}
+                      onRegenerateBullet={(sectionId, index) =>
+                        handleBulletRegenerate(sectionId, index, true)
+                      }
                       onAddBullet={(sectionId) =>
                         handleAddBullet(sectionId, false)
                       }
@@ -532,9 +539,11 @@ const Projects = ({
                         regeneratingBullet={regeneratingBullet}
                         onBlockSelect={handleSectionSelect}
                         onEditBullets={handleProjectSave}
-                        onRegenerateBullet={handleBulletRegenerate}
+                        onRegenerateBullet={(sectionId, index) =>
+                          handleBulletRegenerate(sectionId, index, false)
+                        }
                         onAddBullet={(sectionId) =>
-                          handleAddBullet(sectionId, true)
+                          handleAddBullet(sectionId, false)
                         }
                         onEditBullet={handleBulletEdit}
                         onBulletSave={() => handleBulletSave(true)}
@@ -574,9 +583,11 @@ const Projects = ({
                       regeneratingBullet={regeneratingBullet}
                       onBlockSelect={handleSectionSelect}
                       onEditBullets={handleProjectSave}
-                      onRegenerateBullet={handleBulletRegenerate}
+                      onRegenerateBullet={(sectionId, index) =>
+                        handleBulletRegenerate(sectionId, index, false)
+                      }
                       onAddBullet={(sectionId) =>
-                        handleAddBullet(sectionId, true)
+                        handleAddBullet(sectionId, false)
                       }
                       onEditBullet={handleBulletEdit}
                       onBulletSave={() => handleBulletSave(true)}

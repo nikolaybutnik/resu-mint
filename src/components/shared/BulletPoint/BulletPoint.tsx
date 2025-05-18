@@ -22,11 +22,7 @@ interface BulletPointProps {
   onBulletDelete: (index: number) => void
   onBulletSave: () => void
   onEditBullet: (index: number, e: React.MouseEvent) => void
-  onRegenerateBullet: (
-    sectionId: string,
-    index: number,
-    isEditing?: boolean
-  ) => void
+  onRegenerateBullet: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
 
@@ -178,7 +174,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           <button
             className={styles.regenerateButton}
             disabled={isRegenerating || disableAllControls}
-            onClick={() => onRegenerateBullet(sectionId, index, true)}
+            onClick={() => onRegenerateBullet(sectionId, index)}
             data-no-dnd='true'
           >
             <FaRedo size={12} />

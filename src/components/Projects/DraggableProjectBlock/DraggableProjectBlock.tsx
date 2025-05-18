@@ -29,7 +29,11 @@ interface DraggableProjectBlockProps {
   regeneratingBullet?: { section: string; index: number } | null
   onBlockSelect: (id: string) => void
   onEditBullets: (updatedBlock: ProjectBlockData) => void
-  onRegenerateBullet: (sectionId: string, index: number) => void
+  onRegenerateBullet: (
+    sectionId: string,
+    index: number,
+    isProjectEditForm: boolean
+  ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
   onBulletSave: () => void
@@ -206,9 +210,9 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               onBulletDelete={(index) => onBulletDelete(data.id, index)}
               onBulletSave={onBulletSave}
               onEditBullet={(index) => onEditBullet(data.id, index)}
-              onRegenerateBullet={(sectionId, index) =>
-                onRegenerateBullet(sectionId, index)
-              }
+              onRegenerateBullet={(sectionId, index) => {
+                onRegenerateBullet(sectionId, index, false)
+              }}
               onTextareaChange={onTextareaChange}
             />
           )

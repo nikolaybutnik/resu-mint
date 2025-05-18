@@ -26,7 +26,11 @@ interface EditableProjectBlockProps {
   onDelete: (id: string) => void
   onClose: () => void
   onSave: (data: ProjectBlockData) => void
-  onRegenerateBullet: (sectionId: string, index: number) => void
+  onRegenerateBullet: (
+    sectionId: string,
+    index: number,
+    isProjectEditForm: boolean
+  ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
   onBulletSave: () => void
@@ -272,6 +276,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         editingBulletIndex === index ? bulletErrors : emptyBulletErrors
       ),
     [bulletErrors, editingBulletIndex, formData.bulletPoints, emptyBulletErrors]
+  )
+
+  const handleRegenerateBullet = useCallback(
+    (sectionId: string, index: number) => {
+      if (sectionId === formData.id) {
+        onRegenerateBullet(sectionId, index, true)
+      }
+    },
+    [formData.id, onRegenerateBullet]
   )
 
   return (
@@ -551,9 +564,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                 onBulletDelete={(index) => onBulletDelete(formData.id, index)}
                 onBulletSave={onBulletSave}
                 onEditBullet={(index) => onEditBullet(formData.id, index)}
-                onRegenerateBullet={(sectionId, index) =>
-                  onRegenerateBullet(sectionId, index)
-                }
+                onRegenerateBullet={handleRegenerateBullet}
                 onTextareaChange={onTextareaChange}
               />
             )
