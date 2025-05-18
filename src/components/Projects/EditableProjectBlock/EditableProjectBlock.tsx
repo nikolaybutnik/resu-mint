@@ -2,7 +2,6 @@ import styles from './EditableProjectBlock.module.scss'
 import {
   sanitizeResumeBullet,
   sanitizeResumeContent,
-  sanitizeUrl,
   useDebounce,
   useDebouncedCallback,
 } from '@/lib/utils'
@@ -24,10 +23,20 @@ interface EditableProjectBlockProps {
   onSave: (data: ProjectBlockData) => void
 }
 
-type ErrorKey = 'bulletEmpty' | 'bulletTooLong'
+type FieldErrorKey =
+  | 'invalidTitle'
+  | 'invalidLink'
+  | 'invalidDescription'
+  | 'invalidStartDateMonth'
+  | 'invalidStartDateYear'
+  | 'invalidEndDateMonth'
+  | 'invalidEndDateYear'
+  | 'invalidEndDate'
 
-type ValidationErrors = {
-  [K in ErrorKey]?: string[]
+type BulletErrorKey = 'bulletEmpty' | 'bulletTooLong'
+
+type ValidationErrors<T extends string = string> = {
+  [K in T]?: string[]
 }
 
 const FieldType = {
@@ -53,14 +62,17 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 }) => {
   const [formData, setFormData] = useState<ProjectBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [fieldErrors, setFieldErrors] = useState<
+    ValidationErrors<FieldErrorKey>
+  >({})
+  const [bulletPointErrors, setBulletPointErrors] = useState<
+    ValidationErrors<BulletErrorKey>[]
+  >(data.bulletPoints.map(() => ({})))
   const [techInput, setTechInput] = useState('')
   const [editingBulletIndex, setEditingBulletIndex] = useState<number | null>(
     null
   )
   const [editingBulletText, setEditingBulletText] = useState<string>('')
-  const [bulletPointErrors, setBulletPointErrors] = useState<
-    ValidationErrors[]
-  >(data.bulletPoints.map(() => ({})))
   const [temporaryBulletId, setTemporaryBulletId] = useState<string | null>(
     null
   )
@@ -71,33 +83,62 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   useEffect(() => {
     setFormData(data)
     setTouched({})
+    setFieldErrors({})
     setEditingBulletIndex(null)
     setEditingBulletText('')
     setBulletPointErrors(data.bulletPoints.map(() => ({})))
+    setTemporaryBulletId(null)
   }, [data])
+
+  useEffect(() => {
+    const result = projectBlockSchema.safeParse(debouncedFormData)
+    if (result.success) {
+      setFieldErrors({})
+      return
+    }
+
+    const errors: ValidationErrors<FieldErrorKey> = {}
+    result.error.issues.forEach((issue) => {
+      const path = issue.path.join('.')
+      if (!path.startsWith('bulletPoints.')) {
+        switch (path) {
+          case 'title':
+            errors.invalidTitle = [issue.message]
+            break
+          case 'link':
+            errors.invalidLink = [issue.message]
+            break
+          case 'description':
+            errors.invalidDescription = [issue.message]
+            break
+          case 'startDate.month':
+            errors.invalidStartDateMonth = [issue.message]
+            break
+          case 'startDate.year':
+            errors.invalidStartDateYear = [issue.message]
+            break
+          case 'endDate.month':
+            errors.invalidEndDateMonth = [issue.message]
+            break
+          case 'endDate.year':
+            errors.invalidEndDateYear = [issue.message]
+            break
+          case 'endDate':
+            errors.invalidEndDate = [issue.message]
+            break
+        }
+      }
+    })
+    setFieldErrors(errors)
+  }, [debouncedFormData])
 
   const isValid = useMemo(() => {
     return projectBlockSchema.safeParse(formData).success
   }, [formData])
 
-  const fieldErrors = useMemo(() => {
-    const result = projectBlockSchema.safeParse(debouncedFormData)
-    if (result.success) {
-      return {}
-    }
-    const errors: Record<string, string> = {}
-    result.error.issues.forEach((issue) => {
-      const path = issue.path.join('.')
-      if (!path.startsWith('bulletPoints.')) {
-        errors[path] = issue.message
-      }
-    })
-    return errors
-  }, [debouncedFormData])
-
   const validateBulletText = useDebouncedCallback(
     (text: string, index: number) => {
-      const newErrors: ValidationErrors = {}
+      const newErrors: ValidationErrors<BulletErrorKey> = {}
 
       if (text.trim() === '') {
         newErrors.bulletEmpty = ['Bullet text cannot be empty']
@@ -176,7 +217,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         }),
         [FieldType.LINK]: (prev, val) => ({
           ...prev,
-          link: sanitizeUrl(val as string),
+          link: val as string,
         }),
       }
 
@@ -209,7 +250,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           : {}),
       }))
     },
-    []
+    [sanitizeYear]
   )
 
   const handleAddBulletPoint = useCallback(() => {
@@ -222,7 +263,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     setBulletPointErrors((prev) => [...prev, {}])
     setEditingBulletIndex(formData.bulletPoints.length)
     setEditingBulletText('')
-  }, [formData.bulletPoints.length, temporaryBulletId])
+  }, [formData.bulletPoints.length])
 
   const handleBulletDelete = useCallback((index: number) => {
     setFormData((prev) => ({
@@ -230,13 +271,9 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
       bulletPoints: prev.bulletPoints.filter((_, i) => i !== index),
     }))
     setBulletPointErrors((prev) => prev.filter((_, i) => i !== index))
-    setTouched((prev) => {
-      const updated = { ...prev }
-      delete updated[`bulletPoints.${index}`]
-      return updated
-    })
     setEditingBulletIndex(null)
     setEditingBulletText('')
+    setTemporaryBulletId(null)
   }, [])
 
   const handleBulletSave = useCallback(() => {
@@ -294,7 +331,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         return updated
       })
     }
-  }, [editingBulletIndex])
+  }, [editingBulletIndex, temporaryBulletId])
 
   const handleTextareaChange = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -308,7 +345,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   )
 
   const handleDelete = useCallback(() => {
-    // temporary confirmation window
     if (
       window.confirm(
         'Are you sure you want to delete this project? This action cannot be undone.'
@@ -350,8 +386,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             value={formData.title}
             onChange={(e) => handleChange(FieldType.TITLE, e.target.value)}
           />
-          {debouncedTouched.title && fieldErrors.title && (
-            <p className={styles.formError}>{fieldErrors.title}</p>
+          {debouncedTouched.title && fieldErrors.invalidTitle && (
+            <p className={styles.formError}>{fieldErrors.invalidTitle[0]}</p>
           )}
         </div>
 
@@ -363,8 +399,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             value={formData.link}
             onChange={(e) => handleChange(FieldType.LINK, e.target.value)}
           />
-          {debouncedTouched.link && fieldErrors.link && (
-            <p className={styles.formError}>{fieldErrors.link}</p>
+          {debouncedTouched.link && fieldErrors.invalidLink && (
+            <p className={styles.formError}>{fieldErrors.invalidLink[0]}</p>
           )}
         </div>
 
@@ -464,15 +500,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             />
           </div>
           {debouncedTouched[FieldType.START_DATE_MONTH] &&
-            fieldErrors[FieldType.START_DATE_MONTH] && (
+            fieldErrors.invalidStartDateMonth && (
               <p className={styles.formError}>
-                {fieldErrors[FieldType.START_DATE_MONTH]}
+                {fieldErrors.invalidStartDateMonth[0]}
               </p>
             )}
           {debouncedTouched[FieldType.START_DATE_YEAR] &&
-            fieldErrors[FieldType.START_DATE_YEAR] && (
+            fieldErrors.invalidStartDateYear && (
               <p className={styles.formError}>
-                {fieldErrors[FieldType.START_DATE_YEAR]}
+                {fieldErrors.invalidStartDateYear[0]}
               </p>
             )}
         </div>
@@ -526,16 +562,20 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             />
             <label className={styles.checkboxLabel}>Present</label>
           </div>
-
           {debouncedTouched['endDate.month'] &&
-            fieldErrors['endDate.month'] && (
-              <p className={styles.formError}>{fieldErrors['endDate.month']}</p>
+            fieldErrors.invalidEndDateMonth && (
+              <p className={styles.formError}>
+                {fieldErrors.invalidEndDateMonth[0]}
+              </p>
             )}
-          {debouncedTouched['endDate.year'] && fieldErrors['endDate.year'] && (
-            <p className={styles.formError}>{fieldErrors['endDate.year']}</p>
-          )}
-          {debouncedTouched.endDate && fieldErrors.endDate && (
-            <p className={styles.formError}>{fieldErrors.endDate}</p>
+          {debouncedTouched['endDate.year'] &&
+            fieldErrors.invalidEndDateYear && (
+              <p className={styles.formError}>
+                {fieldErrors.invalidEndDateYear[0]}
+              </p>
+            )}
+          {debouncedTouched.endDate && fieldErrors.invalidEndDate && (
+            <p className={styles.formError}>{fieldErrors.invalidEndDate[0]}</p>
           )}
         </div>
 
@@ -551,6 +591,11 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               handleChange(FieldType.DESCRIPTION, e.target.value)
             }
           />
+          {debouncedTouched.description && fieldErrors.invalidDescription && (
+            <p className={styles.formError}>
+              {fieldErrors.invalidDescription[0]}
+            </p>
+          )}
         </div>
       </div>
 
