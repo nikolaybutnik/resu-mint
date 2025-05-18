@@ -63,19 +63,19 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   onClose,
   onSave,
 }) => {
-  const {
-    register,
-    handleSubmit,
-    control,
-    setValue,
-    watch,
-    formState: { errors, touchedFields, isValid: formIsValid },
-    reset,
-  } = useForm({
-    resolver: zodResolver(projectBlockSchema),
-    defaultValues: data,
-    mode: 'onChange',
-  })
+  // const {
+  //   register,
+  //   handleSubmit,
+  //   control,
+  //   setValue,
+  //   watch,
+  //   formState: { errors, touchedFields, isValid: formIsValid },
+  //   reset,
+  // } = useForm({
+  //   resolver: zodResolver(projectBlockSchema),
+  //   defaultValues: data,
+  //   mode: 'onChange',
+  // })
 
   const [formData, setFormData] = useState<ProjectBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -94,8 +94,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     null
   )
 
-  const debouncedFormData = useDebounce(formData, 300)
-  const debouncedTouched = useDebounce(touched, 300)
+  const debouncedFormData = useDebounce(formData, 250)
+  const debouncedTouched = useDebounce(touched, 300) // ensures validation runs before showing errors
 
   useEffect(() => {
     setFormData(data)
@@ -115,37 +115,39 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     }
 
     const errors: ValidationErrors<FieldErrorKey> = {}
-    result.error.issues.forEach((issue) => {
-      const path = issue.path.join('.')
-      if (!path.startsWith('bulletPoints.')) {
-        switch (path) {
-          case 'title':
-            errors.invalidTitle = [issue.message]
-            break
-          case 'link':
-            errors.invalidLink = [issue.message]
-            break
-          case 'description':
-            errors.invalidDescription = [issue.message]
-            break
-          case 'startDate.month':
-            errors.invalidStartDateMonth = [issue.message]
-            break
-          case 'startDate.year':
-            errors.invalidStartDateYear = [issue.message]
-            break
-          case 'endDate.month':
-            errors.invalidEndDateMonth = [issue.message]
-            break
-          case 'endDate.year':
-            errors.invalidEndDateYear = [issue.message]
-            break
-          case 'endDate':
-            errors.invalidEndDate = [issue.message]
-            break
+    result.error.issues
+      .filter((issue) => issue.message !== '')
+      .forEach((issue) => {
+        const path = issue.path.join('.')
+        if (!path.startsWith('bulletPoints.')) {
+          switch (path) {
+            case 'title':
+              errors.invalidTitle = [issue.message]
+              break
+            case 'link':
+              errors.invalidLink = [issue.message]
+              break
+            case 'description':
+              errors.invalidDescription = [issue.message]
+              break
+            case 'startDate.month':
+              errors.invalidStartDateMonth = [issue.message]
+              break
+            case 'startDate.year':
+              errors.invalidStartDateYear = [issue.message]
+              break
+            case 'endDate.month':
+              errors.invalidEndDateMonth = [issue.message]
+              break
+            case 'endDate.year':
+              errors.invalidEndDateYear = [issue.message]
+              break
+            case 'endDate':
+              errors.invalidEndDate = [issue.message]
+              break
+          }
         }
-      }
-    })
+      })
     setFieldErrors(errors)
   }, [debouncedFormData])
 
@@ -173,7 +175,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         return updated
       })
     },
-    300
+    250
   )
 
   const sanitizeYear = useCallback(

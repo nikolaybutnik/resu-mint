@@ -236,19 +236,21 @@ export const projectBlockSchema = z
         return true
       }
 
+      // Check if months are provided consistently
+      const startMonthSpecified = !!data.startDate.month
+      const endMonthSpecified = !!data.endDate.month
+
+      // If both months are specified or both are not, proceed with normal comparison
+      // Otherwise, this will fail and be caught by the next refinement
+      if (startMonthSpecified !== endMonthSpecified) {
+        return true // Let the next refinement handle this specific case
+      }
+
       // If both months are undefined, just compare years
-      if (!data.startDate.month && !data.endDate.month) {
+      if (!startMonthSpecified && !endMonthSpecified) {
         const startYear = parseInt(data.startDate.year)
         const endYear = parseInt(data.endDate.year)
         return endYear >= startYear
-      }
-
-      // If one month is defined but the other isn't, invalid
-      if (
-        (data.startDate.month && !data.endDate.month) ||
-        (!data.startDate.month && data.endDate.month)
-      ) {
-        return false
       }
 
       // Both months are defined, compare full dates
@@ -276,18 +278,41 @@ export const projectBlockSchema = z
         return true
       }
 
-      // Both should be defined or both should be undefined
-      const startMonthDefined = data.startDate.month !== undefined
-      const endMonthDefined = data.endDate.month !== undefined
+      // Check if months are provided consistently
+      const startMonthSpecified = !!data.startDate.month
+      const endMonthSpecified = !!data.endDate.month
 
-      return startMonthDefined === endMonthDefined
+      return startMonthSpecified === endMonthSpecified
     },
     {
-      message:
-        'If you specify a month for one date, you must specify it for both dates',
+      message: '',
       path: ['endDate'],
     }
   )
+  .superRefine((data, ctx) => {
+    // Skip validation if using "Present"
+    if (data.endDate.isPresent) {
+      return
+    }
+
+    // Check if one month is specified but the other isn't
+    const startMonthSpecified = !!data.startDate.month
+    const endMonthSpecified = !!data.endDate.month
+
+    if (startMonthSpecified && !endMonthSpecified) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Month is required when start month is specified',
+        path: ['endDate.month'],
+      })
+    } else if (!startMonthSpecified && endMonthSpecified) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Month is required when end month is specified',
+        path: ['startDate.month'],
+      })
+    }
+  })
 
 export const settingsSchema = z.object({
   bulletsPerExperienceBlock: z.number().int().min(1).max(10),
