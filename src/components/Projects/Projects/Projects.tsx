@@ -28,6 +28,10 @@ import {
 import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { Month, ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
+import { bulletService } from '@/lib/services'
+import { sanitizeResumeBullet } from '@/lib/utils'
+import { BulletPointErrors } from '@/lib/types/errors'
+import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
 
 interface ProjectsProps {
   data: ProjectBlockData[]
@@ -49,6 +53,19 @@ const Projects = ({
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
+  const [regeneratingBullet, setRegeneratingBullet] = useState<{
+    section: string
+    index: number
+  } | null>(null)
+  const [editingBullet, setEditingBullet] = useState<{
+    section: string
+    index: number
+    text: string
+    errors?: BulletPointErrors
+  } | null>(null)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set()
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -65,7 +82,20 @@ const Projects = ({
     setLocalData(data)
   }, [data])
 
-  const handleBlockDelete = useCallback(
+  const findProject = useCallback(
+    (id: string) => localData.find((project) => project.id === id),
+    [localData]
+  )
+
+  const updateProject = useCallback((updatedProject: ProjectBlockData) => {
+    setLocalData((prev) =>
+      prev.map((project) =>
+        project.id === updatedProject.id ? updatedProject : project
+      )
+    )
+  }, [])
+
+  const handleSectionDelete = useCallback(
     (id: string) => {
       const updatedData = localData.filter((project) => project.id !== id)
       setLocalData(updatedData)
@@ -76,7 +106,7 @@ const Projects = ({
     [localData, onSave]
   )
 
-  const handleBlockAdd = () => {
+  const handleSectionAdd = () => {
     const newBlock: ProjectBlockData = {
       id: uuidv4(),
       title: '',
@@ -93,18 +123,18 @@ const Projects = ({
     setNewBlockId(newBlock.id)
   }
 
-  const handleBlockSelect = useCallback((id: string) => {
+  const handleSectionSelect = useCallback((id: string) => {
     setSelectedBlockId(id)
   }, [])
 
-  const handleBlockClose = useCallback(() => {
-    // TODO: ask user if the want to save their changes (if form is valid and changes were made)
+  const handleSectionClose = useCallback(() => {
     setSelectedBlockId(null)
     setNewBlockId(null)
+    setEditingBullet(null)
     setLocalData(data)
   }, [data])
 
-  const handleSave = useCallback(
+  const handleProjectSave = useCallback(
     (updatedBlock: ProjectBlockData) => {
       const updatedData = localData.map((block) =>
         block.id === updatedBlock.id ? updatedBlock : block
@@ -117,9 +147,270 @@ const Projects = ({
     [localData, onSave]
   )
 
+  const handleBulletRegenerate = useCallback(
+    async (sectionId: string, index: number) => {
+      const projectData = findProject(sectionId)
+      if (!projectData) return
+
+      try {
+        setRegeneratingBullet({ section: sectionId, index })
+
+        const bulletToRegenerate = projectData.bulletPoints[index]
+        const existingBullets = projectData.bulletPoints.filter(
+          (bullet) => bullet.id !== bulletToRegenerate.id
+        )
+
+        const bullets = await bulletService.generateBullets({
+          sectionType: 'project',
+          sectionDescription: projectData.description,
+          existingBullets,
+          jobDescriptionAnalysis,
+          maxCharsPerBullet: settings.maxCharsPerBullet,
+        })
+
+        if (bullets.length > 0) {
+          const regeneratedText = bullets[0]
+
+          // If bullet in edit mode, update textarea
+          if (
+            editingBullet &&
+            editingBullet.section === sectionId &&
+            editingBullet.index === index
+          ) {
+            setEditingBullet((prev) => {
+              if (!prev) return null
+              return { ...prev, text: regeneratedText }
+            })
+          } else {
+            // Else, save bullet
+            const updatedBullets = projectData.bulletPoints.map((bullet) =>
+              bullet.id === bulletToRegenerate.id
+                ? { ...bullet, text: regeneratedText }
+                : bullet
+            )
+
+            const updatedProject = {
+              ...projectData,
+              bulletPoints: updatedBullets,
+            }
+
+            updateProject(updatedProject)
+            onSave(
+              localData.map((project) =>
+                project.id === sectionId ? updatedProject : project
+              )
+            )
+          }
+        }
+      } catch (error) {
+        console.error('Error regenerating bullet', error)
+      } finally {
+        setRegeneratingBullet(null)
+      }
+    },
+    [
+      findProject,
+      jobDescriptionAnalysis,
+      localData,
+      onSave,
+      settings.maxCharsPerBullet,
+      updateProject,
+      editingBullet,
+    ]
+  )
+
+  const toggleSectionExpanded = useCallback((sectionId: string) => {
+    setExpandedSections((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId)
+      } else {
+        newSet.add(sectionId)
+      }
+      return newSet
+    })
+  }, [])
+
+  const expandSection = useCallback((sectionId: string) => {
+    setExpandedSections((prev) => {
+      const newSet = new Set(prev)
+      newSet.add(sectionId)
+      return newSet
+    })
+  }, [])
+
+  const handleAddBullet = useCallback(
+    (sectionId: string, shouldSave = true) => {
+      const project = findProject(sectionId)
+      if (!project) return
+
+      const newBullet = {
+        id: uuidv4(),
+        text: '',
+      }
+
+      const updatedProject = {
+        ...project,
+        bulletPoints: [...project.bulletPoints, newBullet],
+      }
+
+      updateProject(updatedProject)
+
+      expandSection(sectionId)
+
+      setEditingBullet({
+        section: sectionId,
+        index: updatedProject.bulletPoints.length - 1,
+        text: '',
+      })
+
+      if (shouldSave) {
+        onSave(
+          localData.map((project) =>
+            project.id === sectionId ? updatedProject : project
+          )
+        )
+      }
+    },
+    [findProject, updateProject, expandSection, localData, onSave]
+  )
+
+  const handleBulletEdit = useCallback(
+    (sectionId: string, index: number) => {
+      const project = findProject(sectionId)
+      if (!project) return
+
+      setEditingBullet({
+        section: sectionId,
+        index,
+        text: project.bulletPoints[index].text,
+      })
+    },
+    [findProject]
+  )
+
+  const handleBulletSave = useCallback(
+    (shouldSave = true) => {
+      if (!editingBullet) return
+
+      const { section: sectionId, index, text } = editingBullet
+      const project = findProject(sectionId)
+      if (!project) return
+
+      const sanitized = sanitizeResumeBullet(text, true)
+      if (sanitized.trim() === '') return
+
+      const updatedProject = {
+        ...project,
+        bulletPoints: project.bulletPoints.map((bullet, idx) =>
+          idx === index ? { ...bullet, text: sanitized } : bullet
+        ),
+      }
+
+      updateProject(updatedProject)
+
+      if (shouldSave) {
+        onSave(
+          localData.map((project) =>
+            project.id === sectionId ? updatedProject : project
+          )
+        )
+      }
+
+      setEditingBullet(null)
+    },
+    [editingBullet, findProject, localData, onSave, updateProject]
+  )
+
+  const handleCancelEdit = useCallback(() => {
+    if (!editingBullet) return
+
+    const { section: sectionId, index } = editingBullet
+    const project = findProject(sectionId)
+    if (!project) return
+
+    // If new bullet, remove
+    if (
+      index === project.bulletPoints.length - 1 &&
+      project.bulletPoints[index].text === ''
+    ) {
+      const updatedProject = {
+        ...project,
+        bulletPoints: project.bulletPoints.slice(0, -1),
+      }
+      updateProject(updatedProject)
+    }
+
+    setEditingBullet(null)
+  }, [editingBullet, findProject, updateProject])
+
+  const handleBulletDelete = useCallback(
+    (sectionId: string, index: number, shouldSave = true) => {
+      const project = findProject(sectionId)
+      if (!project) return
+
+      const updatedProject = {
+        ...project,
+        bulletPoints: project.bulletPoints.filter((_, idx) => idx !== index),
+      }
+
+      updateProject(updatedProject)
+
+      if (shouldSave) {
+        onSave(
+          localData.map((project) =>
+            project.id === sectionId ? updatedProject : project
+          )
+        )
+      }
+    },
+    [findProject, localData, onSave, updateProject]
+  )
+
+  const validateBulletText = useCallback(
+    (text: string) => {
+      if (!editingBullet) return
+
+      const errors: {
+        bulletEmpty?: string[]
+        bulletTooLong?: string[]
+      } = {}
+
+      if (text.trim() === '') {
+        errors.bulletEmpty = ['Bullet text cannot be empty']
+      }
+
+      if (text.length > settings.maxCharsPerBullet) {
+        errors.bulletTooLong = [
+          `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+        ]
+      }
+
+      setEditingBullet((prev) => {
+        if (!prev) return null
+        return { ...prev, errors }
+      })
+    },
+    [editingBullet, settings.maxCharsPerBullet]
+  )
+
+  const handleBulletTextUpdate = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (!editingBullet) return
+
+      const sanitized = sanitizeResumeBullet(e.target.value, false)
+      setEditingBullet((prev) => {
+        if (!prev) return null
+        return { ...prev, text: sanitized }
+      })
+
+      setTimeout(() => validateBulletText(sanitized), VALIDATION_DELAY)
+    },
+    [validateBulletText]
+  )
+
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
-    // collapse all bullet drawers in draggable project block
   }, [])
 
   const handleDragEnd = useCallback(
@@ -137,7 +428,7 @@ const Projects = ({
       }
       setActiveId(null)
       setIsDropping(true)
-      setTimeout(() => setIsDropping(false), 250) // Match DragOverlay drop animation duration
+      setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
     [onSave]
   )
@@ -146,6 +437,9 @@ const Projects = ({
     () => localData.find((item) => item.id === activeId),
     [localData, activeId]
   )
+
+  const isAnyBulletBeingEdited = Boolean(editingBullet)
+  const isAnyBulletRegenerating = Boolean(regeneratingBullet)
 
   return (
     <>
@@ -157,8 +451,8 @@ const Projects = ({
           <button
             type='button'
             className={styles.addButton}
-            disabled={!!selectedBlockId}
-            onClick={handleBlockAdd}
+            disabled={!!selectedBlockId || isAnyBulletRegenerating}
+            onClick={handleSectionAdd}
           >
             Add Project
           </button>
@@ -168,15 +462,42 @@ const Projects = ({
                 .filter((project) => project.id === selectedBlockId)
                 .map((project) => {
                   const isNew = project.id === newBlockId
+                  const isEditingBullet = editingBullet?.section === project.id
+                  const editingBulletIndex = isEditingBullet
+                    ? editingBullet.index
+                    : null
+
                   return (
                     <EditableProjectBlock
                       key={project.id}
                       data={project}
                       isNew={isNew}
+                      editingBulletIndex={editingBulletIndex}
                       settings={settings}
-                      onDelete={handleBlockDelete}
-                      onClose={handleBlockClose}
-                      onSave={handleSave}
+                      isRegenerating={
+                        regeneratingBullet?.section === project.id
+                      }
+                      regeneratingBullet={regeneratingBullet}
+                      onDelete={handleSectionDelete}
+                      onClose={handleSectionClose}
+                      onSave={handleProjectSave}
+                      onRegenerateBullet={handleBulletRegenerate}
+                      onAddBullet={(sectionId) =>
+                        handleAddBullet(sectionId, false)
+                      }
+                      onEditBullet={handleBulletEdit}
+                      onBulletSave={() => handleBulletSave(false)}
+                      onBulletCancel={handleCancelEdit}
+                      onBulletDelete={(sectionId, index) =>
+                        handleBulletDelete(sectionId, index, false)
+                      }
+                      onTextareaChange={handleBulletTextUpdate}
+                      editingBulletText={
+                        isEditingBullet ? editingBullet.text : ''
+                      }
+                      bulletErrors={
+                        isEditingBullet ? editingBullet.errors || {} : {}
+                      }
                     />
                   )
                 })
@@ -192,27 +513,93 @@ const Projects = ({
                   items={localData.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {localData.map((project) => (
-                    <DraggableProjectBlock
-                      key={project.id}
-                      data={project}
-                      settings={settings}
-                      jobDescriptionAnalysis={jobDescriptionAnalysis}
-                      onBlockSelect={handleBlockSelect}
-                      onEditBullets={handleSave}
-                      isDropping={isDropping}
-                    />
-                  ))}
+                  {localData.map((project) => {
+                    const isEditingBullet =
+                      editingBullet?.section === project.id
+                    const editingBulletIndex = isEditingBullet
+                      ? editingBullet.index
+                      : null
+
+                    return (
+                      <DraggableProjectBlock
+                        key={project.id}
+                        data={project}
+                        editingBulletIndex={editingBulletIndex}
+                        settings={settings}
+                        isRegenerating={
+                          regeneratingBullet?.section === project.id
+                        }
+                        regeneratingBullet={regeneratingBullet}
+                        onBlockSelect={handleSectionSelect}
+                        onEditBullets={handleProjectSave}
+                        onRegenerateBullet={handleBulletRegenerate}
+                        onAddBullet={(sectionId) =>
+                          handleAddBullet(sectionId, true)
+                        }
+                        onEditBullet={handleBulletEdit}
+                        onBulletSave={() => handleBulletSave(true)}
+                        onBulletCancel={handleCancelEdit}
+                        onBulletDelete={(sectionId, index) =>
+                          handleBulletDelete(sectionId, index, true)
+                        }
+                        onTextareaChange={handleBulletTextUpdate}
+                        editingBulletText={
+                          isEditingBullet ? editingBullet.text : ''
+                        }
+                        bulletErrors={
+                          isEditingBullet ? editingBullet.errors || {} : {}
+                        }
+                        isDropping={isDropping}
+                        isExpanded={expandedSections.has(project.id)}
+                        onDrawerToggle={() => toggleSectionExpanded(project.id)}
+                        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
+                        isAnyBulletRegenerating={isAnyBulletRegenerating}
+                      />
+                    )
+                  })}
                 </SortableContext>
                 <DragOverlay>
                   {activeItem ? (
                     <DraggableProjectBlock
                       data={activeItem}
+                      editingBulletIndex={
+                        editingBullet?.section === activeItem.id
+                          ? editingBullet.index
+                          : null
+                      }
                       settings={settings}
-                      jobDescriptionAnalysis={jobDescriptionAnalysis}
-                      onBlockSelect={handleBlockSelect}
-                      onEditBullets={handleSave}
+                      isRegenerating={
+                        regeneratingBullet?.section === activeItem.id
+                      }
+                      regeneratingBullet={regeneratingBullet}
+                      onBlockSelect={handleSectionSelect}
+                      onEditBullets={handleProjectSave}
+                      onRegenerateBullet={handleBulletRegenerate}
+                      onAddBullet={(sectionId) =>
+                        handleAddBullet(sectionId, true)
+                      }
+                      onEditBullet={handleBulletEdit}
+                      onBulletSave={() => handleBulletSave(true)}
+                      onBulletCancel={handleCancelEdit}
+                      onBulletDelete={(sectionId, index) =>
+                        handleBulletDelete(sectionId, index, true)
+                      }
+                      onTextareaChange={handleBulletTextUpdate}
+                      editingBulletText={
+                        editingBullet?.section === activeItem.id
+                          ? editingBullet.text
+                          : ''
+                      }
+                      bulletErrors={
+                        editingBullet?.section === activeItem.id
+                          ? editingBullet.errors || {}
+                          : {}
+                      }
                       isOverlay={true}
+                      isExpanded={expandedSections.has(activeItem.id)}
+                      onDrawerToggle={() => {}} // No-op for overlay
+                      isAnyBulletBeingEdited={isAnyBulletBeingEdited}
+                      isAnyBulletRegenerating={isAnyBulletRegenerating}
                     />
                   ) : null}
                 </DragOverlay>

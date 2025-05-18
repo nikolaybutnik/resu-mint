@@ -21,3 +21,10 @@ export const months: { label: Month; num: number }[] = [
   { label: 'Nov', num: 10 },
   { label: 'Dec', num: 11 },
 ]
+
+// Debounce delays
+export const VALIDATION_DELAY = 250
+export const TOUCH_DELAY = 300
+
+// Durations
+export const DROPPING_ANIMATION_DURATION = 250

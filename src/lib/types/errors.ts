@@ -67,3 +67,8 @@ export function zodErrorsToApiErrors(zodErrors: any[]): ApiError[] {
     type: 'validation',
   }))
 }
+
+export type BulletPointErrors = {
+  bulletEmpty?: string[]
+  bulletTooLong?: string[]
+}

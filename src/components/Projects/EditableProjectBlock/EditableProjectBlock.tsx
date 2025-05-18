@@ -1,15 +1,9 @@
 import styles from './EditableProjectBlock.module.scss'
-import {
-  sanitizeResumeBullet,
-  sanitizeResumeContent,
-  useDebounce,
-  useDebouncedCallback,
-} from '@/lib/utils'
+import { sanitizeResumeContent, useDebounce } from '@/lib/utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { projectBlockSchema } from '@/lib/validationSchemas'
-import { months } from '@/lib/constants'
-import { v4 as uuidv4 } from 'uuid'
+import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import {
   BulletPoint as BulletPointType,
@@ -18,14 +12,27 @@ import {
 } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
+import { BulletPointErrors } from '@/lib/types/errors'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
   isNew: boolean
+  editingBulletIndex: number | null
+  editingBulletText: string
+  bulletErrors: BulletPointErrors
   settings: AppSettings
+  isRegenerating: boolean
+  regeneratingBullet: { section: string; index: number } | null
   onDelete: (id: string) => void
   onClose: () => void
   onSave: (data: ProjectBlockData) => void
+  onRegenerateBullet: (sectionId: string, index: number) => void
+  onAddBullet: (sectionId: string) => void
+  onEditBullet: (sectionId: string, index: number) => void
+  onBulletSave: () => void
+  onBulletCancel: () => void
+  onBulletDelete: (sectionId: string, index: number) => void
+  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
 
 type FieldErrorKey =
@@ -37,8 +44,6 @@ type FieldErrorKey =
   | 'invalidEndDateMonth'
   | 'invalidEndDateYear'
   | 'invalidEndDate'
-
-type BulletErrorKey = 'bulletEmpty' | 'bulletTooLong'
 
 type ValidationErrors<T extends string = string> = {
   [K in T]?: string[]
@@ -57,43 +62,49 @@ const FieldType = {
   LINK: 'link',
 } as const
 
-const VALIDATION_DELAY = 250
-const TOUCH_DELAY = 300
-
 const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   data,
   isNew,
   settings,
+  isRegenerating,
+  editingBulletIndex,
+  editingBulletText,
+  bulletErrors,
+  regeneratingBullet,
   onDelete,
   onClose,
   onSave,
+  onRegenerateBullet,
+  onAddBullet,
+  onEditBullet,
+  onBulletSave,
+  onBulletCancel,
+  onBulletDelete,
+  onTextareaChange,
 }) => {
   const [formData, setFormData] = useState<ProjectBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
   const [fieldErrors, setFieldErrors] = useState<
     ValidationErrors<FieldErrorKey>
   >({})
-  const [bulletPointErrors, setBulletPointErrors] = useState<
-    ValidationErrors<BulletErrorKey>[]
-  >(data.bulletPoints.map(() => ({})))
   const [techInput, setTechInput] = useState('')
-  const [editingBulletIndex, setEditingBulletIndex] = useState<number | null>(
-    null
-  )
-  const [editingBulletText, setEditingBulletText] = useState<string>('')
-
-  const emptyBulletErrors = useMemo(() => ({}), [])
 
   const debouncedFormData = useDebounce(formData, VALIDATION_DELAY)
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
 
   useEffect(() => {
-    setFormData(data)
-    setTouched({})
-    setFieldErrors({})
-    setEditingBulletIndex(null)
-    setEditingBulletText('')
-    setBulletPointErrors(data.bulletPoints.map(() => ({})))
+    // Clear form only on init or when project changes
+    if (!formData || formData.id !== data.id) {
+      setFormData(data)
+      setTouched({})
+      setFieldErrors({})
+    } else {
+      // If project unchanged, just update bullets
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        bulletPoints: data.bulletPoints,
+      }))
+    }
   }, [data])
 
   useEffect(() => {
@@ -144,31 +155,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     return projectBlockSchema.safeParse(formData).success
   }, [formData])
 
-  const validateBulletText = useDebouncedCallback(
-    (text: string, index: number) => {
-      const newErrors: ValidationErrors<BulletErrorKey> = {}
-
-      if (text.trim() === '') {
-        newErrors.bulletEmpty = ['Bullet text cannot be empty']
-      }
-
-      if (text.length > settings.maxCharsPerBullet) {
-        newErrors.bulletTooLong = [
-          `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
-        ]
-      }
-
-      setBulletPointErrors((prev) => {
-        const updated = [...prev]
-        if (!isEqual(updated[index], newErrors)) {
-          updated[index] = newErrors
-        }
-        return updated
-      })
-    },
-    VALIDATION_DELAY
-  )
-
   const sanitizeYear = useCallback(
     (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4),
     []
@@ -188,7 +174,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               index === bulletIndex
                 ? {
                     id: bullet.id,
-                    text: sanitizeResumeBullet(value as string, true),
+                    text: value as string,
                   }
                 : bullet
             ),
@@ -263,93 +249,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     [sanitizeYear]
   )
 
-  const handleAddBulletPoint = useCallback(() => {
-    const newBullet = { id: uuidv4(), text: '' }
-    setFormData((prev) => ({
-      ...prev,
-      bulletPoints: [...prev.bulletPoints, newBullet],
-    }))
-    setBulletPointErrors((prev) => [...prev, {}])
-    const newIndex = formData.bulletPoints.length
-    setEditingBulletIndex(newIndex)
-    setEditingBulletText('')
-  }, [formData.bulletPoints.length])
-
-  const handleBulletDelete = useCallback((index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      bulletPoints: prev.bulletPoints.filter((_, i) => i !== index),
-    }))
-    setBulletPointErrors((prev) => prev.filter((_, i) => i !== index))
-    setEditingBulletIndex(null)
-    setEditingBulletText('')
-  }, [])
-
-  const handleBulletSave = useCallback(() => {
-    if (editingBulletIndex !== null) {
-      const sanitized = sanitizeResumeBullet(editingBulletText, true)
-      if (sanitized.trim() !== '') {
-        handleChange(FieldType.BULLET_POINTS, sanitized, editingBulletIndex)
-        setBulletPointErrors((prev) => {
-          const updated = [...prev]
-          updated[editingBulletIndex] = {}
-          return updated
-        })
-        setEditingBulletIndex(null)
-        setEditingBulletText('')
-      } else {
-        setBulletPointErrors((prev) => {
-          const updated = [...prev]
-          updated[editingBulletIndex] = {
-            bulletEmpty: ['Bullet text cannot be empty'],
-          }
-          return updated
-        })
-      }
-    }
-  }, [editingBulletIndex, editingBulletText, handleChange])
-
-  const handleEditBullet = useCallback(
-    (index: number) => {
-      setEditingBulletIndex(index)
-      setEditingBulletText(formData.bulletPoints[index].text)
-    },
-    [formData.bulletPoints]
-  )
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingBulletIndex(null)
-    setEditingBulletText('')
-    if (editingBulletIndex !== null) {
-      const isNewBullet =
-        editingBulletIndex === formData.bulletPoints.length - 1
-      if (isNewBullet) {
-        setFormData((prev) => ({
-          ...prev,
-          bulletPoints: prev.bulletPoints.slice(0, -1),
-        }))
-        setBulletPointErrors((prev) => prev.slice(0, -1))
-      } else {
-        setBulletPointErrors((prev) => {
-          const updated = [...prev]
-          updated[editingBulletIndex] = {}
-          return updated
-        })
-      }
-    }
-  }, [editingBulletIndex, formData.bulletPoints.length])
-
-  const handleTextareaChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const sanitized = sanitizeResumeBullet(e.target.value, false)
-      setEditingBulletText(sanitized)
-      if (editingBulletIndex !== null) {
-        validateBulletText(sanitized, editingBulletIndex)
-      }
-    },
-    [editingBulletIndex, validateBulletText]
-  )
-
   const handleDelete = useCallback(() => {
     if (
       window.confirm(
@@ -366,6 +265,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     }
   }, [formData, isValid, onSave])
 
+  const emptyBulletErrors = useMemo(() => ({}), [])
+  const combinedBulletErrors = useMemo(
+    () =>
+      formData.bulletPoints.map((_, index) =>
+        editingBulletIndex === index ? bulletErrors : emptyBulletErrors
+      ),
+    [bulletErrors, editingBulletIndex, formData.bulletPoints, emptyBulletErrors]
+  )
+
   return (
     <section className={styles.editableProjectBlock}>
       <header className={styles.header}>
@@ -374,6 +282,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             type='button'
             className={styles.deleteButton}
             onClick={handleDelete}
+            disabled={isRegenerating}
           >
             Delete
           </button>
@@ -609,35 +518,46 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           <button
             type='button'
             className={styles.addButton}
-            onClick={handleAddBulletPoint}
+            onClick={() => onAddBullet(formData.id)}
+            disabled={isRegenerating}
           >
             <FaPlus /> Add
           </button>
         </div>
         <div>
-          {formData.bulletPoints.map((bullet, index) => (
-            <BulletPoint
-              key={bullet.id}
-              index={index}
-              text={bullet.text}
-              editingText={
-                editingBulletIndex === index ? editingBulletText : ''
-              }
-              isRegenerating={false}
-              isEditing={editingBulletIndex === index}
-              disableAllControls={
-                editingBulletIndex !== null && editingBulletIndex !== index
-              }
-              errors={bulletPointErrors[index] || emptyBulletErrors}
-              settings={settings}
-              onCancelEdit={handleCancelEdit}
-              onBulletDelete={handleBulletDelete}
-              onBulletSave={handleBulletSave}
-              onEditBullet={() => handleEditBullet(index)}
-              onRegenerateBullet={() => {}}
-              onTextareaChange={handleTextareaChange}
-            />
-          ))}
+          {formData.bulletPoints.map((bullet, index) => {
+            const isEditingThisBullet = editingBulletIndex === index
+
+            return (
+              <BulletPoint
+                key={bullet.id}
+                sectionId={formData.id}
+                index={index}
+                text={bullet.text}
+                editingText={isEditingThisBullet ? editingBulletText : ''}
+                isRegenerating={
+                  isRegenerating &&
+                  regeneratingBullet?.section === formData.id &&
+                  regeneratingBullet?.index === index
+                }
+                isEditing={isEditingThisBullet}
+                disableAllControls={
+                  isRegenerating ||
+                  (editingBulletIndex !== null && !isEditingThisBullet)
+                }
+                errors={combinedBulletErrors[index]}
+                settings={settings}
+                onCancelEdit={onBulletCancel}
+                onBulletDelete={(index) => onBulletDelete(formData.id, index)}
+                onBulletSave={onBulletSave}
+                onEditBullet={(index) => onEditBullet(formData.id, index)}
+                onRegenerateBullet={(sectionId, index) =>
+                  onRegenerateBullet(sectionId, index)
+                }
+                onTextareaChange={onTextareaChange}
+              />
+            )
+          })}
         </div>
       </div>
 
@@ -646,7 +566,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           type='button'
           className={styles.saveButton}
           onClick={handleSave}
-          disabled={!isValid || editingBulletIndex !== null}
+          disabled={!isValid || editingBulletIndex !== null || isRegenerating}
         >
           Save
         </button>

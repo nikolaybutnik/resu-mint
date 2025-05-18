@@ -1,5 +1,5 @@
 import styles from './DraggableProjectBlock.module.scss'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   FaPen,
   FaChevronDown,
@@ -9,69 +9,71 @@ import {
 } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ROUTES } from '@/lib/constants'
-import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
-import { v4 as uuidv4 } from 'uuid'
-import { sanitizeResumeBullet, useDebouncedCallback } from '@/lib/utils'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
-import { isEqual } from 'lodash'
+import { BulletPointErrors } from '@/lib/types/errors'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
-  jobDescriptionAnalysis: JobDescriptionAnalysis
-  onBlockSelect: (id: string) => void
-  onEditBullets: (updatedBlock: ProjectBlockData) => void
+  editingBulletIndex: number | null
+  editingBulletText: string
+  bulletErrors: BulletPointErrors
   settings: AppSettings
+  isRegenerating: boolean
+  isAnyBulletBeingEdited: boolean
+  isAnyBulletRegenerating: boolean
+  isExpanded: boolean
   isOverlay?: boolean
   isDropping?: boolean
-}
-
-type ErrorKey = 'bulletEmpty' | 'bulletTooLong'
-
-type ValidationErrors = {
-  [K in ErrorKey]?: string[]
+  regeneratingBullet?: { section: string; index: number } | null
+  onBlockSelect: (id: string) => void
+  onEditBullets: (updatedBlock: ProjectBlockData) => void
+  onRegenerateBullet: (sectionId: string, index: number) => void
+  onAddBullet: (sectionId: string) => void
+  onEditBullet: (sectionId: string, index: number) => void
+  onBulletSave: () => void
+  onBulletCancel: () => void
+  onBulletDelete: (sectionId: string, index: number) => void
+  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  onDrawerToggle: () => void
 }
 
 const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   data,
-  jobDescriptionAnalysis,
-  onBlockSelect,
+  editingBulletIndex,
+  editingBulletText,
+  bulletErrors,
   settings,
+  isRegenerating,
+  regeneratingBullet,
+  isAnyBulletBeingEdited,
+  isAnyBulletRegenerating,
+  isExpanded,
   isOverlay = false,
   isDropping = false,
+  onBlockSelect,
   onEditBullets,
+  onRegenerateBullet,
+  onAddBullet,
+  onEditBullet,
+  onBulletSave,
+  onBulletCancel,
+  onBulletDelete,
+  onTextareaChange,
+  onDrawerToggle,
 }) => {
-  const editInputRef = useRef<HTMLTextAreaElement>(null)
-
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const [editingBulletIndex, setEditingBulletIndex] = useState<number | null>(
-    null
-  )
-  const [editingBulletText, setEditingBulletText] = useState('')
-  const [regeneratingIndex, setRegeneratingIndex] = useState<number | null>(
-    null
-  )
   const [localData, setLocalData] = useState<ProjectBlockData>(data)
-  const [errors, setErrors] = useState<ValidationErrors>({})
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id: data.id,
-      disabled: isOverlay,
+      disabled: isOverlay || isAnyBulletBeingEdited || isAnyBulletRegenerating,
     })
 
   useEffect(() => {
     setLocalData(data)
   }, [data])
-
-  useEffect(() => {
-    if (editingBulletIndex !== null && editInputRef.current) {
-      editInputRef.current.focus()
-    }
-  }, [editingBulletIndex])
 
   const style = isOverlay
     ? { zIndex: 100 }
@@ -82,127 +84,13 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         opacity: isDragging ? 0 : 1,
       }
 
-  const handleToggle = () => {
-    if (isTransitioning) return
-    setIsTransitioning(true)
-    let capturedIsExpanded = isExpanded
-    setIsExpanded(!capturedIsExpanded)
-    setTimeout(() => {
-      if (capturedIsExpanded) {
-        setErrors({})
-      }
-      if (editingBulletIndex !== null) {
-        setEditingBulletIndex(null)
-        setEditingBulletText('')
-      }
-      if (
-        localData.bulletPoints.length !== data.bulletPoints.length &&
-        capturedIsExpanded
-      ) {
-        setLocalData(data)
-      }
-      setIsTransitioning(false)
-    }, 400)
-  }
-
-  const validateBulletText = useDebouncedCallback((text: string) => {
-    const newErrors: ValidationErrors = {}
-
-    if (text.trim() === '') {
-      newErrors.bulletEmpty = ['Bullet text cannot be empty']
-    }
-
-    if (text.length > settings.maxCharsPerBullet) {
-      newErrors.bulletTooLong = [
-        `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
-      ]
-    }
-
-    setErrors((prev) => (isEqual(prev, newErrors) ? prev : newErrors))
-  }, 300)
-
-  const handleGenerateAllBullets = (e: React.MouseEvent) => {
+  const handleGenerateAllBullets = useCallback(
     // TODO: implement
-    e.stopPropagation()
-    onEditBullets(data)
-  }
-
-  const handleRegenerateBullet = useCallback(
-    async (index: number, e: React.MouseEvent, isEditing = false) => {
+    (e: React.MouseEvent) => {
       e.stopPropagation()
-
-      try {
-        setRegeneratingIndex(index)
-
-        const bulletToRegenerate = localData.bulletPoints[index]
-        const existingBullets = localData.bulletPoints.filter(
-          (bullet) => bullet.id !== bulletToRegenerate.id
-        )
-
-        const payload = {
-          section: {
-            type: 'project',
-            description: data.description,
-          },
-          existingBullets,
-          jobDescriptionAnalysis,
-          numBullets: 1,
-          maxCharsPerBullet: settings.maxCharsPerBullet,
-        }
-
-        const response = await fetch(ROUTES.GENERATE_BULLETS, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          console.error('API error:', errorData)
-        }
-
-        const result = await response.json()
-        if (result.status !== 'success' || !result.data || result.errors) {
-          console.error('Failed to generate bullets', result.errors)
-        }
-
-        const newBullet = {
-          id: bulletToRegenerate.id,
-          text: sanitizeResumeBullet(result.data[0], true),
-        }
-
-        if (isEditing) {
-          setEditingBulletText(newBullet.text)
-        } else {
-          const updatedBullets = localData.bulletPoints.map((bullet) =>
-            bullet.id === bulletToRegenerate.id ? newBullet : bullet
-          )
-
-          const updatedData = {
-            ...localData,
-            bulletPoints: updatedBullets,
-          }
-
-          onEditBullets(updatedData)
-        }
-
-        validateBulletText(newBullet.text)
-      } catch (error) {
-        console.error('Error regenerating bullet', error)
-      } finally {
-        setRegeneratingIndex(null)
-      }
+      onEditBullets(data)
     },
-    [
-      localData,
-      data,
-      jobDescriptionAnalysis,
-      settings,
-      onEditBullets,
-      validateBulletText,
-    ]
+    [data, onEditBullets]
   )
 
   const bulletPoints = useMemo(
@@ -210,99 +98,13 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     [localData.bulletPoints]
   )
 
-  const handleEditBullet = useCallback(
-    (index: number, e: React.MouseEvent) => {
-      e.stopPropagation()
-      setEditingBulletIndex(index)
-      setEditingBulletText(bulletPoints[index].text)
-    },
-    [bulletPoints]
-  )
-
-  const handleCancelEdit = useCallback(() => {
-    setEditingBulletIndex(null)
-    setEditingBulletText('')
-    setErrors({})
-    if (localData.bulletPoints.length !== data.bulletPoints.length) {
-      setLocalData(data)
-    }
-  }, [data, localData])
-
-  const handleSaveBullet = useCallback(() => {
-    const sanitized = sanitizeResumeBullet(editingBulletText, true)
-    if (editingBulletIndex !== null && sanitized.trim() !== '') {
-      const updatedData = {
-        ...localData,
-        bulletPoints: localData.bulletPoints.map((bullet, idx) =>
-          idx === editingBulletIndex ? { ...bullet, text: sanitized } : bullet
-        ),
-      }
-      onEditBullets(updatedData)
-      setEditingBulletIndex(null)
-    } else {
-      const errors: ValidationErrors = {
-        bulletEmpty: ['Bullet text cannot be empty'],
-      }
-      setErrors((prev) => ({ ...prev, ...errors }))
-    }
-  }, [localData, editingBulletIndex, editingBulletText, onEditBullets])
-
-  const handleDeleteBullet = useCallback(
-    (index: number) => {
-      const updatedData = {
-        ...localData,
-        bulletPoints: localData.bulletPoints.filter(
-          (_bullet, bulletIndex) => bulletIndex !== index
-        ),
-      }
-      onEditBullets(updatedData)
-    },
-    [localData, onEditBullets]
-  )
-
-  const handleAddBullet = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    const newBullet = {
-      id: uuidv4(),
-      text: '',
-    }
-
-    let scopedData = localData
-    setLocalData((prev) => {
-      const newBullets = [...prev.bulletPoints, newBullet]
-      scopedData = {
-        ...prev,
-        bulletPoints: newBullets,
-      }
-
-      if (!isExpanded) {
-        handleToggle()
-      }
-
-      setEditingBulletIndex(scopedData.bulletPoints.length - 1)
-      setEditingBulletText('')
-
-      return scopedData
-    })
-  }
-
-  const handleTextareaChange = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      const sanitized = sanitizeResumeBullet(e.target.value, false)
-      setEditingBulletText(sanitized)
-      validateBulletText(sanitized)
-    },
-    [validateBulletText]
-  )
-
   const emptyErrors = useMemo(() => ({}), [])
-  const bulletErrors = useMemo(
-    () =>
-      localData.bulletPoints.map((_, index) =>
-        editingBulletIndex === index ? errors : emptyErrors
-      ),
-    [errors, editingBulletIndex, localData.bulletPoints, emptyErrors]
-  )
+
+  const isEditingThisSection =
+    editingBulletIndex !== null &&
+    data.id === (editingBulletText ? data.id : null)
+  const isDrawerDisabled =
+    (isAnyBulletBeingEdited && !isEditingThisSection) || isAnyBulletRegenerating
 
   return (
     <div
@@ -336,8 +138,8 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             disabled={
               isDragging ||
               isOverlay ||
-              editingBulletIndex !== null ||
-              regeneratingIndex !== null
+              isAnyBulletRegenerating ||
+              isAnyBulletBeingEdited
             }
           >
             <FaMagic size={12} />
@@ -351,8 +153,8 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             disabled={
               isDragging ||
               isOverlay ||
-              editingBulletIndex !== null ||
-              regeneratingIndex !== null
+              isAnyBulletRegenerating ||
+              isAnyBulletBeingEdited
             }
           >
             <FaPen />
@@ -364,8 +166,9 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         <button
           className={`${styles.drawerToggleButton} ${
             isExpanded ? styles.noRadius : ''
-          }`}
-          onClick={handleToggle}
+          } ${isDrawerDisabled ? styles.disabled : ''}`}
+          onClick={onDrawerToggle}
+          disabled={isDrawerDisabled}
         >
           {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
         </button>
@@ -377,33 +180,44 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           isExpanded ? styles.expanded : ''
         }`}
       >
-        {bulletPoints.map((bullet, index) => (
-          <BulletPoint
-            key={bullet.id}
-            index={index}
-            text={bullet.text}
-            editingText={editingBulletIndex === index ? editingBulletText : ''}
-            isRegenerating={regeneratingIndex === index}
-            isEditing={editingBulletIndex === index}
-            disableAllControls={
-              regeneratingIndex !== null ||
-              (editingBulletIndex !== null && editingBulletIndex !== index)
-            }
-            errors={bulletErrors[index]}
-            settings={settings}
-            onCancelEdit={handleCancelEdit}
-            onBulletDelete={handleDeleteBullet}
-            onBulletSave={handleSaveBullet}
-            onEditBullet={handleEditBullet}
-            onRegenerateBullet={handleRegenerateBullet}
-            onTextareaChange={handleTextareaChange}
-          />
-        ))}
+        {bulletPoints.map((bullet, index) => {
+          const isEditingThisBullet = editingBulletIndex === index
+          const isRegeneratingThisBullet =
+            isRegenerating &&
+            regeneratingBullet?.section === data.id &&
+            regeneratingBullet?.index === index
+
+          return (
+            <BulletPoint
+              key={bullet.id}
+              sectionId={data.id}
+              index={index}
+              text={bullet.text}
+              editingText={isEditingThisBullet ? editingBulletText : ''}
+              isRegenerating={isRegeneratingThisBullet}
+              isEditing={isEditingThisBullet}
+              disableAllControls={
+                isAnyBulletRegenerating ||
+                (isAnyBulletBeingEdited && !isEditingThisBullet)
+              }
+              errors={isEditingThisBullet ? bulletErrors : emptyErrors}
+              settings={settings}
+              onCancelEdit={onBulletCancel}
+              onBulletDelete={(index) => onBulletDelete(data.id, index)}
+              onBulletSave={onBulletSave}
+              onEditBullet={(index) => onEditBullet(data.id, index)}
+              onRegenerateBullet={(sectionId, index) =>
+                onRegenerateBullet(sectionId, index)
+              }
+              onTextareaChange={onTextareaChange}
+            />
+          )
+        })}
 
         <button
           className={styles.addBulletButton}
-          onClick={handleAddBullet}
-          disabled={editingBulletIndex !== null}
+          onClick={() => onAddBullet(data.id)}
+          disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
           data-no-dnd='true'
         >
           <FaPlus size={12} />
@@ -413,8 +227,8 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       {localData.bulletPoints.length === 0 && !isExpanded && (
         <button
           className={styles.addBulletButton}
-          onClick={handleAddBullet}
-          disabled={editingBulletIndex !== null}
+          onClick={() => onAddBullet(data.id)}
+          disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
           data-no-dnd='true'
         >
           <FaPlus size={12} />

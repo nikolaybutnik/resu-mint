@@ -2,10 +2,11 @@ import styles from './BulletPoint.module.scss'
 import { FaPencilAlt } from 'react-icons/fa'
 import { FaRedo, FaTimes, FaTrash } from 'react-icons/fa'
 import { FaCheck } from 'react-icons/fa'
-import { memo, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { AppSettings } from '@/lib/types/settings'
 
 interface BulletPointProps {
+  sectionId: string
   text: string
   editingText: string
   index: number
@@ -22,14 +23,15 @@ interface BulletPointProps {
   onBulletSave: () => void
   onEditBullet: (index: number, e: React.MouseEvent) => void
   onRegenerateBullet: (
+    sectionId: string,
     index: number,
-    e: React.MouseEvent,
     isEditing?: boolean
   ) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
 }
 
 const BulletPoint: React.FC<BulletPointProps> = ({
+  sectionId,
   text,
   editingText,
   index,
@@ -46,8 +48,13 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   onTextareaChange,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
-
   const [deleteExpanded, setDeleteExpanded] = useState<boolean>(false)
+
+  useEffect(() => {
+    if (isEditing && editInputRef.current) {
+      editInputRef.current.focus()
+    }
+  }, [isEditing])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -171,7 +178,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           <button
             className={styles.regenerateButton}
             disabled={isRegenerating || disableAllControls}
-            onClick={(e) => onRegenerateBullet(index, e, true)}
+            onClick={() => onRegenerateBullet(sectionId, index, true)}
             data-no-dnd='true'
           >
             <FaRedo size={12} />
@@ -190,7 +197,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           <button
             className={styles.regenerateButton}
             disabled={isRegenerating || disableAllControls}
-            onClick={(e) => onRegenerateBullet(index, e)}
+            onClick={() => onRegenerateBullet(sectionId, index)}
             data-no-dnd='true'
           >
             <FaRedo size={12} />
