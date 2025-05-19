@@ -1,121 +1,214 @@
 @import '../../../styles/variables.scss';
 
 .bulletContainer {
-  display: flex;
-  align-items: stretch;
   position: relative;
-
-  &.regenerating {
-    opacity: 0.6;
-    background: linear-gradient(110deg, #f0f0f0 8%, #e0e0e0 18%, #f0f0f0 33%);
-    background-size: 200% 100%;
-    animation: shimmer 1.2s linear infinite;
-    position: relative;
-    overflow: hidden;
-    pointer-events: none;
-    cursor: default;
-  }
+  background: $color-action-item-background;
+  padding: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  border-radius: 4px;
 
   &:hover {
     background: rgba($color-primary, 0.1);
-
-    button {
-      background: $color-background;
-    }
-
-    .bulletDeleteButton {
-      background: $color-error;
-    }
   }
-}
 
-.bulletDeleteWrapper {
-  position: relative;
-  display: flex;
-  align-items: stretch;
-  width: 24px;
-}
-
-.deleteDisabled {
-  opacity: 0.3;
-  pointer-events: none;
-  cursor: default;
-  transition: opacity 0.2s ease-in-out;
-
-  .bulletDeleteButton {
-    background-color: $color-disabled;
-  }
-}
-
-.bulletDeleteContainer {
-  position: relative;
-  width: 16px;
-  user-select: none;
-
-  .bulletDeleteButton {
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    background: rgba($color-primary, 0.2);
-    opacity: 0.5;
-    border: none;
-    cursor: pointer;
-    padding: 0;
-    margin: 0;
-    font-size: 12px;
-    color: $color-text;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-      opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-      left 0.25s cubic-bezier(0.4, 0, 0.2, 1),
-      background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  &.regenerating {
+    opacity: 0.8;
     pointer-events: none;
-    z-index: 2;
 
-    svg {
-      color: $color-background;
-      opacity: 0;
+    &::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      background: linear-gradient(
+        110deg,
+        rgba(241, 245, 249, 0.8) 8%,
+        rgba(147, 197, 253, 0.3) 18%,
+        rgba(241, 245, 249, 0.8) 33%
+      );
+      background-size: 250% 100%;
+      animation: shimmer 1.3s linear infinite;
+      border-radius: 4px;
     }
   }
 }
 
-.bulletDeleteContainer.expanded {
-  .bulletDeleteButton {
-    width: 40px;
-    pointer-events: auto;
-    opacity: 1;
-    box-shadow: 2px 0 4px rgba(0, 0, 0, 0.25);
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 2;
+}
 
-    svg {
-      opacity: 1;
-      transition: opacity 0.2s ease-in-out 0.1s;
-    }
+.toolbarLeft {
+  position: relative;
+}
+
+.toolbarRight {
+  display: flex;
+  gap: 8px;
+}
+
+.popupButtons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.deleteButton,
+.editButton,
+.regenerateButton,
+.saveButton,
+.cancelButton,
+.confirmButton,
+.cancelButton {
+  width: 24px;
+  height: 24px;
+  background: $color-background;
+  border: 1px solid $color-border;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: $color-disabled;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.deleteButton {
+  z-index: 3;
+
+  &:hover {
+    background: $color-error;
+    color: $color-background;
+    border-color: $color-error;
   }
+}
+
+.editButton:hover {
+  background: $color-primary;
+  color: $color-background;
+  border-color: $color-primary;
+}
+
+.saveButton:hover {
+  background: $color-transformative;
+  color: $color-background;
+  border-color: $color-transformative;
+}
+
+.regenerateButton:hover {
+  background: $color-regenerate;
+  color: $color-background;
+  border-color: $color-regenerate;
+}
+
+.cancelButton:hover {
+  background: $color-primary;
+  color: $color-background;
+  border-color: $color-primary;
+}
+
+.deleteButton:disabled,
+.editButton:disabled,
+.regenerateButton:disabled,
+.saveButton:disabled,
+.cancelButton:disabled {
+  background: $color-background;
+  color: $color-disabled;
+  border: 1px solid $color-border;
+  opacity: 0.7;
+  pointer-events: none;
+  transform: none;
+}
+
+.popupBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: $color-backdrop;
+  z-index: 9990;
+}
+
+.popupWrapper {
+  position: absolute;
+  z-index: 10000;
+}
+
+.deleteConfirmPopup,
+.regenerateConfirmPopup {
+  position: relative;
+  background: $color-background;
+  border: 1.5px solid $color-primary;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 10001;
+  opacity: 0;
+  animation: slideIn 0.3s ease-out forwards;
+  width: 240px;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.popupContent {
+  padding: 12px;
+}
+
+.deleteConfirmPopup p,
+.regenerateConfirmPopup p {
+  margin: 0 0 8px;
+  font-size: 14px;
+  font-family: $font-family-base;
+  color: $color-text;
+}
+
+.confirmButton:hover {
+  background: $color-error;
+  color: $color-background;
+  border-color: $color-error;
+}
+
+.regenerateConfirmPopup .confirmButton:hover {
+  background: $color-regenerate;
+  color: $color-background;
+  border-color: $color-regenerate;
+}
+
+.regenerateConfirmPopup .cancelButton:hover {
+  background: $color-primary;
+  color: $color-background;
+  border-color: $color-primary;
+}
+
+.contentArea {
+  position: relative;
+  z-index: 1;
 }
 
 .bulletText {
-  flex: 1;
   font-size: 14px;
   line-height: 1.5;
   color: $color-text;
-  word-break: break-word;
-  user-select: text;
-  margin: 8px 0;
-  cursor: text;
+  margin: 0;
   min-height: 80px;
+  padding: 8px;
+  border-radius: 4px;
+  background: $color-background;
 }
 
 .bulletInputAreaWrapper {
   display: flex;
   flex-direction: column;
   width: 100%;
-  align-self: flex-start;
   position: relative;
+  z-index: 1;
 }
 
 .bulletInputArea {
@@ -125,12 +218,11 @@
   padding: 8px;
   border: 1.5px solid $color-primary;
   border-radius: 4px;
-  background-color: white;
+  background: $color-background;
   color: $color-text;
   outline: none;
   resize: vertical;
   min-height: 80px;
-  margin: 8px 0;
   box-sizing: border-box;
 
   &:focus {
@@ -138,7 +230,7 @@
   }
 
   &:disabled {
-    background: $color-action-item-background;
+    background: $color-background;
     color: $color-disabled;
     border-color: $color-border;
     opacity: 0.7;
@@ -146,11 +238,15 @@
   }
 }
 
+.contentFooter {
+  margin-top: 8px;
+}
+
 .characterCount {
   font-size: 12px;
   color: $color-disabled;
-  user-select: none;
-  margin-bottom: 8px;
+  display: block;
+  margin-bottom: 4px;
 }
 
 .characterCountWarning {
@@ -160,50 +256,6 @@
 .characterCountExceeded {
   color: $color-error;
   font-weight: 600;
-  animation: flashWarning 1.5s ease-in-out infinite alternate;
-}
-
-.flashWarning {
-  color: $color-warning !important;
-  animation: gentlePulse 2s ease-in-out infinite;
-}
-
-.editBulletButtonContainer,
-.viewBulletButtonContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  justify-content: space-between;
-  margin: 8px;
-}
-
-.editBulletButtonContainer {
-  max-height: 124px;
-}
-
-.viewBulletButtonContainer {
-  max-height: 80px;
-}
-
-.editButton,
-.regenerateButton,
-.cancelButton,
-.saveButton {
-  @extend %button-base;
-}
-
-.editButton:hover,
-.saveButton:hover {
-  color: $color-primary;
-}
-
-.saveButton:hover {
-  color: $color-badge-green;
-}
-
-.regenerateButton:hover,
-.cancelButton:hover {
-  color: $color-secondary;
 }
 
 .formError {
@@ -213,72 +265,30 @@
   margin: 6px 0;
   opacity: 0;
   transform: translateX(-10px);
-  animation: slideIn 0.3s ease forwards;
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+.flashWarning {
+  color: $color-warning;
+  animation: slideIn 0.3s ease-out forwards;
 }
 
 @keyframes slideIn {
-  to {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  100% {
     opacity: 1;
     transform: translateX(0);
   }
 }
 
-@keyframes gentlePulse {
-  0% {
-    opacity: 0.85;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.03);
-  }
-  100% {
-    opacity: 0.85;
-    transform: scale(1);
-  }
-}
-
 @keyframes shimmer {
   0% {
-    background-position: -200% 0;
+    background-position: -250% 0;
   }
   100% {
-    background-position: 200% 0;
-  }
-}
-
-%button-base {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: $color-action-item-background;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 4px;
-  color: $color-disabled;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  width: 32px;
-  height: calc((80px - 8px) / 2);
-  flex-grow: 1;
-
-  svg {
-    pointer-events: none;
-  }
-
-  &:hover {
-    background-color: rgba($color-primary, 0.2) !important;
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-    opacity: 0.7;
-    pointer-events: none;
-
-    svg {
-      color: $color-border;
-    }
+    background-position: 250% 0;
   }
 }

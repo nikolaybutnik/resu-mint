@@ -206,6 +206,8 @@ const Projects = ({
               )
             }
           }
+
+          validateBulletText(regeneratedText)
         }
       } catch (error) {
         console.error('Error regenerating bullet', error)

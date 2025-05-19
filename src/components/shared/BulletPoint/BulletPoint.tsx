@@ -1,9 +1,14 @@
 import styles from './BulletPoint.module.scss'
-import { FaPencilAlt } from 'react-icons/fa'
-import { FaRedo, FaTimes, FaTrash } from 'react-icons/fa'
-import { FaCheck } from 'react-icons/fa'
+import {
+  FaPencilAlt,
+  FaRedo,
+  FaTimes,
+  FaCheck,
+  FaExclamationTriangle,
+} from 'react-icons/fa'
 import { memo, useEffect, useRef, useState } from 'react'
 import { AppSettings } from '@/lib/types/settings'
+import Portal from '@/components/shared/Portal/Portal'
 
 interface BulletPointProps {
   sectionId: string
@@ -44,13 +49,65 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   onTextareaChange,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
-  const [deleteExpanded, setDeleteExpanded] = useState<boolean>(false)
+  const bulletContainerRef = useRef<HTMLDivElement>(null)
+  const popupRef = useRef<HTMLDivElement>(null)
+  const [activePopup, setActivePopup] = useState<
+    null | 'delete' | 'regenerate'
+  >(null)
+  const [popupPosition, setPopupPosition] = useState<{
+    top: number
+    left: number
+  } | null>(null)
 
   useEffect(() => {
     if (isEditing && editInputRef.current) {
       editInputRef.current.focus()
     }
   }, [isEditing])
+
+  useEffect(() => {
+    if (!activePopup || !bulletContainerRef.current) {
+      setPopupPosition(null)
+      return
+    }
+
+    const updatePosition = () => {
+      const rect = bulletContainerRef.current!.getBoundingClientRect()
+      const scrollY = window.scrollY
+      const scrollX = window.scrollX
+      const top = rect.top + scrollY
+      const left =
+        activePopup === 'delete'
+          ? rect.left + scrollX
+          : rect.right + scrollX - 240 // 240px width of popup
+      setPopupPosition({ top, left })
+    }
+
+    updatePosition()
+    window.addEventListener('resize', updatePosition)
+    window.addEventListener('scroll', updatePosition)
+
+    return () => {
+      window.removeEventListener('resize', updatePosition)
+      window.removeEventListener('scroll', updatePosition)
+    }
+  }, [activePopup])
+
+  useEffect(() => {
+    if (!activePopup) return
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (
+        popupRef.current &&
+        !popupRef.current.contains(event.target as Node)
+      ) {
+        setActivePopup(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleOutsideClick)
+    return () => document.removeEventListener('mousedown', handleOutsideClick)
+  }, [activePopup])
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -68,48 +125,147 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     }
   }
 
+  const popupConfig = {
+    delete: {
+      message: "Delete this bullet? This can't be undone.",
+      onConfirm: () => {
+        onBulletDelete(index)
+        setActivePopup(null)
+      },
+    },
+    regenerate: {
+      message: "Regenerate this bullet? This can't be undone.",
+      onConfirm: () => {
+        onRegenerateBullet(sectionId, index)
+        setActivePopup(null)
+      },
+    },
+  }
+
   return (
     <div
       className={[
         styles.bulletContainer,
         isRegenerating ? styles.regenerating : '',
       ].join(' ')}
+      ref={bulletContainerRef}
     >
-      <div className={styles.bulletDeleteWrapper}>
-        <div
-          className={[
-            styles.bulletDeleteContainer,
-            deleteExpanded ? styles.expanded : '',
-            disableAllControls || isEditing ? styles.deleteDisabled : '',
-          ].join(' ')}
-          onTouchStart={(e) => {
-            if (!deleteExpanded && !isEditing) {
-              setTimeout(() => setDeleteExpanded(true), 200)
-              e.stopPropagation()
-            }
-          }}
-          onMouseEnter={() => {
-            if (!deleteExpanded && !isEditing) {
-              setDeleteExpanded(true)
-            }
-          }}
-          onMouseLeave={() => {
-            setDeleteExpanded(false)
-          }}
-        >
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarLeft}>
           <button
-            className={styles.bulletDeleteButton}
-            onClick={() => {
-              onBulletDelete(index)
-              setDeleteExpanded(false)
-            }}
-            disabled={!deleteExpanded || disableAllControls}
-            tabIndex={deleteExpanded ? 0 : -1}
+            className={styles.deleteButton}
+            onClick={() => setActivePopup('delete')}
+            disabled={isEditing || isRegenerating || disableAllControls}
+            title='Delete bullet'
+            data-no-dnd='true'
           >
-            <FaTrash />
+            <FaExclamationTriangle size={12} />
           </button>
         </div>
+        <div className={styles.toolbarRight}>
+          {isEditing ? (
+            <>
+              <button
+                className={styles.saveButton}
+                onClick={onBulletSave}
+                disabled={
+                  editingText.trim() === '' ||
+                  isRegenerating ||
+                  disableAllControls
+                }
+                title='Save (Enter)'
+                data-no-dnd='true'
+              >
+                <FaCheck size={12} />
+              </button>
+              <button
+                className={styles.cancelButton}
+                onClick={onCancelEdit}
+                disabled={isRegenerating || disableAllControls}
+                title='Cancel (Esc)'
+                data-no-dnd='true'
+              >
+                <FaTimes size={12} />
+              </button>
+              <button
+                className={styles.regenerateButton}
+                onClick={() => setActivePopup('regenerate')}
+                disabled={isRegenerating || disableAllControls}
+                title='Regenerate bullet'
+                data-no-dnd='true'
+              >
+                <FaRedo size={12} />
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className={styles.editButton}
+                onClick={(e) => onEditBullet(index, e)}
+                disabled={isRegenerating || disableAllControls}
+                title='Edit bullet'
+                data-no-dnd='true'
+              >
+                <FaPencilAlt size={12} />
+              </button>
+              <button
+                className={styles.regenerateButton}
+                onClick={() => setActivePopup('regenerate')}
+                disabled={isRegenerating || disableAllControls}
+                title='Regenerate bullet'
+                data-no-dnd='true'
+              >
+                <FaRedo size={12} />
+              </button>
+            </>
+          )}
+        </div>
       </div>
+
+      {activePopup && (
+        <Portal>
+          <div
+            className={styles.popupBackdrop}
+            onClick={() => setActivePopup(null)}
+          />
+          {popupPosition && (
+            <div
+              className={styles.popupWrapper}
+              style={{ top: popupPosition.top, left: popupPosition.left }}
+            >
+              <div
+                className={
+                  activePopup === 'delete'
+                    ? styles.deleteConfirmPopup
+                    : styles.regenerateConfirmPopup
+                }
+                ref={popupRef}
+              >
+                <div className={styles.popupContent}>
+                  <p>{popupConfig[activePopup].message}</p>
+                  <div className={styles.popupButtons}>
+                    <button
+                      className={styles.confirmButton}
+                      onClick={popupConfig[activePopup].onConfirm}
+                      title={`Confirm ${activePopup}`}
+                    >
+                      <FaCheck size={12} />
+                    </button>
+                    <button
+                      className={styles.cancelButton}
+                      onClick={() => setActivePopup(null)}
+                      title='Cancel'
+                    >
+                      <FaTimes size={12} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Portal>
+      )}
+
       {isEditing ? (
         <div className={styles.bulletInputAreaWrapper}>
           <textarea
@@ -124,80 +280,34 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             maxLength={500}
             autoFocus
           />
-          <div className={styles.characterCount}>
+          <div className={styles.contentFooter}>
             <span
-              className={
+              className={[
+                styles.characterCount,
                 editingText.length > settings.maxCharsPerBullet * 0.9
                   ? editingText.length > settings.maxCharsPerBullet
                     ? styles.characterCountExceeded
                     : styles.characterCountWarning
-                  : ''
-              }
+                  : '',
+              ].join(' ')}
             >
               {`${editingText.length}/${settings.maxCharsPerBullet} (max 500)`}
             </span>
+            {(errors.bulletEmpty || errors.bulletTooLong) && (
+              <p
+                className={[
+                  styles.formError,
+                  errors.bulletTooLong ? styles.flashWarning : '',
+                ].join(' ')}
+              >
+                {errors.bulletEmpty || errors.bulletTooLong}
+              </p>
+            )}
           </div>
-          {errors.bulletEmpty && (
-            <p className={styles.formError}>{errors.bulletEmpty}</p>
-          )}
-          {errors.bulletTooLong && (
-            <p className={`${styles.formError} ${styles.flashWarning}`}>
-              {errors.bulletTooLong}
-            </p>
-          )}
         </div>
       ) : (
-        <p className={styles.bulletText}>{text}</p>
-      )}
-      {isEditing ? (
-        <div className={styles.editBulletButtonContainer}>
-          <button
-            className={styles.saveButton}
-            onClick={onBulletSave}
-            data-no-dnd='true'
-            disabled={
-              editingText.trim() === '' || isRegenerating || disableAllControls
-            }
-            title='Save (Enter)'
-          >
-            <FaCheck size={12} />
-          </button>
-          <button
-            className={styles.cancelButton}
-            onClick={onCancelEdit}
-            disabled={isRegenerating || disableAllControls}
-            data-no-dnd='true'
-            title='Cancel (Esc)'
-          >
-            <FaTimes size={12} />
-          </button>
-          <button
-            className={styles.regenerateButton}
-            disabled={isRegenerating || disableAllControls}
-            onClick={() => onRegenerateBullet(sectionId, index)}
-            data-no-dnd='true'
-          >
-            <FaRedo size={12} />
-          </button>
-        </div>
-      ) : (
-        <div className={styles.viewBulletButtonContainer}>
-          <button
-            className={styles.editButton}
-            disabled={isRegenerating || disableAllControls}
-            onClick={(e) => onEditBullet(index, e)}
-            data-no-dnd='true'
-          >
-            <FaPencilAlt size={12} />
-          </button>
-          <button
-            className={styles.regenerateButton}
-            disabled={isRegenerating || disableAllControls}
-            onClick={() => onRegenerateBullet(sectionId, index)}
-            data-no-dnd='true'
-          >
-            <FaRedo size={12} />
-          </button>
+        <div className={styles.contentArea}>
+          <p className={styles.bulletText}>{text}</p>
         </div>
       )}
     </div>

@@ -537,7 +537,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             <FaPlus /> Add
           </button>
         </div>
-        <div>
+        <div className={styles.bulletPointsContainer}>
           {formData.bulletPoints.map((bullet, index) => {
             const isEditingThisBullet = editingBulletIndex === index
 

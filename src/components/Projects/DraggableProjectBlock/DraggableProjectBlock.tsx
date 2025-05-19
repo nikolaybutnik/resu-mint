@@ -219,7 +219,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         })}
 
         <button
-          className={styles.addBulletButton}
+          className={styles.addBulletButtonNested}
           onClick={() => onAddBullet(data.id)}
           disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
           data-no-dnd='true'

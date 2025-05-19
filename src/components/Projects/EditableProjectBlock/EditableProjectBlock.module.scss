@@ -301,6 +301,12 @@
   margin-bottom: 16px;
 }
 
+.bulletPointsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .formError {
   font-size: 13px;
   font-weight: 500;

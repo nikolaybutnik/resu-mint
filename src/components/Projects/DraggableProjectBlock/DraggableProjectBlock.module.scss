@@ -185,12 +185,17 @@
 .projectBlockDrawer {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s ease-in-out;
+  transition: max-height 0.3s, padding 0s 0.25s;
   user-select: text;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 
   &.expanded {
+    padding: 8px 8px 0 8px;
     max-height: 1000px;
-    transition: max-height 0.5s ease-in-out;
+    transition: max-height 0.5s ease-in-out, padding 0s;
   }
 }
 
@@ -269,4 +274,11 @@
     opacity: 0.7;
     pointer-events: none;
   }
+}
+
+.addBulletButtonNested {
+  @extend .addBulletButton;
+  margin-left: -8px;
+  margin-right: -8px;
+  width: calc(100% + 16px);
 }
