@@ -1,11 +1,5 @@
 import styles from './BulletPoint.module.scss'
-import {
-  FaPencilAlt,
-  FaRedo,
-  FaTimes,
-  FaCheck,
-  FaExclamationTriangle,
-} from 'react-icons/fa'
+import { FaPencilAlt, FaRedo, FaTimes, FaCheck, FaTrash } from 'react-icons/fa'
 import { memo, useEffect, useRef, useState } from 'react'
 import { AppSettings } from '@/lib/types/settings'
 import Portal from '@/components/shared/Portal/Portal'
@@ -159,7 +153,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             title='Delete bullet'
             data-no-dnd='true'
           >
-            <FaExclamationTriangle size={12} />
+            <FaTrash size={12} />
           </button>
         </div>
         <div className={styles.toolbarRight}>

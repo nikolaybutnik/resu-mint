@@ -1,5 +1,5 @@
 import styles from './DraggableProjectBlock.module.scss'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import {
   FaPen,
   FaChevronDown,
@@ -67,7 +67,10 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   onTextareaChange,
   onDrawerToggle,
 }) => {
+  const isFirstRender = useRef(true)
+
   const [localData, setLocalData] = useState<ProjectBlockData>(data)
+  const [animationKey, setAnimationKey] = useState(0)
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
@@ -89,9 +92,10 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
       }
 
   const handleGenerateAllBullets = useCallback(
-    // TODO: implement
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      isFirstRender.current = false
+      setAnimationKey((prev) => prev + 1)
       onEditBullets(data)
     },
     [data, onEditBullets]
@@ -131,6 +135,15 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                 : `${data.endDate.month} ${data.endDate.year}`
             }`}
           </p>
+          {data.technologies.length > 0 && (
+            <div className={styles.projectBlockTechTags}>
+              {data.technologies.map((tech, index) => (
+                <span key={index} className={styles.techTag}>
+                  {tech}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={styles.projectBlockActions}>
@@ -146,8 +159,10 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               isAnyBulletBeingEdited
             }
           >
-            <FaMagic size={12} />
-            <span>Generate</span>
+            <FaMagic size={14} />
+            {animationKey > 0 && (
+              <div key={animationKey} className={styles.magicRipple}></div>
+            )}
           </button>
           <button
             type='button'
@@ -161,20 +176,23 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               isAnyBulletBeingEdited
             }
           >
-            <FaPen />
+            <FaPen size={14} />
           </button>
         </div>
       </div>
 
       {localData.bulletPoints.length > 0 && (
         <button
-          className={`${styles.drawerToggleButton} ${
-            isExpanded ? styles.noRadius : ''
-          } ${isDrawerDisabled ? styles.disabled : ''}`}
+          className={`${styles.draggableProjectBlockContainer} ${
+            styles.drawerToggleButton
+          } ${isExpanded ? styles.noRadius : ''} ${
+            isDrawerDisabled ? styles.disabled : ''
+          }`}
           onClick={onDrawerToggle}
           disabled={isDrawerDisabled}
+          data-no-dnd='true'
         >
-          {isExpanded ? <FaChevronUp /> : <FaChevronDown />}
+          {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
         </button>
       )}
 

@@ -1,4 +1,89 @@
+@use 'sass:color';
 @import '../../../styles/variables';
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    transform: scale(1.05);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba($color-regenerate, 0.6);
+    transform: scale(1.1);
+  }
+}
+
+@keyframes magicBurst {
+  0% {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+    border-width: 3px;
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+.generateAllButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-regenerate;
+  border: 1px solid $color-regenerate;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  svg {
+    height: 14px;
+    width: 14px;
+    color: $color-background;
+    z-index: 3;
+  }
+
+  &:hover {
+    border-color: $color-regenerate;
+    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    transform: scale(1.05);
+    animation: pulseGlow 1.2s ease-in-out infinite;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+.magicRipple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background-color: transparent;
+  border: 3px solid rgba($color-regenerate, 0.8);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+  animation: magicBurst 0.8s ease-out forwards;
+}
 
 .draggableProjectBlockContainer {
   position: relative;
@@ -60,66 +145,62 @@
   text-overflow: ellipsis;
 }
 
+.projectBlockTechTags {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.techTag {
+  font-size: 11px;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid $color-primary;
+  background: transparent;
+  color: $color-primary;
+  line-height: 1.2;
+  letter-spacing: 0.5px;
+}
+
 .projectBlockActions {
   display: flex;
   flex-direction: row;
   gap: 8px;
-  align-items: stretch;
+  align-items: center;
 }
 
 .editButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $color-action-item-background;
-  border: none;
+  background: $color-background;
+  border: 1px solid $color-border;
   border-radius: 4px;
   cursor: pointer;
-  padding: 6px;
-  color: $color-text;
-  transition: background-color 0.2s ease;
-
-  &:hover {
-    background-color: $color-action-item-background-hover;
-    color: $color-primary;
-  }
-}
-
-.generateAllButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba($color-primary, 0.12);
-  color: $color-primary;
-  border: 1.5px solid $color-primary;
-  border-radius: 4px;
-  padding: 0 12px;
-  font-size: 13px;
-  font-weight: 500;
-  gap: 6px;
-  cursor: pointer;
-  transition: background 0.18s, color 0.18s, border-color 0.18s,
-    box-shadow 0.18s, opacity 0.18s;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease;
 
   svg {
-    margin-right: 2px;
-    color: $color-primary;
+    height: 14px;
+    width: 14px;
+    color: $color-text;
   }
 
-  &:hover,
-  &:focus {
+  &:hover {
     background: $color-primary;
-    color: $color-background;
     border-color: $color-primary;
-    box-shadow: 0 2px 8px rgba($color-primary, 0.1);
-
+    transform: scale(1.05);
     svg {
       color: $color-background;
     }
   }
 
   &:active {
-    opacity: 0.85;
+    transform: scale(0.98);
   }
 
   &:disabled {
@@ -128,11 +209,6 @@
     border-color: $color-border;
     opacity: 0.7;
     pointer-events: none;
-    color: $color-border;
-
-    svg {
-      color: $color-border;
-    }
   }
 }
 
@@ -150,15 +226,17 @@
   border-radius: 0 0 6px 6px;
   transition: color 0.2s ease, border-radius 0.2s ease-in-out;
   height: 24px;
+  margin: 0;
 
   svg {
+    height: 12px;
+    width: 12px;
     pointer-events: none;
   }
 
   &:hover {
-    background-color: $color-primary;
+    background: $color-primary;
     color: $color-text;
-
     svg {
       color: $color-background;
     }
@@ -174,7 +252,6 @@
     border-color: $color-border;
     opacity: 0.7;
     pointer-events: none;
-
     &:hover {
       background: $color-action-item-background;
       color: $color-disabled;
@@ -191,77 +268,38 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: transparent;
 
   &.expanded {
-    padding: 8px 8px 0 8px;
+    padding: 8px 8px 0;
     max-height: 1000px;
     transition: max-height 0.5s ease-in-out, padding 0s;
   }
 }
 
-%button-base {
+.addBulletButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: $color-action-item-background;
   border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 4px;
-  color: $color-disabled;
-  transition: background-color 0.2s ease, color 0.2s ease;
-  width: 32px;
-  height: calc((80px - 8px) / 2);
-  flex-grow: 1;
-
-  svg {
-    pointer-events: none;
-  }
-
-  &:hover {
-    background-color: $color-action-item-background-hover;
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-    opacity: 0.7;
-    pointer-events: none;
-
-    svg {
-      color: $color-border;
-    }
-  }
-}
-
-.editButton {
-  @extend %button-base;
-
-  &:hover {
-    color: $color-primary;
-  }
-}
-
-.addBulletButton {
-  border: none;
-  background-color: rgba($color-primary, 0.12);
+  background: rgba($color-primary, 0.12);
   border-top: 1px solid rgba($color-primary, 0.2);
   width: 100%;
   padding: 4px 0;
   cursor: pointer;
   color: $color-disabled;
-  transition: color 0.2s ease, border-radius 0.2s ease-in-out;
+  transition: color 0.2s ease, background 0.2s ease;
   height: 24px;
 
   svg {
+    height: 12px;
+    width: 12px;
     pointer-events: none;
   }
 
   &:hover {
-    background-color: $color-primary;
+    background: $color-primary;
     color: $color-text;
-
     svg {
       color: $color-background;
     }
@@ -278,7 +316,6 @@
 
 .addBulletButtonNested {
   @extend .addBulletButton;
-  margin-left: -8px;
-  margin-right: -8px;
+  margin: 0 -8px;
   width: calc(100% + 16px);
 }
