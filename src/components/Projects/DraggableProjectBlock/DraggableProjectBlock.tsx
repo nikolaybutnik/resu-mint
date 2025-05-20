@@ -8,6 +8,8 @@ import {
   FaPlus,
   FaLock,
   FaUnlockAlt,
+  FaEye,
+  FaEyeSlash,
 } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -45,6 +47,7 @@ interface DraggableProjectBlockProps {
   onDrawerToggle: () => void
   onLockToggle: (sectionId: string, index: number) => void
   onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
+  onToggleInclude: (sectionId: string, isIncluded: boolean) => void
 }
 
 const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
@@ -72,6 +75,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   onDrawerToggle,
   onLockToggle,
   onLockToggleAll,
+  onToggleInclude,
 }) => {
   const isFirstRender = useRef(true)
 
@@ -106,6 +110,12 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     },
     [data, onEditBullets]
   )
+
+  const handleToggleInclude = useCallback(() => {
+    const updatedData = { ...localData, isIncluded: !localData.isIncluded }
+    setLocalData(updatedData)
+    onToggleInclude(data.id, updatedData.isIncluded)
+  }, [data.id, localData, onToggleInclude])
 
   const bulletPoints = useMemo(
     () => localData.bulletPoints,
@@ -149,11 +159,17 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         styles.draggableProjectBlockContainer,
         'prevent-select',
         isDragging || isOverlay ? styles.isDragging : '',
+        !localData.isIncluded ? styles.excluded : '',
       ].join(' ')}
     >
       <div className={styles.draggableProjectBlock}>
         <div className={styles.projectBlockContent}>
           <h3 className={styles.projectBlockHeader}>{data.title}</h3>
+          {!localData.isIncluded && (
+            <p className={styles.projectBlockExcluded}>
+              This project is not currently included in your resume
+            </p>
+          )}
           <p className={styles.projectBlockDate}>
             {`${data.startDate.month} ${data.startDate.year} - ${
               data.endDate.isPresent
@@ -203,6 +219,30 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             }
           >
             <FaPen size={14} />
+          </button>
+          <button
+            type='button'
+            data-no-dnd='true'
+            className={[
+              styles.toggleIncludeButton,
+              localData.isIncluded ? styles.included : styles.excluded,
+            ].join(' ')}
+            onClick={handleToggleInclude}
+            disabled={
+              isDragging ||
+              isOverlay ||
+              isAnyBulletRegenerating ||
+              isAnyBulletBeingEdited
+            }
+            title={
+              localData.isIncluded ? 'Exclude from resume' : 'Include in resume'
+            }
+          >
+            {localData.isIncluded ? (
+              <FaEye size={14} />
+            ) : (
+              <FaEyeSlash size={14} />
+            )}
           </button>
         </div>
       </div>

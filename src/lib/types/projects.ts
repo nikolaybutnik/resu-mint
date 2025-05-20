@@ -38,4 +38,5 @@ export interface ProjectBlockData {
   endDate: EndDate
   bulletPoints: BulletPoint[]
   link: string
+  isIncluded: boolean
 }

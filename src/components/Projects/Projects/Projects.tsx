@@ -33,6 +33,7 @@ import { sanitizeResumeBullet } from '@/lib/utils'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
+import { FaPlus } from 'react-icons/fa'
 
 interface ProjectsProps {
   data: ProjectBlockData[]
@@ -117,6 +118,7 @@ const Projects = ({
       endDate: { month: '' as Month, year: '', isPresent: false },
       bulletPoints: [],
       link: '',
+      isIncluded: true,
     }
     const updatedData = [...localData, newBlock]
     setLocalData(updatedData)
@@ -134,6 +136,17 @@ const Projects = ({
     setEditingBullet(null)
     setLocalData(data)
   }, [data])
+
+  const handleSectionInclusion = useCallback(
+    (sectionId: string, isIncluded: boolean) => {
+      const updatedData = localData.map((project) =>
+        project.id === sectionId ? { ...project, isIncluded } : project
+      )
+      setLocalData(updatedData)
+      onSave(updatedData)
+    },
+    [localData, onSave]
+  )
 
   const handleProjectSave = useCallback(
     (updatedBlock: ProjectBlockData) => {
@@ -461,6 +474,7 @@ const Projects = ({
 
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
+    setExpandedSections(new Set())
   }, [])
 
   const handleDragEnd = useCallback(
@@ -504,6 +518,7 @@ const Projects = ({
             disabled={!!selectedBlockId || isAnyBulletRegenerating}
             onClick={handleSectionAdd}
           >
+            <FaPlus size={12} />
             Add Project
           </button>
           <div className={styles.projectsContainer}>
@@ -620,6 +635,9 @@ const Projects = ({
                         onLockToggleAll={(sectionId, shouldLock) => {
                           handleLockToggleAll(sectionId, shouldLock)
                         }}
+                        onToggleInclude={(sectionId, isIncluded) => {
+                          handleSectionInclusion(sectionId, isIncluded)
+                        }}
                       />
                     )
                   })}
@@ -628,48 +646,29 @@ const Projects = ({
                   {activeItem ? (
                     <DraggableProjectBlock
                       data={activeItem}
-                      editingBulletIndex={
-                        editingBullet?.section === activeItem.id
-                          ? editingBullet.index
-                          : null
-                      }
+                      editingBulletIndex={null}
                       settings={settings}
-                      isRegenerating={
-                        regeneratingBullet?.section === activeItem.id
-                      }
-                      regeneratingBullet={regeneratingBullet}
-                      onBlockSelect={handleSectionSelect}
-                      onEditBullets={handleProjectSave}
-                      onRegenerateBullet={(sectionId, index) =>
-                        handleBulletRegenerate(sectionId, index, false)
-                      }
-                      onAddBullet={(sectionId) =>
-                        handleAddBullet(sectionId, false)
-                      }
-                      onEditBullet={handleBulletEdit}
-                      onBulletSave={() => handleBulletSave(true)}
-                      onBulletCancel={handleCancelEdit}
-                      onBulletDelete={(sectionId, index) =>
-                        handleBulletDelete(sectionId, index, true)
-                      }
-                      onTextareaChange={handleBulletTextUpdate}
-                      editingBulletText={
-                        editingBullet?.section === activeItem.id
-                          ? editingBullet.text
-                          : ''
-                      }
-                      bulletErrors={
-                        editingBullet?.section === activeItem.id
-                          ? editingBullet.errors || {}
-                          : {}
-                      }
+                      isRegenerating={false}
+                      regeneratingBullet={null}
+                      onBlockSelect={() => {}}
+                      onEditBullets={() => {}}
+                      onRegenerateBullet={() => {}}
+                      onAddBullet={() => {}}
+                      onEditBullet={() => {}}
+                      onBulletSave={() => {}}
+                      onBulletCancel={() => {}}
+                      onBulletDelete={() => {}}
+                      onTextareaChange={() => {}}
+                      editingBulletText={''}
+                      bulletErrors={{}}
                       isOverlay={true}
-                      isExpanded={expandedSections.has(activeItem.id)}
-                      onDrawerToggle={() => {}} // No-op for overlay
-                      isAnyBulletBeingEdited={isAnyBulletBeingEdited}
-                      isAnyBulletRegenerating={isAnyBulletRegenerating}
-                      onLockToggle={(_sectionId, _index) => {}}
-                      onLockToggleAll={(_sectionId, _shouldLock) => {}}
+                      isExpanded={false}
+                      onDrawerToggle={() => {}}
+                      isAnyBulletBeingEdited={false}
+                      isAnyBulletRegenerating={false}
+                      onLockToggle={() => {}}
+                      onLockToggleAll={() => {}}
+                      onToggleInclude={() => {}}
                     />
                   ) : null}
                 </DragOverlay>
