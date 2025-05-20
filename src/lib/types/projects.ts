@@ -15,6 +15,7 @@ export type Month =
 export interface BulletPoint {
   id: string
   text: string
+  isLocked: boolean
 }
 
 export type StartDate = {

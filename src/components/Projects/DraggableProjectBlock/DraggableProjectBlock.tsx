@@ -6,6 +6,8 @@ import {
   FaChevronUp,
   FaMagic,
   FaPlus,
+  FaLock,
+  FaUnlockAlt,
 } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -41,6 +43,8 @@ interface DraggableProjectBlockProps {
   onBulletDelete: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onDrawerToggle: () => void
+  onLockToggle: (sectionId: string, index: number) => void
+  onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
 }
 
 const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
@@ -66,6 +70,8 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   onBulletDelete,
   onTextareaChange,
   onDrawerToggle,
+  onLockToggle,
+  onLockToggleAll,
 }) => {
   const isFirstRender = useRef(true)
 
@@ -185,7 +191,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         <button
           className={`${styles.draggableProjectBlockContainer} ${
             styles.drawerToggleButton
-          } ${isExpanded ? styles.noRadius : ''} ${
+          } ${isExpanded ? [styles.noRadius, styles.expanded].join(' ') : ''} ${
             isDrawerDisabled ? styles.disabled : ''
           }`}
           onClick={onDrawerToggle}
@@ -202,6 +208,29 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           isExpanded ? styles.expanded : ''
         }`}
       >
+        {localData.bulletPoints.length > 1 && (
+          <div className={styles.lockAllButtons}>
+            <button
+              className={styles.lockAllButton}
+              onClick={() => onLockToggleAll(data.id, true)}
+              disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+              data-no-dnd='true'
+            >
+              <FaLock size={10} />
+              <span>Lock all</span>
+            </button>
+            <button
+              className={styles.unlockAllButton}
+              onClick={() => onLockToggleAll(data.id, false)}
+              disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+              data-no-dnd='true'
+            >
+              <FaUnlockAlt size={10} />
+              <span>Unlock all</span>
+            </button>
+          </div>
+        )}
+
         {bulletPoints.map((bullet, index) => {
           const isEditingThisBullet = editingBulletIndex === index
           const isRegeneratingThisBullet =
@@ -223,15 +252,19 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
                 (isAnyBulletBeingEdited && !isEditingThisBullet)
               }
               errors={isEditingThisBullet ? bulletErrors : emptyErrors}
+              isLocked={bullet.isLocked}
               settings={settings}
               onCancelEdit={onBulletCancel}
               onBulletDelete={(index) => onBulletDelete(data.id, index)}
               onBulletSave={onBulletSave}
-              onEditBullet={(index) => onEditBullet(data.id, index)}
-              onRegenerateBullet={(sectionId, index) => {
+              onBulletEdit={(index) => onEditBullet(data.id, index)}
+              inBulletRegenerate={(sectionId, index) => {
                 onRegenerateBullet(sectionId, index, false)
               }}
               onTextareaChange={onTextareaChange}
+              onLockToggle={(sectionId, index) => {
+                onLockToggle(sectionId, index)
+              }}
             />
           )
         })}

@@ -62,7 +62,8 @@
 .saveButton,
 .cancelButton,
 .confirmButton,
-.cancelButton {
+.cancelButton,
+.lockButton {
   width: 24px;
   height: 24px;
   background: $color-background;
@@ -112,13 +113,36 @@
   border-color: $color-primary;
 }
 
+.lockButton {
+  &.locked {
+    svg {
+      color: $color-badge-red;
+    }
+
+    &:hover {
+      background: $color-badge-green-background;
+      border-color: $color-badge-green;
+
+      svg {
+        color: $color-disabled;
+      }
+    }
+  }
+
+  &.unlocked:hover {
+    background: $color-badge-red-background;
+    border-color: $color-badge-red;
+  }
+}
+
 .deleteButton:disabled,
 .editButton:disabled,
 .regenerateButton:disabled,
 .saveButton:disabled,
-.cancelButton:disabled {
+.cancelButton:disabled,
+.lockButton:disabled {
   background: $color-background;
-  color: $color-disabled;
+  color: rgba($color-disabled, 0.5);
   border: 1px solid $color-border;
   opacity: 0.7;
   pointer-events: none;

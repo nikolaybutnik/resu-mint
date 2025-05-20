@@ -245,6 +245,7 @@ export const generateBulletPoints = async (
         const formattedBullets = exp.bullets.map((bullet) => ({
           id: uuidv4(),
           text: bullet,
+          isLocked: false,
         }))
 
         exp.bullets = await (
@@ -294,6 +295,7 @@ export const generateBulletPoints = async (
         const formattedBullets = proj.bullets.map((bullet) => ({
           id: uuidv4(),
           text: bullet,
+          isLocked: false,
         }))
 
         proj.bullets = await (

@@ -37,6 +37,8 @@ interface EditableProjectBlockProps {
   onBulletCancel: () => void
   onBulletDelete: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  onLockToggle: (sectionId: string, index?: number) => void
+  onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
 }
 
 type FieldErrorKey =
@@ -85,6 +87,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   onBulletCancel,
   onBulletDelete,
   onTextareaChange,
+  onLockToggle,
+  onLockToggleAll, //TODO: implement
 }) => {
   const [formData, setFormData] = useState<ProjectBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
@@ -179,6 +183,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                 ? {
                     id: bullet.id,
                     text: value as string,
+                    isLocked: bullet.isLocked,
                   }
                 : bullet
             ),
@@ -560,12 +565,16 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                 }
                 errors={combinedBulletErrors[index]}
                 settings={settings}
+                isLocked={bullet.isLocked}
                 onCancelEdit={onBulletCancel}
                 onBulletDelete={(index) => onBulletDelete(formData.id, index)}
                 onBulletSave={onBulletSave}
-                onEditBullet={(index) => onEditBullet(formData.id, index)}
-                onRegenerateBullet={handleRegenerateBullet}
+                onBulletEdit={(index) => onEditBullet(formData.id, index)}
+                inBulletRegenerate={handleRegenerateBullet}
                 onTextareaChange={onTextareaChange}
+                onLockToggle={(sectionId, index) => {
+                  onLockToggle(sectionId, index)
+                }}
               />
             )
           })}

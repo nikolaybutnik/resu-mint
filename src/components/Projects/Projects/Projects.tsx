@@ -147,6 +147,46 @@ const Projects = ({
     [localData, onSave]
   )
 
+  const handleLockToggle = useCallback(
+    (sectionId: string, index?: number) => {
+      const updatedData = localData.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.map((bullet, idx) =>
+                idx === index
+                  ? { ...bullet, isLocked: !bullet.isLocked }
+                  : bullet
+              ),
+            }
+          : block
+      )
+      setLocalData(updatedData)
+      onSave(updatedData)
+    },
+    [localData, onSave]
+  )
+
+  const handleLockToggleAll = useCallback(
+    (sectionId: string, shouldLock: boolean) => {
+      const updatedData = localData.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.map((bullet) => ({
+                ...bullet,
+                isLocked: shouldLock,
+              })),
+            }
+          : block
+      )
+
+      setLocalData(updatedData)
+      onSave(updatedData)
+    },
+    [localData, onSave]
+  )
+
   const handleBulletRegenerate = useCallback(
     async (sectionId: string, index: number, isProjectEditForm: boolean) => {
       const projectData = findProject(sectionId)
@@ -254,6 +294,7 @@ const Projects = ({
       const newBullet = {
         id: uuidv4(),
         text: '',
+        isLocked: false,
       }
 
       const updatedProject = {
@@ -485,6 +526,12 @@ const Projects = ({
                         regeneratingBullet?.section === project.id
                       }
                       regeneratingBullet={regeneratingBullet}
+                      editingBulletText={
+                        isEditingBullet ? editingBullet.text : ''
+                      }
+                      bulletErrors={
+                        isEditingBullet ? editingBullet.errors || {} : {}
+                      }
                       onDelete={handleSectionDelete}
                       onClose={handleSectionClose}
                       onSave={handleProjectSave}
@@ -501,12 +548,12 @@ const Projects = ({
                         handleBulletDelete(sectionId, index, false)
                       }
                       onTextareaChange={handleBulletTextUpdate}
-                      editingBulletText={
-                        isEditingBullet ? editingBullet.text : ''
-                      }
-                      bulletErrors={
-                        isEditingBullet ? editingBullet.errors || {} : {}
-                      }
+                      onLockToggle={(sectionId, index) => {
+                        handleLockToggle(sectionId, index)
+                      }}
+                      onLockToggleAll={(sectionId, shouldLock) => {
+                        handleLockToggleAll(sectionId, shouldLock)
+                      }}
                     />
                   )
                 })
@@ -565,6 +612,12 @@ const Projects = ({
                         onDrawerToggle={() => toggleSectionExpanded(project.id)}
                         isAnyBulletBeingEdited={isAnyBulletBeingEdited}
                         isAnyBulletRegenerating={isAnyBulletRegenerating}
+                        onLockToggle={(sectionId, index) => {
+                          handleLockToggle(sectionId, index)
+                        }}
+                        onLockToggleAll={(sectionId, shouldLock) => {
+                          handleLockToggleAll(sectionId, shouldLock)
+                        }}
                       />
                     )
                   })}
@@ -613,6 +666,8 @@ const Projects = ({
                       onDrawerToggle={() => {}} // No-op for overlay
                       isAnyBulletBeingEdited={isAnyBulletBeingEdited}
                       isAnyBulletRegenerating={isAnyBulletRegenerating}
+                      onLockToggle={(_sectionId, _index) => {}}
+                      onLockToggleAll={(_sectionId, _shouldLock) => {}}
                     />
                   ) : null}
                 </DragOverlay>

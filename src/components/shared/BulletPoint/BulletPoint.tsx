@@ -1,5 +1,13 @@
 import styles from './BulletPoint.module.scss'
-import { FaPencilAlt, FaRedo, FaTimes, FaCheck, FaTrash } from 'react-icons/fa'
+import {
+  FaPencilAlt,
+  FaRedo,
+  FaTimes,
+  FaCheck,
+  FaTrash,
+  FaLock,
+  FaUnlock,
+} from 'react-icons/fa'
 import { memo, useEffect, useRef, useState } from 'react'
 import { AppSettings } from '@/lib/types/settings'
 import Portal from '@/components/shared/Portal/Portal'
@@ -17,12 +25,14 @@ interface BulletPointProps {
     bulletTooLong?: string[]
   }
   settings: AppSettings
+  isLocked: boolean
   onCancelEdit: () => void
   onBulletDelete: (index: number) => void
   onBulletSave: () => void
-  onEditBullet: (index: number, e: React.MouseEvent) => void
-  onRegenerateBullet: (sectionId: string, index: number) => void
+  onBulletEdit: (index: number, e: React.MouseEvent) => void
+  inBulletRegenerate: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  onLockToggle: (sectionId: string, index: number) => void
 }
 
 const BulletPoint: React.FC<BulletPointProps> = ({
@@ -35,16 +45,19 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   disableAllControls,
   errors,
   settings,
+  isLocked,
   onCancelEdit,
   onBulletDelete,
   onBulletSave,
-  onEditBullet,
-  onRegenerateBullet,
+  onBulletEdit,
+  inBulletRegenerate,
   onTextareaChange,
+  onLockToggle,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
   const bulletContainerRef = useRef<HTMLDivElement>(null)
   const popupRef = useRef<HTMLDivElement>(null)
+
   const [activePopup, setActivePopup] = useState<
     null | 'delete' | 'regenerate'
   >(null)
@@ -58,6 +71,12 @@ const BulletPoint: React.FC<BulletPointProps> = ({
       editInputRef.current.focus()
     }
   }, [isEditing])
+
+  useEffect(() => {
+    if (isLocked && isEditing) {
+      onCancelEdit()
+    }
+  }, [isLocked, isEditing, onCancelEdit])
 
   useEffect(() => {
     if (!activePopup || !bulletContainerRef.current) {
@@ -130,7 +149,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     regenerate: {
       message: "Regenerate this bullet? This can't be undone.",
       onConfirm: () => {
-        onRegenerateBullet(sectionId, index)
+        inBulletRegenerate(sectionId, index)
         setActivePopup(null)
       },
     },
@@ -149,7 +168,9 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           <button
             className={styles.deleteButton}
             onClick={() => setActivePopup('delete')}
-            disabled={isEditing || isRegenerating || disableAllControls}
+            disabled={
+              isEditing || isRegenerating || disableAllControls || isLocked
+            }
             title='Delete bullet'
             data-no-dnd='true'
           >
@@ -181,38 +202,41 @@ const BulletPoint: React.FC<BulletPointProps> = ({
               >
                 <FaTimes size={12} />
               </button>
-              <button
-                className={styles.regenerateButton}
-                onClick={() => setActivePopup('regenerate')}
-                disabled={isRegenerating || disableAllControls}
-                title='Regenerate bullet'
-                data-no-dnd='true'
-              >
-                <FaRedo size={12} />
-              </button>
             </>
           ) : (
             <>
               <button
                 className={styles.editButton}
-                onClick={(e) => onEditBullet(index, e)}
-                disabled={isRegenerating || disableAllControls}
+                onClick={(e) => onBulletEdit(index, e)}
+                disabled={isRegenerating || disableAllControls || isLocked}
                 title='Edit bullet'
                 data-no-dnd='true'
               >
                 <FaPencilAlt size={12} />
               </button>
-              <button
-                className={styles.regenerateButton}
-                onClick={() => setActivePopup('regenerate')}
-                disabled={isRegenerating || disableAllControls}
-                title='Regenerate bullet'
-                data-no-dnd='true'
-              >
-                <FaRedo size={12} />
-              </button>
             </>
           )}
+          <button
+            className={[
+              styles.lockButton,
+              isLocked ? styles.locked : styles.unlocked,
+            ].join(' ')}
+            onClick={() => onLockToggle(sectionId, index)}
+            disabled={isRegenerating || disableAllControls}
+            title='Lock bullet'
+            data-no-dnd='true'
+          >
+            {isLocked ? <FaLock size={12} /> : <FaUnlock size={12} />}
+          </button>
+          <button
+            className={styles.regenerateButton}
+            onClick={() => setActivePopup('regenerate')}
+            disabled={isRegenerating || disableAllControls || isLocked}
+            title='Regenerate bullet'
+            data-no-dnd='true'
+          >
+            <FaRedo size={12} />
+          </button>
         </div>
       </div>
 

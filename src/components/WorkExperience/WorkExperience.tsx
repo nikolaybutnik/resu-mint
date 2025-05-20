@@ -1,13 +1,10 @@
 import styles from './WorkExperience.module.scss'
 import React, { useCallback, useState, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import {
-  ExperienceBlockData,
-  Month,
-} from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
+import { ExperienceBlockData, Month } from '@/lib/types/experience'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { DraggableExperienceBlock } from '@/components/DraggableExperienceBlock/DraggableExperienceBlock'
-import LoadingSpinner from '../../LoadingSpinner/LoadingSpinner'
+import { DraggableExperienceBlock } from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
+import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 
 interface WorkExperienceProps {
   data: ExperienceBlockData[]

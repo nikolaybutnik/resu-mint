@@ -224,7 +224,8 @@
   cursor: pointer;
   color: $color-disabled;
   border-radius: 0 0 6px 6px;
-  transition: color 0.2s ease, border-radius 0.2s ease-in-out;
+  transition: color 0.2s ease, border-radius 0.2s ease-in-out,
+    border-bottom 0.2s ease-in-out;
   height: 24px;
   margin: 0;
 
@@ -256,6 +257,10 @@
       background: $color-action-item-background;
       color: $color-disabled;
     }
+  }
+
+  &.expanded {
+    border-bottom: 1px solid rgba($color-primary, 0.4);
   }
 }
 
@@ -318,4 +323,72 @@
   @extend .addBulletButton;
   margin: 0 -8px;
   width: calc(100% + 16px);
+}
+
+.lockAllButtons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+
+  .lockAllButton,
+  .unlockAllButton {
+    flex: 1;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    height: 28px;
+    transition: background 0.2s ease, border-color 0.2s ease,
+      transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+      height: 12px;
+      width: 12px;
+      z-index: 3;
+    }
+
+    &:hover {
+      transform: scale(1.02);
+    }
+
+    &:active {
+      transform: scale(1);
+    }
+  }
+
+  .lockAllButton {
+    background: $color-badge-red-background;
+    border: 1px solid rgba($color-badge-red, 0.3);
+    color: $color-badge-red;
+
+    svg {
+      color: $color-badge-red;
+    }
+
+    &:hover {
+      background: color.adjust($color-badge-red-background, $lightness: -3%);
+      border-color: $color-badge-red;
+    }
+  }
+
+  .unlockAllButton {
+    background: $color-badge-green-background;
+    border: 1px solid rgba($color-badge-green, 0.3);
+    color: $color-badge-green;
+
+    svg {
+      color: $color-badge-green;
+    }
+
+    &:hover {
+      background: color.adjust($color-badge-green-background, $lightness: -3%);
+      border-color: $color-badge-green;
+    }
+  }
 }
