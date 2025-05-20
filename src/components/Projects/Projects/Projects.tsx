@@ -1,5 +1,5 @@
 import styles from './Projects.module.scss'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 import { v4 as uuidv4 } from 'uuid'
 import EditableProjectBlock from '../EditableProjectBlock/EditableProjectBlock'
@@ -32,6 +32,7 @@ import { bulletService } from '@/lib/services'
 import { sanitizeResumeBullet } from '@/lib/utils'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
+import isEqual from 'lodash/isEqual'
 
 interface ProjectsProps {
   data: ProjectBlockData[]
@@ -436,6 +437,7 @@ const Projects = ({
 
       setEditingBullet((prev) => {
         if (!prev) return null
+        if (isEqual(prev.errors, errors)) return prev
         return { ...prev, errors }
       })
     },
@@ -486,8 +488,8 @@ const Projects = ({
     [localData, activeId]
   )
 
-  const isAnyBulletBeingEdited = Boolean(editingBullet)
-  const isAnyBulletRegenerating = Boolean(regeneratingBullet)
+  const isAnyBulletBeingEdited = !!editingBullet
+  const isAnyBulletRegenerating = !!regeneratingBullet
 
   return (
     <>

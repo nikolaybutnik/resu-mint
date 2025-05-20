@@ -360,6 +360,18 @@
     &:active {
       transform: scale(1);
     }
+
+    &:disabled {
+      background: $color-action-item-background;
+      color: $color-disabled;
+      border-color: $color-border;
+      opacity: 0.7;
+      pointer-events: none;
+
+      svg {
+        color: rgba($color-disabled, 0.5);
+      }
+    }
   }
 
   .lockAllButton {

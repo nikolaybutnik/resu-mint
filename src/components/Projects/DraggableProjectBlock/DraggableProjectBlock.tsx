@@ -111,7 +111,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     () => localData.bulletPoints,
     [localData.bulletPoints]
   )
-
   const emptyErrors = useMemo(() => ({}), [])
 
   const isEditingThisSection =
@@ -119,6 +118,27 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     data.id === (editingBulletText ? data.id : null)
   const isDrawerDisabled =
     (isAnyBulletBeingEdited && !isEditingThisSection) || isAnyBulletRegenerating
+
+  const handleBulletDelete = useCallback(
+    (index: number) => onBulletDelete(data.id, index),
+    [data.id, onBulletDelete]
+  )
+
+  const handleBulletEdit = useCallback(
+    (index: number) => onEditBullet(data.id, index),
+    [data.id, onEditBullet]
+  )
+
+  const handleBulletRegenerate = useCallback(
+    (sectionId: string, index: number) =>
+      onRegenerateBullet(sectionId, index, false),
+    [onRegenerateBullet]
+  )
+
+  const handleBulletLockToggle = useCallback(
+    (sectionId: string, index: number) => onLockToggle(sectionId, index),
+    [onLockToggle]
+  )
 
   return (
     <div
@@ -255,16 +275,12 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               isLocked={bullet.isLocked}
               settings={settings}
               onCancelEdit={onBulletCancel}
-              onBulletDelete={(index) => onBulletDelete(data.id, index)}
+              onBulletDelete={handleBulletDelete}
               onBulletSave={onBulletSave}
-              onBulletEdit={(index) => onEditBullet(data.id, index)}
-              inBulletRegenerate={(sectionId, index) => {
-                onRegenerateBullet(sectionId, index, false)
-              }}
+              onBulletEdit={handleBulletEdit}
+              inBulletRegenerate={handleBulletRegenerate}
               onTextareaChange={onTextareaChange}
-              onLockToggle={(sectionId, index) => {
-                onLockToggle(sectionId, index)
-              }}
+              onLockToggle={handleBulletLockToggle}
             />
           )
         })}

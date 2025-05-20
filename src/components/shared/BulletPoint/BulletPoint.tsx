@@ -29,7 +29,7 @@ interface BulletPointProps {
   onCancelEdit: () => void
   onBulletDelete: (index: number) => void
   onBulletSave: () => void
-  onBulletEdit: (index: number, e: React.MouseEvent) => void
+  onBulletEdit: (index: number) => void
   inBulletRegenerate: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onLockToggle: (sectionId: string, index: number) => void
@@ -207,7 +207,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             <>
               <button
                 className={styles.editButton}
-                onClick={(e) => onBulletEdit(index, e)}
+                onClick={() => onBulletEdit(index)}
                 disabled={isRegenerating || disableAllControls || isLocked}
                 title='Edit bullet'
                 data-no-dnd='true'
