@@ -18,6 +18,7 @@ export interface GenerateBulletsRequest {
     type: 'project' | 'experience'
     description: string
     existingBullets: BulletPoint[]
+    targetBulletIds: string[]
   }[]
   jobDescriptionAnalysis: JobDescriptionAnalysis
   settings: AppSettings

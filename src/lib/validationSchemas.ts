@@ -408,8 +408,12 @@ export const generateBulletsRequestSchema = z
             z.object({
               id: z.string().uuid('Invalid bullet ID'),
               text: z.string(),
+              isLocked: z.boolean(),
             })
           ),
+          targetBulletIds: z
+            .array(z.string().uuid('Invalid target bullet ID'))
+            .min(0),
         })
       )
       .min(1, 'At least one section is required'),
@@ -418,21 +422,37 @@ export const generateBulletsRequestSchema = z
     numBullets: z.number().int().min(1, 'numBullets must be at least 1'),
   })
   .superRefine((data, ctx) => {
+    // Validate targetBulletIds: unique and not in existingBullets
     data.sections.forEach((section, sectionIndex) => {
-      section.existingBullets.forEach((bullet, bulletIndex) => {
-        if (bullet.text.length > data.settings.maxCharsPerBullet) {
+      const bulletIds = new Set(section.existingBullets.map((b) => b.id))
+      const targetIds = new Set(section.targetBulletIds)
+      if (targetIds.size < section.targetBulletIds.length) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'targetBulletIds must be unique',
+          path: [`sections`, sectionIndex, `targetBulletIds`],
+        })
+      }
+      section.targetBulletIds.forEach((id, targetIndex) => {
+        if (bulletIds.has(id)) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
-            message: `Bullet text exceeds max length of ${data.settings.maxCharsPerBullet} characters`,
-            path: [
-              `sections`,
-              sectionIndex,
-              `existingBullets`,
-              bulletIndex,
-              `text`,
-            ],
+            message: 'targetBulletIds must not overlap with existingBullets',
+            path: [`sections`, sectionIndex, `targetBulletIds`, targetIndex],
           })
         }
       })
+      // Ensure numBullets >= targetBulletIds.length if targetBulletIds provided
+      if (
+        section.targetBulletIds.length > 0 &&
+        data.numBullets < section.targetBulletIds.length
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'numBullets must be at least targetBulletIds length when targetBulletIds is provided',
+          path: [`numBullets`],
+        })
+      }
     })
   })

@@ -15,9 +15,11 @@ export const bulletService = {
       const result = await api.post(ROUTES.GENERATE_BULLETS, params)
       return result.map((item: GenerateBulletsResponse) => ({
         sectionId: item.sectionId,
-        bullets: item.bullets.map((bullet: BulletPoint) =>
-          sanitizeResumeBullet(bullet.text, true)
-        ),
+        bullets: item.bullets.map((bullet) => ({
+          id: bullet.id,
+          text: sanitizeResumeBullet(bullet.text, true),
+          isLocked: bullet.isLocked,
+        })),
       }))
     } catch (error) {
       console.error('Error generating bullets:', error)

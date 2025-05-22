@@ -221,6 +221,7 @@ const Projects = ({
               type: 'project',
               description: projectData.description,
               existingBullets,
+              targetBulletIds: [bulletToRegenerate.id],
             },
           ],
           jobDescriptionAnalysis,

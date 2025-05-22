@@ -5,12 +5,9 @@ import {
   createErrorResponse,
   createSuccessResponse,
 } from '@/lib/types/errors'
-import {
-  GenerateBulletsRequest,
-  GenerateBulletsResponse,
-} from '@/lib/types/api'
+import { GenerateBulletsRequest } from '@/lib/types/api'
 import { v4 as uuidv4 } from 'uuid'
-import { BulletPoint } from '@/lib/types/projects'
+import { BulletPoint } from '@/lib/types/experience'
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,23 +58,44 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-    const [firstSection, ..._rest] = sections
-    const temporaryResponseData: GenerateBulletsResponse[] = [
-      {
-        sectionId: firstSection.id,
-        bullets: [
-          {
-            id: uuidv4(),
-            text: 'Generated bullet 1 for section 1 - TBD',
-            isLocked: false,
-          },
-        ],
-      },
-    ]
 
-    return NextResponse.json(createSuccessResponse(temporaryResponseData), {
-      status: 200,
-    })
+    const results: {
+      sectionId: string
+      bullets: BulletPoint[]
+    }[] = []
+    for (const sec of sections) {
+      const existingCount = sec.existingBullets.length
+      const maxBullets =
+        sec.type === 'project'
+          ? settings.bulletsPerProjectBlock - existingCount
+          : settings.bulletsPerExperienceBlock - existingCount
+
+      if (maxBullets < 1) {
+        // No room for new bullets, return existing
+        results.push({
+          sectionId: sec.id,
+          bullets: sec.existingBullets,
+        })
+        continue
+      }
+
+      const targetNumBullets = Math.min(numBullets, maxBullets)
+      // Placeholder for AI generation
+      const generatedBullets = Array.from(
+        { length: targetNumBullets },
+        (_, i) => ({
+          id: sec.targetBulletIds[i] || uuidv4(),
+          text: `Generated bullet ${i + 1} for section ${sec.id} - TBD`,
+          isLocked: false,
+        })
+      )
+      results.push({
+        sectionId: sec.id,
+        bullets: generatedBullets,
+      })
+    }
+
+    return NextResponse.json(createSuccessResponse(results), { status: 200 })
   } catch (error) {
     console.error('Server error:', error)
     return NextResponse.json(
