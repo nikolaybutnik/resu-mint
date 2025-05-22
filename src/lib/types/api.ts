@@ -13,14 +13,20 @@ export interface MintResumeRequestData {
 }
 
 export interface GenerateBulletsRequest {
-  section: {
-    type: 'experience' | 'project'
+  sections: {
+    id: string
+    type: 'project' | 'experience'
     description: string
-  }
-  existingBullets: BulletPoint[]
+    existingBullets: BulletPoint[]
+  }[]
   jobDescriptionAnalysis: JobDescriptionAnalysis
+  settings: AppSettings
   numBullets: number
-  maxCharsPerBullet: number
+}
+
+export interface GenerateBulletsResponse {
+  sectionId: string
+  bullets: BulletPoint[]
 }
 
 export interface GeneratedBulletsResponseModel {

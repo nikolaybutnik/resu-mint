@@ -1,37 +1,27 @@
 import { api } from './api'
 import { ROUTES } from '@/lib/constants'
-import { JobDescriptionAnalysis } from '@/lib/types/api'
-import { BulletPoint } from '@/lib/types/projects'
+import {
+  GenerateBulletsRequest,
+  GenerateBulletsResponse,
+} from '@/lib/types/api'
 import { sanitizeResumeBullet } from '@/lib/utils'
-
-export interface GenerateBulletParams {
-  sectionType: 'project' | 'experience'
-  sectionDescription: string
-  existingBullets: BulletPoint[]
-  jobDescriptionAnalysis: JobDescriptionAnalysis
-  maxCharsPerBullet: number
-  numBullets?: number
-}
+import { BulletPoint } from '../types/experience'
 
 export const bulletService = {
-  generateBullets: async (params: GenerateBulletParams): Promise<string[]> => {
-    const payload = {
-      section: {
-        type: params.sectionType,
-        description: params.sectionDescription,
-      },
-      existingBullets: params.existingBullets,
-      jobDescriptionAnalysis: params.jobDescriptionAnalysis,
-      numBullets: params.numBullets || 1,
-      maxCharsPerBullet: params.maxCharsPerBullet,
-    }
-
+  generateBullets: async (
+    params: GenerateBulletsRequest
+  ): Promise<GenerateBulletsResponse[]> => {
     try {
-      const result = await api.post(ROUTES.GENERATE_BULLETS, payload)
-      return result.map((text: string) => sanitizeResumeBullet(text, true))
+      const result = await api.post(ROUTES.GENERATE_BULLETS, params)
+      return result.map((item: GenerateBulletsResponse) => ({
+        sectionId: item.sectionId,
+        bullets: item.bullets.map((bullet: BulletPoint) =>
+          sanitizeResumeBullet(bullet.text, true)
+        ),
+      }))
     } catch (error) {
-      console.error('Error generating bullet:', error)
-      throw error
+      console.error('Error generating bullets:', error)
+      throw new Error('Failed to generate bullets')
     }
   },
 }

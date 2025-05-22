@@ -11,7 +11,7 @@ import Settings from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
 import { ROUTES } from '@/lib/constants'
-import { JobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
+import { jobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { MintResumeRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
@@ -209,7 +209,7 @@ export const FormsContainer: React.FC = () => {
         console.error('Invalid analysis response', result.errors)
       }
 
-      const validationResult = JobDescriptionAnalysisSchema.safeParse(
+      const validationResult = jobDescriptionAnalysisSchema.safeParse(
         result.data
       )
       if (!validationResult.success) {

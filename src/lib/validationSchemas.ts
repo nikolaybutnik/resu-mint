@@ -82,7 +82,7 @@ const urlValidator = (errorMessage = 'Must be a valid URL') => {
 }
 
 const bulletPointSchema = z.object({
-  id: z.string(),
+  id: z.string().uuid(),
   text: z
     .string()
     .min(1, 'Bullet point cannot be empty')
@@ -164,7 +164,7 @@ export const endDateSchema = z
 
 export const experienceBlockSchema = z
   .object({
-    id: z.string(),
+    id: z.string().uuid(),
     jobTitle: z
       .string()
       .min(1, 'Job title is required')
@@ -217,7 +217,7 @@ export const experienceBlockSchema = z
 
 export const projectBlockSchema = z
   .object({
-    id: z.string(),
+    id: z.string().uuid(),
     title: z
       .string()
       .min(1, 'Title is required')
@@ -226,7 +226,10 @@ export const projectBlockSchema = z
     endDate: endDateSchema,
     technologies: z.array(z.string()).default([]),
     link: urlValidator().default(''),
-    description: z.string().default(''),
+    description: z
+      .string()
+      .max(2000, 'Description must be 2000 characters or less')
+      .optional(),
     bulletPoints: z.array(bulletPointSchema).default([]),
   })
   .refine(
@@ -327,7 +330,7 @@ export const analyzeJobDescriptionRequestSchema = z.object({
   settings: settingsSchema,
 })
 
-export const JobDescriptionAnalysisSchema = z.object({
+export const jobDescriptionAnalysisSchema = z.object({
   skillsRequired: z.object({
     hard: z
       .array(z.string())
@@ -385,17 +388,51 @@ export const resumeMintRequestSchema = z.object({
   personalDetails: personalDetailsSchema,
   workExperience: z.array(experienceBlockSchema),
   projects: z.array(projectBlockSchema),
-  jobDescriptionAnalysis: JobDescriptionAnalysisSchema,
+  jobDescriptionAnalysis: jobDescriptionAnalysisSchema,
   settings: settingsSchema,
 })
 
-export const generateBulletsRequestSchema = z.object({
-  section: z.object({
-    type: z.enum(['experience', 'project']),
-    description: z.string().optional(),
-  }),
-  existingBullets: z.array(bulletPointSchema).default([]),
-  jobDescriptionAnalysis: JobDescriptionAnalysisSchema,
-  numBullets: z.number().int().min(1),
-  maxCharsPerBullet: z.number(),
-})
+export const generateBulletsRequestSchema = z
+  .object({
+    sections: z
+      .array(
+        z.object({
+          id: z.string().uuid('Invalid section ID'),
+          type: z.enum(['project', 'experience']),
+          description: z
+            .string()
+            .max(2000, 'Description must be 2000 characters or less')
+            .optional()
+            .default(''),
+          existingBullets: z.array(
+            z.object({
+              id: z.string().uuid('Invalid bullet ID'),
+              text: z.string(),
+            })
+          ),
+        })
+      )
+      .min(1, 'At least one section is required'),
+    jobDescriptionAnalysis: jobDescriptionAnalysisSchema,
+    settings: settingsSchema,
+    numBullets: z.number().int().min(1, 'numBullets must be at least 1'),
+  })
+  .superRefine((data, ctx) => {
+    data.sections.forEach((section, sectionIndex) => {
+      section.existingBullets.forEach((bullet, bulletIndex) => {
+        if (bullet.text.length > data.settings.maxCharsPerBullet) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: `Bullet text exceeds max length of ${data.settings.maxCharsPerBullet} characters`,
+            path: [
+              `sections`,
+              sectionIndex,
+              `existingBullets`,
+              bulletIndex,
+              `text`,
+            ],
+          })
+        }
+      })
+    })
+  })

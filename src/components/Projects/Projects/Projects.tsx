@@ -25,7 +25,7 @@ import {
   restrictToVerticalAxis,
   restrictToParentElement,
 } from '@dnd-kit/modifiers'
-import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import { Month, ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
 import { bulletService } from '@/lib/services'
@@ -214,55 +214,65 @@ const Projects = ({
           (bullet) => bullet.id !== bulletToRegenerate.id
         )
 
-        const bullets = await bulletService.generateBullets({
-          sectionType: 'project',
-          sectionDescription: projectData.description,
-          existingBullets,
+        const payload: GenerateBulletsRequest = {
+          sections: [
+            {
+              id: sectionId,
+              type: 'project',
+              description: projectData.description,
+              existingBullets,
+            },
+          ],
           jobDescriptionAnalysis,
-          maxCharsPerBullet: settings.maxCharsPerBullet,
-        })
-
-        if (bullets.length > 0) {
-          const regeneratedText = bullets[0]
-
-          // If bullet in edit mode, update textarea only
-          if (
-            editingBullet &&
-            editingBullet.section === sectionId &&
-            editingBullet.index === index
-          ) {
-            setEditingBullet((prev) => {
-              if (!prev) return null
-              return { ...prev, text: regeneratedText }
-            })
-          } else {
-            // Else, update bullet in local state
-            const updatedBullets = projectData.bulletPoints.map((bullet) =>
-              bullet.id === bulletToRegenerate.id
-                ? { ...bullet, text: regeneratedText }
-                : bullet
-            )
-
-            const updatedProject = {
-              ...projectData,
-              bulletPoints: updatedBullets,
-            }
-
-            updateProject(updatedProject)
-
-            const shouldSaveToStorage = !isProjectEditForm
-
-            if (shouldSaveToStorage) {
-              onSave(
-                localData.map((project) =>
-                  project.id === sectionId ? updatedProject : project
-                )
-              )
-            }
-          }
-
-          validateBulletText(regeneratedText)
+          settings,
+          numBullets: 1,
         }
+
+        const bullets = await bulletService.generateBullets(payload)
+
+        console.log('generated bullets', bullets)
+
+        // if (bullets.length > 0) {
+        //   const regeneratedText = bullets[0]
+
+        //   // If bullet in edit mode, update textarea only
+        //   if (
+        //     editingBullet &&
+        //     editingBullet.section === sectionId &&
+        //     editingBullet.index === index
+        //   ) {
+        //     setEditingBullet((prev) => {
+        //       if (!prev) return null
+        //       return { ...prev, text: regeneratedText }
+        //     })
+        //   } else {
+        //     // Else, update bullet in local state
+        //     const updatedBullets = projectData.bulletPoints.map((bullet) =>
+        //       bullet.id === bulletToRegenerate.id
+        //         ? { ...bullet, text: regeneratedText }
+        //         : bullet
+        //     )
+
+        //     const updatedProject = {
+        //       ...projectData,
+        //       bulletPoints: updatedBullets,
+        //     }
+
+        //     updateProject(updatedProject)
+
+        //     const shouldSaveToStorage = !isProjectEditForm
+
+        //     if (shouldSaveToStorage) {
+        //       onSave(
+        //         localData.map((project) =>
+        //           project.id === sectionId ? updatedProject : project
+        //         )
+        //       )
+        //     }
+        //   }
+
+        //   validateBulletText(regeneratedText)
+        // }
       } catch (error) {
         console.error('Error regenerating bullet', error)
       } finally {
