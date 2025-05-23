@@ -219,7 +219,9 @@ const Projects = ({
             {
               id: sectionId,
               type: 'project',
+              title: projectData.title,
               description: projectData.description,
+              technologies: projectData.technologies,
               existingBullets,
               targetBulletIds: [bulletToRegenerate.id],
             },

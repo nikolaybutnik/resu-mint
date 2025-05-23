@@ -312,3 +312,36 @@ Note: Short or vague bullets reduce impact; prioritize specific, detailed conten
 </OUTPUT>
 `
 }
+
+export const generateExperienceBulletPointsPrompt = (
+  sections: {
+    id: string
+    title: string
+    description: string
+    existingBullets: BulletPoint[]
+  }[],
+  jobDescriptionAnalysis: JobDescriptionAnalysis,
+  numBullets: number,
+  maxCharsPerBullet: number
+) => {
+  return `
+Experience Test Prompt
+`
+}
+
+export const generateProjectBulletPointsPrompt = (
+  sections: {
+    id: string
+    title: string
+    technologies: string[]
+    description: string
+    existingBullets: BulletPoint[]
+  }[],
+  jobDescriptionAnalysis: JobDescriptionAnalysis,
+  numBullets: number,
+  maxCharsPerBullet: number
+) => {
+  return `
+Project Test Prompt
+`
+}

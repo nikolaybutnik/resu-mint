@@ -399,6 +399,19 @@ export const generateBulletsRequestSchema = z
         z.object({
           id: z.string().uuid('Invalid section ID'),
           type: z.enum(['project', 'experience']),
+          title: z
+            .string()
+            .min(1, 'Title cannot be empty')
+            .max(100, 'Title must be 100 characters or less'),
+          technologies: z
+            .array(
+              z
+                .string()
+                .max(50, 'Each technology must be 50 characters or less')
+            )
+            .max(20, 'Too many technologies')
+            .optional()
+            .default([]),
           description: z
             .string()
             .max(2000, 'Description must be 2000 characters or less')
