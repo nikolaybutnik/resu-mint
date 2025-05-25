@@ -67,32 +67,23 @@ export async function POST(request: NextRequest) {
       sectionId: string
       bullets: BulletPoint[]
     }[] = []
+    // Perform a call for each section to maximize context retention.
     for (const sec of sections) {
-      const existingCount = sec.existingBullets.length
-      const maxBullets =
-        sec.type === 'project'
-          ? settings.bulletsPerProjectBlock - existingCount
-          : settings.bulletsPerExperienceBlock - existingCount
-
-      const targetNumBullets = Math.min(numBullets, maxBullets)
       const tools = [
-        generateSectionBulletPointsTool(
-          settings.maxCharsPerBullet,
-          targetNumBullets
-        ),
+        generateSectionBulletPointsTool(settings.maxCharsPerBullet, numBullets),
       ]
       const prompt =
         sec.type === 'project'
           ? generateProjectBulletPointsPrompt(
-              sections,
+              sec,
               jobDescriptionAnalysis,
-              targetNumBullets,
+              numBullets,
               settings.maxCharsPerBullet
             )
           : generateExperienceBulletPointsPrompt(
-              sections,
+              sec,
               jobDescriptionAnalysis,
-              targetNumBullets,
+              numBullets,
               settings.maxCharsPerBullet
             )
 
@@ -121,8 +112,8 @@ export async function POST(request: NextRequest) {
         const inputTokens = encoder.encode(prompt).length
         // Ouput token estimate
         const bulletTokens =
-          Math.ceil((settings.maxCharsPerBullet * 0.8) / 4) * targetNumBullets
-        const jsonOverhead = 15 + 5 * targetNumBullets
+          Math.ceil((settings.maxCharsPerBullet * 0.8) / 4) * numBullets
+        const jsonOverhead = 15 + 5 * numBullets
         const toolCallOverhead = 50
         maxTokens = Math.ceil(
           (inputTokens + bulletTokens + jsonOverhead + toolCallOverhead) * 1.2
@@ -131,32 +122,55 @@ export async function POST(request: NextRequest) {
         // Fallback: character-based estimate
         const inputTokens = Math.ceil(prompt.length / 4)
         const bulletTokens =
-          Math.ceil((settings.maxCharsPerBullet * 0.8) / 4) * targetNumBullets
+          Math.ceil((settings.maxCharsPerBullet * 0.8) / 4) * numBullets
         maxTokens = inputTokens + bulletTokens + 100
       }
 
-      // try {
-      //   const response = await openai.chat.completions.create({
-      //     model: settings.languageModel,
-      //     messages: [{ role: 'user', content: prompt }],
-      //     tools,
-      //     max_tokens: maxTokens,
-      //     tool_choice: {
-      //       type: 'function',
-      //       function: { name: 'generate_section_bullets' },
-      //     },
-      //   })
-      //  // tool call logic
-      // } catch (error) {
-      //   console.error(`OpenAI API error for section ${sec.id}:`, error)
-      //   // Geerated bullet placeholders fallback???
-      //   return NextResponse.json(
-      //     createErrorResponse([
-      //       createError('server', 'Failed to generate bullets'),
-      //     ]),
-      //     { status: 500 }
-      //   )
-      // }
+      try {
+        const response = await openai.chat.completions.create({
+          model: settings.languageModel,
+          messages: [{ role: 'user', content: prompt }],
+          tools,
+          max_tokens: maxTokens,
+          tool_choice: {
+            type: 'function',
+            function: { name: 'generate_section_bullets' },
+          },
+        })
+
+        const toolCall = response.choices[0]?.message?.tool_calls?.[0]
+        if (toolCall?.function?.name === 'generate_section_bullets') {
+          const args = JSON.parse(toolCall.function.arguments)
+          if (args?.bullets && Array.isArray(args.bullets)) {
+            if (sec.targetBulletIds.length > 0) {
+              results.push({
+                sectionId: sec.id,
+                bullets: args.bullets.map((bullet: string, index: number) => ({
+                  id:
+                    index < sec.targetBulletIds.length
+                      ? sec.targetBulletIds[index]
+                      : uuidv4(),
+                  text: bullet,
+                  isLocked: false,
+                })),
+              })
+            }
+          }
+        } else {
+          return NextResponse.json(
+            createErrorResponse([createError('server', 'Tool call failed')]),
+            { status: 500 }
+          )
+        }
+      } catch (error) {
+        console.error(`OpenAI API error for section ${sec.id}:`, error)
+        return NextResponse.json(
+          createErrorResponse([
+            createError('server', 'Failed to generate bullets'),
+          ]),
+          { status: 500 }
+        )
+      }
     }
 
     return NextResponse.json(createSuccessResponse(results), { status: 200 })

@@ -216,6 +216,24 @@
   z-index: 1;
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
 .bulletText {
   font-size: 14px;
   line-height: 1.5;
@@ -225,6 +243,18 @@
   padding: 8px;
   border-radius: 4px;
   background: $color-background;
+  transition: opacity 1s;
+  opacity: 1;
+
+  &.fadingIn p {
+    opacity: 0;
+    animation: fadeIn 1s forwards;
+  }
+
+  &.fadingOut p {
+    opacity: 1;
+    animation: fadeOut 1s forwards;
+  }
 }
 
 .bulletInputAreaWrapper {

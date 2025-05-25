@@ -201,6 +201,12 @@ const Projects = ({
     [localData, onSave]
   )
 
+  /**
+   * Regenerates a single bullet point for a project section.
+   * @param sectionId - The ID of the project section to regenerate.
+   * @param index - The index of the bullet point to regenerate.
+   * @param isProjectEditForm - Whether the project is being edited in the form.
+   */
   const handleBulletRegenerate = useCallback(
     async (sectionId: string, index: number, isProjectEditForm: boolean) => {
       const projectData = findProject(sectionId)
@@ -231,51 +237,49 @@ const Projects = ({
           numBullets: 1,
         }
 
-        const bullets = await bulletService.generateBullets(payload)
+        const generatedData = await bulletService.generateBullets(payload)
 
-        console.log('generated bullets', bullets)
+        if (generatedData.length > 0) {
+          const [generatedSection] = generatedData
+          const [generatedBullet] = generatedSection.bullets
 
-        // if (bullets.length > 0) {
-        //   const regeneratedText = bullets[0]
+          // If bullet in edit mode, update textarea only
+          if (
+            editingBullet &&
+            editingBullet.section === sectionId &&
+            editingBullet.index === index
+          ) {
+            setEditingBullet((prev) => {
+              if (!prev) return null
+              return { ...prev, text: generatedBullet.text }
+            })
+          } else {
+            // Else, update bullet in local state
+            const updatedBullets = projectData.bulletPoints.map((bullet) =>
+              bullet.id === bulletToRegenerate.id
+                ? { ...bullet, text: generatedBullet.text }
+                : bullet
+            )
+            const updatedProject = {
+              ...projectData,
+              bulletPoints: updatedBullets,
+            }
 
-        //   // If bullet in edit mode, update textarea only
-        //   if (
-        //     editingBullet &&
-        //     editingBullet.section === sectionId &&
-        //     editingBullet.index === index
-        //   ) {
-        //     setEditingBullet((prev) => {
-        //       if (!prev) return null
-        //       return { ...prev, text: regeneratedText }
-        //     })
-        //   } else {
-        //     // Else, update bullet in local state
-        //     const updatedBullets = projectData.bulletPoints.map((bullet) =>
-        //       bullet.id === bulletToRegenerate.id
-        //         ? { ...bullet, text: regeneratedText }
-        //         : bullet
-        //     )
+            updateProject(updatedProject)
 
-        //     const updatedProject = {
-        //       ...projectData,
-        //       bulletPoints: updatedBullets,
-        //     }
+            const shouldSaveToStorage = !isProjectEditForm
 
-        //     updateProject(updatedProject)
+            if (shouldSaveToStorage) {
+              onSave(
+                localData.map((project) =>
+                  project.id === sectionId ? updatedProject : project
+                )
+              )
+            }
+          }
 
-        //     const shouldSaveToStorage = !isProjectEditForm
-
-        //     if (shouldSaveToStorage) {
-        //       onSave(
-        //         localData.map((project) =>
-        //           project.id === sectionId ? updatedProject : project
-        //         )
-        //       )
-        //     }
-        //   }
-
-        //   validateBulletText(regeneratedText)
-        // }
+          validateBulletText(generatedBullet.text)
+        }
       } catch (error) {
         console.error('Error regenerating bullet', error)
       } finally {

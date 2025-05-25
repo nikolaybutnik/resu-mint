@@ -201,6 +201,10 @@
     border-color: $color-border;
     opacity: 0.7;
     pointer-events: none;
+
+    svg {
+      color: rgba($color-disabled, 0.5);
+    }
   }
 }
 
@@ -258,6 +262,10 @@
     border-color: $color-border;
     opacity: 0.7;
     pointer-events: none;
+
+    svg {
+      color: rgba($color-disabled, 0.5);
+    }
   }
 }
 
@@ -305,8 +313,9 @@
     border-color: $color-border;
     opacity: 0.7;
     pointer-events: none;
+
     svg {
-      color: $color-disabled;
+      color: rgba($color-disabled, 0.5);
     }
   }
 }

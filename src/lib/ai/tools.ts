@@ -67,7 +67,7 @@ export const generateSectionBulletPointsTool = (
           type: 'array',
           items: {
             type: 'string',
-            minLength: maxCharsPerBullet * 0.9, // 90% of the target number of characters
+            minLength: Math.floor(maxCharsPerBullet * 0.9), // 90% of the target number of characters
             maxLength: maxCharsPerBullet,
             description:
               'A concise, action-oriented bullet point tailored to the job and section context.',

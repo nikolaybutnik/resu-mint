@@ -65,6 +65,19 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     top: number
     left: number
   } | null>(null)
+  const [isFadingIn, setIsFadingIn] = useState(false)
+  const [isFadingOut, setIsFadingOut] = useState(false)
+
+  useEffect(() => {
+    if (isRegenerating) {
+      setIsFadingOut(true)
+    } else {
+      setIsFadingOut(false)
+      setIsFadingIn(true)
+      const timeout = setTimeout(() => setIsFadingIn(false), 1000)
+      return () => clearTimeout(timeout)
+    }
+  }, [isRegenerating])
 
   useEffect(() => {
     if (isEditing && editInputRef.current) {
@@ -325,7 +338,15 @@ const BulletPoint: React.FC<BulletPointProps> = ({
         </div>
       ) : (
         <div className={styles.contentArea}>
-          <p className={styles.bulletText}>{text}</p>
+          <div
+            className={[
+              styles.bulletText,
+              isFadingIn ? styles.fadingIn : '',
+              isFadingOut ? styles.fadingOut : '',
+            ].join(' ')}
+          >
+            <p>{text}</p>
+          </div>
         </div>
       )}
     </div>
