@@ -2,49 +2,114 @@ import styles from './EditableExperienceBlock.module.scss'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useDebounce } from '@/lib/utils'
 import { FaXmark } from 'react-icons/fa6'
-import { months } from '@/lib/constants'
+import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { experienceBlockSchema } from '@/lib/validationSchemas'
 import { Month, ExperienceBlockData } from '@/lib/types/experience'
 import { v4 as uuidv4 } from 'uuid'
-
-enum FieldType {
-  JOB_TITLE = 'jobTitle',
-  COMPANY_NAME = 'companyName',
-  LOCATION = 'location',
-  BULLET_POINTS = 'bulletPoints',
-  START_DATE_MONTH = 'startDate.month',
-  START_DATE_YEAR = 'startDate.year',
-  END_DATE_IS_PRESENT = 'endDate.isPresent',
-  END_DATE_MONTH = 'endDate.month',
-  END_DATE_YEAR = 'endDate.year',
-  DESCRIPTION = 'description',
-}
+import { BulletPointErrors } from '@/lib/types/errors'
+import { AppSettings } from '@/lib/types/settings'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
   isNew: boolean
+  editingBulletIndex: number | null
+  editingBulletText: string
+  bulletErrors: BulletPointErrors
+  settings: AppSettings
+  isRegenerating: boolean
+  regeneratingBullet: { section: string; index: number } | null
   onDelete: (id: string) => void
   onClose: () => void
   onSave: (data: ExperienceBlockData) => void
+  onRegenerateBullet: (
+    sectionId: string,
+    index: number,
+    isProjectEditForm: boolean
+  ) => void
+  onAddBullet: (sectionId: string) => void
+  onEditBullet: (sectionId: string, index: number) => void
+  onBulletSave: () => void
+  onBulletCancel: () => void
+  onBulletDelete: (sectionId: string, index: number) => void
+  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  onLockToggle: (sectionId: string, index?: number) => void
+  onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
 }
+
+type FieldErrorKey =
+  | 'invalidTitle'
+  | 'invalidLink'
+  | 'invalidDescription'
+  | 'invalidStartDateMonth'
+  | 'invalidStartDateYear'
+  | 'invalidEndDateMonth'
+  | 'invalidEndDateYear'
+  | 'invalidEndDate'
+
+type ValidationErrors<T extends string = string> = {
+  [K in T]?: string[]
+}
+
+const FieldType = {
+  TITLE: 'title',
+  DESCRIPTION: 'description',
+  COMPANY_NAME: 'companyName',
+  LOCATION: 'location',
+  START_DATE_MONTH: 'startDate.month',
+  START_DATE_YEAR: 'startDate.year',
+  END_DATE_IS_PRESENT: 'endDate.isPresent',
+  END_DATE_MONTH: 'endDate.month',
+  END_DATE_YEAR: 'endDate.year',
+  BULLET_POINTS: 'bulletPoints',
+} as const
 
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
   isNew,
+  settings,
+  isRegenerating,
+  editingBulletIndex,
+  editingBulletText,
+  bulletErrors,
+  regeneratingBullet,
   onDelete,
   onClose,
   onSave,
+  onRegenerateBullet,
+  onAddBullet,
+  onEditBullet,
+  onBulletSave,
+  onBulletCancel,
+  onBulletDelete,
+  onTextareaChange,
+  onLockToggle,
+  onLockToggleAll, //TODO: implement
 }) => {
   const [formData, setFormData] = useState<ExperienceBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [fieldErrors, setFieldErrors] = useState<
+    ValidationErrors<FieldErrorKey>
+  >({})
 
-  const debouncedFormData = useDebounce(formData, 300)
-  const debouncedTouched = useDebounce(touched, 300)
+  const debouncedFormData = useDebounce(formData, VALIDATION_DELAY)
+  const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
 
   useEffect(() => {
-    setFormData(data)
-    setTouched({})
+    // Clear form only on init or when project changes
+    if (!formData || formData.id !== data.id) {
+      setFormData(data)
+      setTouched({})
+      setFieldErrors({})
+    } else {
+      // If experience unchanged, just update bullets
+      setFormData((prevFormData) => ({
+        ...prevFormData,
+        bulletPoints: data.bulletPoints,
+      }))
+    }
   }, [data])
+
+  // CONTNUE FROM HERE
 
   const isValid = useMemo(() => {
     return experienceBlockSchema.safeParse(formData).success
@@ -187,7 +252,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <input
             type='text'
             className={styles.formInput}
-            value={formData.jobTitle}
+            value={formData.title}
             onChange={(e) => handleChange(FieldType.JOB_TITLE, e.target.value)}
           />
           {debouncedTouched.jobTitle && errors.jobTitle && (

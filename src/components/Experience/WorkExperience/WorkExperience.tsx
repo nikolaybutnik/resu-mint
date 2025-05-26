@@ -3,38 +3,49 @@ import React, { useCallback, useState, useEffect, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData, Month } from '@/lib/types/experience'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
-import { DraggableExperienceBlock } from '../DraggableExperienceBlock/DraggableExperienceBlock'
-import LoadingSpinner from '../../LoadingSpinner/LoadingSpinner'
+import DraggableExperienceBlock from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
+import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
+import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
+import { AppSettings } from '@/lib/types/settings'
+import { BulletPointErrors } from '@/lib/types/errors'
 import {
-  DndContext,
   closestCenter,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
+  DndContext,
   DragEndEvent,
-  DragStartEvent,
   DragOverlay,
+  DragStartEvent,
+  useSensors,
 } from '@dnd-kit/core'
-import { PointerSensor } from '@/lib/utils'
+import { KeyboardSensor } from '@dnd-kit/core'
+import { useSensor } from '@dnd-kit/core'
 import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { PointerSensor, sanitizeResumeBullet } from '@/lib/utils'
 import {
-  restrictToVerticalAxis,
   restrictToParentElement,
+  restrictToVerticalAxis,
 } from '@dnd-kit/modifiers'
+import { FaPlus } from 'react-icons/fa'
+import { bulletService } from '@/lib/services/bulletService'
+import isEqual from 'lodash/isEqual'
+import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
 
 interface WorkExperienceProps {
   data: ExperienceBlockData[]
+  jobDescriptionAnalysis: JobDescriptionAnalysis
+  settings: AppSettings
   loading: boolean
   onSave: (data: ExperienceBlockData[]) => void
 }
 
 const WorkExperience: React.FC<WorkExperienceProps> = ({
   data,
+  jobDescriptionAnalysis,
+  settings,
   loading,
   onSave,
 }) => {
@@ -43,6 +54,19 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
+  const [regeneratingBullet, setRegeneratingBullet] = useState<{
+    section: string
+    index: number
+  } | null>(null)
+  const [editingBullet, setEditingBullet] = useState<{
+    section: string
+    index: number
+    text: string
+    errors?: BulletPointErrors
+  } | null>(null)
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set()
+  )
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -59,9 +83,27 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setLocalData(data)
   }, [data])
 
-  const handleBlockDelete = useCallback(
-    (id: string): void => {
-      const updatedData = localData.filter((exp) => exp.id !== id)
+  const findExperience = useCallback(
+    (id: string) => localData.find((experience) => experience.id === id),
+    [localData]
+  )
+
+  const updateExperience = useCallback(
+    (updatedExperience: ExperienceBlockData) => {
+      setLocalData((prev) =>
+        prev.map((experience) =>
+          experience.id === updatedExperience.id
+            ? updatedExperience
+            : experience
+        )
+      )
+    },
+    []
+  )
+
+  const handleSectionDelete = useCallback(
+    (id: string) => {
+      const updatedData = localData.filter((experience) => experience.id !== id)
       setLocalData(updatedData)
       setSelectedBlockId(null)
       setNewBlockId(null)
@@ -70,35 +112,48 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [localData, onSave]
   )
 
-  const handleBlockAdd = useCallback((): void => {
+  const handleSectionAdd = () => {
     const newBlock: ExperienceBlockData = {
       id: uuidv4(),
-      jobTitle: '',
+      title: '',
+      description: '',
       startDate: { month: '' as Month, year: '' },
       endDate: { month: '' as Month, year: '', isPresent: false },
       companyName: '',
       location: '',
-      description: '',
       bulletPoints: [],
+      isIncluded: true,
     }
     const updatedData = [...localData, newBlock]
     setLocalData(updatedData)
     setSelectedBlockId(newBlock.id)
     setNewBlockId(newBlock.id)
-  }, [localData])
+  }
 
-  const handleBlockSelect = useCallback((id: string): void => {
+  const handleSectionSelect = useCallback((id: string) => {
     setSelectedBlockId(id)
   }, [])
 
-  const handleBlockClose = useCallback((): void => {
+  const handleSectionClose = useCallback(() => {
     setSelectedBlockId(null)
     setNewBlockId(null)
+    setEditingBullet(null)
     setLocalData(data)
   }, [data])
 
-  const handleSave = useCallback(
-    (updatedBlock: ExperienceBlockData): void => {
+  const handleSectionInclusion = useCallback(
+    (sectionId: string, isIncluded: boolean) => {
+      const updatedData = localData.map((experience) =>
+        experience.id === sectionId ? { ...experience, isIncluded } : experience
+      )
+      setLocalData(updatedData)
+      onSave(updatedData)
+    },
+    [localData, onSave]
+  )
+
+  const handleExperienceSave = useCallback(
+    (updatedBlock: ExperienceBlockData) => {
       const updatedData = localData.map((block) =>
         block.id === updatedBlock.id ? updatedBlock : block
       )
@@ -110,8 +165,336 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [localData, onSave]
   )
 
+  const handleLockToggle = useCallback(
+    (sectionId: string, index?: number) => {
+      const updatedData = localData.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.map((bullet, idx) =>
+                idx === index
+                  ? { ...bullet, isLocked: !bullet.isLocked }
+                  : bullet
+              ),
+            }
+          : block
+      )
+      setLocalData(updatedData)
+      onSave(updatedData)
+    },
+    [localData, onSave]
+  )
+
+  const handleLockToggleAll = useCallback(
+    (sectionId: string, shouldLock: boolean) => {
+      const updatedData = localData.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.map((bullet) => ({
+                ...bullet,
+                isLocked: shouldLock,
+              })),
+            }
+          : block
+      )
+
+      setLocalData(updatedData)
+      onSave(updatedData)
+    },
+    [localData, onSave]
+  )
+
+  /**
+   * Regenerates a single bullet point for a project section.
+   * @param sectionId - The ID of the project section to regenerate.
+   * @param index - The index of the bullet point to regenerate.
+   * @param isProjectEditForm - Whether the project is being edited in the form.
+   */
+  const handleBulletRegenerate = useCallback(
+    async (sectionId: string, index: number, isExperienceEditForm: boolean) => {
+      const experienceData = findExperience(sectionId)
+      if (!experienceData) return
+
+      try {
+        setRegeneratingBullet({ section: sectionId, index })
+
+        const bulletToRegenerate = experienceData.bulletPoints[index]
+        const existingBullets = experienceData.bulletPoints.filter(
+          (bullet) => bullet.id !== bulletToRegenerate.id
+        )
+
+        const payload: GenerateBulletsRequest = {
+          sections: [
+            {
+              id: sectionId,
+              type: 'experience',
+              title: experienceData.title,
+              description: experienceData.description,
+              existingBullets,
+              targetBulletIds: [bulletToRegenerate.id],
+            },
+          ],
+          jobDescriptionAnalysis,
+          settings,
+          numBullets: 1,
+        }
+
+        const generatedData = await bulletService.generateBullets(payload)
+
+        if (generatedData.length > 0) {
+          const [generatedSection] = generatedData
+          const [generatedBullet] = generatedSection.bullets
+
+          // If bullet in edit mode, update textarea only
+          if (
+            editingBullet &&
+            editingBullet.section === sectionId &&
+            editingBullet.index === index
+          ) {
+            setEditingBullet((prev) => {
+              if (!prev) return null
+              return { ...prev, text: generatedBullet.text }
+            })
+          } else {
+            // Else, update bullet in local state
+            const updatedBullets = experienceData.bulletPoints.map((bullet) =>
+              bullet.id === bulletToRegenerate.id
+                ? { ...bullet, text: generatedBullet.text }
+                : bullet
+            )
+            const updatedExperience = {
+              ...experienceData,
+              bulletPoints: updatedBullets,
+            }
+
+            updateExperience(updatedExperience)
+
+            const shouldSaveToStorage = !isExperienceEditForm
+
+            if (shouldSaveToStorage) {
+              onSave(
+                localData.map((experience) =>
+                  experience.id === sectionId ? updatedExperience : experience
+                )
+              )
+            }
+          }
+
+          validateBulletText(generatedBullet.text)
+        }
+      } catch (error) {
+        console.error('Error regenerating bullet', error)
+      } finally {
+        setRegeneratingBullet(null)
+      }
+    },
+    [
+      findExperience,
+      jobDescriptionAnalysis,
+      localData,
+      onSave,
+      settings.maxCharsPerBullet,
+      updateExperience,
+      editingBullet,
+    ]
+  )
+
+  const toggleSectionExpanded = useCallback((sectionId: string) => {
+    setExpandedSections((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(sectionId)) {
+        newSet.delete(sectionId)
+      } else {
+        newSet.add(sectionId)
+      }
+      return newSet
+    })
+  }, [])
+
+  const expandSection = useCallback((sectionId: string) => {
+    setExpandedSections((prev) => {
+      const newSet = new Set(prev)
+      newSet.add(sectionId)
+      return newSet
+    })
+  }, [])
+
+  const handleAddBullet = useCallback(
+    (sectionId: string, shouldSave = false) => {
+      const experience = findExperience(sectionId)
+      if (!experience) return
+
+      const newBullet = {
+        id: uuidv4(),
+        text: '',
+        isLocked: false,
+      }
+
+      const updatedExperience = {
+        ...experience,
+        bulletPoints: [...experience.bulletPoints, newBullet],
+      }
+
+      updateExperience(updatedExperience)
+
+      expandSection(sectionId)
+
+      setEditingBullet({
+        section: sectionId,
+        index: updatedExperience.bulletPoints.length - 1,
+        text: '',
+      })
+
+      if (shouldSave) {
+        onSave(
+          localData.map((experience) =>
+            experience.id === sectionId ? updatedExperience : experience
+          )
+        )
+      }
+    },
+    [findExperience, updateExperience, expandSection, localData, onSave]
+  )
+
+  const handleBulletEdit = useCallback(
+    (sectionId: string, index: number) => {
+      const experience = findExperience(sectionId)
+      if (!experience) return
+
+      setEditingBullet({
+        section: sectionId,
+        index,
+        text: experience.bulletPoints[index].text,
+      })
+    },
+    [findExperience]
+  )
+
+  const handleBulletSave = useCallback(
+    (shouldSave = true) => {
+      if (!editingBullet) return
+
+      const { section: sectionId, index, text } = editingBullet
+      const experience = findExperience(sectionId)
+      if (!experience) return
+
+      const sanitized = sanitizeResumeBullet(text, true)
+      if (sanitized.trim() === '') return
+
+      const updatedExperience = {
+        ...experience,
+        bulletPoints: experience.bulletPoints.map((bullet, idx) =>
+          idx === index ? { ...bullet, text: sanitized } : bullet
+        ),
+      }
+
+      updateExperience(updatedExperience)
+
+      if (shouldSave) {
+        onSave(
+          localData.map((experience) =>
+            experience.id === sectionId ? updatedExperience : experience
+          )
+        )
+      }
+
+      setEditingBullet(null)
+    },
+    [editingBullet, findExperience, localData, onSave, updateExperience]
+  )
+
+  const handleCancelEdit = useCallback(() => {
+    if (!editingBullet) return
+
+    const { section: sectionId, index } = editingBullet
+    const experience = findExperience(sectionId)
+    if (!experience) return
+
+    // If new bullet, remove
+    if (
+      index === experience.bulletPoints.length - 1 &&
+      experience.bulletPoints[index].text === ''
+    ) {
+      const updatedExperience = {
+        ...experience,
+        bulletPoints: experience.bulletPoints.slice(0, -1),
+      }
+      updateExperience(updatedExperience)
+    }
+
+    setEditingBullet(null)
+  }, [editingBullet, findExperience, updateExperience])
+
+  const handleBulletDelete = useCallback(
+    (sectionId: string, index: number, shouldSave = true) => {
+      const experience = findExperience(sectionId)
+      if (!experience) return
+
+      const updatedExperience = {
+        ...experience,
+        bulletPoints: experience.bulletPoints.filter((_, idx) => idx !== index),
+      }
+
+      updateExperience(updatedExperience)
+
+      if (shouldSave) {
+        onSave(
+          localData.map((experience) =>
+            experience.id === sectionId ? updatedExperience : experience
+          )
+        )
+      }
+    },
+    [findExperience, localData, onSave, updateExperience]
+  )
+
+  const validateBulletText = useCallback(
+    (text: string) => {
+      if (!editingBullet) return
+
+      const errors: {
+        bulletEmpty?: string[]
+        bulletTooLong?: string[]
+      } = {}
+
+      if (text.trim() === '') {
+        errors.bulletEmpty = ['Bullet text cannot be empty']
+      }
+
+      if (text.length > settings.maxCharsPerBullet) {
+        errors.bulletTooLong = [
+          `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+        ]
+      }
+
+      setEditingBullet((prev) => {
+        if (!prev) return null
+        if (isEqual(prev.errors, errors)) return prev
+        return { ...prev, errors }
+      })
+    },
+    [editingBullet, settings.maxCharsPerBullet]
+  )
+
+  const handleBulletTextUpdate = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      if (!editingBullet) return
+
+      const sanitized = sanitizeResumeBullet(e.target.value, false)
+      setEditingBullet((prev) => {
+        if (!prev) return null
+        return { ...prev, text: sanitized }
+      })
+
+      setTimeout(() => validateBulletText(sanitized), VALIDATION_DELAY)
+    },
+    [validateBulletText]
+  )
+
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
+    setExpandedSections(new Set())
   }, [])
 
   const handleDragEnd = useCallback(
@@ -129,7 +512,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       }
       setActiveId(null)
       setIsDropping(true)
-      setTimeout(() => setIsDropping(false), 250) // Match DragOverlay drop animation duration
+      setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
     [onSave]
   )
@@ -139,20 +522,24 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [localData, activeId]
   )
 
+  const isAnyBulletBeingEdited = !!editingBullet
+  const isAnyBulletRegenerating = !!regeneratingBullet
+
   return (
     <>
       {loading ? (
-        <LoadingSpinner text='Loading your experience...' size='lg' />
+        <LoadingSpinner text='Loading your work experience...' size='lg' />
       ) : (
-        <div className={styles.workExperience}>
-          <h2 className={styles.formTitle}>Experience</h2>
+        <div className={styles.experience}>
+          <h2 className={styles.formTitle}>Projects</h2>
           <button
             type='button'
             className={styles.addButton}
-            disabled={!!selectedBlockId}
-            onClick={handleBlockAdd}
+            disabled={!!selectedBlockId || isAnyBulletRegenerating}
+            onClick={handleSectionAdd}
           >
-            Add Experience
+            <FaPlus size={12} />
+            Add Project
           </button>
           <div className={styles.experienceContainer}>
             {selectedBlockId ? (
@@ -160,14 +547,51 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                 .filter((experience) => experience.id === selectedBlockId)
                 .map((experience) => {
                   const isNew = experience.id === newBlockId
+                  const isEditingBullet =
+                    editingBullet?.section === experience.id
+                  const editingBulletIndex = isEditingBullet
+                    ? editingBullet.index
+                    : null
+
                   return (
                     <EditableExperienceBlock
                       key={experience.id}
                       data={experience}
                       isNew={isNew}
-                      onDelete={handleBlockDelete}
-                      onClose={handleBlockClose}
-                      onSave={handleSave}
+                      editingBulletIndex={editingBulletIndex}
+                      settings={settings}
+                      isRegenerating={
+                        regeneratingBullet?.section === experience.id
+                      }
+                      regeneratingBullet={regeneratingBullet}
+                      editingBulletText={
+                        isEditingBullet ? editingBullet.text : ''
+                      }
+                      bulletErrors={
+                        isEditingBullet ? editingBullet.errors || {} : {}
+                      }
+                      onDelete={handleSectionDelete}
+                      onClose={handleSectionClose}
+                      onSave={handleExperienceSave}
+                      onRegenerateBullet={(sectionId, index) =>
+                        handleBulletRegenerate(sectionId, index, true)
+                      }
+                      onAddBullet={(sectionId) =>
+                        handleAddBullet(sectionId, false)
+                      }
+                      onEditBullet={handleBulletEdit}
+                      onBulletSave={() => handleBulletSave(false)}
+                      onBulletCancel={handleCancelEdit}
+                      onBulletDelete={(sectionId, index) =>
+                        handleBulletDelete(sectionId, index, false)
+                      }
+                      onTextareaChange={handleBulletTextUpdate}
+                      onLockToggle={(sectionId, index) => {
+                        handleLockToggle(sectionId, index)
+                      }}
+                      onLockToggleAll={(sectionId, shouldLock) => {
+                        handleLockToggleAll(sectionId, shouldLock)
+                      }}
                     />
                   )
                 })
@@ -183,21 +607,91 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                   items={localData.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {localData.map((experience) => (
-                    <DraggableExperienceBlock
-                      key={experience.id}
-                      data={experience}
-                      onBlockSelect={handleBlockSelect}
-                      isDropping={isDropping}
-                    />
-                  ))}
+                  {localData.map((experience) => {
+                    const isEditingBullet =
+                      editingBullet?.section === experience.id
+                    const editingBulletIndex = isEditingBullet
+                      ? editingBullet.index
+                      : null
+
+                    return (
+                      <DraggableExperienceBlock
+                        key={experience.id}
+                        data={experience}
+                        editingBulletIndex={editingBulletIndex}
+                        settings={settings}
+                        isRegenerating={
+                          regeneratingBullet?.section === experience.id
+                        }
+                        regeneratingBullet={regeneratingBullet}
+                        onBlockSelect={handleSectionSelect}
+                        onEditBullets={handleExperienceSave}
+                        onRegenerateBullet={(sectionId, index) =>
+                          handleBulletRegenerate(sectionId, index, false)
+                        }
+                        onAddBullet={(sectionId) =>
+                          handleAddBullet(sectionId, false)
+                        }
+                        onEditBullet={handleBulletEdit}
+                        onBulletSave={() => handleBulletSave(true)}
+                        onBulletCancel={handleCancelEdit}
+                        onBulletDelete={(sectionId, index) =>
+                          handleBulletDelete(sectionId, index, true)
+                        }
+                        onTextareaChange={handleBulletTextUpdate}
+                        editingBulletText={
+                          isEditingBullet ? editingBullet.text : ''
+                        }
+                        bulletErrors={
+                          isEditingBullet ? editingBullet.errors || {} : {}
+                        }
+                        isDropping={isDropping}
+                        isExpanded={expandedSections.has(experience.id)}
+                        onDrawerToggle={() =>
+                          toggleSectionExpanded(experience.id)
+                        }
+                        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
+                        isAnyBulletRegenerating={isAnyBulletRegenerating}
+                        onLockToggle={(sectionId, index) => {
+                          handleLockToggle(sectionId, index)
+                        }}
+                        onLockToggleAll={(sectionId, shouldLock) => {
+                          handleLockToggleAll(sectionId, shouldLock)
+                        }}
+                        onToggleInclude={(sectionId, isIncluded) => {
+                          handleSectionInclusion(sectionId, isIncluded)
+                        }}
+                      />
+                    )
+                  })}
                 </SortableContext>
                 <DragOverlay>
                   {activeItem ? (
                     <DraggableExperienceBlock
                       data={activeItem}
-                      onBlockSelect={handleBlockSelect}
+                      editingBulletIndex={null}
+                      settings={settings}
+                      isRegenerating={false}
+                      regeneratingBullet={null}
+                      onBlockSelect={() => {}}
+                      onEditBullets={() => {}}
+                      onRegenerateBullet={() => {}}
+                      onAddBullet={() => {}}
+                      onEditBullet={() => {}}
+                      onBulletSave={() => {}}
+                      onBulletCancel={() => {}}
+                      onBulletDelete={() => {}}
+                      onTextareaChange={() => {}}
+                      editingBulletText={''}
+                      bulletErrors={{}}
                       isOverlay={true}
+                      isExpanded={false}
+                      onDrawerToggle={() => {}}
+                      isAnyBulletBeingEdited={false}
+                      isAnyBulletRegenerating={false}
+                      onLockToggle={() => {}}
+                      onLockToggleAll={() => {}}
+                      onToggleInclude={() => {}}
                     />
                   ) : null}
                 </DragOverlay>

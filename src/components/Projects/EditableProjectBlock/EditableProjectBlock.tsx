@@ -570,7 +570,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                 onBulletDelete={(index) => onBulletDelete(formData.id, index)}
                 onBulletSave={onBulletSave}
                 onBulletEdit={(index) => onEditBullet(formData.id, index)}
-                inBulletRegenerate={handleRegenerateBullet}
+                onBulletRegenerate={handleRegenerateBullet}
                 onTextareaChange={onTextareaChange}
                 onLockToggle={(sectionId, index) => {
                   onLockToggle(sectionId, index)

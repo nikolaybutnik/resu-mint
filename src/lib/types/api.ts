@@ -17,7 +17,7 @@ export interface GenerateBulletsRequest {
     id: string
     type: 'project' | 'experience'
     title: string
-    technologies: string[]
+    technologies?: string[]
     description: string
     existingBullets: BulletPoint[]
     targetBulletIds: string[]
