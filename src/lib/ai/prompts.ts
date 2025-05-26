@@ -313,22 +313,6 @@ Note: Short or vague bullets reduce impact; prioritize specific, detailed conten
 `
 }
 
-export const generateExperienceBulletPointsPrompt = (
-  section: {
-    id: string
-    title: string
-    description: string
-    existingBullets: BulletPoint[]
-  },
-  jobDescriptionAnalysis: JobDescriptionAnalysis,
-  numBullets: number,
-  maxCharsPerBullet: number
-) => {
-  return `
-Experience Test Prompt
-`
-}
-
 const formatSectionForAI = (section: {
   id: string
   title: string
@@ -337,29 +321,20 @@ const formatSectionForAI = (section: {
   technologies?: string[]
 }) => {
   return `
-<id>
-${section.id}
-</id>
-<title>
-${section.title}
-</title>
-<description>
-${section.description}
-</description>
-${
-  section.technologies?.length
-    ? `\n<technologies>\n${section.technologies.join(', ')}\n</technologies>`
-    : ''
-}
-
-${
-  section.existingBullets.length
-    ? `<existing_bullets>\n${section.existingBullets
-        .map((b) => `- ${b.text}`)
-        .join('\n')}\n</existing_bullets>`
-    : ''
-}
-`
+  <title>
+  ${section.title}
+  </title>
+  <description>
+  ${section.description}
+  </description>
+  ${
+    section.existingBullets.length
+      ? `<existing_bullets>\n${section.existingBullets
+          .map((b) => `- ${b.text}`)
+          .join('\n')}\n</existing_bullets>`
+      : ''
+  }
+  `
 }
 
 export const generateProjectBulletPointsPrompt = (
@@ -376,17 +351,60 @@ export const generateProjectBulletPointsPrompt = (
 ) => {
   const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
+  const technologies = section.technologies.join(', ')
   const formattedSection = formatSectionForAI(section)
 
   return `
-Generate ${numBullets} bullet points for each <SECTION> using the "generate_project_bullets" tool.
+Generate ${numBullets} bullet points for project in <SECTION> using the "generate_section_bullets" tool
 
 <RULES>
-1. Generate EXACTLY ${numBullets} bullet points for each item in <SECTIONS>.
-2. Each bullet point MUST use 90-100% of ${maxCharsPerBullet} characters for maximum impact.
-3. Your goal is to align the bullet points with the <JOB_SUMMARY> and <KEYWORDS>. You must make every effort to ensure that you use each keyword in the bullet points, but only if it aligns with information in <SECTIONS>. NEVER use a hard skill keyword that is not backed up by information in <SECTIONS>. Soft skills are more flexible.
-4. If existing bullets are provided, you MUST ensure the new bullet(s) are DISTINCT from the existing bullets. Make sure that your use of keywords is distinct from the existing bullets.
-5. DO NOT fabricate tasks, metrics, or skills; they must be used only if present in <SECTION>.
+1. Generate EXACTLY ${numBullets} bullets for <SECTION>
+2. Each bullet ABSOLUTELY MUST use 85-100% of ${maxCharsPerBullet} characters
+3. Align bullets you generate with <KEYWORDS> using <SECTION> for context. You must attempt to use each keyword, but only if it matches with <SECTION>. NEVER use a hard skill keyword not backed up by <SECTION>
+4. If existing bullets are provided, you MUST ensure the new bullet(s) are DISTINCT. Make sure that your use of keywords is distinct from existing bullets, as well as the subject of the bullet point. Example: if an existing bullet mentions integrating a chatbot with dnd-kit, your generated bullet must talk about another technology related to the chatbot, or another topic
+5. NEVER fabricate tasks, metrics, or skills; they must be used only if present in <SECTION>
+6. Use STAR (Situation, Task, Action, Result)
+7. Use action verbs fitting for a personal project. (e.g. Built, Developed, Engineered, Implemented, Optimized)
+</RULES>
+
+<KEYWORDS>
+Hard Skills (First priority for keyword matching): ${hardSkills}
+Soft Skills (Second priority): ${softSkills}
+Utilized Technologies (Use if aligns with Hard Skills): ${technologies}
+</KEYWORDS>
+
+<SECTION>
+${formattedSection}
+</SECTION>
+  `
+}
+
+export const generateExperienceBulletPointsPrompt = (
+  section: {
+    id: string
+    title: string
+    description: string
+    existingBullets: BulletPoint[]
+  },
+  jobDescriptionAnalysis: JobDescriptionAnalysis,
+  numBullets: number,
+  maxCharsPerBullet: number
+) => {
+  const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
+  const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
+  const formattedSection = formatSectionForAI(section)
+
+  return `
+Generate ${numBullets} bullet points for work experience in <SECTION> using the "generate_section_bullets" tool.
+
+<RULES>
+1. Generate EXACTLY ${numBullets} bullets for <SECTION>.
+2. Each bullet ABSOLUTELY MUST use 85-100% of ${maxCharsPerBullet} characters
+3. Align bullets you generate with <KEYWORDS> using <SECTION> for context. You must attempt to use each keyword, but only if it matches with <SECTION>. NEVER use a hard skill keyword not backed up by <SECTION>
+4. If existing bullets are provided, you MUST ensure the new bullet(s) are DISTINCT. Make sure that your use of keywords is distinct from existing bullets, as well as the subject of the bullet point. Example: if an existing bullet mentions integrating a chatbot with dnd-kit, your generated bullet must talk about another technology related to the chatbot, or another topic
+5. NEVER fabricate tasks, metrics, or skills; they must be used only if present in <SECTION>
+6. Use STAR (Situation, Task, Action, Result)
+7. Use action verbs fitting for a professional work experience. (e.g. Delivered, Engineered, Optimized, Designed, Integrated, Enhanced)
 </RULES>
 
 <JOB_SUMMARY>
@@ -394,8 +412,8 @@ ${jobDescriptionAnalysis.jobSummary}
 </JOB_SUMMARY>
 
 <KEYWORDS>
-Hard Skills: ${hardSkills}
-Soft Skills: ${softSkills}
+Hard Skills (First priority for keyword matching): ${hardSkills}
+Soft Skills (Second priority): ${softSkills}
 </KEYWORDS>
 
 <SECTION>

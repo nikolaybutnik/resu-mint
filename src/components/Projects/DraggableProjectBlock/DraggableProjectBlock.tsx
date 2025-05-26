@@ -318,7 +318,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               onBulletDelete={handleBulletDelete}
               onBulletSave={onBulletSave}
               onBulletEdit={handleBulletEdit}
-              inBulletRegenerate={handleBulletRegenerate}
+              onBulletRegenerate={handleBulletRegenerate}
               onTextareaChange={onTextareaChange}
               onLockToggle={handleBulletLockToggle}
             />

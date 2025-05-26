@@ -30,7 +30,7 @@ interface BulletPointProps {
   onBulletDelete: (index: number) => void
   onBulletSave: () => void
   onBulletEdit: (index: number) => void
-  inBulletRegenerate: (sectionId: string, index: number) => void
+  onBulletRegenerate: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onLockToggle: (sectionId: string, index: number) => void
 }
@@ -50,7 +50,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   onBulletDelete,
   onBulletSave,
   onBulletEdit,
-  inBulletRegenerate,
+  onBulletRegenerate,
   onTextareaChange,
   onLockToggle,
 }) => {
@@ -162,7 +162,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     regenerate: {
       message: "Regenerate this bullet? This can't be undone.",
       onConfirm: () => {
-        inBulletRegenerate(sectionId, index)
+        onBulletRegenerate(sectionId, index)
         setActivePopup(null)
       },
     },
@@ -243,7 +243,11 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           </button>
           <button
             className={styles.regenerateButton}
-            onClick={() => setActivePopup('regenerate')}
+            onClick={
+              isEditing
+                ? () => onBulletRegenerate(sectionId, index)
+                : () => setActivePopup('regenerate')
+            }
             disabled={isRegenerating || disableAllControls || isLocked}
             title='Regenerate bullet'
             data-no-dnd='true'
