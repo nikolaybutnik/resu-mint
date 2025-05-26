@@ -407,10 +407,6 @@ Generate ${numBullets} bullet points for work experience in <SECTION> using the 
 7. Use action verbs fitting for a professional work experience. (e.g. Delivered, Engineered, Optimized, Designed, Integrated, Enhanced)
 </RULES>
 
-<JOB_SUMMARY>
-${jobDescriptionAnalysis.jobSummary}
-</JOB_SUMMARY>
-
 <KEYWORDS>
 Hard Skills (First priority for keyword matching): ${hardSkills}
 Soft Skills (Second priority): ${softSkills}
