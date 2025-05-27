@@ -8,6 +8,7 @@ import { Month, ExperienceBlockData } from '@/lib/types/experience'
 import { v4 as uuidv4 } from 'uuid'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { AppSettings } from '@/lib/types/settings'
+import { isEqual } from 'lodash'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -38,8 +39,9 @@ interface EditableExperienceBlockProps {
 
 type FieldErrorKey =
   | 'invalidTitle'
-  | 'invalidLink'
   | 'invalidDescription'
+  | 'invalidLocation'
+  | 'invalidCompanyName'
   | 'invalidStartDateMonth'
   | 'invalidStartDateYear'
   | 'invalidEndDateMonth'
@@ -109,26 +111,63 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     }
   }, [data])
 
-  // CONTNUE FROM HERE
+  useEffect(() => {
+    const result = experienceBlockSchema.safeParse(debouncedFormData)
+    if (result.success) {
+      setFieldErrors({})
+      return
+    }
+
+    const errors: ValidationErrors<FieldErrorKey> = {}
+    result.error.issues
+      .filter((issue) => issue.message !== '')
+      .forEach((issue) => {
+        const path = issue.path.join('.')
+        if (!path.startsWith('bulletPoints.')) {
+          switch (path) {
+            case 'title':
+              errors.invalidTitle = [issue.message]
+              break
+            case 'description':
+              errors.invalidDescription = [issue.message]
+              break
+            case 'location':
+              errors.invalidLocation = [issue.message]
+              break
+            case 'companyName':
+              errors.invalidCompanyName = [issue.message]
+              break
+            case 'startDate.month':
+              errors.invalidStartDateMonth = [issue.message]
+              break
+            case 'startDate.year':
+              errors.invalidStartDateYear = [issue.message]
+              break
+            case 'endDate.month':
+              errors.invalidEndDateMonth = [issue.message]
+              break
+            case 'endDate.year':
+              errors.invalidEndDateYear = [issue.message]
+              break
+            case 'endDate':
+              errors.invalidEndDate = [issue.message]
+              break
+          }
+        }
+      })
+    setFieldErrors((prev) => (isEqual(prev, errors) ? prev : errors))
+  }, [debouncedFormData])
 
   const isValid = useMemo(() => {
     return experienceBlockSchema.safeParse(formData).success
   }, [formData])
 
-  const errors = useMemo(() => {
-    const result = experienceBlockSchema.safeParse(debouncedFormData)
-    if (result.success) {
-      return {}
-    }
-    const errors: Record<string, string> = {}
-    result.error.issues.forEach((issue) => {
-      const path = issue.path.join('.')
-      errors[path] = issue.message
-    })
-    return errors
-  }, [debouncedFormData])
+  const sanitizeYear = useCallback(
+    (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4),
+    []
+  )
 
-  const sanitizeYear = (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4)
+  // CONTINUE FROM HERE
 
   const handleChange = useCallback(
     (field: FieldType, value: string | boolean, bulletIndex?: number) => {
@@ -139,9 +178,9 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           val: string | boolean
         ) => ExperienceBlockData
       > = {
-        [FieldType.JOB_TITLE]: (prev, val) => ({
+        [FieldType.TITLE]: (prev, val) => ({
           ...prev,
-          jobTitle: val as string,
+          title: val as string,
         }),
         [FieldType.COMPANY_NAME]: (prev, val) => ({
           ...prev,

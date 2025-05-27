@@ -165,7 +165,7 @@ export const endDateSchema = z
 export const experienceBlockSchema = z
   .object({
     id: z.string().uuid(),
-    jobTitle: z
+    title: z
       .string()
       .min(1, 'Job title is required')
       .max(100, 'Job title must be 100 characters or less'),
