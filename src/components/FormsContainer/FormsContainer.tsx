@@ -299,6 +299,8 @@ export const FormsContainer: React.FC = () => {
             <WorkExperience
               data={workExperience}
               loading={loading}
+              jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
+              settings={memoizedSettings}
               onSave={handleWorkExperienceSave}
             />
           )}

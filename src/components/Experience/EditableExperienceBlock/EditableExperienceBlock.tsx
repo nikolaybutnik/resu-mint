@@ -1,14 +1,18 @@
 import styles from './EditableExperienceBlock.module.scss'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useDebounce } from '@/lib/utils'
-import { FaXmark } from 'react-icons/fa6'
+import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { experienceBlockSchema } from '@/lib/validationSchemas'
-import { Month, ExperienceBlockData } from '@/lib/types/experience'
-import { v4 as uuidv4 } from 'uuid'
+import {
+  Month,
+  ExperienceBlockData,
+  BulletPoint as BulletPointType,
+} from '@/lib/types/experience'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
+import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -25,7 +29,7 @@ interface EditableExperienceBlockProps {
   onRegenerateBullet: (
     sectionId: string,
     index: number,
-    isProjectEditForm: boolean
+    isExperienceEditForm: boolean
   ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
@@ -97,7 +101,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
 
   useEffect(() => {
-    // Clear form only on init or when project changes
+    // Clear form only on init or when experience changes
     if (!formData || formData.id !== data.id) {
       setFormData(data)
       setTouched({})
@@ -167,71 +171,77 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     []
   )
 
-  // CONTINUE FROM HERE
-
   const handleChange = useCallback(
-    (field: FieldType, value: string | boolean, bulletIndex?: number) => {
-      const updateHandlers: Record<
-        string,
-        (
-          prev: ExperienceBlockData,
-          val: string | boolean
-        ) => ExperienceBlockData
-      > = {
-        [FieldType.TITLE]: (prev, val) => ({
-          ...prev,
-          title: val as string,
-        }),
-        [FieldType.COMPANY_NAME]: (prev, val) => ({
-          ...prev,
-          companyName: val as string,
-        }),
-        [FieldType.LOCATION]: (prev, val) => ({
-          ...prev,
-          location: val as string,
-        }),
-        [FieldType.START_DATE_MONTH]: (prev, val) => ({
-          ...prev,
-          startDate: { ...prev.startDate, month: val as Month },
-        }),
-        [FieldType.START_DATE_YEAR]: (prev, val) => ({
-          ...prev,
-          startDate: { ...prev.startDate, year: sanitizeYear(val as string) },
-        }),
-        [FieldType.END_DATE_IS_PRESENT]: (prev, val) => ({
-          ...prev,
-          endDate: val
-            ? { month: '', year: '', isPresent: true }
-            : { ...prev.endDate, isPresent: false },
-        }),
-        [FieldType.END_DATE_MONTH]: (prev, val) => ({
-          ...prev,
-          endDate: { ...prev.endDate, month: val as Month, isPresent: false },
-        }),
-        [FieldType.END_DATE_YEAR]: (prev, val) => ({
-          ...prev,
-          endDate: {
-            ...prev.endDate,
-            year: sanitizeYear(val as string),
-            isPresent: false,
-          },
-        }),
-        [FieldType.DESCRIPTION]: (prev, val) => ({
-          ...prev,
-          description: val as string,
-        }),
-      }
-
+    (
+      field: (typeof FieldType)[keyof typeof FieldType],
+      value: string | string[] | boolean | BulletPointType,
+      bulletIndex?: number
+    ) => {
       setFormData((prev) => {
         if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
           return {
             ...prev,
             bulletPoints: prev.bulletPoints.map((bullet, index) =>
               index === bulletIndex
-                ? { id: bullet.id, text: value as string }
+                ? {
+                    id: bullet.id,
+                    text: value as string,
+                    isLocked: bullet.isLocked,
+                  }
                 : bullet
             ),
           }
+        }
+
+        const updateHandlers: Record<
+          string,
+          (
+            prev: ExperienceBlockData,
+            val: string | string[] | boolean | BulletPointType
+          ) => ExperienceBlockData
+        > = {
+          [FieldType.TITLE]: (prev, val) => ({
+            ...prev,
+            title: val as string,
+          }),
+          [FieldType.COMPANY_NAME]: (prev, val) => ({
+            ...prev,
+            companyName: val as string,
+          }),
+          [FieldType.LOCATION]: (prev, val) => ({
+            ...prev,
+            location: val as string,
+          }),
+          [FieldType.START_DATE_MONTH]: (prev, val) => ({
+            ...prev,
+            startDate: { ...prev.startDate, month: val as Month },
+          }),
+          [FieldType.START_DATE_YEAR]: (prev, val) => ({
+            ...prev,
+            startDate: { ...prev.startDate, year: sanitizeYear(val as string) },
+          }),
+          [FieldType.END_DATE_IS_PRESENT]: (prev, val) => ({
+            ...prev,
+            endDate: val
+              ? { month: '', year: '', isPresent: true }
+              : { ...prev.endDate, isPresent: false },
+          }),
+          [FieldType.END_DATE_MONTH]: (prev, val) => ({
+            ...prev,
+            endDate: { ...prev.endDate, month: val as Month, isPresent: false },
+          }),
+          [FieldType.END_DATE_YEAR]: (prev, val) => ({
+            ...prev,
+            endDate: {
+              ...prev.endDate,
+              year: sanitizeYear(val as string),
+              isPresent: false,
+            },
+          }),
+          [FieldType.DESCRIPTION]: (prev, val) => ({
+            ...prev,
+            description: val as string,
+          }),
         }
 
         const handler = updateHandlers[field]
@@ -241,35 +251,25 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       setTouched((prev) => ({
         ...prev,
         [field]: true,
-        ...(field === FieldType.END_DATE_YEAR ||
-        field === FieldType.END_DATE_MONTH
-          ? { endDate: true }
-          : field === FieldType.END_DATE_IS_PRESENT
+        ...(field === FieldType.END_DATE_IS_PRESENT
           ? { endDate: true, 'endDate.month': true, 'endDate.year': true }
+          : field.startsWith('endDate')
+          ? { endDate: true }
           : {}),
       }))
     },
-    []
+    [sanitizeYear]
   )
 
-  const handleAddBulletPoint = useCallback(() => {
-    setFormData((prev) => ({
-      ...prev,
-      bulletPoints: [...prev.bulletPoints, { id: uuidv4(), text: '' }],
-    }))
-  }, [])
-
-  const handleRemoveBulletPoint = useCallback((index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      bulletPoints: prev.bulletPoints.filter((_, i) => i !== index),
-    }))
-    setTouched((prev) => {
-      const updated = { ...prev }
-      delete updated[`bulletPoints.${index}`]
-      return updated
-    })
-  }, [])
+  const handleDelete = useCallback(() => {
+    if (
+      window.confirm(
+        'Are you sure you want to delete this work experience? This action cannot be undone.'
+      )
+    ) {
+      onDelete(formData.id)
+    }
+  }, [formData.id, onDelete])
 
   const handleSave = useCallback(() => {
     if (isValid) {
@@ -277,9 +277,39 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     }
   }, [formData, isValid, onSave])
 
+  const emptyBulletErrors = useMemo(() => ({}), [])
+  const combinedBulletErrors = useMemo(
+    () =>
+      formData.bulletPoints.map((_, index) =>
+        editingBulletIndex === index ? bulletErrors : emptyBulletErrors
+      ),
+    [bulletErrors, editingBulletIndex, formData.bulletPoints, emptyBulletErrors]
+  )
+
+  // TODO: need a mechanism to pass form data as context if the project is new, and no data has been saved yet.
+  // Repeat for editable project.
+  const handleRegenerateBullet = useCallback(
+    (sectionId: string, index: number) => {
+      if (sectionId === formData.id) {
+        onRegenerateBullet(sectionId, index, true)
+      }
+    },
+    [formData.id, onRegenerateBullet]
+  )
+
   return (
     <section className={styles.editableExperienceBlock}>
       <header className={styles.header}>
+        {!isNew && (
+          <button
+            type='button'
+            className={styles.deleteButton}
+            onClick={handleDelete}
+            disabled={isRegenerating}
+          >
+            Delete
+          </button>
+        )}
         <button type='button' className={styles.closeButton} onClick={onClose}>
           <FaXmark />
         </button>
@@ -287,15 +317,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
       <div className={styles.jobDetails}>
         <div className={styles.formField}>
-          <label className={styles.label}>Job Title *</label>
+          <label className={styles.label}>Work Experience Title *</label>
           <input
             type='text'
             className={styles.formInput}
             value={formData.title}
-            onChange={(e) => handleChange(FieldType.JOB_TITLE, e.target.value)}
+            onChange={(e) => handleChange(FieldType.TITLE, e.target.value)}
           />
-          {debouncedTouched.jobTitle && errors.jobTitle && (
-            <p className={styles.formError}>{errors.jobTitle}</p>
+          {debouncedTouched.title && fieldErrors.invalidTitle && (
+            <p className={styles.formError}>{fieldErrors.invalidTitle[0]}</p>
           )}
         </div>
 
@@ -309,8 +339,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               handleChange(FieldType.COMPANY_NAME, e.target.value)
             }
           />
-          {debouncedTouched.companyName && errors.companyName && (
-            <p className={styles.formError}>{errors.companyName}</p>
+          {debouncedTouched.companyName && fieldErrors.invalidCompanyName && (
+            <p className={styles.formError}>
+              {fieldErrors.invalidCompanyName[0]}
+            </p>
           )}
         </div>
 
@@ -322,8 +354,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             value={formData.location}
             onChange={(e) => handleChange(FieldType.LOCATION, e.target.value)}
           />
-          {debouncedTouched.location && errors.location && (
-            <p className={styles.formError}>{errors.location}</p>
+          {debouncedTouched.location && fieldErrors.invalidLocation && (
+            <p className={styles.formError}>{fieldErrors.invalidLocation[0]}</p>
           )}
         </div>
 
@@ -364,16 +396,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               }
             />
           </div>
-          {debouncedTouched[FieldType.START_DATE_MONTH] &&
-            errors[FieldType.START_DATE_MONTH] && (
-              <p className={styles.formError}>
-                {errors[FieldType.START_DATE_MONTH]}
-              </p>
-            )}
+          {fieldErrors.invalidStartDateMonth && (
+            <p className={styles.formError}>
+              {fieldErrors.invalidStartDateMonth[0]}
+            </p>
+          )}
           {debouncedTouched[FieldType.START_DATE_YEAR] &&
-            errors[FieldType.START_DATE_YEAR] && (
+            fieldErrors.invalidStartDateYear && (
               <p className={styles.formError}>
-                {errors[FieldType.START_DATE_YEAR]}
+                {fieldErrors.invalidStartDateYear[0]}
               </p>
             )}
         </div>
@@ -427,15 +458,19 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             />
             <label className={styles.checkboxLabel}>Present</label>
           </div>
-
-          {debouncedTouched['endDate.month'] && errors['endDate.month'] && (
-            <p className={styles.formError}>{errors['endDate.month']}</p>
+          {fieldErrors.invalidEndDateMonth && (
+            <p className={styles.formError}>
+              {fieldErrors.invalidEndDateMonth[0]}
+            </p>
           )}
-          {debouncedTouched['endDate.year'] && errors['endDate.year'] && (
-            <p className={styles.formError}>{errors['endDate.year']}</p>
-          )}
-          {debouncedTouched.endDate && errors.endDate && (
-            <p className={styles.formError}>{errors.endDate}</p>
+          {debouncedTouched['endDate.year'] &&
+            fieldErrors.invalidEndDateYear && (
+              <p className={styles.formError}>
+                {fieldErrors.invalidEndDateYear[0]}
+              </p>
+            )}
+          {debouncedTouched.endDate && fieldErrors.invalidEndDate && (
+            <p className={styles.formError}>{fieldErrors.invalidEndDate[0]}</p>
           )}
         </div>
 
@@ -444,69 +479,82 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <textarea
             className={styles.formTextarea}
             value={formData.description}
-            placeholder='Describe your responsibilities and achievements. Go into detail, metrics are encouraged. Format however you like.'
+            rows={4}
+            maxLength={1000}
+            placeholder='Describe your experience in detail. Format however you like.'
             onChange={(e) =>
               handleChange(FieldType.DESCRIPTION, e.target.value)
             }
           />
+          {debouncedTouched.description && fieldErrors.invalidDescription && (
+            <p className={styles.formError}>
+              {fieldErrors.invalidDescription[0]}
+            </p>
+          )}
         </div>
       </div>
 
       <div className={styles.bulletPoints}>
-        <h3>Bullet Points</h3>
-        <ul className={styles.bulletList}>
-          {formData.bulletPoints.map((bullet, index) => (
-            <li key={index} className={styles.bulletItem}>
-              <input
-                type='text'
-                className={styles.bulletInput}
-                value={bullet.text}
-                onChange={(e) =>
-                  handleChange(FieldType.BULLET_POINTS, e.target.value, index)
+        <div className={styles.bulletHeader}>
+          <h3>Bullet Points</h3>
+          <button
+            type='button'
+            className={styles.addButton}
+            onClick={() => onAddBullet(formData.id)}
+            disabled={isRegenerating || !isValid}
+          >
+            <FaPlus /> Add
+          </button>
+        </div>
+        <div className={styles.bulletPointsContainer}>
+          {formData.bulletPoints.map((bullet, index) => {
+            const isEditingThisBullet = editingBulletIndex === index
+
+            return (
+              <BulletPoint
+                key={bullet.id}
+                sectionId={formData.id}
+                index={index}
+                text={bullet.text}
+                editingText={isEditingThisBullet ? editingBulletText : ''}
+                isRegenerating={
+                  isRegenerating &&
+                  regeneratingBullet?.section === formData.id &&
+                  regeneratingBullet?.index === index
                 }
+                isEditing={isEditingThisBullet}
+                disableAllControls={
+                  isRegenerating ||
+                  (editingBulletIndex !== null && !isEditingThisBullet)
+                }
+                errors={combinedBulletErrors[index]}
+                settings={settings}
+                isLocked={bullet.isLocked}
+                onCancelEdit={onBulletCancel}
+                onBulletDelete={(index) => onBulletDelete(formData.id, index)}
+                onBulletSave={onBulletSave}
+                onBulletEdit={(index) => onEditBullet(formData.id, index)}
+                onBulletRegenerate={handleRegenerateBullet}
+                onTextareaChange={onTextareaChange}
+                onLockToggle={(sectionId, index) => {
+                  onLockToggle(sectionId, index)
+                }}
               />
-              <button
-                type='button'
-                className={styles.removeButton}
-                onClick={() => handleRemoveBulletPoint(index)}
-              >
-                Remove
-              </button>
-              {debouncedTouched[FieldType.BULLET_POINTS] &&
-                errors[`${FieldType.BULLET_POINTS}.${index}`] && (
-                  <p className={styles.formError}>
-                    {errors[`${FieldType.BULLET_POINTS}.${index}`]}
-                  </p>
-                )}
-            </li>
-          ))}
-        </ul>
-        <button
-          type='button'
-          className={styles.addButton}
-          onClick={handleAddBulletPoint}
-        >
-          Add Bullet
-        </button>
+            )
+          })}
+        </div>
       </div>
 
-      <button
-        type='button'
-        className={styles.saveButton}
-        onClick={handleSave}
-        disabled={!isValid}
-      >
-        Save
-      </button>
-      {!isNew && (
+      <div className={styles.actionButtons}>
         <button
           type='button'
-          className={styles.deleteButton}
-          onClick={() => onDelete(formData.id)}
+          className={styles.saveButton}
+          onClick={handleSave}
+          disabled={!isValid || editingBulletIndex !== null || isRegenerating}
         >
-          Delete
+          Save
         </button>
-      )}
+      </div>
     </section>
   )
 }

@@ -1,51 +1,308 @@
+@use 'sass:color';
 @import '../../../styles/variables';
+
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    transform: scale(1.05);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba($color-regenerate, 0.6);
+    transform: scale(1.1);
+  }
+}
+
+@keyframes magicBurst {
+  0% {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+    border-width: 3px;
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    opacity: 0;
+    border-width: 1px;
+  }
+}
 
 .draggableExperienceBlockContainer {
   position: relative;
-  margin-bottom: 16px;
-  border: 2px solid $color-border;
-  border-radius: 4px;
-  background-color: transparent;
-  opacity: 1;
+  border: 1px solid rgba($color-primary, 0.4);
+  border-radius: 6px;
+  background-color: $color-background;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  overflow: hidden;
+  min-width: 0;
+  touch-action: none;
 
   &.isDragging {
     background-color: $color-action-item-background;
-    opacity: 0.8;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    opacity: 0.95;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
     cursor: grabbing;
-    transition: background-color 0.3s ease, opacity 0.3s ease;
+    border-color: $color-primary;
+    transform: scale(1.02);
+  }
+
+  &.excluded {
+    opacity: 0.7;
+    background-color: $color-action-item-background;
+    border-color: rgba($color-disabled, 0.4);
+
+    .experienceBlockHeader {
+      color: $color-disabled;
+    }
+
+    .experienceBlockDate {
+      color: color.adjust($color-disabled, $lightness: 10%);
+    }
+
+    .drawerToggleButton {
+      background: rgba($color-disabled, 0.1);
+      border-top-color: rgba($color-disabled, 0.3);
+      color: color.adjust($color-disabled, $lightness: 10%);
+    }
+
+    .addBulletButton,
+    .addBulletButtonNested {
+      background: rgba($color-disabled, 0.1);
+      border-top-color: rgba($color-disabled, 0.2);
+      color: color.adjust($color-disabled, $lightness: 10%);
+    }
+  }
+
+  &.isDragging.excluded {
+    opacity: 0.95;
+    background-color: $color-action-item-background;
+    border-color: $color-primary;
+    .experienceBlockHeader,
+    .experienceBlockDate {
+      color: inherit;
+    }
+    .drawerToggleButton,
+    .addBulletButton,
+    .addBulletButtonNested {
+      background: inherit;
+      border-top-color: inherit;
+      color: inherit;
+    }
   }
 }
 
 .draggableExperienceBlock {
   display: flex;
   flex-direction: row;
-  padding: 8px;
+  padding: 8px 12px;
   gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  cursor: ns-resize;
 }
 
 .experienceBlockContent {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  gap: 8px;
-  cursor: ns-resize;
+  flex: 1 1 180px;
+  gap: 4px;
+  min-width: 0;
+}
+
+.experienceBlockHeader {
+  font-weight: 600;
+  font-size: 16px;
+  color: $color-text;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.experienceBlockDate {
+  font-size: 13px;
+  color: $color-disabled;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .experienceBlockActions {
-  width: 40px;
   display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  flex-direction: row;
   gap: 8px;
+  align-items: center;
+}
+
+.generateAllButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-regenerate;
+  border: 1px solid $color-regenerate;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  svg {
+    height: 14px;
+    width: 14px;
+    color: $color-background;
+    z-index: 3;
+  }
+
+  &:hover {
+    border-color: $color-regenerate;
+    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    transform: scale(1.05);
+    animation: pulseGlow 1.2s ease-in-out infinite;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+
+    svg {
+      color: rgba($color-disabled, 0.5);
+    }
+  }
+}
+
+.magicRipple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background-color: transparent;
+  border: 3px solid rgba($color-regenerate, 0.8);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+  animation: magicBurst 0.8s ease-out forwards;
 }
 
 .editButton {
-  background-color: $color-action-item-background;
-  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-background;
+  border: 1px solid $color-border;
   border-radius: 4px;
   cursor: pointer;
-  flex: 1;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease,
+    transform 0.2s ease;
+
+  svg {
+    height: 14px;
+    width: 14px;
+    color: $color-text;
+  }
+
+  &:hover {
+    background: $color-primary;
+    border-color: $color-primary;
+    transform: scale(1.05);
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+
+    svg {
+      color: rgba($color-disabled, 0.5);
+    }
+  }
+}
+
+.toggleIncludeButton {
+  @extend .editButton;
+  background: $color-background;
+
+  &.included {
+    background: $color-primary;
+    border-color: $color-primary;
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &.excluded {
+    background: $color-background;
+    border-color: $color-border;
+    svg {
+      color: $color-disabled;
+    }
+  }
+
+  &:hover {
+    &.included {
+      background: color.adjust($color-primary, $lightness: -5%);
+      border-color: $color-primary;
+      transform: scale(1.05);
+      svg {
+        color: $color-background;
+      }
+    }
+    &.excluded {
+      background: $color-primary;
+      border-color: $color-primary;
+      transform: scale(1.05);
+      svg {
+        color: $color-background;
+      }
+    }
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+
+    svg {
+      color: rgba($color-disabled, 0.5);
+    }
+  }
+}
+
+.experienceBlockExcluded {
+  font-size: 12px;
+  color: $color-disabled;
+  margin: 0;
+  white-space: wrap;
+  overflow: hidden;
+  font-style: italic;
 }
 
 .drawerToggleButton {
@@ -54,34 +311,189 @@
   justify-content: center;
   width: 100%;
   padding: 4px 0;
-  background-color: $color-action-item-background;
+  background: rgba($color-primary, 0.12);
   border: none;
-  border-top: 2px solid $color-border;
+  border-top: 1px solid rgba($color-primary, 0.4);
   cursor: pointer;
-  transition: background-color 0.2s;
+  color: $color-disabled;
+  border-radius: 0 0 6px 6px;
+  transition: color 0.2s ease, border-radius 0.2s ease-in-out,
+    border-bottom 0.2s ease-in-out;
+  height: 24px;
+  margin: 0;
+
+  svg {
+    height: 12px;
+    width: 12px;
+    pointer-events: none;
+  }
 
   &:hover {
-    background-color: $color-action-item-background-hover;
+    background: $color-primary;
+    color: $color-text;
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &.noRadius {
+    border-radius: 0;
+  }
+
+  &.disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+    &:hover {
+      background: $color-action-item-background;
+      color: $color-disabled;
+    }
+  }
+
+  &.expanded {
+    border-bottom: 1px solid rgba($color-primary, 0.4);
   }
 }
 
 .experienceBlockDrawer {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.3s cubic-bezier(0, 1, 0, 1);
+  transition: max-height 0.3s, padding 0s 0.25s;
+  user-select: text;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: transparent;
 
   &.expanded {
+    padding: 8px 8px 0;
     max-height: 1000px;
-    transition: max-height 0.5s cubic-bezier(0.5, 0, 0.1, 1);
+    transition: max-height 0.5s ease-in-out, padding 0s;
   }
 }
 
-.experienceBlockBullet {
-  padding: 8px 16px;
-  margin: 0;
-  border-bottom: 1px solid $color-action-item-background;
+.addBulletButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: rgba($color-primary, 0.12);
+  border-top: 1px solid rgba($color-primary, 0.2);
+  width: 100%;
+  padding: 4px 0;
+  cursor: pointer;
+  color: $color-disabled;
+  transition: color 0.2s ease, background 0.2s ease;
+  height: 24px;
 
-  &:last-child {
-    border-bottom: none;
+  svg {
+    height: 12px;
+    width: 12px;
+    pointer-events: none;
+  }
+
+  &:hover {
+    background: $color-primary;
+    color: $color-text;
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+}
+
+.addBulletButtonNested {
+  @extend .addBulletButton;
+  margin: 0 -8px;
+  width: calc(100% + 16px);
+}
+
+.lockAllButtons {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+
+  .lockAllButton,
+  .unlockAllButton {
+    flex: 1;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    height: 28px;
+    transition: background 0.2s ease, border-color 0.2s ease,
+      transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    overflow: hidden;
+
+    svg {
+      flex-shrink: 0;
+      height: 12px;
+      width: 12px;
+      z-index: 3;
+    }
+
+    &:hover {
+      transform: scale(1.02);
+    }
+
+    &:active {
+      transform: scale(1);
+    }
+
+    &:disabled {
+      background: $color-action-item-background;
+      color: $color-disabled;
+      border-color: $color-border;
+      opacity: 0.7;
+      pointer-events: none;
+
+      svg {
+        color: rgba($color-disabled, 0.5);
+      }
+    }
+  }
+
+  .lockAllButton {
+    background: $color-badge-red-background;
+    border: 1px solid rgba($color-badge-red, 0.3);
+    color: $color-badge-red;
+
+    svg {
+      color: $color-badge-red;
+    }
+
+    &:hover {
+      background: color.adjust($color-badge-red-background, $lightness: -3%);
+      border-color: $color-badge-red;
+    }
+  }
+
+  .unlockAllButton {
+    background: $color-badge-green-background;
+    border: 1px solid rgba($color-badge-green, 0.3);
+    color: $color-badge-green;
+
+    svg {
+      color: $color-badge-green;
+    }
+
+    &:hover {
+      background: color.adjust($color-badge-green-background, $lightness: -3%);
+      border-color: $color-badge-green;
+    }
   }
 }

@@ -206,10 +206,10 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   )
 
   /**
-   * Regenerates a single bullet point for a project section.
-   * @param sectionId - The ID of the project section to regenerate.
+   * Regenerates a single bullet point for a experience section.
+   * @param sectionId - The ID of the experience section to regenerate.
    * @param index - The index of the bullet point to regenerate.
-   * @param isProjectEditForm - Whether the project is being edited in the form.
+   * @param isExperienceEditForm - Whether the experience is being edited in the form.
    */
   const handleBulletRegenerate = useCallback(
     async (sectionId: string, index: number, isExperienceEditForm: boolean) => {
@@ -531,7 +531,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         <LoadingSpinner text='Loading your work experience...' size='lg' />
       ) : (
         <div className={styles.experience}>
-          <h2 className={styles.formTitle}>Projects</h2>
+          <h2 className={styles.formTitle}>Work Experience</h2>
           <button
             type='button'
             className={styles.addButton}
@@ -539,7 +539,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             onClick={handleSectionAdd}
           >
             <FaPlus size={12} />
-            Add Project
+            Add Work Experience
           </button>
           <div className={styles.experienceContainer}>
             {selectedBlockId ? (

@@ -375,6 +375,13 @@
     );
     box-shadow: 0 2px 8px rgba($color-primary, 0.3);
   }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.6;
+  }
 }
 
 .addButton {
@@ -395,5 +402,12 @@
     margin-right: 4px;
     height: 12px;
     width: 12px;
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.6;
   }
 }

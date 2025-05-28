@@ -1,1 +1,74 @@
 @import '../../../styles/variables';
+
+.experience {
+  background: $color-background;
+  width: 100%;
+  padding-bottom: 48px;
+}
+
+.formTitle {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: $color-text;
+}
+
+.experienceContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.addButton {
+  font-family: $font-family-base;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba($color-primary, 0.4);
+  border-radius: 6px;
+  background-color: $color-background;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  color: $color-text;
+  margin-bottom: 16px;
+  color: $color-primary;
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease, border-color 0.2s ease;
+
+  svg {
+    height: 12px;
+    width: 12px;
+    color: $color-primary;
+  }
+
+  &:hover {
+    background-color: rgba($color-primary, 0.1);
+    border-color: $color-primary;
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    svg {
+      color: $color-primary;
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background-color: $color-action-item-background;
+    border-color: $color-border;
+    color: $color-disabled;
+    opacity: 0.7;
+    pointer-events: none;
+    box-shadow: none;
+    svg {
+      color: $color-disabled;
+    }
+  }
+}
