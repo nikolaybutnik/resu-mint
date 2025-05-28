@@ -286,7 +286,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     [bulletErrors, editingBulletIndex, formData.bulletPoints, emptyBulletErrors]
   )
 
-  // TODO: need a mechanism to pass form data as context if the project is new, and no data has been saved yet.
+  // TODO: need a mechanism to pass form data as context if the edit form is open, because currently storage data is being used.
+  // Storage data may be outdated, or may not be present (like in the case of a new experience block).
   // Repeat for editable project.
   const handleRegenerateBullet = useCallback(
     (sectionId: string, index: number) => {
