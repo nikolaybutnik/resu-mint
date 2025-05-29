@@ -29,7 +29,7 @@ interface EditableProjectBlockProps {
   onRegenerateBullet: (
     sectionId: string,
     index: number,
-    isProjectEditForm: boolean
+    formData?: ProjectBlockData
   ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
@@ -101,18 +101,12 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
 
   useEffect(() => {
-    // Clear form only on init or when project changes
+    // Clear form fields on init or when project changes
     if (!formData || formData.id !== data.id) {
-      setFormData(data)
       setTouched({})
       setFieldErrors({})
-    } else {
-      // If project unchanged, just update bullets
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        bulletPoints: data.bulletPoints,
-      }))
     }
+    setFormData(data)
   }, [data])
 
   useEffect(() => {
@@ -286,10 +280,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const handleRegenerateBullet = useCallback(
     (sectionId: string, index: number) => {
       if (sectionId === formData.id) {
-        onRegenerateBullet(sectionId, index, true)
+        onRegenerateBullet(sectionId, index, formData)
       }
     },
-    [formData.id, onRegenerateBullet]
+    [formData, onRegenerateBullet]
   )
 
   return (

@@ -29,7 +29,7 @@ interface EditableExperienceBlockProps {
   onRegenerateBullet: (
     sectionId: string,
     index: number,
-    isExperienceEditForm: boolean
+    formData?: ExperienceBlockData
   ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
@@ -101,18 +101,12 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
 
   useEffect(() => {
-    // Clear form only on init or when experience changes
+    // Clear form fields on init or when experience changes
     if (!formData || formData.id !== data.id) {
-      setFormData(data)
       setTouched({})
       setFieldErrors({})
-    } else {
-      // If experience unchanged, just update bullets
-      setFormData((prevFormData) => ({
-        ...prevFormData,
-        bulletPoints: data.bulletPoints,
-      }))
     }
+    setFormData(data)
   }, [data])
 
   useEffect(() => {
@@ -286,16 +280,13 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     [bulletErrors, editingBulletIndex, formData.bulletPoints, emptyBulletErrors]
   )
 
-  // TODO: need a mechanism to pass form data as context if the edit form is open, because currently storage data is being used.
-  // Storage data may be outdated, or may not be present (like in the case of a new experience block).
-  // Repeat for editable project.
   const handleRegenerateBullet = useCallback(
     (sectionId: string, index: number) => {
       if (sectionId === formData.id) {
-        onRegenerateBullet(sectionId, index, true)
+        onRegenerateBullet(sectionId, index, formData)
       }
     },
-    [formData.id, onRegenerateBullet]
+    [formData, onRegenerateBullet]
   )
 
   return (

@@ -26,7 +26,7 @@ import {
   restrictToParentElement,
 } from '@dnd-kit/modifiers'
 import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
-import { Month, ProjectBlockData } from '@/lib/types/projects'
+import { BulletPoint, Month, ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
 import { bulletService } from '@/lib/services'
 import { sanitizeResumeBullet } from '@/lib/utils'
@@ -205,33 +205,58 @@ const Projects = ({
    * Regenerates a single bullet point for a project section.
    * @param sectionId - The ID of the project section to regenerate.
    * @param index - The index of the bullet point to regenerate.
-   * @param isProjectEditForm - Whether the project is being edited in the form.
+   * @param formData - The form data of the project block if it is being edited.
    */
   const handleBulletRegenerate = useCallback(
-    async (sectionId: string, index: number, isProjectEditForm: boolean) => {
-      const projectData = findProject(sectionId)
-      if (!projectData) return
+    async (sectionId: string, index: number, formData?: ProjectBlockData) => {
+      const data = formData || findProject(sectionId)
+      if (!data) return
 
       try {
         setRegeneratingBullet({ section: sectionId, index })
 
-        const bulletToRegenerate = projectData.bulletPoints[index]
-        const existingBullets = projectData.bulletPoints.filter(
-          (bullet) => bullet.id !== bulletToRegenerate.id
-        )
+        let regeneratingBulletId: string | null = null
+        let existingBullets: BulletPoint[] = []
+        let payloadSection: GenerateBulletsRequest['sections'] = []
 
-        const payload: GenerateBulletsRequest = {
-          sections: [
+        if (formData) {
+          regeneratingBulletId = formData.bulletPoints[index].id
+          existingBullets = formData.bulletPoints.filter(
+            (bullet) => bullet.id !== regeneratingBulletId
+          )
+          payloadSection = [
             {
               id: sectionId,
               type: 'project',
-              title: projectData.title,
-              description: projectData.description,
-              technologies: projectData.technologies,
-              existingBullets,
-              targetBulletIds: [bulletToRegenerate.id],
+              title: formData.title,
+              technologies: formData.technologies,
+              description: formData.description,
+              existingBullets: formData.bulletPoints.filter(
+                (bullet) => bullet.id !== regeneratingBulletId
+              ),
+              targetBulletIds: [regeneratingBulletId],
             },
-          ],
+          ]
+        } else {
+          regeneratingBulletId = data.bulletPoints[index].id
+          existingBullets = data.bulletPoints.filter(
+            (bullet) => bullet.id !== regeneratingBulletId
+          )
+          payloadSection = [
+            {
+              id: sectionId,
+              type: 'project',
+              title: data.title,
+              technologies: data.technologies,
+              description: data.description,
+              existingBullets,
+              targetBulletIds: [regeneratingBulletId],
+            },
+          ]
+        }
+
+        const payload: GenerateBulletsRequest = {
+          sections: payloadSection,
           jobDescriptionAnalysis,
           settings,
           numBullets: 1,
@@ -255,20 +280,18 @@ const Projects = ({
             })
           } else {
             // Else, update bullet in local state
-            const updatedBullets = projectData.bulletPoints.map((bullet) =>
-              bullet.id === bulletToRegenerate.id
+            const updatedBullets = data.bulletPoints.map((bullet) =>
+              bullet.id === regeneratingBulletId
                 ? { ...bullet, text: generatedBullet.text }
                 : bullet
             )
             const updatedProject = {
-              ...projectData,
+              ...data,
               bulletPoints: updatedBullets,
             }
-
             updateProject(updatedProject)
-
-            const shouldSaveToStorage = !isProjectEditForm
-
+            // If formData is provided, don't save to storage because the block is being edited
+            const shouldSaveToStorage = !formData
             if (shouldSaveToStorage) {
               onSave(
                 localData.map((project) =>
@@ -569,8 +592,8 @@ const Projects = ({
                       onDelete={handleSectionDelete}
                       onClose={handleSectionClose}
                       onSave={handleProjectSave}
-                      onRegenerateBullet={(sectionId, index) =>
-                        handleBulletRegenerate(sectionId, index, true)
+                      onRegenerateBullet={(sectionId, index, formData) =>
+                        handleBulletRegenerate(sectionId, index, formData)
                       }
                       onAddBullet={(sectionId) =>
                         handleAddBullet(sectionId, false)
@@ -623,7 +646,7 @@ const Projects = ({
                         onBlockSelect={handleSectionSelect}
                         onEditBullets={handleProjectSave}
                         onRegenerateBullet={(sectionId, index) =>
-                          handleBulletRegenerate(sectionId, index, false)
+                          handleBulletRegenerate(sectionId, index)
                         }
                         onAddBullet={(sectionId) =>
                           handleAddBullet(sectionId, false)

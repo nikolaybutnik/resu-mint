@@ -1,7 +1,7 @@
 import styles from './WorkExperience.module.scss'
 import React, { useCallback, useState, useEffect, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { ExperienceBlockData, Month } from '@/lib/types/experience'
+import { BulletPoint, ExperienceBlockData, Month } from '@/lib/types/experience'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import DraggableExperienceBlock from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
@@ -209,32 +209,60 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
    * Regenerates a single bullet point for a experience section.
    * @param sectionId - The ID of the experience section to regenerate.
    * @param index - The index of the bullet point to regenerate.
-   * @param isExperienceEditForm - Whether the experience is being edited in the form.
+   * @param formData - The form data of the experience block if it is being edited.
    */
   const handleBulletRegenerate = useCallback(
-    async (sectionId: string, index: number, isExperienceEditForm: boolean) => {
-      const experienceData = findExperience(sectionId)
-      if (!experienceData) return
+    async (
+      sectionId: string,
+      index: number,
+      formData?: ExperienceBlockData
+    ) => {
+      const data = formData || findExperience(sectionId)
+      if (!data) return
 
       try {
         setRegeneratingBullet({ section: sectionId, index })
 
-        const bulletToRegenerate = experienceData.bulletPoints[index]
-        const existingBullets = experienceData.bulletPoints.filter(
-          (bullet) => bullet.id !== bulletToRegenerate.id
-        )
+        let regeneratingBulletId: string | null = null
+        let existingBullets: BulletPoint[] = []
+        let payloadSection: GenerateBulletsRequest['sections'] = []
 
-        const payload: GenerateBulletsRequest = {
-          sections: [
+        if (formData) {
+          regeneratingBulletId = formData.bulletPoints[index].id
+          existingBullets = formData.bulletPoints.filter(
+            (bullet) => bullet.id !== regeneratingBulletId
+          )
+          payloadSection = [
             {
               id: sectionId,
               type: 'experience',
-              title: experienceData.title,
-              description: experienceData.description,
-              existingBullets,
-              targetBulletIds: [bulletToRegenerate.id],
+              title: formData.title,
+              description: formData.description,
+              existingBullets: formData.bulletPoints.filter(
+                (bullet) => bullet.id !== regeneratingBulletId
+              ),
+              targetBulletIds: [regeneratingBulletId],
             },
-          ],
+          ]
+        } else {
+          regeneratingBulletId = data.bulletPoints[index].id
+          existingBullets = data.bulletPoints.filter(
+            (bullet) => bullet.id !== regeneratingBulletId
+          )
+          payloadSection = [
+            {
+              id: sectionId,
+              type: 'experience',
+              title: data.title,
+              description: data.description,
+              existingBullets,
+              targetBulletIds: [regeneratingBulletId],
+            },
+          ]
+        }
+
+        const payload: GenerateBulletsRequest = {
+          sections: payloadSection,
           jobDescriptionAnalysis,
           settings,
           numBullets: 1,
@@ -258,20 +286,18 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             })
           } else {
             // Else, update bullet in local state
-            const updatedBullets = experienceData.bulletPoints.map((bullet) =>
-              bullet.id === bulletToRegenerate.id
+            const updatedBullets = data.bulletPoints.map((bullet) =>
+              bullet.id === regeneratingBulletId
                 ? { ...bullet, text: generatedBullet.text }
                 : bullet
             )
             const updatedExperience = {
-              ...experienceData,
+              ...data,
               bulletPoints: updatedBullets,
             }
-
             updateExperience(updatedExperience)
-
-            const shouldSaveToStorage = !isExperienceEditForm
-
+            // If formData is provided, don't save to storage because the block is being edited
+            const shouldSaveToStorage = !formData
             if (shouldSaveToStorage) {
               onSave(
                 localData.map((experience) =>
@@ -573,8 +599,8 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       onDelete={handleSectionDelete}
                       onClose={handleSectionClose}
                       onSave={handleExperienceSave}
-                      onRegenerateBullet={(sectionId, index) =>
-                        handleBulletRegenerate(sectionId, index, true)
+                      onRegenerateBullet={(sectionId, index, formData) =>
+                        handleBulletRegenerate(sectionId, index, formData)
                       }
                       onAddBullet={(sectionId) =>
                         handleAddBullet(sectionId, false)
@@ -627,7 +653,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                         onBlockSelect={handleSectionSelect}
                         onEditBullets={handleExperienceSave}
                         onRegenerateBullet={(sectionId, index) =>
-                          handleBulletRegenerate(sectionId, index, false)
+                          handleBulletRegenerate(sectionId, index)
                         }
                         onAddBullet={(sectionId) =>
                           handleAddBullet(sectionId, false)
