@@ -32,7 +32,6 @@ interface DraggableExperienceBlockProps {
   isDropping?: boolean
   regeneratingBullet?: { section: string; index: number } | null
   onBlockSelect: (id: string) => void
-  onEditBullets: (updatedBlock: ExperienceBlockData) => void
   onRegenerateBullet: (
     sectionId: string,
     index: number,
@@ -64,7 +63,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   isOverlay = false,
   isDropping = false,
   onBlockSelect,
-  onEditBullets,
   onRegenerateBullet,
   onAddBullet,
   onEditBullet,
@@ -100,16 +98,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         zIndex: isDragging ? 10 : 1,
         opacity: isDragging ? 0 : 1,
       }
-
-  const handleGenerateAllBullets = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      isFirstRender.current = false
-      setAnimationKey((prev) => prev + 1)
-      onEditBullets(data)
-    },
-    [data, onEditBullets]
-  )
 
   const handleToggleInclude = useCallback(() => {
     const updatedData = { ...localData, isIncluded: !localData.isIncluded }
@@ -184,7 +172,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             type='button'
             data-no-dnd='true'
             className={styles.generateAllButton}
-            onClick={handleGenerateAllBullets}
+            onClick={() => {}}
             disabled={
               isDragging ||
               isOverlay ||
@@ -305,6 +293,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
               errors={isEditingThisBullet ? bulletErrors : emptyErrors}
               isLocked={bullet.isLocked}
               settings={settings}
+              isDangerousAction={true}
               onCancelEdit={onBulletCancel}
               onBulletDelete={handleBulletDelete}
               onBulletSave={onBulletSave}

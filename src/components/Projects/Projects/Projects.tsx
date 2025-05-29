@@ -162,7 +162,7 @@ const Projects = ({
   )
 
   const handleLockToggle = useCallback(
-    (sectionId: string, index?: number) => {
+    (sectionId: string, index: number, shouldSave: boolean) => {
       const updatedData = localData.map((block) =>
         block.id === sectionId
           ? {
@@ -176,7 +176,10 @@ const Projects = ({
           : block
       )
       setLocalData(updatedData)
-      onSave(updatedData)
+
+      if (shouldSave) {
+        onSave(updatedData)
+      }
     },
     [localData, onSave]
   )
@@ -447,7 +450,7 @@ const Projects = ({
   }, [editingBullet, findProject, updateProject])
 
   const handleBulletDelete = useCallback(
-    (sectionId: string, index: number, shouldSave = true) => {
+    (sectionId: string, index: number, shouldSave: boolean) => {
       const project = findProject(sectionId)
       if (!project) return
 
@@ -606,7 +609,7 @@ const Projects = ({
                       }
                       onTextareaChange={handleBulletTextUpdate}
                       onLockToggle={(sectionId, index) => {
-                        handleLockToggle(sectionId, index)
+                        handleLockToggle(sectionId, index, false)
                       }}
                       onLockToggleAll={(sectionId, shouldLock) => {
                         handleLockToggleAll(sectionId, shouldLock)
@@ -643,21 +646,6 @@ const Projects = ({
                           regeneratingBullet?.section === project.id
                         }
                         regeneratingBullet={regeneratingBullet}
-                        onBlockSelect={handleSectionSelect}
-                        onEditBullets={handleProjectSave}
-                        onRegenerateBullet={(sectionId, index) =>
-                          handleBulletRegenerate(sectionId, index)
-                        }
-                        onAddBullet={(sectionId) =>
-                          handleAddBullet(sectionId, false)
-                        }
-                        onEditBullet={handleBulletEdit}
-                        onBulletSave={() => handleBulletSave(true)}
-                        onBulletCancel={handleCancelEdit}
-                        onBulletDelete={(sectionId, index) =>
-                          handleBulletDelete(sectionId, index, true)
-                        }
-                        onTextareaChange={handleBulletTextUpdate}
                         editingBulletText={
                           isEditingBullet ? editingBullet.text : ''
                         }
@@ -666,11 +654,25 @@ const Projects = ({
                         }
                         isDropping={isDropping}
                         isExpanded={expandedSections.has(project.id)}
-                        onDrawerToggle={() => toggleSectionExpanded(project.id)}
                         isAnyBulletBeingEdited={isAnyBulletBeingEdited}
                         isAnyBulletRegenerating={isAnyBulletRegenerating}
+                        onTextareaChange={handleBulletTextUpdate}
+                        onBlockSelect={handleSectionSelect}
+                        onRegenerateBullet={(sectionId, index) =>
+                          handleBulletRegenerate(sectionId, index)
+                        }
+                        onAddBullet={(sectionId) =>
+                          handleAddBullet(sectionId, false)
+                        }
+                        onDrawerToggle={() => toggleSectionExpanded(project.id)}
+                        onEditBullet={handleBulletEdit}
+                        onBulletSave={() => handleBulletSave(true)}
+                        onBulletCancel={handleCancelEdit}
+                        onBulletDelete={(sectionId, index) =>
+                          handleBulletDelete(sectionId, index, true)
+                        }
                         onLockToggle={(sectionId, index) => {
-                          handleLockToggle(sectionId, index)
+                          handleLockToggle(sectionId, index, true)
                         }}
                         onLockToggleAll={(sectionId, shouldLock) => {
                           handleLockToggleAll(sectionId, shouldLock)
@@ -691,7 +693,6 @@ const Projects = ({
                       isRegenerating={false}
                       regeneratingBullet={null}
                       onBlockSelect={() => {}}
-                      onEditBullets={() => {}}
                       onRegenerateBullet={() => {}}
                       onAddBullet={() => {}}
                       onEditBullet={() => {}}

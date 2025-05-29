@@ -166,7 +166,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   )
 
   const handleLockToggle = useCallback(
-    (sectionId: string, index?: number) => {
+    (sectionId: string, index: number, shouldSave: boolean) => {
       const updatedData = localData.map((block) =>
         block.id === sectionId
           ? {
@@ -180,7 +180,10 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
           : block
       )
       setLocalData(updatedData)
-      onSave(updatedData)
+
+      if (shouldSave) {
+        onSave(updatedData)
+      }
     },
     [localData, onSave]
   )
@@ -453,7 +456,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   }, [editingBullet, findExperience, updateExperience])
 
   const handleBulletDelete = useCallback(
-    (sectionId: string, index: number, shouldSave = true) => {
+    (sectionId: string, index: number, shouldSave: boolean) => {
       const experience = findExperience(sectionId)
       if (!experience) return
 
@@ -613,7 +616,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       }
                       onTextareaChange={handleBulletTextUpdate}
                       onLockToggle={(sectionId, index) => {
-                        handleLockToggle(sectionId, index)
+                        handleLockToggle(sectionId, index, false)
                       }}
                       onLockToggleAll={(sectionId, shouldLock) => {
                         handleLockToggleAll(sectionId, shouldLock)
@@ -650,8 +653,21 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                           regeneratingBullet?.section === experience.id
                         }
                         regeneratingBullet={regeneratingBullet}
+                        editingBulletText={
+                          isEditingBullet ? editingBullet.text : ''
+                        }
+                        bulletErrors={
+                          isEditingBullet ? editingBullet.errors || {} : {}
+                        }
+                        isDropping={isDropping}
+                        isExpanded={expandedSections.has(experience.id)}
+                        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
+                        isAnyBulletRegenerating={isAnyBulletRegenerating}
+                        onTextareaChange={handleBulletTextUpdate}
+                        onDrawerToggle={() =>
+                          toggleSectionExpanded(experience.id)
+                        }
                         onBlockSelect={handleSectionSelect}
-                        onEditBullets={handleExperienceSave}
                         onRegenerateBullet={(sectionId, index) =>
                           handleBulletRegenerate(sectionId, index)
                         }
@@ -664,22 +680,8 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                         onBulletDelete={(sectionId, index) =>
                           handleBulletDelete(sectionId, index, true)
                         }
-                        onTextareaChange={handleBulletTextUpdate}
-                        editingBulletText={
-                          isEditingBullet ? editingBullet.text : ''
-                        }
-                        bulletErrors={
-                          isEditingBullet ? editingBullet.errors || {} : {}
-                        }
-                        isDropping={isDropping}
-                        isExpanded={expandedSections.has(experience.id)}
-                        onDrawerToggle={() =>
-                          toggleSectionExpanded(experience.id)
-                        }
-                        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
-                        isAnyBulletRegenerating={isAnyBulletRegenerating}
                         onLockToggle={(sectionId, index) => {
-                          handleLockToggle(sectionId, index)
+                          handleLockToggle(sectionId, index, true)
                         }}
                         onLockToggleAll={(sectionId, shouldLock) => {
                           handleLockToggleAll(sectionId, shouldLock)
@@ -700,7 +702,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       isRegenerating={false}
                       regeneratingBullet={null}
                       onBlockSelect={() => {}}
-                      onEditBullets={() => {}}
                       onRegenerateBullet={() => {}}
                       onAddBullet={() => {}}
                       onEditBullet={() => {}}

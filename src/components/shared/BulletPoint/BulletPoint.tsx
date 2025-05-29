@@ -26,6 +26,7 @@ interface BulletPointProps {
   }
   settings: AppSettings
   isLocked: boolean
+  isDangerousAction?: boolean
   onCancelEdit: () => void
   onBulletDelete: (index: number) => void
   onBulletSave: () => void
@@ -46,6 +47,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   errors,
   settings,
   isLocked,
+  isDangerousAction = false,
   onCancelEdit,
   onBulletDelete,
   onBulletSave,
@@ -153,14 +155,22 @@ const BulletPoint: React.FC<BulletPointProps> = ({
 
   const popupConfig = {
     delete: {
-      message: "Delete this bullet? This can't be undone.",
+      message: `Delete this bullet? ${
+        isDangerousAction
+          ? "This can't be undone."
+          : 'Changes will not take effect until the form is saved.'
+      }`,
       onConfirm: () => {
         onBulletDelete(index)
         setActivePopup(null)
       },
     },
     regenerate: {
-      message: "Regenerate this bullet? This can't be undone.",
+      message: `Regenerate this bullet? ${
+        isDangerousAction
+          ? "This can't be undone."
+          : 'Changes will not take effect until the form is saved.'
+      }`,
       onConfirm: () => {
         onBulletRegenerate(sectionId, index)
         setActivePopup(null)

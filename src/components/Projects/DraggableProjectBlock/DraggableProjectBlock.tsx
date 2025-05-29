@@ -32,7 +32,6 @@ interface DraggableProjectBlockProps {
   isDropping?: boolean
   regeneratingBullet?: { section: string; index: number } | null
   onBlockSelect: (id: string) => void
-  onEditBullets: (updatedBlock: ProjectBlockData) => void
   onRegenerateBullet: (
     sectionId: string,
     index: number,
@@ -64,7 +63,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   isOverlay = false,
   isDropping = false,
   onBlockSelect,
-  onEditBullets,
   onRegenerateBullet,
   onAddBullet,
   onEditBullet,
@@ -100,16 +98,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         zIndex: isDragging ? 10 : 1,
         opacity: isDragging ? 0 : 1,
       }
-
-  const handleGenerateAllBullets = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      isFirstRender.current = false
-      setAnimationKey((prev) => prev + 1)
-      onEditBullets(data)
-    },
-    [data, onEditBullets]
-  )
 
   const handleToggleInclude = useCallback(() => {
     const updatedData = { ...localData, isIncluded: !localData.isIncluded }
@@ -193,7 +181,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             type='button'
             data-no-dnd='true'
             className={styles.generateAllButton}
-            onClick={handleGenerateAllBullets}
+            onClick={() => {}}
             disabled={
               isDragging ||
               isOverlay ||
@@ -314,6 +302,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               errors={isEditingThisBullet ? bulletErrors : emptyErrors}
               isLocked={bullet.isLocked}
               settings={settings}
+              isDangerousAction={true}
               onCancelEdit={onBulletCancel}
               onBulletDelete={handleBulletDelete}
               onBulletSave={onBulletSave}

@@ -37,7 +37,7 @@ interface EditableExperienceBlockProps {
   onBulletCancel: () => void
   onBulletDelete: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  onLockToggle: (sectionId: string, index?: number) => void
+  onLockToggle: (sectionId: string, index: number) => void
   onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
 }
 
@@ -106,6 +106,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       setTouched({})
       setFieldErrors({})
     }
+    // BUG: form resets when a bullet is added.
     setFormData(data)
   }, [data])
 

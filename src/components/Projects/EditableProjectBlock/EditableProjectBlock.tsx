@@ -37,7 +37,7 @@ interface EditableProjectBlockProps {
   onBulletCancel: () => void
   onBulletDelete: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  onLockToggle: (sectionId: string, index?: number) => void
+  onLockToggle: (sectionId: string, index: number) => void
   onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
 }
 
@@ -106,6 +106,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
       setTouched({})
       setFieldErrors({})
     }
+    // BUG: form resets when a bullet is added.
     setFormData(data)
   }, [data])
 
@@ -531,7 +532,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             type='button'
             className={styles.addButton}
             onClick={() => onAddBullet(formData.id)}
-            disabled={isRegenerating}
+            disabled={isRegenerating || !isValid}
           >
             <FaPlus /> Add
           </button>
