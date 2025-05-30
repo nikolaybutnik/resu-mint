@@ -101,13 +101,19 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
 
   useEffect(() => {
-    // Clear form fields on init or when experience changes
-    if (!formData || formData.id !== data.id) {
-      setTouched({})
-      setFieldErrors({})
-    }
-    // BUG: form resets when a bullet is added.
     setFormData(data)
+  }, [])
+
+  useEffect(() => {
+    setFormData((prev) => {
+      if (!isEqual(prev.bulletPoints, data.bulletPoints)) {
+        return {
+          ...prev,
+          bulletPoints: data.bulletPoints,
+        }
+      }
+      return prev
+    })
   }, [data])
 
   useEffect(() => {

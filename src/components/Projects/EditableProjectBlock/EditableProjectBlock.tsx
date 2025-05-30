@@ -1,5 +1,5 @@
 import styles from './EditableProjectBlock.module.scss'
-import { sanitizeResumeContent, useDebounce } from '@/lib/utils'
+import { useDebounce } from '@/lib/utils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { projectBlockSchema } from '@/lib/validationSchemas'
@@ -101,13 +101,19 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
 
   useEffect(() => {
-    // Clear form fields on init or when project changes
-    if (!formData || formData.id !== data.id) {
-      setTouched({})
-      setFieldErrors({})
-    }
-    // BUG: form resets when a bullet is added.
     setFormData(data)
+  }, [])
+
+  useEffect(() => {
+    setFormData((prev) => {
+      if (!isEqual(prev.bulletPoints, data.bulletPoints)) {
+        return {
+          ...prev,
+          bulletPoints: data.bulletPoints,
+        }
+      }
+      return prev
+    })
   }, [data])
 
   useEffect(() => {
@@ -198,7 +204,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           }),
           [FieldType.DESCRIPTION]: (prev, val) => ({
             ...prev,
-            description: sanitizeResumeContent(val as string, true),
+            description: val as string,
           }),
           [FieldType.TECHNOLOGIES]: (prev, val) => ({
             ...prev,
