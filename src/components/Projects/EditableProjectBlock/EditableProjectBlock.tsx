@@ -38,7 +38,6 @@ interface EditableProjectBlockProps {
   onBulletDelete: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onLockToggle: (sectionId: string, index: number) => void
-  onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
 }
 
 type FieldErrorKey =
@@ -88,7 +87,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   onBulletDelete,
   onTextareaChange,
   onLockToggle,
-  onLockToggleAll, //TODO: implement
 }) => {
   const [formData, setFormData] = useState<ProjectBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})

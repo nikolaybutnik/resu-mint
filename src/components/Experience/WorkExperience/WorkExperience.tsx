@@ -618,9 +618,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       onLockToggle={(sectionId, index) => {
                         handleLockToggle(sectionId, index, false)
                       }}
-                      onLockToggleAll={(sectionId, shouldLock) => {
-                        handleLockToggleAll(sectionId, shouldLock)
-                      }}
                     />
                   )
                 })

@@ -38,7 +38,6 @@ interface EditableExperienceBlockProps {
   onBulletDelete: (sectionId: string, index: number) => void
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onLockToggle: (sectionId: string, index: number) => void
-  onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
 }
 
 type FieldErrorKey =
@@ -89,7 +88,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   onBulletDelete,
   onTextareaChange,
   onLockToggle,
-  onLockToggleAll, //TODO: implement
 }) => {
   const [formData, setFormData] = useState<ExperienceBlockData>(data)
   const [touched, setTouched] = useState<Record<string, boolean>>({})
