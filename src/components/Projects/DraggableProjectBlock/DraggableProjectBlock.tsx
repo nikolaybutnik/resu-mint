@@ -75,6 +75,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   onLockToggleAll,
   onToggleInclude,
 }) => {
+  // TODO: restore animationKey functionality for button animation
   const isFirstRender = useRef(true)
 
   const [localData, setLocalData] = useState<ProjectBlockData>(data)

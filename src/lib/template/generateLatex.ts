@@ -50,7 +50,7 @@ export const generateLatex = async (
 
       return `
     \\resumeSubheading
-      {${exp.jobTitle
+      {${exp.title
         .replace(/&/g, '\\&')
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')}}{${dateRange}}

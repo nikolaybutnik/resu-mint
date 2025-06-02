@@ -144,42 +144,40 @@ export const FormsContainer: React.FC = () => {
     setLoading(false)
   }, [])
 
+  // TODO: Implement when details of functionality are finalized
   const handleMintResume = async () => {
-    try {
-      setMintingResume(true)
-
-      const payload: MintResumeRequest = {
-        sessionId,
-        jobDescriptionAnalysis,
-        workExperience,
-        projects,
-        personalDetails,
-        settings,
-      }
-
-      const response = await fetch(ROUTES.MINT_RESUME, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (response.ok) {
-        const pdfBlob = await response.blob()
-        saveAs(
-          pdfBlob,
-          `${personalDetails.name
-            .replace(/\s+/g, '-')
-            .toLowerCase()}-resume.pdf`
-        )
-      } else {
-        const errorData = await response.json()
-        console.error('API error:', errorData)
-      }
-    } catch (error) {
-      console.error('API error:', error)
-    } finally {
-      setMintingResume(false)
-    }
+    // try {
+    //   setMintingResume(true)
+    //   const payload: MintResumeRequest = {
+    //     sessionId,
+    //     jobDescriptionAnalysis,
+    //     workExperience,
+    //     projects,
+    //     personalDetails,
+    //     settings,
+    //   }
+    //   const response = await fetch(ROUTES.MINT_RESUME, {
+    //     method: 'POST',
+    //     headers: { 'Content-Type': 'application/json' },
+    //     body: JSON.stringify(payload),
+    //   })
+    //   if (response.ok) {
+    //     const pdfBlob = await response.blob()
+    //     saveAs(
+    //       pdfBlob,
+    //       `${personalDetails.name
+    //         .replace(/\s+/g, '-')
+    //         .toLowerCase()}-resume.pdf`
+    //     )
+    //   } else {
+    //     const errorData = await response.json()
+    //     console.error('API error:', errorData)
+    //   }
+    // } catch (error) {
+    //   console.error('API error:', error)
+    // } finally {
+    //   setMintingResume(false)
+    // }
   }
 
   const handleJobDescriptionSave = async (data: string) => {
@@ -341,7 +339,8 @@ export const FormsContainer: React.FC = () => {
       <button
         type='button'
         className={styles.mintButton}
-        disabled={mintingResume || analyzingJob}
+        // disabled={mintingResume || analyzingJob}
+        disabled={true}
         onClick={handleMintResume}
       >
         {mintingResume ? 'Minting...' : 'Mint Resume!'}

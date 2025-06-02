@@ -5,7 +5,6 @@ import {
   GenerateBulletsResponse,
 } from '@/lib/types/api'
 import { sanitizeResumeBullet } from '@/lib/utils'
-import { BulletPoint } from '../types/experience'
 
 export const bulletService = {
   generateBullets: async (
