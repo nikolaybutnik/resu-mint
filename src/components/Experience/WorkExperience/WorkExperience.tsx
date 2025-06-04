@@ -546,6 +546,9 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [onSave]
   )
 
+  // TODO: implement
+  const handleAllBulletsRegenerate = () => {}
+
   const activeItem = useMemo(
     () => localData.find((item) => item.id === activeId),
     [localData, activeId]
@@ -668,6 +671,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                         onRegenerateBullet={(sectionId, index) =>
                           handleBulletRegenerate(sectionId, index)
                         }
+                        onRegenerateAllBullets={handleAllBulletsRegenerate}
                         onAddBullet={(sectionId) =>
                           handleAddBullet(sectionId, false)
                         }
@@ -700,6 +704,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       regeneratingBullet={null}
                       onBlockSelect={() => {}}
                       onRegenerateBullet={() => {}}
+                      onRegenerateAllBullets={() => {}}
                       onAddBullet={() => {}}
                       onEditBullet={() => {}}
                       onBulletSave={() => {}}

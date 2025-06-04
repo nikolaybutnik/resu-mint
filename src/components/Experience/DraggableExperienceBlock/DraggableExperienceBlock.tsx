@@ -37,6 +37,7 @@ interface DraggableExperienceBlockProps {
     index: number,
     isExperienceEditForm: boolean
   ) => void
+  onRegenerateAllBullets: () => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
   onBulletSave: () => void
@@ -64,6 +65,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   isDropping = false,
   onBlockSelect,
   onRegenerateBullet,
+  onRegenerateAllBullets,
   onAddBullet,
   onEditBullet,
   onBulletSave,
@@ -75,7 +77,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   onLockToggleAll,
   onToggleInclude,
 }) => {
-  // TODO: restore animationKey functionality for button animation
   const isFirstRender = useRef(true)
 
   const [localData, setLocalData] = useState<ExperienceBlockData>(data)
@@ -139,6 +140,17 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
     [onLockToggle]
   )
 
+  // TODO: implemennt
+  const handleAllBulletsRegenerate = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      isFirstRender.current = false
+      setAnimationKey((prev) => prev + 1)
+      onRegenerateAllBullets()
+    },
+    [data, onRegenerateAllBullets]
+  )
+
   return (
     <div
       ref={isOverlay ? null : setNodeRef}
@@ -173,7 +185,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             type='button'
             data-no-dnd='true'
             className={styles.generateAllButton}
-            onClick={() => {}}
+            onClick={handleAllBulletsRegenerate}
             disabled={
               isDragging ||
               isOverlay ||

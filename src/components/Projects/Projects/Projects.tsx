@@ -540,6 +540,9 @@ const Projects = ({
     [onSave]
   )
 
+  // TODO: implement
+  const handleAllBulletsRegenerate = () => {}
+
   const activeItem = useMemo(
     () => localData.find((item) => item.id === activeId),
     [localData, activeId]
@@ -658,6 +661,7 @@ const Projects = ({
                         onRegenerateBullet={(sectionId, index) =>
                           handleBulletRegenerate(sectionId, index)
                         }
+                        onRegenerateAllBullets={handleAllBulletsRegenerate}
                         onAddBullet={(sectionId) =>
                           handleAddBullet(sectionId, false)
                         }
@@ -691,6 +695,7 @@ const Projects = ({
                       regeneratingBullet={null}
                       onBlockSelect={() => {}}
                       onRegenerateBullet={() => {}}
+                      onRegenerateAllBullets={() => {}}
                       onAddBullet={() => {}}
                       onEditBullet={() => {}}
                       onBulletSave={() => {}}

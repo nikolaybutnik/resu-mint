@@ -37,6 +37,7 @@ interface DraggableProjectBlockProps {
     index: number,
     isProjectEditForm: boolean
   ) => void
+  onRegenerateAllBullets: () => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
   onBulletSave: () => void
@@ -64,6 +65,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   isDropping = false,
   onBlockSelect,
   onRegenerateBullet,
+  onRegenerateAllBullets,
   onAddBullet,
   onEditBullet,
   onBulletSave,
@@ -75,7 +77,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   onLockToggleAll,
   onToggleInclude,
 }) => {
-  // TODO: restore animationKey functionality for button animation
   const isFirstRender = useRef(true)
 
   const [localData, setLocalData] = useState<ProjectBlockData>(data)
@@ -139,6 +140,17 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     [onLockToggle]
   )
 
+  // TODO: implemennt
+  const handleAllBulletsRegenerate = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation()
+      isFirstRender.current = false
+      setAnimationKey((prev) => prev + 1)
+      onRegenerateAllBullets()
+    },
+    [data, onRegenerateAllBullets]
+  )
+
   return (
     <div
       ref={isOverlay ? null : setNodeRef}
@@ -182,7 +194,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             type='button'
             data-no-dnd='true'
             className={styles.generateAllButton}
-            onClick={() => {}}
+            onClick={handleAllBulletsRegenerate}
             disabled={
               isDragging ||
               isOverlay ||
