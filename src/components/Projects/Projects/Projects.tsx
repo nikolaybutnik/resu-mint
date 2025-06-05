@@ -567,6 +567,7 @@ const Projects = ({
             <FaPlus size={12} />
             Add Project
           </button>
+
           <div className={styles.projectsContainer}>
             {selectedBlockId ? (
               localData

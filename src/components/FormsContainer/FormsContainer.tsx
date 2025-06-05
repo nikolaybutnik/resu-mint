@@ -7,6 +7,7 @@ import { ExperienceBlockData } from '@/lib/types/experience'
 import ResumePreview from '@/components/ResumePreview/ResumePreview'
 import PersonalDetails from '@/components/PersonalDetails/PersonalDetails'
 import WorkExperience from '../Experience/WorkExperience/WorkExperience'
+import Education from '../Education/Education/Education'
 import Settings from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
@@ -16,6 +17,7 @@ import { ProjectBlockData } from '@/lib/types/projects'
 import { MintResumeRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { AppSettings, LanguageModel } from '@/lib/types/settings'
+import { EducationBlockData } from '@/lib/types/education'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -34,6 +36,7 @@ const StorageKeys = {
   PERSONAL_DETAILS: 'resumint_personalDetails',
   EXPERIENCE: 'resumint_experience',
   PROJECTS: 'resumint_projects',
+  EDUCATION: 'resumint_education',
   SETTINGS: 'resumint_settings',
 } as const
 
@@ -42,8 +45,8 @@ const tabs = [
   { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
   { id: Tabs.EXPERIENCE, label: 'Experience' },
   { id: Tabs.PROJECTS, label: 'Projects' },
+  { id: Tabs.EDUCATION, label: 'Education' },
   { id: Tabs.SETTINGS, label: 'Settings' },
-  // { id: Tabs.EDUCATION, label: 'Education' },
   // { id: Tabs.SKILLS, label: 'Skills' },
 ]
 
@@ -76,6 +79,7 @@ const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
   salaryRange: '',
 }
 const initialProjects: ProjectBlockData[] = []
+const initialEducation: EducationBlockData[] = []
 
 export const FormsContainer: React.FC = () => {
   // Application States
@@ -102,6 +106,8 @@ export const FormsContainer: React.FC = () => {
   )
   const [projects, setProjects] = useState<ProjectBlockData[]>(initialProjects)
   const [settings, setSettings] = useState<AppSettings>(initialSettings)
+  const [education, setEducation] =
+    useState<EducationBlockData[]>(initialEducation)
 
   // Placeholder until user authentication is implemented
   useEffect(() => {
@@ -123,6 +129,7 @@ export const FormsContainer: React.FC = () => {
       personalDetails: localStorage.getItem(StorageKeys.PERSONAL_DETAILS),
       workExperience: localStorage.getItem(StorageKeys.EXPERIENCE),
       projects: localStorage.getItem(StorageKeys.PROJECTS),
+      education: localStorage.getItem(StorageKeys.EDUCATION),
       settings: localStorage.getItem(StorageKeys.SETTINGS),
     }
     if (stored.jobDescription) setJobDescription(stored.jobDescription)
@@ -132,6 +139,7 @@ export const FormsContainer: React.FC = () => {
     if (stored.workExperience)
       setWorkExperience(JSON.parse(stored.workExperience))
     if (stored.projects) setProjects(JSON.parse(stored.projects))
+    if (stored.education) setEducation(JSON.parse(stored.education))
     if (stored.settings) {
       setSettings(JSON.parse(stored.settings))
     } else {
@@ -246,6 +254,13 @@ export const FormsContainer: React.FC = () => {
     }
   }, [])
 
+  const handleEducationSave = useCallback((data: EducationBlockData[]) => {
+    setEducation(data)
+    if (data.length > 0) {
+      localStorage.setItem(StorageKeys.EDUCATION, JSON.stringify(data))
+    }
+  }, [])
+
   const handleSettingsSave = (data: AppSettings) => {
     setSettings(data)
     localStorage.setItem(StorageKeys.SETTINGS, JSON.stringify(data))
@@ -309,6 +324,13 @@ export const FormsContainer: React.FC = () => {
               jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
               settings={memoizedSettings}
               onSave={handleProjectsSave}
+            />
+          )}
+          {activeTab === Tabs.EDUCATION && (
+            <Education
+              data={education}
+              loading={loading}
+              onSave={handleEducationSave}
             />
           )}
           {activeTab === Tabs.SETTINGS && (
