@@ -469,3 +469,66 @@ export const generateBulletsRequestSchema = z
       }
     })
   })
+
+export const educationBlockSchema = z
+  .object({
+    id: z.string().uuid(),
+    institution: z
+      .string()
+      .min(1, 'Institution name is required')
+      .max(500, 'Institution name must be 500 characters or less'),
+    degree: z
+      .string()
+      .min(1, 'Degree is required')
+      .max(200, 'Degree must be 200 characters or less'),
+    degreeStatus: z.enum(['completed', 'in-progress', 'expected']),
+    startDate: startDateSchema.optional(),
+    endDate: endDateSchema.optional(),
+    location: z
+      .string()
+      .max(100, 'Location must be 100 characters or less')
+      .optional(),
+    description: z
+      .string()
+      .max(2000, 'Description must be 2000 characters or less')
+      .optional(),
+    isIncluded: z.boolean().optional().default(true),
+  })
+  .refine(
+    (data) => {
+      // Skip date validation if either date is missing
+      if (!data.startDate || !data.endDate) {
+        return true
+      }
+
+      // Both dates exist at this point due to the guard above
+      const startDate = data.startDate
+      const endDate = data.endDate
+
+      if (endDate.isPresent || !endDate.year) {
+        return true
+      }
+
+      if (!startDate.month && !endDate.month) {
+        const startYear = parseInt(startDate.year)
+        const endYear = parseInt(endDate.year)
+        return endYear >= startYear
+      }
+
+      const startDateObj = new Date(
+        parseInt(startDate.year),
+        months.find((m) => m.label === startDate.month)?.num || 0,
+        1
+      )
+      const endDateObj = new Date(
+        parseInt(endDate.year),
+        months.find((m) => m.label === endDate.month)?.num || 0,
+        1
+      )
+      return endDateObj >= startDateObj
+    },
+    {
+      message: 'End date must be on or after start date',
+      path: ['endDate'],
+    }
+  )

@@ -24,6 +24,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
+import EditableEducationBlock from '../EditableEducationBlock/EditableEducationBlock'
 
 interface EducationProps {
   data: EducationBlockData[]
@@ -185,7 +186,16 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
                 .map((education) => {
                   const isNew = education.id === newBlockId
 
-                  return <div key={education.id}>EditableEducationBlock</div>
+                  return (
+                    <EditableEducationBlock
+                      key={education.id}
+                      data={education}
+                      isNew={isNew}
+                      onDelete={handleSectionDelete}
+                      onClose={handleSectionClose}
+                      onSave={handleEducationSave}
+                    />
+                  )
                 })
             ) : (
               <DndContext
