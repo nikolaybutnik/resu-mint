@@ -5,6 +5,7 @@ import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { educationBlockSchema } from '@/lib/validationSchemas'
 import { Month, EducationBlockData, DegreeStatus } from '@/lib/types/education'
 import { isEqual } from 'lodash'
+import styles from './EditableEducationBlock.module.scss'
 
 interface EditableEducationBlockProps {
   data: EducationBlockData
@@ -229,48 +230,59 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   }, [formData, isValid, onSave])
 
   return (
-    <section>
-      <header>
+    <section className={styles.editableEducationBlock}>
+      <header className={styles.header}>
         {!isNew && (
-          <button type='button' onClick={handleDelete}>
+          <button
+            type='button'
+            onClick={handleDelete}
+            className={styles.deleteButton}
+          >
             Delete
           </button>
         )}
-        <button type='button' onClick={onClose}>
+        <button type='button' onClick={onClose} className={styles.closeButton}>
           <FaXmark />
         </button>
       </header>
 
       <div>
-        <div>
-          <label>Institution *</label>
+        <div className={styles.formField}>
+          <label className={styles.label}>Institution *</label>
           <input
             type='text'
+            className={styles.formInput}
+            placeholder='Enter institution name'
             value={formData.institution}
             onChange={(e) =>
               handleChange(FieldType.INSTITUTION, e.target.value)
             }
           />
           {debouncedTouched.institution && fieldErrors.invalidInstitution && (
-            <p>{fieldErrors.invalidInstitution[0]}</p>
+            <p className={styles.formError}>
+              {fieldErrors.invalidInstitution[0]}
+            </p>
           )}
         </div>
 
-        <div>
-          <label>Degree *</label>
+        <div className={styles.formField}>
+          <label className={styles.label}>Degree *</label>
           <input
             type='text'
+            className={styles.formInput}
+            placeholder='Enter degree name'
             value={formData.degree}
             onChange={(e) => handleChange(FieldType.DEGREE, e.target.value)}
           />
           {debouncedTouched.degree && fieldErrors.invalidDegree && (
-            <p>{fieldErrors.invalidDegree[0]}</p>
+            <p className={styles.formError}>{fieldErrors.invalidDegree[0]}</p>
           )}
         </div>
 
-        <div>
-          <label>Degree Status *</label>
+        <div className={styles.formField}>
+          <label className={styles.label}>Degree Status *</label>
           <select
+            className={styles.formInput}
             value={formData.degreeStatus}
             onChange={(e) =>
               handleChange(FieldType.DEGREE_STATUS, e.target.value)
@@ -282,27 +294,32 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             <option value={DegreeStatus.EXPECTED}>Expected</option>
           </select>
           {debouncedTouched.degreeStatus && fieldErrors.invalidDegreeStatus && (
-            <p>{fieldErrors.invalidDegreeStatus[0]}</p>
+            <p className={styles.formError}>
+              {fieldErrors.invalidDegreeStatus[0]}
+            </p>
           )}
         </div>
 
-        <div>
-          <label>Location</label>
+        <div className={styles.formField}>
+          <label className={styles.label}>Location</label>
           <input
             type='text'
+            className={styles.formInput}
+            placeholder='Enter location'
             value={formData.location || ''}
             onChange={(e) => handleChange(FieldType.LOCATION, e.target.value)}
           />
           {debouncedTouched.location && fieldErrors.invalidLocation && (
-            <p>{fieldErrors.invalidLocation[0]}</p>
+            <p className={styles.formError}>{fieldErrors.invalidLocation[0]}</p>
           )}
         </div>
 
         {formData.startDate && (
-          <div>
-            <label>Start Date</label>
-            <div>
+          <div className={styles.formField}>
+            <label className={styles.label}>Start Date</label>
+            <div className={styles.dateInputs}>
               <select
+                className={`${styles.formInput} ${styles.monthInput}`}
                 value={formData.startDate.month || ''}
                 onChange={(e) =>
                   handleChange(FieldType.START_DATE_MONTH, e.target.value)
@@ -317,6 +334,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
               </select>
               <input
                 type='text'
+                className={`${styles.formInput} ${styles.yearInput}`}
                 placeholder='YYYY'
                 value={formData.startDate.year}
                 maxLength={4}
@@ -334,20 +352,25 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
               />
             </div>
             {fieldErrors.invalidStartDateMonth && (
-              <p>{fieldErrors.invalidStartDateMonth[0]}</p>
+              <p className={styles.formError}>
+                {fieldErrors.invalidStartDateMonth[0]}
+              </p>
             )}
             {debouncedTouched[FieldType.START_DATE_YEAR] &&
               fieldErrors.invalidStartDateYear && (
-                <p>{fieldErrors.invalidStartDateYear[0]}</p>
+                <p className={styles.formError}>
+                  {fieldErrors.invalidStartDateYear[0]}
+                </p>
               )}
           </div>
         )}
 
         {formData.endDate && (
-          <div>
-            <label>End Date</label>
-            <div>
+          <div className={styles.formField}>
+            <label className={styles.label}>End Date</label>
+            <div className={styles.dateInputs}>
               <select
+                className={`${styles.formInput} ${styles.monthInput}`}
                 value={formData.endDate.month || ''}
                 disabled={formData.endDate.isPresent}
                 onChange={(e) =>
@@ -363,6 +386,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
               </select>
               <input
                 type='text'
+                className={`${styles.formInput} ${styles.yearInput}`}
                 placeholder='YYYY'
                 disabled={formData.endDate.isPresent}
                 value={formData.endDate.year}
@@ -380,7 +404,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
                 }
               />
             </div>
-            <div>
+            <div className={styles.checkboxField}>
               <input
                 type='checkbox'
                 checked={formData.endDate.isPresent}
@@ -388,24 +412,31 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
                   handleChange(FieldType.END_DATE_IS_PRESENT, e.target.checked)
                 }
               />
-              <label>Expected/Current</label>
+              <label className={styles.checkboxLabel}>Expected/Current</label>
             </div>
             {fieldErrors.invalidEndDateMonth && (
-              <p>{fieldErrors.invalidEndDateMonth[0]}</p>
+              <p className={styles.formError}>
+                {fieldErrors.invalidEndDateMonth[0]}
+              </p>
             )}
             {debouncedTouched['endDate.year'] &&
               fieldErrors.invalidEndDateYear && (
-                <p>{fieldErrors.invalidEndDateYear[0]}</p>
+                <p className={styles.formError}>
+                  {fieldErrors.invalidEndDateYear[0]}
+                </p>
               )}
             {debouncedTouched.endDate && fieldErrors.invalidEndDate && (
-              <p>{fieldErrors.invalidEndDate[0]}</p>
+              <p className={styles.formError}>
+                {fieldErrors.invalidEndDate[0]}
+              </p>
             )}
           </div>
         )}
 
-        <div>
-          <label>Description</label>
+        <div className={styles.formField}>
+          <label className={styles.label}>Description</label>
           <textarea
+            className={styles.formTextarea}
             value={formData.description || ''}
             rows={4}
             maxLength={2000}
@@ -415,13 +446,20 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             }
           />
           {debouncedTouched.description && fieldErrors.invalidDescription && (
-            <p>{fieldErrors.invalidDescription[0]}</p>
+            <p className={styles.formError}>
+              {fieldErrors.invalidDescription[0]}
+            </p>
           )}
         </div>
       </div>
 
-      <div>
-        <button type='button' onClick={handleSave} disabled={!isValid}>
+      <div className={styles.actionButtons}>
+        <button
+          type='button'
+          onClick={handleSave}
+          disabled={!isValid}
+          className={styles.saveButton}
+        >
           Save
         </button>
       </div>
