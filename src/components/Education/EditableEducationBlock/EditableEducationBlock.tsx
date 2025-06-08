@@ -65,6 +65,10 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   }, [])
 
   useEffect(() => {
+    console.log(fieldErrors)
+  }, [fieldErrors])
+
+  useEffect(() => {
     const result = educationBlockSchema.safeParse(debouncedFormData)
     if (result.success) {
       setFieldErrors({})
@@ -280,7 +284,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Degree Status *</label>
+          <label className={styles.label}>Degree Status</label>
           <select
             className={styles.formInput}
             value={formData.degreeStatus}
@@ -291,7 +295,6 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             <option value=''>Select Status</option>
             <option value={DegreeStatus.COMPLETED}>Completed</option>
             <option value={DegreeStatus.IN_PROGRESS}>In Progress</option>
-            <option value={DegreeStatus.EXPECTED}>Expected</option>
           </select>
           {debouncedTouched.degreeStatus && fieldErrors.invalidDegreeStatus && (
             <p className={styles.formError}>
@@ -372,7 +375,6 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
               <select
                 className={`${styles.formInput} ${styles.monthInput}`}
                 value={formData.endDate.month || ''}
-                disabled={formData.endDate.isPresent}
                 onChange={(e) =>
                   handleChange(FieldType.END_DATE_MONTH, e.target.value)
                 }
@@ -388,7 +390,6 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
                 type='text'
                 className={`${styles.formInput} ${styles.yearInput}`}
                 placeholder='YYYY'
-                disabled={formData.endDate.isPresent}
                 value={formData.endDate.year}
                 maxLength={4}
                 onInput={(e) => {
@@ -403,16 +404,6 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
                   handleChange(FieldType.END_DATE_YEAR, e.target.value)
                 }
               />
-            </div>
-            <div className={styles.checkboxField}>
-              <input
-                type='checkbox'
-                checked={formData.endDate.isPresent}
-                onChange={(e) =>
-                  handleChange(FieldType.END_DATE_IS_PRESENT, e.target.checked)
-                }
-              />
-              <label className={styles.checkboxLabel}>Expected/Current</label>
             </div>
             {fieldErrors.invalidEndDateMonth && (
               <p className={styles.formError}>

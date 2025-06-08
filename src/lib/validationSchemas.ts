@@ -162,6 +162,23 @@ export const endDateSchema = z
     }
   )
 
+// Education allows the dates to be optional
+export const educationStartDateSchema = z.object({
+  month: monthSchema,
+  year: z.union([
+    z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
+    z.literal(''),
+  ]),
+})
+
+export const educationEndDateSchema = z.object({
+  month: monthSchema,
+  year: z.union([
+    z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
+    z.literal(''),
+  ]),
+})
+
 export const experienceBlockSchema = z
   .object({
     id: z.string().uuid(),
@@ -481,9 +498,11 @@ export const educationBlockSchema = z
       .string()
       .min(1, 'Degree is required')
       .max(200, 'Degree must be 200 characters or less'),
-    degreeStatus: z.enum(['completed', 'in-progress', 'expected']),
-    startDate: startDateSchema.optional(),
-    endDate: endDateSchema.optional(),
+    degreeStatus: z
+      .union([z.enum(['completed', 'in-progress']), z.literal('')])
+      .optional(),
+    startDate: educationStartDateSchema.optional(),
+    endDate: educationEndDateSchema.optional(),
     location: z
       .string()
       .max(100, 'Location must be 100 characters or less')
@@ -493,6 +512,24 @@ export const educationBlockSchema = z
       .max(2000, 'Description must be 2000 characters or less')
       .optional(),
     isIncluded: z.boolean().optional().default(true),
+  })
+  .transform((data) => {
+    // Clean up empty date objects
+    const cleanedData = { ...data }
+
+    if (
+      data.startDate &&
+      data.startDate.month === '' &&
+      data.startDate.year === ''
+    ) {
+      cleanedData.startDate = undefined
+    }
+
+    if (data.endDate && data.endDate.month === '' && data.endDate.year === '') {
+      cleanedData.endDate = undefined
+    }
+
+    return cleanedData
   })
   .refine(
     (data) => {
@@ -505,7 +542,7 @@ export const educationBlockSchema = z
       const startDate = data.startDate
       const endDate = data.endDate
 
-      if (endDate.isPresent || !endDate.year) {
+      if (!endDate.year || endDate.year === '') {
         return true
       }
 
