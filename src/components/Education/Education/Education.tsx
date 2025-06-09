@@ -25,6 +25,7 @@ import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import EditableEducationBlock from '../EditableEducationBlock/EditableEducationBlock'
+import DraggableEducationBlock from '../DraggableEducationBlock/DraggableEducationBlock'
 
 interface EducationProps {
   data: EducationBlockData[]
@@ -210,11 +211,26 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
                   strategy={verticalListSortingStrategy}
                 >
                   {localData.map((education) => {
-                    return <div key={education.id}>DraggableEducationBlock</div>
+                    return (
+                      <DraggableEducationBlock
+                        key={education.id}
+                        data={education}
+                        isDropping={isDropping}
+                        onBlockSelect={handleSectionSelect}
+                        onToggleInclude={handleSectionInclusion}
+                      />
+                    )
                   })}
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem ? <div>DraggableEducationBlock</div> : null}
+                  {activeItem ? (
+                    <DraggableEducationBlock
+                      data={activeItem}
+                      isOverlay={true}
+                      onBlockSelect={() => {}}
+                      onToggleInclude={() => {}}
+                    />
+                  ) : null}
                 </DragOverlay>
               </DndContext>
             )}
