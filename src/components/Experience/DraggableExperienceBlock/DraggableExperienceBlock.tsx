@@ -166,6 +166,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
       <div className={styles.draggableExperienceBlock}>
         <div className={styles.experienceBlockContent}>
           <h3 className={styles.experienceBlockHeader}>{data.title}</h3>
+          <p className={styles.experienceBlockCompany}>{data.companyName}</p>
           {!localData.isIncluded && (
             <p className={styles.experienceBlockExcluded}>
               This work experience is not currently included in your resume

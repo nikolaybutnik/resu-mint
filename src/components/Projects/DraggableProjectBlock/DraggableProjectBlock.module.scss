@@ -128,9 +128,9 @@
 }
 
 .projectBlockHeader {
-  font-weight: 600;
   font-size: 16px;
-  color: $color-text;
+  font-weight: 600;
+  color: $color-primary;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -154,30 +154,12 @@
 }
 
 .techTag {
-  display: flex;
-  align-items: center;
   background: rgba($color-primary, 0.1);
-  border: 1px solid rgba($color-primary, 0.25);
-  border-radius: 6px;
+  color: $color-primary;
+  font-size: 12px;
   padding: 4px 8px;
-  font-size: 11px;
-  font-weight: 500;
-  color: $color-text;
-  letter-spacing: 0.2px;
-  line-height: 1.2;
-  box-shadow: 0 1px 3px rgba($color-primary, 0.1);
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: rgba($color-primary, 0.4);
-    box-shadow: 0 2px 8px rgba($color-primary, 0.2);
-    transform: translateY(-1px) scale(1.01);
-    color: color.adjust($color-text, $lightness: -5%);
-  }
-
-  &:active {
-    transform: translateY(0) scale(1);
-  }
+  border-radius: 4px;
+  display: inline-block;
 }
 
 .projectBlockActions {

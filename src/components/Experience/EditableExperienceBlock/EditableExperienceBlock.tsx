@@ -314,7 +314,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
       <div className={styles.jobDetails}>
         <div className={styles.formField}>
-          <label className={styles.label}>Work Experience Title *</label>
+          <label className={styles.label}>Job Title *</label>
           <input
             type='text'
             className={styles.formInput}

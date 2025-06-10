@@ -58,6 +58,10 @@
       color: $color-disabled;
     }
 
+    .experienceBlockCompany {
+      color: $color-disabled;
+    }
+
     .experienceBlockDate {
       color: color.adjust($color-disabled, $lightness: 10%);
     }
@@ -81,6 +85,7 @@
     background-color: $color-action-item-background;
     border-color: $color-primary;
     .experienceBlockHeader,
+    .experienceBlockCompany,
     .experienceBlockDate {
       color: inherit;
     }
@@ -113,13 +118,24 @@
 }
 
 .experienceBlockHeader {
-  font-weight: 600;
   font-size: 16px;
+  font-weight: 600;
+  color: $color-primary;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.experienceBlockCompany {
+  font-size: 14px;
+  font-weight: 500;
   color: $color-text;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 0.8;
 }
 
 .experienceBlockDate {
