@@ -564,15 +564,17 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       ) : (
         <div className={styles.experience}>
           <h2 className={styles.formTitle}>Work Experience</h2>
-          <button
-            type='button'
-            className={styles.addButton}
-            disabled={!!selectedBlockId || isAnyBulletRegenerating}
-            onClick={handleSectionAdd}
-          >
-            <FaPlus size={12} />
-            Add Work Experience
-          </button>
+          {!selectedBlockId && (
+            <button
+              type='button'
+              className={styles.addButton}
+              disabled={!!selectedBlockId || isAnyBulletRegenerating}
+              onClick={handleSectionAdd}
+            >
+              <FaPlus size={12} />
+              Add Work Experience
+            </button>
+          )}
           <div className={styles.experienceContainer}>
             {selectedBlockId ? (
               localData

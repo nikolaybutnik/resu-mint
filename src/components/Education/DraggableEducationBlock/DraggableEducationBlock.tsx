@@ -1,5 +1,5 @@
 import styles from './DraggableEducationBlock.module.scss'
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useState } from 'react'
 import { FaPen, FaEye, FaEyeSlash } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'

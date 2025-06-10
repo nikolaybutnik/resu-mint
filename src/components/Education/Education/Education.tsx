@@ -170,15 +170,17 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
       ) : (
         <div className={styles.education}>
           <h2 className={styles.formTitle}>Education</h2>
-          <button
-            type='button'
-            className={styles.addButton}
-            disabled={!!selectedBlockId}
-            onClick={handleSectionAdd}
-          >
-            <FaPlus size={12} />
-            Add Education
-          </button>
+          {!selectedBlockId && (
+            <button
+              type='button'
+              className={styles.addButton}
+              disabled={!!selectedBlockId}
+              onClick={handleSectionAdd}
+            >
+              <FaPlus size={12} />
+              Add Education
+            </button>
+          )}
 
           <div className={styles.educationContainer}>
             {selectedBlockId ? (

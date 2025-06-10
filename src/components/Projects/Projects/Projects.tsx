@@ -558,15 +558,17 @@ const Projects = ({
       ) : (
         <div className={styles.projects}>
           <h2 className={styles.formTitle}>Projects</h2>
-          <button
-            type='button'
-            className={styles.addButton}
-            disabled={!!selectedBlockId || isAnyBulletRegenerating}
-            onClick={handleSectionAdd}
-          >
-            <FaPlus size={12} />
-            Add Project
-          </button>
+          {!selectedBlockId && (
+            <button
+              type='button'
+              className={styles.addButton}
+              disabled={!!selectedBlockId || isAnyBulletRegenerating}
+              onClick={handleSectionAdd}
+            >
+              <FaPlus size={12} />
+              Add Project
+            </button>
+          )}
 
           <div className={styles.projectsContainer}>
             {selectedBlockId ? (
