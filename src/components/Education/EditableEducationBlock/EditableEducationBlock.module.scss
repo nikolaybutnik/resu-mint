@@ -139,6 +139,13 @@
     color: $color-placeholder;
     opacity: 0.7;
   }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.6;
+  }
 }
 
 .dateInputs {
@@ -184,6 +191,11 @@
       color: white;
       font-size: 12px;
       font-weight: bold;
+    }
+
+    &:focus {
+      outline: 2px solid rgba($color-primary, 0.2);
+      outline-offset: 2px;
     }
   }
 
@@ -262,6 +274,34 @@
       color.adjust($color-primary-hover, $lightness: -5%)
     );
     box-shadow: 0 2px 8px rgba($color-primary, 0.3);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.6;
+  }
+}
+
+.addButton {
+  @extend .button;
+  background: $color-action-item-background;
+  color: $color-text;
+  border: none;
+  width: 60px;
+  height: 36px;
+  font-size: 14px;
+
+  &:hover {
+    background: rgba($color-primary, 0.2);
+    color: $color-primary;
+  }
+
+  svg {
+    margin-right: 4px;
+    height: 12px;
+    width: 12px;
   }
 
   &:disabled {

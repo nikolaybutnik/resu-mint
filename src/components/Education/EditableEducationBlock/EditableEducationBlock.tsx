@@ -65,10 +65,6 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   }, [])
 
   useEffect(() => {
-    console.log(fieldErrors)
-  }, [fieldErrors])
-
-  useEffect(() => {
     const result = educationBlockSchema.safeParse(debouncedFormData)
     if (result.success) {
       setFieldErrors({})
