@@ -1,0 +1,8 @@
+{
+  "functions": {
+    "src/app/api/create-pdf/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "buildCommand": "npm run build && curl -L https://github.com/tectonic-typesetting/tectonic/releases/latest/download/tectonic-0.15.0-x86_64-unknown-linux-musl.tar.gz | tar -xz -C /usr/local/bin"
+}

@@ -2,6 +2,7 @@ import { BulletPoint, ProjectBlockData } from './projects'
 import { PersonalDetails } from '@/lib/types/personalDetails'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { AppSettings } from './settings'
+import { EducationBlockData } from './education'
 
 export interface MintResumeRequestData {
   sessionId: string
@@ -37,15 +38,6 @@ export interface GeneratedBulletsResponseModel {
   experience_bullets: { id: string; bullets: string[] }[]
 }
 
-export interface MintResumeRequest {
-  sessionId: string
-  personalDetails: PersonalDetails
-  workExperience: ExperienceBlockData[]
-  projects: ProjectBlockData[]
-  jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: AppSettings
-}
-
 export interface AnalyzeJobDescriptionRequest {
   sessionId: string
   jobDescription: string
@@ -69,4 +61,11 @@ export interface JobDescriptionAnalysis {
   companyDescription: string // e.g., "Billy Bob's Solutions is a software development company that specializes in building custom software solutions for businesses..."
   contextualTechnologies: string[] // e.g., ["AWS", "Docker", "Kafka"]
   salaryRange: string // e.g., "$100,000 - $120,000"
+}
+
+export interface CreatePdfRequest {
+  personalDetails: PersonalDetails
+  experienceSection: ExperienceBlockData[]
+  projectSection: ProjectBlockData[]
+  educationSection: EducationBlockData[]
 }

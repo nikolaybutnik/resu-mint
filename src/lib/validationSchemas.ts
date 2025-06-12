@@ -667,3 +667,10 @@ export const educationBlockSchema = z
       })
     }
   })
+
+export const createPdfRequestSchema = z.object({
+  personalDetails: personalDetailsSchema,
+  experienceSection: z.array(experienceBlockSchema),
+  projectSection: z.array(projectBlockSchema),
+  educationSection: z.array(educationBlockSchema),
+})

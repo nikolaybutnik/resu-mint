@@ -11,11 +11,9 @@ export class LatexGenerationError extends Error {
 }
 
 export const generateLatex = async (
-  experienceBullets: { id: string; bullets: string[] }[],
-  workExperience: ExperienceBlockData[],
   personalDetails: PersonalDetails,
-  projects: ProjectBlockData[],
-  projectBullets: { id: string; bullets: string[] }[]
+  workExperience: ExperienceBlockData[],
+  projects: ProjectBlockData[]
 ): Promise<string> => {
   const { name, email, linkedin, github, location } = personalDetails
   const extractedGitHub = github?.replace(/\/$/, '').split('/').pop() || ''
@@ -27,12 +25,9 @@ export const generateLatex = async (
         ? `${exp.startDate.month} ${exp.startDate.year} -- Present`
         : `${exp.startDate.month} ${exp.startDate.year} -- ${exp.endDate.month} ${exp.endDate.year}`
 
-      const expBullets =
-        experienceBullets.find((eb) => eb.id === exp.id)?.bullets || []
-
-      const bulletPoints = expBullets
+      const bulletPoints = (exp.bulletPoints || [])
         .map((bullet) => {
-          const cleanBullet = bullet
+          const cleanBullet = bullet.text
             .trim()
             .replace(/&/g, '\\&')
             .replace(/%/g, '\\%')
@@ -48,6 +43,12 @@ export const generateLatex = async (
         })
         .join('\n')
 
+      const bulletSection = bulletPoints
+        ? `      \\resumeItemListStart
+${bulletPoints}
+      \\resumeItemListEnd`
+        : '\\vspace{4pt}'
+
       return `
     \\resumeSubheading
       {${exp.title
@@ -61,9 +62,7 @@ export const generateLatex = async (
         .replace(/&/g, '\\&')
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')}}
-      \\resumeItemListStart
-${bulletPoints}
-      \\resumeItemListEnd`
+${bulletSection}`
     })
     .join('\n\n')
 
@@ -87,12 +86,9 @@ ${bulletPoints}
                   .replace(/\}/g, '\\}')}`
               : ''
 
-            const projBullets =
-              projectBullets?.find((pb) => pb.id === project.id)?.bullets || []
-
-            const bulletPoints = projBullets
+            const bulletPoints = (project.bulletPoints || [])
               .map((bullet) => {
-                const cleanBullet = bullet
+                const cleanBullet = bullet.text
                   .trim()
                   .replace(/&/g, '\\&')
                   .replace(/%/g, '\\%')
@@ -108,15 +104,21 @@ ${bulletPoints}
               })
               .join('\n')
 
+            const bulletSection = bulletPoints
+              ? `      \\resumeItemListStart
+      ${bulletPoints}
+            \\resumeItemListEnd`
+              : '\\vspace{4pt}'
+
             return `
       \\resumeProjectHeading
         {\\textbf{${project.title
           .replace(/&/g, '\\&')
           .replace(/%/g, '\\%')
-          .replace(/_/g, '\\_')}} $|$ \\emph{${technologies}}}{${dateRange}}
-        \\resumeItemListStart
-  ${bulletPoints}
-        \\resumeItemListEnd`
+          .replace(/_/g, '\\_')}}${
+              technologies ? ` $|$ \\emph{${technologies}}` : ''
+            }}{${dateRange}}
+${bulletSection}`
           })
           .join('\n\n')
       : ''

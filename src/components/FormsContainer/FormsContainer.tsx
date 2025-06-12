@@ -2,7 +2,6 @@
 import styles from './FormsContainer.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { saveAs } from 'file-saver'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import ResumePreview from '@/components/ResumePreview/ResumePreview'
 import PersonalDetails from '@/components/PersonalDetails/PersonalDetails'
@@ -14,10 +13,11 @@ import Projects from '../Projects/Projects/Projects'
 import { ROUTES } from '@/lib/constants'
 import { jobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
-import { MintResumeRequest, JobDescriptionAnalysis } from '@/lib/types/api'
+import { CreatePdfRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
+import saveAs from 'file-saver'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -152,40 +152,37 @@ export const FormsContainer: React.FC = () => {
     setLoading(false)
   }, [])
 
-  // TODO: Implement when details of functionality are finalized
   const handleMintResume = async () => {
-    // try {
-    //   setMintingResume(true)
-    //   const payload: MintResumeRequest = {
-    //     sessionId,
-    //     jobDescriptionAnalysis,
-    //     workExperience,
-    //     projects,
-    //     personalDetails,
-    //     settings,
-    //   }
-    //   const response = await fetch(ROUTES.MINT_RESUME, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify(payload),
-    //   })
-    //   if (response.ok) {
-    //     const pdfBlob = await response.blob()
-    //     saveAs(
-    //       pdfBlob,
-    //       `${personalDetails.name
-    //         .replace(/\s+/g, '-')
-    //         .toLowerCase()}-resume.pdf`
-    //     )
-    //   } else {
-    //     const errorData = await response.json()
-    //     console.error('API error:', errorData)
-    //   }
-    // } catch (error) {
-    //   console.error('API error:', error)
-    // } finally {
-    //   setMintingResume(false)
-    // }
+    try {
+      setMintingResume(true)
+      const payload: CreatePdfRequest = {
+        personalDetails,
+        experienceSection: workExperience,
+        projectSection: projects,
+        educationSection: education,
+      }
+      const response = await fetch(ROUTES.CREATE_PDF, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+      if (response.ok) {
+        const pdfBlob = await response.blob()
+        saveAs(
+          pdfBlob,
+          `${personalDetails.name
+            .replace(/\s+/g, '-')
+            .toLowerCase()}-resume.pdf`
+        )
+      } else {
+        const errorData = await response.json()
+        console.error('API error:', errorData)
+      }
+    } catch (error) {
+      console.error('API error:', error)
+    } finally {
+      setMintingResume(false)
+    }
   }
 
   const handleJobDescriptionSave = async (data: string) => {
@@ -361,8 +358,7 @@ export const FormsContainer: React.FC = () => {
       <button
         type='button'
         className={styles.mintButton}
-        // disabled={mintingResume || analyzingJob}
-        disabled={true}
+        disabled={mintingResume || analyzingJob}
         onClick={handleMintResume}
       >
         {mintingResume ? 'Minting...' : 'Mint Resume!'}

@@ -4,6 +4,7 @@ export const API_BASE_URL = 'http://localhost:3000/api'
 export const ROUTES = {
   ANALYZE_JOB_DESCRIPTION: `${API_BASE_URL}/analyze-job-description`,
   GENERATE_BULLETS: `${API_BASE_URL}/generate-bullets`,
+  CREATE_PDF: `${API_BASE_URL}/create-pdf`,
 }
 
 export const months: { label: Month; num: number }[] = [
