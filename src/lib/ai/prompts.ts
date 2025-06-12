@@ -55,7 +55,7 @@ export const generateProjectBulletPointsPrompt = (
   section: {
     id: string
     title: string
-    technologies: string[]
+    technologies?: string[]
     description: string
     existingBullets: BulletPoint[]
   },
@@ -65,7 +65,7 @@ export const generateProjectBulletPointsPrompt = (
 ) => {
   const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
-  const technologies = section.technologies.join(', ')
+  const technologies = section.technologies?.join(', ')
   const formattedSection = formatSectionForAI(section)
 
   return `
