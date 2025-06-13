@@ -9,8 +9,11 @@ import fs from 'fs/promises'
 import { v4 as uuidv4 } from 'uuid'
 import os from 'os'
 
-// Use project-specific tectonic binary
-const TECTONIC_PATH = path.join(process.cwd(), 'bin', 'tectonic')
+// Select platform-specific Tectonic binary
+const TECTONIC_PATH =
+  process.platform === 'linux'
+    ? path.join(process.cwd(), 'bin', 'tectonic-linux')
+    : path.join(process.cwd(), 'bin', 'tectonic')
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +43,18 @@ export async function POST(request: NextRequest) {
     const expectedPdfPath = path.join(tempDir, 'texput.pdf') // Default output name for stdin
 
     try {
-      // Try stdin approach with standard interface
+      try {
+        await fs.access(TECTONIC_PATH, fs.constants.F_OK | fs.constants.X_OK)
+      } catch {
+        throw new Error(
+          `Tectonic binary not found or not executable at ${TECTONIC_PATH}.`
+        )
+      }
+
+      if (!latexTemplate || latexTemplate.trim() === '') {
+        throw new Error('Empty LaTeX template')
+      }
+
       const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
         const tectonic = spawn(TECTONIC_PATH, [
           '-', // Read from stdin
@@ -57,7 +71,6 @@ export async function POST(request: NextRequest) {
         tectonic.on('close', async (code) => {
           if (code === 0) {
             try {
-              // Tectonic usually names stdin output as 'texput.pdf'
               const pdfData = await fs.readFile(expectedPdfPath)
               resolve(pdfData)
             } catch (readError) {
@@ -73,7 +86,15 @@ export async function POST(request: NextRequest) {
         })
 
         tectonic.on('error', (error) => {
-          reject(error)
+          if ((error as any).code === 'ENOENT') {
+            reject(
+              new Error(
+                `Failed to spawn Tectonic at ${TECTONIC_PATH}. Check binary compatibility and permissions.`
+              )
+            )
+          } else {
+            reject(error)
+          }
         })
 
         // Write LaTeX to stdin
