@@ -9,11 +9,11 @@ import fs from 'fs/promises'
 import { v4 as uuidv4 } from 'uuid'
 import os from 'os'
 
-// Select platform-specific Tectonic binary
-const TECTONIC_PATH =
-  process.platform === 'linux'
-    ? path.join(process.cwd(), 'bin', 'tectonic-linux')
-    : path.join(process.cwd(), 'bin', 'tectonic')
+const TECTONIC_PATH = path.join(
+  process.cwd(),
+  'bin',
+  process.platform === 'linux' ? 'tectonic-linux' : 'tectonic'
+)
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,11 +56,13 @@ export async function POST(request: NextRequest) {
       }
 
       const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
-        const tectonic = spawn(TECTONIC_PATH, [
-          '-', // Read from stdin
-          '-o',
-          tempDir, // Output directory
-        ])
+        const tectonic = spawn(
+          TECTONIC_PATH,
+          ['-X', 'compile', '-', '--outdir', tempDir],
+          {
+            stdio: ['pipe', 'pipe', 'pipe'],
+          }
+        )
 
         let errorOutput = ''
 
