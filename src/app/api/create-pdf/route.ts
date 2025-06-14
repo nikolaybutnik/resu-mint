@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
           }
         })
 
-        tectonic.on('error', (error) => {
-          if ((error as any).code === 'ENOENT') {
+        tectonic.on('error', (error: Error & { code?: string }) => {
+          if (error.code === 'ENOENT') {
             reject(
               new Error(
                 `Failed to spawn Tectonic at ${TECTONIC_PATH}. Check binary compatibility and permissions.`

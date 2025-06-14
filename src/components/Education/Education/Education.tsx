@@ -55,22 +55,6 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
     setLocalData(data)
   }, [data])
 
-  const findEducation = useCallback(
-    (id: string) => localData.find((education) => education.id === id),
-    [localData]
-  )
-
-  const updateEducation = useCallback(
-    (updatedEducation: EducationBlockData) => {
-      setLocalData((prev) =>
-        prev.map((education) =>
-          education.id === updatedEducation.id ? updatedEducation : education
-        )
-      )
-    },
-    []
-  )
-
   const handleSectionDelete = useCallback(
     (id: string) => {
       const updatedData = localData.filter((education) => education.id !== id)

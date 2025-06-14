@@ -1,5 +1,5 @@
 import styles from './Projects.module.scss'
-import { useState, useEffect, useCallback, useMemo, memo } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 import { v4 as uuidv4 } from 'uuid'
 import EditableProjectBlock from '../EditableProjectBlock/EditableProjectBlock'

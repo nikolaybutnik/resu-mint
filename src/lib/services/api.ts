@@ -13,7 +13,7 @@ const handleResponse = async (response: Response) => {
 }
 
 export const api = {
-  post: async (url: string, data: any) => {
+  post: async <T>(url: string, data: T): Promise<Response> => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {

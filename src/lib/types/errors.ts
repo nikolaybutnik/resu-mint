@@ -1,3 +1,5 @@
+import { ZodError } from 'zod'
+
 export type ErrorType =
   | 'validation'
   | 'missing_data'
@@ -60,7 +62,9 @@ export function formatErrorsForClient(errors: ApiError[]): {
   }, {} as { [key: string]: string })
 }
 
-export function zodErrorsToApiErrors(zodErrors: any[]): ApiError[] {
+export function zodErrorsToApiErrors(
+  zodErrors: ZodError['errors']
+): ApiError[] {
   return zodErrors.map((error) => ({
     field: error.path.join('.') || 'value',
     message: error.message,

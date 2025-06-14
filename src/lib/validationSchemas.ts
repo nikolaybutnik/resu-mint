@@ -1,5 +1,4 @@
 import { months } from './constants'
-import { Month } from './types/projects'
 import z from 'zod'
 import { LanguageModel } from './types/settings'
 
@@ -68,10 +67,11 @@ const urlValidator = (errorMessage = 'Must be a valid URL') => {
             }
           }
 
-          // Final URL object validation
-          const url = new URL(urlToValidate)
           return true
-        } catch {
+        } catch (e: unknown) {
+          if (e instanceof Error) {
+            console.error('Error validating URL:', val)
+          }
           return false
         }
       },

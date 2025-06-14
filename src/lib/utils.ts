@@ -282,7 +282,10 @@ export const sanitizeUrl = (url: string, allowedDomains?: string[]): string => {
     }
 
     return urlObj.toString()
-  } catch (e) {
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      console.error('Error sanitizing URL:', e.message)
+    }
     return ''
   }
 }
