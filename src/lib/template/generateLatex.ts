@@ -1,7 +1,7 @@
-import { ExperienceBlockData } from '@/lib/types/experience'
 import { PersonalDetails } from '@/lib/types/personalDetails'
-import { ApiError } from '../types/errors'
+import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
+import { ApiError } from '../types/errors'
 
 export class LatexGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -15,9 +15,54 @@ export const generateLatex = async (
   workExperience: ExperienceBlockData[],
   projects: ProjectBlockData[]
 ): Promise<string> => {
-  const { name, email, linkedin, github, location } = personalDetails
+  const { name, email, linkedin, github, website, location } = personalDetails
   const extractedGitHub = github?.replace(/\/$/, '').split('/').pop() || ''
   const extractedLinkedIn = linkedin?.replace(/\/$/, '').split('/').pop() || ''
+  const extractedWebsite =
+    website?.replace(/^https?:\/\//, '').replace(/\/$/, '') || ''
+
+  const buildPersonalDetailsHeader = () => {
+    const nameSection = `\\textbf{\\Huge \\scshape ${name}} \\\\ \\vspace{1pt}`
+
+    const contactParts = []
+
+    if (location && location.trim()) {
+      contactParts.push(`\\small ${location}`)
+    }
+
+    const emailPart = `\\href{mailto:${email}}{\\underline{${email}}}`
+    contactParts.push(emailPart)
+
+    if (linkedin && extractedLinkedIn) {
+      contactParts.push(
+        `\\href{https://linkedin.com/in/${extractedLinkedIn}}{\\underline{linkedin.com/in/${extractedLinkedIn}}}`
+      )
+    }
+
+    if (github && extractedGitHub) {
+      contactParts.push(
+        `\\href{https://github.com/${extractedGitHub}}{\\underline{github.com/${extractedGitHub}}}`
+      )
+    }
+
+    if (website && extractedWebsite) {
+      contactParts.push(`\\href{${website}}{\\underline{${extractedWebsite}}}`)
+    }
+
+    let contactLine = ''
+    if (contactParts.length > 0) {
+      if (location && location.trim()) {
+        contactLine = contactParts.join(' $|$ ')
+      } else {
+        contactLine = `\\small ${contactParts.join(' $|$ ')}`
+      }
+    }
+
+    return `\\begin{center}
+    ${nameSection}
+    ${contactLine}
+\\end{center}`
+  }
 
   const experienceSection =
     workExperience && workExperience.length > 0
@@ -250,14 +295,7 @@ ${projectsSection}
 \\begin{document}
 
 %----------HEADING----------
-\\begin{center}
-    \\textbf{\\Huge \\scshape ${name}} \\\\ \\vspace{1pt}
-    \\small ${
-      location || ''
-    } $|$ \\href{mailto:${email}}{\\underline{${email}}} $|$ 
-    \\href{https://linkedin.com/in/${extractedLinkedIn}}{\\underline{linkedin.com/in/${extractedLinkedIn}}} $|$
-    \\href{https://github.com/${extractedGitHub}}{\\underline{github.com/${extractedGitHub}}}
-\\end{center}
+${buildPersonalDetailsHeader()}
 
 ${sections.join('\n\n')}
 
