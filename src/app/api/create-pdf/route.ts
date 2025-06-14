@@ -35,12 +35,20 @@ export async function POST(request: NextRequest) {
       data.projectSection
     )
 
-    // Create unique temporary directory for output
+    // Create unique temporary directory for output, but shared cache
     const tempId = uuidv4()
     const tempDir = await fs.mkdtemp(
       path.join(os.tmpdir(), `resume-${tempId}-`)
     )
-    const expectedPdfPath = path.join(tempDir, 'texput.pdf') // Default output name for stdin
+
+    // Use shared cache directories (persist across requests)
+    const sharedCacheDir = path.join(os.tmpdir(), 'tectonic-shared-cache')
+    const sharedXdgCacheDir = path.join(os.tmpdir(), 'xdg-shared-cache')
+    const expectedPdfPath = path.join(tempDir, 'texput.pdf')
+
+    // Create shared cache directories if they don't exist
+    await fs.mkdir(sharedCacheDir, { recursive: true }).catch(() => {})
+    await fs.mkdir(sharedXdgCacheDir, { recursive: true }).catch(() => {})
 
     try {
       try {
@@ -61,6 +69,13 @@ export async function POST(request: NextRequest) {
           ['-X', 'compile', '-', '--outdir', tempDir],
           {
             stdio: ['pipe', 'pipe', 'pipe'],
+            env: {
+              ...process.env,
+              // Use shared cache directories for better performance
+              TECTONIC_CACHE_DIR: sharedCacheDir,
+              XDG_CACHE_HOME: sharedXdgCacheDir,
+              HOME: tempDir, // Still use temp dir as home for other writes
+            },
           }
         )
 
