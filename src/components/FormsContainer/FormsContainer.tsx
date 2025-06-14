@@ -13,11 +13,16 @@ import Projects from '../Projects/Projects/Projects'
 import { ROUTES } from '@/lib/constants'
 import { jobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
-import { CreatePdfRequest, JobDescriptionAnalysis } from '@/lib/types/api'
+import {
+  AnalyzeJobDescriptionRequest,
+  CreatePdfRequest,
+  JobDescriptionAnalysis,
+} from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
 import saveAs from 'file-saver'
+import { api, pdfService } from '@/lib/services'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -161,25 +166,14 @@ export const FormsContainer: React.FC = () => {
         projectSection: projects,
         educationSection: education,
       }
-      const response = await fetch(ROUTES.CREATE_PDF, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (response.ok) {
-        const pdfBlob = await response.blob()
-        saveAs(
-          pdfBlob,
-          `${personalDetails.name
-            .replace(/\s+/g, '-')
-            .toLowerCase()}-resume.pdf`
-        )
-      } else {
-        const errorData = await response.json()
-        console.error('API error:', errorData)
-      }
+
+      const pdfBlob = await pdfService.createPdf(payload)
+      saveAs(
+        pdfBlob,
+        `${personalDetails.name.replace(/\s+/g, '-').toLowerCase()}-resume.pdf`
+      )
     } catch (error) {
-      console.error('API error:', error)
+      console.error('PDF creation error:', error)
     } finally {
       setMintingResume(false)
     }
@@ -192,31 +186,21 @@ export const FormsContainer: React.FC = () => {
     try {
       setAnalyzingJob(true)
 
-      const response = await fetch(ROUTES.ANALYZE_JOB_DESCRIPTION, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId,
-          jobDescription: data,
-          settings,
-        }),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('API error:', errorData)
+      const payload: AnalyzeJobDescriptionRequest = {
+        sessionId,
+        jobDescription: data,
+        settings,
       }
 
-      const result = await response.json()
-      if (result.status !== 'success' || !result.data || result.errors) {
-        console.error('Invalid analysis response', result.errors)
-      }
+      const response = await api.post<
+        AnalyzeJobDescriptionRequest,
+        JobDescriptionAnalysis
+      >(ROUTES.ANALYZE_JOB_DESCRIPTION, payload)
 
-      const validationResult = jobDescriptionAnalysisSchema.safeParse(
-        result.data
-      )
+      const validationResult = jobDescriptionAnalysisSchema.safeParse(response)
       if (!validationResult.success) {
         console.error('Validation errors:', validationResult.error.flatten())
+        return
       }
 
       const analysis = validationResult.data as JobDescriptionAnalysis
