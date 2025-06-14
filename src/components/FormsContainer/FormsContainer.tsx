@@ -160,6 +160,7 @@ export const FormsContainer: React.FC = () => {
   const handleMintResume = async () => {
     try {
       setMintingResume(true)
+
       const payload: CreatePdfRequest = {
         personalDetails,
         experienceSection: workExperience,

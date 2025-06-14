@@ -19,37 +19,39 @@ export const generateLatex = async (
   const extractedGitHub = github?.replace(/\/$/, '').split('/').pop() || ''
   const extractedLinkedIn = linkedin?.replace(/\/$/, '').split('/').pop() || ''
 
-  const experienceSection = workExperience
-    .map((exp) => {
-      const dateRange = exp.endDate.isPresent
-        ? `${exp.startDate.month} ${exp.startDate.year} -- Present`
-        : `${exp.startDate.month} ${exp.startDate.year} -- ${exp.endDate.month} ${exp.endDate.year}`
+  const experienceSection =
+    workExperience && workExperience.length > 0
+      ? workExperience
+          .map((exp) => {
+            const dateRange = exp.endDate.isPresent
+              ? `${exp.startDate.month} ${exp.startDate.year} -- Present`
+              : `${exp.startDate.month} ${exp.startDate.year} -- ${exp.endDate.month} ${exp.endDate.year}`
 
-      const bulletPoints = (exp.bulletPoints || [])
-        .map((bullet) => {
-          const cleanBullet = bullet.text
-            .trim()
-            .replace(/&/g, '\\&')
-            .replace(/%/g, '\\%')
-            .replace(/_/g, '\\_')
-            .replace(/\$/g, '\\$')
-            .replace(/\#/g, '\\#')
-            .replace(/\{/g, '\\{')
-            .replace(/\}/g, '\\}')
-            .replace(/\r?\n|\r/g, ' ')
-            .replace(/\s+/g, ' ')
+            const bulletPoints = (exp.bulletPoints || [])
+              .map((bullet) => {
+                const cleanBullet = bullet.text
+                  .trim()
+                  .replace(/&/g, '\\&')
+                  .replace(/%/g, '\\%')
+                  .replace(/_/g, '\\_')
+                  .replace(/\$/g, '\\$')
+                  .replace(/\#/g, '\\#')
+                  .replace(/\{/g, '\\{')
+                  .replace(/\}/g, '\\}')
+                  .replace(/\r?\n|\r/g, ' ')
+                  .replace(/\s+/g, ' ')
 
-          return `    \\resumeItem{${cleanBullet}\\mbox{}}`
-        })
-        .join('\n')
+                return `    \\resumeItem{${cleanBullet}\\mbox{}}`
+              })
+              .join('\n')
 
-      const bulletSection = bulletPoints
-        ? `      \\resumeItemListStart
+            const bulletSection = bulletPoints
+              ? `      \\resumeItemListStart
 ${bulletPoints}
       \\resumeItemListEnd`
-        : '\\vspace{4pt}'
+              : '\\vspace{4pt}'
 
-      return `
+            return `
     \\resumeSubheading
       {${exp.title
         .replace(/&/g, '\\&')
@@ -59,12 +61,13 @@ ${bulletPoints}
         .replace(/&/g, '\\&')
         .replace(/%/g, '\\%')
         .replace(/_/g, '\\_')}}{${exp.location
-        .replace(/&/g, '\\&')
-        .replace(/%/g, '\\%')
-        .replace(/_/g, '\\_')}}
+              .replace(/&/g, '\\&')
+              .replace(/%/g, '\\%')
+              .replace(/_/g, '\\_')}}
 ${bulletSection}`
-    })
-    .join('\n\n')
+          })
+          .join('\n\n')
+      : null
 
   const projectsSection =
     projects && projects.length > 0
@@ -121,7 +124,25 @@ ${bulletSection}`
 ${bulletSection}`
           })
           .join('\n\n')
-      : ''
+      : null
+
+  const sections = []
+
+  if (experienceSection) {
+    sections.push(`%-----------EXPERIENCE-----------
+\\section{Experience}
+  \\resumeSubHeadingListStart
+${experienceSection}
+  \\resumeSubHeadingListEnd`)
+  }
+
+  if (projectsSection) {
+    sections.push(`%-----------PROJECTS-----------
+\\section{Projects}
+  \\resumeSubHeadingListStart
+${projectsSection}
+  \\resumeSubHeadingListEnd`)
+  }
 
   return `
 %-------------------------
@@ -229,11 +250,6 @@ ${bulletSection}`
 \\begin{document}
 
 %----------HEADING----------
-% \\begin{tabular*}{\\textwidth}{l@{\\extracolsep{\\fill}}r}
-%   \\textbf{\\href{http://sourabhbajaj.com/}{\\Large Sourabh Bajaj}} & Email : \\href{mailto:sourabh@sourabhbajaj.com}{sourabh@sourabhbajaj.com}\\\\
-%   \\href{http://sourabhbajaj.com/}{http://www.sourabhbajaj.com} & Mobile : +1-123-456-7890 \\\\
-% \\end{tabular*}
-
 \\begin{center}
     \\textbf{\\Huge \\scshape ${name}} \\\\ \\vspace{1pt}
     \\small ${
@@ -243,17 +259,7 @@ ${bulletSection}`
     \\href{https://github.com/${extractedGitHub}}{\\underline{github.com/${extractedGitHub}}}
 \\end{center}
 
-%-----------EXPERIENCE-----------
-\\section{Experience}
-  \\resumeSubHeadingListStart
-${experienceSection}
-  \\resumeSubHeadingListEnd
-
-%-----------PROJECTS-----------
-\\section{Projects}
-  \\resumeSubHeadingListStart
-${projectsSection}
-  \\resumeSubHeadingListEnd
+${sections.join('\n\n')}
 
 \\end{document}
   `
