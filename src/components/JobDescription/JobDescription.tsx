@@ -102,9 +102,10 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                         {jobDescriptionAnalysis.jobSummary ||
                           'No summary available'}
                       </p>
-                      {!expandedSummary && (
-                        <div className={styles.fadeOverlay}></div>
-                      )}
+                      {!expandedSummary &&
+                        jobDescriptionAnalysis.jobSummary && (
+                          <div className={styles.fadeOverlay}></div>
+                        )}
                     </div>
                     {jobDescriptionAnalysis.jobSummary && (
                       <button
@@ -181,11 +182,11 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                     </h4>
                     <div className={styles.companyInfo}>
                       <p>
-                        <strong>Name:</strong>{' '}
+                        <strong>Name:</strong>
                         {jobDescriptionAnalysis.companyName || 'Unknown'}
                       </p>
                       <p>
-                        <strong>Location:</strong>{' '}
+                        <strong>Location:</strong>
                         {jobDescriptionAnalysis.location?.listedLocation ||
                           'Not specified'}
                         {jobDescriptionAnalysis.location?.details && (
@@ -217,9 +218,10 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                         {jobDescriptionAnalysis.companyDescription ||
                           'No company description available'}
                       </p>
-                      {!expandedCompanyDesc && (
-                        <div className={styles.fadeOverlay}></div>
-                      )}
+                      {!expandedCompanyDesc &&
+                        jobDescriptionAnalysis.companyDescription && (
+                          <div className={styles.fadeOverlay}></div>
+                        )}
                     </div>
                     {jobDescriptionAnalysis.companyDescription && (
                       <button
