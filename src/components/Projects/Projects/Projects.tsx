@@ -14,7 +14,7 @@ import {
   DragStartEvent,
   DragOverlay,
 } from '@dnd-kit/core'
-import { PointerSensor } from '@/lib/utils'
+import { PointerSensor } from '@/lib/clientUtils'
 import {
   arrayMove,
   SortableContext,

@@ -1,5 +1,5 @@
 import styles from './EditableProjectBlock.module.scss'
-import { useDebounce } from '@/lib/utils'
+import { useDebounce } from '@/lib/clientUtils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { projectBlockSchema } from '@/lib/validationSchemas'

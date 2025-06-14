@@ -1,101 +1,3 @@
-import { useState, useEffect, useCallback } from 'react'
-import { PointerSensor as LibPointerSensor } from '@dnd-kit/core'
-import { PointerEvent } from 'react'
-
-/**
- * Debounces a value, returning the last value after a delay
- *
- * @param value - The value to debounce
- * @param delay - The delay in milliseconds
- * @returns The debounced value
- */
-export const useDebounce = <T>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value)
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value)
-    }, delay)
-    return () => clearTimeout(handler)
-  }, [value, delay])
-  return debouncedValue
-}
-
-/**
- * Debounces a callback, returning the last value after a delay
- *
- * @param callback - The callback to debounce
- * @param delay - The delay in milliseconds
- * @returns The debounced callback
- */
-export function useDebouncedCallback<
-  T extends (...args: Parameters<T>) => ReturnType<T>
->(callback: T, delay: number): (...args: Parameters<T>) => void {
-  const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | undefined>(
-    undefined
-  )
-
-  const debouncedFn = useCallback(
-    (...args: Parameters<T>) => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-
-      setTimeoutId(
-        setTimeout(() => {
-          callback(...args)
-        }, delay)
-      )
-    },
-    [callback, delay, timeoutId]
-  )
-
-  useEffect(() => {
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId)
-      }
-    }
-  }, [timeoutId])
-
-  return debouncedFn
-}
-
-/**
- * Pointer sensor for dnd-kit, blocks activation if data-no-dnd="true" is set on the element
- *
- * @param element - The element to check
- * @returns True if the event should be handled, false otherwise
- */
-export class PointerSensor extends LibPointerSensor {
-  static activators = [
-    {
-      eventName: 'onPointerDown' as const,
-      handler: ({ nativeEvent: event }: PointerEvent) => {
-        return shouldHandleEvent(event.target as HTMLElement)
-      },
-    },
-  ]
-}
-
-/**
- * Checks if the event should be handled by dnd-kit
- *
- * @param element - The element to check
- * @returns True if the event should be handled, false otherwise
- */
-const shouldHandleEvent = (element: HTMLElement | null) => {
-  let cur = element
-
-  while (cur) {
-    if (cur.dataset && cur.dataset.noDnd) {
-      return false
-    }
-    cur = cur.parentElement
-  }
-
-  return true
-}
-
 /**
  * Sanitizes user input for UI display, preventing XSS and normalizing text
  *
@@ -288,4 +190,88 @@ export const sanitizeUrl = (url: string, allowedDomains?: string[]): string => {
     }
     return ''
   }
+}
+
+/**
+ * Sanitizes text for LaTeX bullet points - combines LaTeX escaping with text normalization
+ *
+ * @param input - The bullet point text to sanitize
+ * @returns The LaTeX-safe, normalized bullet point text
+ */
+export const sanitizeLatexBullet = (input: string): string => {
+  if (!input) return ''
+
+  return input
+    .trim()
+    .replace(/&/g, '\\&')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_')
+    .replace(/\$/g, '\\$')
+    .replace(/\#/g, '\\#')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+    .replace(/\r?\n|\r/g, ' ')
+    .replace(/\s+/g, ' ')
+}
+
+/**
+ * Sanitizes basic text for LaTeX (for titles, names, locations)
+ * Uses minimal escaping for common resume text
+ *
+ * @param input - The text to sanitize
+ * @returns The LaTeX-safe text
+ */
+export const sanitizeLatexText = (input: string): string => {
+  if (!input) return ''
+
+  return input.replace(/&/g, '\\&').replace(/%/g, '\\%').replace(/_/g, '\\_')
+}
+
+/**
+ * Sanitizes technology lists for LaTeX with extended character escaping
+ *
+ * @param input - The technology string to sanitize
+ * @returns The LaTeX-safe technology string
+ */
+export const sanitizeLatexTech = (input: string): string => {
+  if (!input) return ''
+
+  return input
+    .replace(/&/g, '\\&')
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_')
+    .replace(/\$/g, '\\$')
+    .replace(/\#/g, '\\#')
+    .replace(/\{/g, '\\{')
+    .replace(/\}/g, '\\}')
+}
+
+/**
+ * Extracts username from GitHub URL
+ *
+ * @param githubUrl - The GitHub URL
+ * @returns The extracted username or empty string
+ */
+export const extractGitHubUsername = (githubUrl?: string): string => {
+  return githubUrl?.replace(/\/$/, '').split('/').pop() || ''
+}
+
+/**
+ * Extracts username from LinkedIn URL
+ *
+ * @param linkedinUrl - The LinkedIn URL
+ * @returns The extracted username or empty string
+ */
+export const extractLinkedInUsername = (linkedinUrl?: string): string => {
+  return linkedinUrl?.replace(/\/$/, '').split('/').pop() || ''
+}
+
+/**
+ * Extracts display domain from website URL
+ *
+ * @param websiteUrl - The website URL
+ * @returns The extracted domain/path or empty string
+ */
+export const extractWebsiteDomain = (websiteUrl?: string): string => {
+  return websiteUrl?.replace(/^https?:\/\//, '').replace(/\/$/, '') || ''
 }

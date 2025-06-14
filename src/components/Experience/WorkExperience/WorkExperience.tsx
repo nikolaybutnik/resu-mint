@@ -24,7 +24,8 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { PointerSensor, sanitizeResumeBullet } from '@/lib/utils'
+import { sanitizeResumeBullet } from '@/lib/utils'
+import { PointerSensor } from '@/lib/clientUtils'
 import {
   restrictToParentElement,
   restrictToVerticalAxis,

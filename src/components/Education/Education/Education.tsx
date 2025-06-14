@@ -11,7 +11,7 @@ import {
 } from '@dnd-kit/core'
 import { useSensor } from '@dnd-kit/core'
 import { KeyboardSensor } from '@dnd-kit/core'
-import { PointerSensor } from '@/lib/utils'
+import { PointerSensor } from '@/lib/clientUtils'
 import {
   arrayMove,
   SortableContext,

@@ -35,8 +35,6 @@ export async function POST(request: NextRequest) {
       data.projectSection
     )
 
-    console.log('latexTemplate', latexTemplate)
-
     // Create unique temporary directory for output, but shared cache
     const tempId = uuidv4()
     const tempDir = await fs.mkdtemp(

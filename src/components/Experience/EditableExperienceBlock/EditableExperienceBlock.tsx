@@ -1,6 +1,6 @@
 import styles from './EditableExperienceBlock.module.scss'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
-import { useDebounce } from '@/lib/utils'
+import { useDebounce } from '@/lib/clientUtils'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { experienceBlockSchema } from '@/lib/validationSchemas'

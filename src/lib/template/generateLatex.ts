@@ -2,6 +2,14 @@ import { PersonalDetails } from '@/lib/types/personalDetails'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { ApiError } from '../types/errors'
+import {
+  sanitizeLatexText,
+  sanitizeLatexBullet,
+  sanitizeLatexTech,
+  extractGitHubUsername,
+  extractLinkedInUsername,
+  extractWebsiteDomain,
+} from '../utils'
 
 export class LatexGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -16,10 +24,9 @@ export const generateLatex = async (
   projects: ProjectBlockData[]
 ): Promise<string> => {
   const { name, email, linkedin, github, website, location } = personalDetails
-  const extractedGitHub = github?.replace(/\/$/, '').split('/').pop() || ''
-  const extractedLinkedIn = linkedin?.replace(/\/$/, '').split('/').pop() || ''
-  const extractedWebsite =
-    website?.replace(/^https?:\/\//, '').replace(/\/$/, '') || ''
+  const extractedGitHub = extractGitHubUsername(github)
+  const extractedLinkedIn = extractLinkedInUsername(linkedin)
+  const extractedWebsite = extractWebsiteDomain(website)
 
   const buildPersonalDetailsHeader = () => {
     const nameSection = `\\textbf{\\Huge \\scshape ${name}} \\\\ \\vspace{1pt}`
@@ -74,18 +81,7 @@ export const generateLatex = async (
 
             const bulletPoints = (exp.bulletPoints || [])
               .map((bullet) => {
-                const cleanBullet = bullet.text
-                  .trim()
-                  .replace(/&/g, '\\&')
-                  .replace(/%/g, '\\%')
-                  .replace(/_/g, '\\_')
-                  .replace(/\$/g, '\\$')
-                  .replace(/\#/g, '\\#')
-                  .replace(/\{/g, '\\{')
-                  .replace(/\}/g, '\\}')
-                  .replace(/\r?\n|\r/g, ' ')
-                  .replace(/\s+/g, ' ')
-
+                const cleanBullet = sanitizeLatexBullet(bullet.text)
                 return `    \\resumeItem{${cleanBullet}\\mbox{}}`
               })
               .join('\n')
@@ -98,17 +94,10 @@ ${bulletPoints}
 
             return `
     \\resumeSubheading
-      {${exp.title
-        .replace(/&/g, '\\&')
-        .replace(/%/g, '\\%')
-        .replace(/_/g, '\\_')}}{${dateRange}}
-      {${exp.companyName
-        .replace(/&/g, '\\&')
-        .replace(/%/g, '\\%')
-        .replace(/_/g, '\\_')}}{${exp.location
-              .replace(/&/g, '\\&')
-              .replace(/%/g, '\\%')
-              .replace(/_/g, '\\_')}}
+      {${sanitizeLatexText(exp.title)}}{${dateRange}}
+      {${sanitizeLatexText(exp.companyName)}}{${sanitizeLatexText(
+              exp.location
+            )}}
 ${bulletSection}`
           })
           .join('\n\n')
@@ -123,31 +112,12 @@ ${bulletSection}`
               : `${project.startDate.month} ${project.startDate.year} -- ${project.endDate.month} ${project.endDate.year}`
 
             const technologies = project.technologies?.length
-              ? `${project.technologies
-                  .join(', ')
-                  .replace(/&/g, '\\&')
-                  .replace(/%/g, '\\%')
-                  .replace(/_/g, '\\_')
-                  .replace(/\$/g, '\\$')
-                  .replace(/\#/g, '\\#')
-                  .replace(/\{/g, '\\{')
-                  .replace(/\}/g, '\\}')}`
+              ? sanitizeLatexTech(project.technologies.join(', '))
               : ''
 
             const bulletPoints = (project.bulletPoints || [])
               .map((bullet) => {
-                const cleanBullet = bullet.text
-                  .trim()
-                  .replace(/&/g, '\\&')
-                  .replace(/%/g, '\\%')
-                  .replace(/_/g, '\\_')
-                  .replace(/\$/g, '\\$')
-                  .replace(/\#/g, '\\#')
-                  .replace(/\{/g, '\\{')
-                  .replace(/\}/g, '\\}')
-                  .replace(/\r?\n|\r/g, ' ')
-                  .replace(/\s+/g, ' ')
-
+                const cleanBullet = sanitizeLatexBullet(bullet.text)
                 return `    \\resumeItem{${cleanBullet}\\mbox{}}`
               })
               .join('\n')
@@ -160,10 +130,7 @@ ${bulletSection}`
 
             return `
       \\resumeProjectHeading
-        {\\textbf{${project.title
-          .replace(/&/g, '\\&')
-          .replace(/%/g, '\\%')
-          .replace(/_/g, '\\_')}}${
+        {\\textbf{${sanitizeLatexText(project.title)}}${
               technologies ? ` $|$ \\emph{${technologies}}` : ''
             }}{${dateRange}}
 ${bulletSection}`
