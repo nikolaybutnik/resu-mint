@@ -13,7 +13,10 @@ const handleResponse = async (response: Response) => {
 }
 
 export const api = {
-  post: async <T>(url: string, data: T): Promise<Response> => {
+  post: async <TRequest, TResponse = TRequest>(
+    url: string,
+    data: TRequest
+  ): Promise<TResponse> => {
     const response = await fetch(url, {
       method: 'POST',
       headers: {

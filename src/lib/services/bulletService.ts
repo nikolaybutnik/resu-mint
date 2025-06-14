@@ -11,8 +11,11 @@ export const bulletService = {
     params: GenerateBulletsRequest
   ): Promise<GenerateBulletsResponse[]> => {
     try {
-      const result = await api.post(ROUTES.GENERATE_BULLETS, params)
-      return result.map((item: GenerateBulletsResponse) => ({
+      const response = await api.post<
+        GenerateBulletsRequest,
+        GenerateBulletsResponse[]
+      >(ROUTES.GENERATE_BULLETS, params)
+      return response.map((item: GenerateBulletsResponse) => ({
         sectionId: item.sectionId,
         bullets: item.bullets.map((bullet) => ({
           id: bullet.id,
