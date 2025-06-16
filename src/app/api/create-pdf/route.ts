@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
     const latexTemplate = await generateLatex(
       data.personalDetails,
       data.experienceSection,
-      data.projectSection
+      data.projectSection,
+      data.educationSection
     )
 
     // Create unique temporary directory for output, but shared cache

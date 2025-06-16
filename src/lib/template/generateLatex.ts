@@ -10,6 +10,7 @@ import {
   extractLinkedInUsername,
   extractWebsiteDomain,
 } from '../utils'
+import { EducationBlockData } from '../types/education'
 
 export class LatexGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -21,7 +22,8 @@ export class LatexGenerationError extends Error {
 export const generateLatex = async (
   personalDetails: PersonalDetails,
   workExperience: ExperienceBlockData[],
-  projects: ProjectBlockData[]
+  projects: ProjectBlockData[],
+  education: EducationBlockData[]
 ): Promise<string> => {
   const { name, email, linkedin, github, website, location } = personalDetails
   const extractedGitHub = extractGitHubUsername(github)
@@ -138,6 +140,37 @@ ${bulletSection}`
           .join('\n\n')
       : null
 
+  const educationSection =
+    education && education.length > 0
+      ? education
+          .filter((edu) => edu.isIncluded !== false)
+          .map((edu) => {
+            let dateRange = ''
+
+            if (edu.startDate && edu.endDate) {
+              if (
+                edu.startDate.month &&
+                edu.startDate.year &&
+                edu.endDate.month &&
+                edu.endDate.year
+              ) {
+                dateRange = `${edu.startDate.month} ${edu.startDate.year} -- ${edu.endDate.month} ${edu.endDate.year}`
+              } else if (edu.startDate.year && edu.endDate.year) {
+                dateRange = `${edu.startDate.year} -- ${edu.endDate.year}`
+              }
+            }
+
+            return `
+            \\resumeSubheading
+              {${sanitizeLatexText(edu.institution)}}{${sanitizeLatexText(
+              edu.location || ''
+            )}}
+              {${sanitizeLatexText(edu.degree)}}{${dateRange}}
+        \\vspace{4pt}`
+          })
+          .join('\n\n')
+      : null
+
   const sections = []
 
   if (experienceSection) {
@@ -153,6 +186,14 @@ ${experienceSection}
 \\section{Projects}
   \\resumeSubHeadingListStart
 ${projectsSection}
+  \\resumeSubHeadingListEnd`)
+  }
+
+  if (educationSection) {
+    sections.push(`%-----------EDUCATION-----------
+\\section{Education}
+  \\resumeSubHeadingListStart
+${educationSection}
   \\resumeSubHeadingListEnd`)
   }
 
