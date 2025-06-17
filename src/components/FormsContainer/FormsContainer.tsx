@@ -1,4 +1,5 @@
 'use client'
+
 import styles from './FormsContainer.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
@@ -248,6 +249,23 @@ export const FormsContainer: React.FC = () => {
     localStorage.setItem(StorageKeys.SETTINGS, JSON.stringify(data))
   }
 
+  const shouldDisableMintButton = useMemo(() => {
+    return (
+      mintingResume ||
+      analyzingJob ||
+      !jobDescription ||
+      !jobDescriptionAnalysis ||
+      !personalDetails.name ||
+      !personalDetails.email
+    )
+  }, [
+    mintingResume,
+    analyzingJob,
+    jobDescription,
+    jobDescriptionAnalysis,
+    personalDetails,
+  ])
+
   // Memoize fairly stable states. States like projects and experience are updated too often.
   const memoizedSettings = useMemo(() => settings, [settings])
   const memoizedJobDescriptionAnalysis = useMemo(
@@ -343,7 +361,7 @@ export const FormsContainer: React.FC = () => {
       <button
         type='button'
         className={styles.mintButton}
-        disabled={mintingResume || analyzingJob}
+        disabled={shouldDisableMintButton}
         onClick={handleMintResume}
       >
         {mintingResume ? 'Minting...' : 'Mint Resume!'}
