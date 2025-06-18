@@ -595,6 +595,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       isNew={isNew}
                       editingBulletIndex={editingBulletIndex}
                       settings={settings}
+                      jobDescriptionAnalysis={jobDescriptionAnalysis}
                       isRegenerating={
                         regeneratingBullet?.section === experience.id
                       }

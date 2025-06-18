@@ -92,50 +92,26 @@ export const generateProjectBulletPointsPrompt = (
   const example = generateExamplesForLength(maxCharsPerBullet)
 
   return `
-You are generating bullet points for a personal project section. You MUST only write about features, technologies, and achievements that are explicitly mentioned in the <SECTION> content below.
+Generate ${numBullets} unique bullets for personal project.
 
-CRITICAL ANTI-HALLUCINATION RULES:
-1. READ THE SECTION FIRST: Before writing any bullet, carefully read the <SECTION> description
-2. CONTENT-ONLY RESTRICTION: You can ONLY mention features, technologies, implementations, and results that are explicitly described in the <SECTION>
-3. NO INFERENCE: Do not infer or assume additional features, technologies, or project capabilities
-4. KEYWORD ALIGNMENT: Use keywords from <KEYWORDS> ONLY if they directly match what's already described in <SECTION>
-5. VERIFICATION CHECK: Before finalizing each bullet, ask yourself: "Is every claim in this bullet explicitly supported by the <SECTION> description?"
+STRICT CONTENT RULES:
+1. ONLY write about features/technologies/implementations EXPLICITLY mentioned in the section below
+2. Each bullet MUST cover different aspects - no duplicating existing bullet topics
+3. Before writing each bullet, verify: "Is every claim supported by the section description?"
+4. Do NOT assume standard project features or add capabilities not mentioned
 
-FORBIDDEN BEHAVIORS:
-❌ Adding features not mentioned in <SECTION> (e.g., if section doesn't mention "user authentication", don't include it)
-❌ If existing bullet points are talking about a specific feature/technology, your generated bullet MUST be unique
-❌ Inferring technologies from keywords that aren't used in <SECTION>
-❌ Assuming standard project features or capabilities
-❌ Creating metrics or achievements not stated in <SECTION>
-
-SECTION CONTENT TO BASE BULLETS ON:
-<SECTION>
+SECTION (your ONLY source of truth):
 ${formattedSection}
-</SECTION>
 
-PROJECT-SPECIFIC REQUIREMENTS:
-- Focus on what you built, developed, implemented, or engineered
-- Highlight technical achievements and problem-solving approaches
-- Emphasize personal ownership and learning outcomes
-- Showcase innovation and creative solutions
+LENGTH: ${Math.floor(maxCharsPerBullet * 0.85)}-${maxCharsPerBullet} characters
+EXAMPLE: "${example}"
 
-GENERATION REQUIREMENTS:
-- Generate EXACTLY ${numBullets} bullets
-- Target length: ${Math.floor(
-    maxCharsPerBullet * 0.85
-  )}-${maxCharsPerBullet} characters
-- PERFECT LENGTH EXAMPLE: "${example}"
-- Use action verbs fitting for personal projects: Built, Developed, Engineered, Implemented, Optimized, Created, Designed
-- Follow STAR format when possible (Situation, Task, Action, Result)
+KEYWORDS (use when section supports): ${softSkills}, ${hardSkills}, ${technologies}
 
-KEYWORDS FOR ALIGNMENT (use only if already present in section):
-Hard Skills: ${hardSkills}
-Soft Skills: ${softSkills}
-Utilized Technologies (must match section content): ${technologies}
-
-Remember: While you're optimizing for keyword inclusion, every keyword and feature in the bullet you generate MUST be traceable back to the <SECTION> content above. Focus on the actual work you did on this project, not what projects of this type typically include.
+Pattern: "Built/Developed/Implemented + specific feature from section + technical outcome"
 `
 }
+
 export const generateExperienceBulletPointsPrompt = (
   section: {
     id: string
@@ -149,44 +125,28 @@ export const generateExperienceBulletPointsPrompt = (
 ) => {
   const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
+  const contextualTechnologies =
+    jobDescriptionAnalysis.contextualTechnologies.join(', ')
   const formattedSection = formatSectionForAI(section)
   const example = generateExamplesForLength(maxCharsPerBullet)
 
   return `
-You are generating bullet points for a work experience section. You MUST only write about tasks, technologies, and achievements that are explicitly mentioned in the <SECTION> content below.
+Generate ${numBullets} unique bullets for work experience.
 
-CRITICAL ANTI-HALLUCINATION RULES:
-1. READ THE SECTION FIRST: Before writing any bullet, carefully read the <SECTION> description
-2. CONTENT-ONLY RESTRICTION: You can ONLY mention tasks, technologies, results, and activities that are explicitly described in the <SECTION>
-3. NO INFERENCE: Do not infer or assume additional responsibilities, technologies, or tasks
-4. KEYWORD ALIGNMENT: Use keywords from <KEYWORDS> ONLY if they directly match what's already described in <SECTION>
-5. VERIFICATION CHECK: Before finalizing each bullet, ask yourself: "Is every claim in this bullet explicitly supported by the <SECTION> description?"
+STRICT CONTENT RULES:
+1. ONLY write about tasks/responsibilities/technologies EXPLICITLY mentioned in the section below
+2. Each bullet MUST cover different aspects - no duplicating existing bullet topics  
+3. Before writing each bullet, verify: "Is every claim supported by the section description?"
+4. Do NOT assume standard job responsibilities or add tasks not mentioned
 
-FORBIDDEN BEHAVIORS:
-❌ Adding tasks not mentioned in <SECTION> (e.g., if section doesn't mention "managing Linux environments", don't include it)
-❌ If existing bullet points are talking about a specific task/technology, your generated bullet MUST be unique
-❌ Inferring technologies from keywords that aren't used in <SECTION>
-❌ Assuming standard responsibilities for a job title
-❌ Creating metrics or achievements not stated in <SECTION>
-
-SECTION CONTENT TO BASE BULLETS ON:
-<SECTION>
+SECTION (your ONLY source of truth):
 ${formattedSection}
-</SECTION>
 
-GENERATION REQUIREMENTS:
-- Generate EXACTLY ${numBullets} bullets
-- Target length: ${Math.floor(
-    maxCharsPerBullet * 0.85
-  )}-${maxCharsPerBullet} characters
-- PERFECT LENGTH EXAMPLE: "${example}"
-- Use action verbs: Delivered, Engineered, Optimized, Designed, Integrated, Enhanced
-- Follow STAR format when possible
+LENGTH: ${Math.floor(maxCharsPerBullet * 0.85)}-${maxCharsPerBullet} characters
+EXAMPLE: "${example}"
 
-KEYWORDS FOR ALIGNMENT (use only if already present in section):
-Hard Skills: ${hardSkills}
-Soft Skills: ${softSkills}
+KEYWORDS (use when section supports): ${softSkills}, ${hardSkills}, ${contextualTechnologies}
 
-Remember: While you're optimizing for keyword inclusion, every keyword in the bullet you generate MUST be traceable back to the <SECTION> content above.
+Pattern: "Action + specific task from section + measurable result"
 `
 }

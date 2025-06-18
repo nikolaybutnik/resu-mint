@@ -216,6 +216,21 @@
   z-index: 1;
 }
 
+.keywordHighlight {
+  background-color: rgba($color-primary, 0.15);
+  color: $color-primary;
+  font-weight: 600;
+  padding: 1px 3px;
+  border-radius: 3px;
+  border: 1px solid rgba($color-primary, 0.2);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba($color-primary, 0.25);
+    border-color: rgba($color-primary, 0.4);
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -245,6 +260,10 @@
   background: $color-background;
   transition: opacity 1s;
   opacity: 1;
+
+  p {
+    line-height: 1.75;
+  }
 
   &.fadingIn p {
     opacity: 0;

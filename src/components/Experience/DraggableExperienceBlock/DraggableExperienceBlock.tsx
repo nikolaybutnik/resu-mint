@@ -58,6 +58,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   editingBulletText,
   bulletErrors,
   settings,
+  jobDescriptionAnalysis,
   isRegenerating,
   regeneratingBullet,
   isAnyBulletBeingEdited,
@@ -152,6 +153,15 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
     },
     [data, onRegenerateAllBullets]
   )
+
+  // TODO: implement a strategy to differentiate between high and low priority keywords
+  const keywords = useMemo(() => {
+    return [
+      ...(jobDescriptionAnalysis?.skillsRequired?.hard || []),
+      ...(jobDescriptionAnalysis?.skillsRequired?.soft || []),
+      ...(jobDescriptionAnalysis?.contextualTechnologies || []),
+    ]
+  }, [jobDescriptionAnalysis])
 
   return (
     <div
@@ -299,6 +309,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
               sectionId={data.id}
               index={index}
               text={bullet.text}
+              keywords={keywords}
               editingText={isEditingThisBullet ? editingBulletText : ''}
               isRegenerating={isRegeneratingThisBullet}
               isEditing={isEditingThisBullet}

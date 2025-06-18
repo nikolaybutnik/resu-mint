@@ -11,6 +11,7 @@ import {
 import { memo, useEffect, useRef, useState } from 'react'
 import { AppSettings } from '@/lib/types/settings'
 import Portal from '@/components/shared/Portal/Portal'
+import { highlightKeywords } from '@/lib/clientUtils'
 
 interface BulletPointProps {
   sectionId: string
@@ -27,6 +28,7 @@ interface BulletPointProps {
   settings: AppSettings
   isLocked: boolean
   isDangerousAction?: boolean
+  keywords?: string[]
   onCancelEdit: () => void
   onBulletDelete: (index: number) => void
   onBulletSave: () => void
@@ -48,6 +50,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   settings,
   isLocked,
   isDangerousAction = false,
+  keywords,
   onCancelEdit,
   onBulletDelete,
   onBulletSave,
@@ -359,7 +362,11 @@ const BulletPoint: React.FC<BulletPointProps> = ({
               isFadingOut ? styles.fadingOut : '',
             ].join(' ')}
           >
-            <p>{text}</p>
+            <p>
+              {keywords && keywords.length > 0
+                ? highlightKeywords(text, keywords, styles.keywordHighlight)
+                : text}
+            </p>
           </div>
         </div>
       )}

@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { useState, useEffect, useCallback } from 'react'
 import { PointerSensor as LibPointerSensor } from '@dnd-kit/core'
 import { PointerEvent } from 'react'
@@ -96,4 +97,74 @@ export function useDebouncedCallback<
   }, [timeoutId])
 
   return debouncedFn
+}
+
+/**
+ * Highlights keywords in text by wrapping them in span elements
+ * Case-insensitive matching: "TypeScript" will match "typescript", "TyPeSCRipt", etc.
+ *
+ * @param text - The text to highlight keywords in
+ * @param keywords - Array of keywords to highlight
+ * @param className - CSS class name to apply to highlighted keywords
+ * @returns Array of text segments and JSX span elements
+ */
+export const highlightKeywords = (
+  text: string,
+  keywords: string[],
+  className: string = 'keyword-highlight'
+): (string | React.ReactElement)[] => {
+  if (!text || !keywords.length) return [text]
+
+  const segments: (string | React.ReactElement)[] = []
+  let remainingText = text
+  let segmentIndex = 0
+
+  // Sort keywords by length (longest first) to avoid partial matches
+  const sortedKeywords = [...keywords].sort((a, b) => b.length - a.length)
+
+  while (remainingText.length > 0) {
+    let foundMatch = false
+    let earliestMatch: { keyword: string; index: number } | null = null
+
+    // Find the earliest match among all keywords
+    for (const keyword of sortedKeywords) {
+      const index = remainingText.toLowerCase().indexOf(keyword.toLowerCase())
+      if (index !== -1) {
+        if (!earliestMatch || index < earliestMatch.index) {
+          earliestMatch = { keyword, index }
+        }
+      }
+    }
+
+    if (earliestMatch) {
+      const { keyword, index } = earliestMatch
+
+      // Add text before the match
+      if (index > 0) {
+        segments.push(remainingText.substring(0, index))
+      }
+
+      // Add the highlighted keyword as JSX
+      const matchedText = remainingText.substring(index, index + keyword.length)
+      segments.push(
+        React.createElement(
+          'span',
+          { key: `highlight-${segmentIndex++}`, className },
+          matchedText
+        )
+      )
+
+      // Update remaining text
+      remainingText = remainingText.substring(index + keyword.length)
+      foundMatch = true
+    }
+
+    if (!foundMatch) {
+      // No more matches, add remaining text
+      segments.push(remainingText)
+      break
+    }
+  }
+
+  return segments
 }

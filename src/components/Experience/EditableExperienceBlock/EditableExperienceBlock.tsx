@@ -13,6 +13,7 @@ import { BulletPointErrors } from '@/lib/types/errors'
 import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -21,6 +22,7 @@ interface EditableExperienceBlockProps {
   editingBulletText: string
   bulletErrors: BulletPointErrors
   settings: AppSettings
+  jobDescriptionAnalysis: JobDescriptionAnalysis | null
   isRegenerating: boolean
   regeneratingBullet: { section: string; index: number } | null
   onDelete: (id: string) => void
@@ -72,6 +74,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
   isNew,
   settings,
+  jobDescriptionAnalysis,
   isRegenerating,
   editingBulletIndex,
   editingBulletText,
@@ -176,6 +179,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       value: string | string[] | boolean | BulletPointType,
       bulletIndex?: number
     ) => {
+      console.log('handleChange', field, value)
       setFormData((prev) => {
         if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
           return {
@@ -293,6 +297,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     },
     [formData, onRegenerateBullet]
   )
+
+  // TODO: develop a strategy to differentiate between high and low priority keywords
+  const keywords = useMemo(() => {
+    return [
+      ...(jobDescriptionAnalysis?.skillsRequired?.hard || []),
+      ...(jobDescriptionAnalysis?.skillsRequired?.soft || []),
+      ...(jobDescriptionAnalysis?.contextualTechnologies || []),
+    ]
+  }, [jobDescriptionAnalysis])
 
   return (
     <section className={styles.editableExperienceBlock}>
@@ -477,7 +490,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             className={styles.formTextarea}
             value={formData.description}
             rows={4}
-            maxLength={1000}
             placeholder='Describe your experience in detail. Format however you like.'
             onChange={(e) =>
               handleChange(FieldType.DESCRIPTION, e.target.value)
@@ -513,6 +525,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                 sectionId={formData.id}
                 index={index}
                 text={bullet.text}
+                keywords={keywords}
                 editingText={isEditingThisBullet ? editingBulletText : ''}
                 isRegenerating={
                   isRegenerating &&
