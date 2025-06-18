@@ -13,6 +13,7 @@ import { generateProjectBulletPointsPrompt } from '@/lib/ai/prompts'
 import { OpenAI } from 'openai'
 import { generateSectionBulletPointsTool } from '@/lib/ai/tools'
 import { Tiktoken, TiktokenEncoding } from 'tiktoken'
+import { sanitizeGeneratedBulletText } from '@/lib/utils'
 
 export async function POST(request: NextRequest) {
   try {
@@ -95,6 +96,8 @@ export async function POST(request: NextRequest) {
         const modelToEncoding: Record<string, string> = {
           'gpt-4o': 'cl100k_base',
           'gpt-4o-mini': 'o200k_base',
+          'gpt-3.5-turbo': 'cl100k_base',
+          'gpt-4.1-mini': 'o200k_base',
         }
         const encodingName =
           modelToEncoding[settings.languageModel] || 'cl100k_base' // safe, widely compatible default
@@ -150,7 +153,7 @@ export async function POST(request: NextRequest) {
                     index < sec.targetBulletIds.length
                       ? sec.targetBulletIds[index]
                       : uuidv4(),
-                  text: bullet,
+                  text: sanitizeGeneratedBulletText(bullet),
                   isLocked: false,
                 })),
               })

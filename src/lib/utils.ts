@@ -247,6 +247,30 @@ export const sanitizeLatexTech = (input: string): string => {
 }
 
 /**
+ * Cleans up AI-generated bullet text by removing common artifacts
+ * Removes quotations, trailing periods, and content in parentheses
+ *
+ * @param input - The generated bullet text to clean
+ * @returns The cleaned bullet text
+ */
+export const sanitizeGeneratedBulletText = (input: string): string => {
+  if (!input) return ''
+
+  let cleaned = input.trim()
+
+  // Remove leading and trailing quotes (single or double)
+  cleaned = cleaned.replace(/^["']+|["']+$/g, '')
+
+  // Remove trailing period
+  cleaned = cleaned.replace(/\.$/, '')
+
+  // Remove content in parentheses at the end of the string
+  cleaned = cleaned.replace(/\s*\([^)]*\)\s*$/g, '')
+
+  return cleaned.trim()
+}
+
+/**
  * Extracts username from GitHub URL
  *
  * @param githubUrl - The GitHub URL

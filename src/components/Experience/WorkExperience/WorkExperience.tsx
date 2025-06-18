@@ -494,7 +494,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
 
       if (text.length > settings.maxCharsPerBullet) {
         errors.bulletTooLong = [
-          `Your char limit is set to ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+          `Your character target is ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
         ]
       }
 

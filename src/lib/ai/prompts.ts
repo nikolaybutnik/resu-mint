@@ -1,6 +1,28 @@
 import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { BulletPoint } from '@/lib/types/projects'
 
+const generateExamplesForLength = (maxChars: number): string => {
+  const examples = {
+    300: 'Led modernization of legacy monolithic Java system by decomposing it into scalable, containerized Spring Boot microservices, orchestrated via Kubernetes and deployed on AWS ECS. Automated CI/CD pipelines with Jenkins, achieving a 70% reduction in deployment time and improving system uptime to 99.9% (299 characters)',
+    275: 'Architected a scalable, high-performance e-commerce platform using Next.js, GraphQL, and Prisma ORM; integrated Stripe for secure, multi-currency global payment processing, boosting conversion rates by 35% and reliably supporting 50,000+ active daily users with 99.8% uptime (274 characters)',
+    250: 'Designed and deployed a scalable Kubernetes-based microservices architecture using Go and MongoDB; implemented end-to-end observability with Prometheus, Grafana, and custom metrics, achieving an 80% reduction in incident response and recovery time (247 characters)',
+    225: 'Developed a real-time OpenAI API-based chatbot application using WebSocket and Node.js with Redis caching, optimizing message delivery to under 100ms, increasing user engagement by 45% across 10,000 active daily users (217 characters)',
+    200: 'Implemented reactive state management with RxJS and NgRx in Angular, reducing redundant re-renders and data fetches, improving page load speed by 30% and enhancing responsiveness under heavy user load (200 characters)',
+    175: 'Built scalable serverless AWS Lambda functions with TypeScript and DynamoDB, automating backend workflows to reduce processing time by 65% and cut infrastructure costs by 40% (174 characters)',
+    150: 'Developed responsive React app with TypeScript, implementing Redux state management and achieving 40% performance improvement through code splitting (148 characters)',
+    125: 'Built scalable Node.js API with PostgreSQL integration, reducing query response time by 60% through optimized indexing (118 characters)',
+    100: 'Implemented automated testing suite using Cypress, achieving 95% code coverage and reducing bugs (96 characters)',
+  }
+
+  const closest = Object.keys(examples).reduce((prev, curr) =>
+    Math.abs(parseInt(curr) - maxChars) < Math.abs(parseInt(prev) - maxChars)
+      ? curr
+      : prev
+  )
+
+  return examples[closest as unknown as keyof typeof examples]
+}
+
 export const generateJobDescriptionAnalysisPrompt = (
   jobDescription: string
 ) => {
@@ -67,32 +89,53 @@ export const generateProjectBulletPointsPrompt = (
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
   const technologies = section.technologies?.join(', ')
   const formattedSection = formatSectionForAI(section)
+  const example = generateExamplesForLength(maxCharsPerBullet)
 
   return `
-Generate ${numBullets} bullet points for project in <SECTION> using the "generate_section_bullets" tool
+You are generating bullet points for a personal project section. You MUST only write about features, technologies, and achievements that are explicitly mentioned in the <SECTION> content below.
 
-<RULES>
-1. Generate EXACTLY ${numBullets} bullets for <SECTION>
-2. Each bullet ABSOLUTELY MUST use 85-100% of ${maxCharsPerBullet} characters
-3. Align bullets you generate with <KEYWORDS> using <SECTION> for context. You must attempt to use each keyword, but only if it matches with <SECTION>. NEVER use a hard skill keyword not backed up by <SECTION>
-4. If existing bullets are provided, you MUST ensure the new bullet(s) are DISTINCT. Make sure that your use of keywords is distinct from existing bullets, as well as the subject of the bullet point. Example: if an existing bullet mentions integrating a chatbot with dnd-kit, your generated bullet must talk about another technology related to the chatbot, or another topic
-5. NEVER fabricate tasks, metrics, or skills; they must be used only if present in <SECTION>
-6. Use STAR (Situation, Task, Action, Result)
-7. Use action verbs fitting for a personal project. (e.g. Built, Developed, Engineered, Implemented, Optimized)
-</RULES>
+CRITICAL ANTI-HALLUCINATION RULES:
+1. READ THE SECTION FIRST: Before writing any bullet, carefully read the <SECTION> description
+2. CONTENT-ONLY RESTRICTION: You can ONLY mention features, technologies, implementations, and results that are explicitly described in the <SECTION>
+3. NO INFERENCE: Do not infer or assume additional features, technologies, or project capabilities
+4. KEYWORD ALIGNMENT: Use keywords from <KEYWORDS> ONLY if they directly match what's already described in <SECTION>
+5. VERIFICATION CHECK: Before finalizing each bullet, ask yourself: "Is every claim in this bullet explicitly supported by the <SECTION> description?"
 
-<KEYWORDS>
-Hard Skills (First priority for keyword matching): ${hardSkills}
-Soft Skills (Second priority): ${softSkills}
-Utilized Technologies (Use if aligns with Hard Skills): ${technologies}
-</KEYWORDS>
+FORBIDDEN BEHAVIORS:
+❌ Adding features not mentioned in <SECTION> (e.g., if section doesn't mention "user authentication", don't include it)
+❌ If existing bullet points are talking about a specific feature/technology, your generated bullet MUST be unique
+❌ Inferring technologies from keywords that aren't used in <SECTION>
+❌ Assuming standard project features or capabilities
+❌ Creating metrics or achievements not stated in <SECTION>
 
+SECTION CONTENT TO BASE BULLETS ON:
 <SECTION>
 ${formattedSection}
 </SECTION>
-  `
-}
 
+PROJECT-SPECIFIC REQUIREMENTS:
+- Focus on what you built, developed, implemented, or engineered
+- Highlight technical achievements and problem-solving approaches
+- Emphasize personal ownership and learning outcomes
+- Showcase innovation and creative solutions
+
+GENERATION REQUIREMENTS:
+- Generate EXACTLY ${numBullets} bullets
+- Target length: ${Math.floor(
+    maxCharsPerBullet * 0.85
+  )}-${maxCharsPerBullet} characters
+- PERFECT LENGTH EXAMPLE: "${example}"
+- Use action verbs fitting for personal projects: Built, Developed, Engineered, Implemented, Optimized, Created, Designed
+- Follow STAR format when possible (Situation, Task, Action, Result)
+
+KEYWORDS FOR ALIGNMENT (use only if already present in section):
+Hard Skills: ${hardSkills}
+Soft Skills: ${softSkills}
+Utilized Technologies (must match section content): ${technologies}
+
+Remember: While you're optimizing for keyword inclusion, every keyword and feature in the bullet you generate MUST be traceable back to the <SECTION> content above. Focus on the actual work you did on this project, not what projects of this type typically include.
+`
+}
 export const generateExperienceBulletPointsPrompt = (
   section: {
     id: string
@@ -107,27 +150,43 @@ export const generateExperienceBulletPointsPrompt = (
   const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
   const formattedSection = formatSectionForAI(section)
+  const example = generateExamplesForLength(maxCharsPerBullet)
 
   return `
-Generate ${numBullets} bullet points for work experience in <SECTION> using the "generate_section_bullets" tool.
+You are generating bullet points for a work experience section. You MUST only write about tasks, technologies, and achievements that are explicitly mentioned in the <SECTION> content below.
 
-<RULES>
-1. Generate EXACTLY ${numBullets} bullets for <SECTION>.
-2. Each bullet ABSOLUTELY MUST use 85-100% of ${maxCharsPerBullet} characters
-3. Align bullets you generate with <KEYWORDS> using <SECTION> for context. You must attempt to use each keyword, but only if it matches with <SECTION>. NEVER use a hard skill keyword not backed up by <SECTION>
-4. If existing bullets are provided, you MUST ensure the new bullet(s) are DISTINCT. Make sure that your use of keywords is distinct from existing bullets, as well as the subject of the bullet point. Example: if an existing bullet mentions integrating a chatbot with dnd-kit, your generated bullet must talk about another technology related to the chatbot, or another topic
-5. NEVER fabricate tasks, metrics, or skills; they must be used only if present in <SECTION>
-6. Use STAR (Situation, Task, Action, Result)
-7. Use action verbs fitting for a professional work experience. (e.g. Delivered, Engineered, Optimized, Designed, Integrated, Enhanced)
-</RULES>
+CRITICAL ANTI-HALLUCINATION RULES:
+1. READ THE SECTION FIRST: Before writing any bullet, carefully read the <SECTION> description
+2. CONTENT-ONLY RESTRICTION: You can ONLY mention tasks, technologies, results, and activities that are explicitly described in the <SECTION>
+3. NO INFERENCE: Do not infer or assume additional responsibilities, technologies, or tasks
+4. KEYWORD ALIGNMENT: Use keywords from <KEYWORDS> ONLY if they directly match what's already described in <SECTION>
+5. VERIFICATION CHECK: Before finalizing each bullet, ask yourself: "Is every claim in this bullet explicitly supported by the <SECTION> description?"
 
-<KEYWORDS>
-Hard Skills (First priority for keyword matching): ${hardSkills}
-Soft Skills (Second priority): ${softSkills}
-</KEYWORDS>
+FORBIDDEN BEHAVIORS:
+❌ Adding tasks not mentioned in <SECTION> (e.g., if section doesn't mention "managing Linux environments", don't include it)
+❌ If existing bullet points are talking about a specific task/technology, your generated bullet MUST be unique
+❌ Inferring technologies from keywords that aren't used in <SECTION>
+❌ Assuming standard responsibilities for a job title
+❌ Creating metrics or achievements not stated in <SECTION>
 
+SECTION CONTENT TO BASE BULLETS ON:
 <SECTION>
 ${formattedSection}
 </SECTION>
+
+GENERATION REQUIREMENTS:
+- Generate EXACTLY ${numBullets} bullets
+- Target length: ${Math.floor(
+    maxCharsPerBullet * 0.85
+  )}-${maxCharsPerBullet} characters
+- PERFECT LENGTH EXAMPLE: "${example}"
+- Use action verbs: Delivered, Engineered, Optimized, Designed, Integrated, Enhanced
+- Follow STAR format when possible
+
+KEYWORDS FOR ALIGNMENT (use only if already present in section):
+Hard Skills: ${hardSkills}
+Soft Skills: ${softSkills}
+
+Remember: While you're optimizing for keyword inclusion, every keyword in the bullet you generate MUST be traceable back to the <SECTION> content above.
 `
 }
