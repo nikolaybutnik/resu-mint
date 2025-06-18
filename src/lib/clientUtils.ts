@@ -101,7 +101,8 @@ export function useDebouncedCallback<
 
 /**
  * Highlights keywords in text by wrapping them in span elements
- * Case-insensitive matching: "TypeScript" will match "typescript", "TyPeSCRipt", etc.
+ * Case-insensitive matching with word boundaries: "TypeScript" will match "typescript", "TyPeSCRipt", etc.
+ * but will not match partial words (e.g., "ai" won't match within "gains")
  *
  * @param text - The text to highlight keywords in
  * @param keywords - Array of keywords to highlight
@@ -124,28 +125,41 @@ export const highlightKeywords = (
 
   while (remainingText.length > 0) {
     let foundMatch = false
-    let earliestMatch: { keyword: string; index: number } | null = null
+    let earliestMatch: {
+      keyword: string
+      index: number
+      matchLength: number
+    } | null = null
 
-    // Find the earliest match among all keywords
+    // Find the earliest match among all keywords using word boundaries
     for (const keyword of sortedKeywords) {
-      const index = remainingText.toLowerCase().indexOf(keyword.toLowerCase())
-      if (index !== -1) {
-        if (!earliestMatch || index < earliestMatch.index) {
-          earliestMatch = { keyword, index }
+      // Escape special regex characters in the keyword
+      const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // Create regex with word boundaries and case-insensitive flag
+      const regex = new RegExp(`\\b${escapedKeyword}\\b`, 'i')
+      const match = remainingText.match(regex)
+
+      if (match && match.index !== undefined) {
+        if (!earliestMatch || match.index < earliestMatch.index) {
+          earliestMatch = {
+            keyword,
+            index: match.index,
+            matchLength: match[0].length,
+          }
         }
       }
     }
 
     if (earliestMatch) {
-      const { keyword, index } = earliestMatch
+      const { index, matchLength } = earliestMatch
 
       // Add text before the match
       if (index > 0) {
         segments.push(remainingText.substring(0, index))
       }
 
-      // Add the highlighted keyword as JSX
-      const matchedText = remainingText.substring(index, index + keyword.length)
+      // Add the highlighted keyword as JSX (preserve original case)
+      const matchedText = remainingText.substring(index, index + matchLength)
       segments.push(
         React.createElement(
           'span',
@@ -155,7 +169,7 @@ export const highlightKeywords = (
       )
 
       // Update remaining text
-      remainingText = remainingText.substring(index + keyword.length)
+      remainingText = remainingText.substring(index + matchLength)
       foundMatch = true
     }
 

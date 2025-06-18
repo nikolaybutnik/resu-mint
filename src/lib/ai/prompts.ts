@@ -97,8 +97,9 @@ Generate ${numBullets} unique bullets for personal project.
 STRICT CONTENT RULES:
 1. ONLY write about features/technologies/implementations EXPLICITLY mentioned in the section below
 2. Each bullet MUST cover different aspects - no duplicating existing bullet topics
-3. Before writing each bullet, verify: "Is every claim supported by the section description?"
-4. Do NOT assume standard project features or add capabilities not mentioned
+3. Each bullet MUST focus on a specific aspect of the work at a time, no mixing topics
+4. Before writing each bullet, verify: "Is every claim supported by the section description?"
+5. Do NOT assume standard project features or add capabilities not mentioned
 
 SECTION (your ONLY source of truth):
 ${formattedSection}
@@ -136,8 +137,9 @@ Generate ${numBullets} unique bullets for work experience.
 STRICT CONTENT RULES:
 1. ONLY write about tasks/responsibilities/technologies EXPLICITLY mentioned in the section below
 2. Each bullet MUST cover different aspects - no duplicating existing bullet topics  
-3. Before writing each bullet, verify: "Is every claim supported by the section description?"
-4. Do NOT assume standard job responsibilities or add tasks not mentioned
+3. Each bullet MUST focus on a specific aspect of the work at a time, no mixing topics
+4. Before writing each bullet, verify: "Is every claim supported by the section description?"
+5. Do NOT assume standard job responsibilities or add tasks not mentioned
 
 SECTION (your ONLY source of truth):
 ${formattedSection}
