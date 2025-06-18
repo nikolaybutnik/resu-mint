@@ -179,7 +179,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       value: string | string[] | boolean | BulletPointType,
       bulletIndex?: number
     ) => {
-      console.log('handleChange', field, value)
       setFormData((prev) => {
         if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
           return {
