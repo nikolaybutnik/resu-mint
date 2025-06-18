@@ -106,8 +106,10 @@ const Settings: React.FC<SettingsProps> = ({ data, loading, onSave }) => {
               value={formValues.languageModel}
               onChange={(e) => handleChange(e, SettingsFields.LANGUAGE_MODEL)}
             >
-              <option value={LanguageModel.GPT_4O_MINI}>GPT-4o-mini</option>
+              <option value={LanguageModel.GPT_35_TURBO}>GPT-3.5-turbo</option>
               <option value={LanguageModel.GPT_4O}>GPT-4o</option>
+              <option value={LanguageModel.GPT_4O_MINI}>GPT-4o-mini</option>
+              <option value={LanguageModel.GPT_41_MINI}>GPT-4.1-mini</option>
             </select>
           </div>
         </div>

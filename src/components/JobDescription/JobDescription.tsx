@@ -182,11 +182,11 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                     </h4>
                     <div className={styles.companyInfo}>
                       <p>
-                        <strong>Name:</strong>
+                        <strong>Name: </strong>
                         {jobDescriptionAnalysis.companyName || 'Unknown'}
                       </p>
                       <p>
-                        <strong>Location:</strong>
+                        <strong>Location: </strong>
                         {jobDescriptionAnalysis.location?.listedLocation ||
                           'Not specified'}
                         {jobDescriptionAnalysis.location?.details && (
