@@ -17,6 +17,7 @@ import { ProjectBlockData } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPointErrors } from '@/lib/types/errors'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
@@ -24,6 +25,7 @@ interface DraggableProjectBlockProps {
   editingBulletText: string
   bulletErrors: BulletPointErrors
   settings: AppSettings
+  jobDescriptionAnalysis: JobDescriptionAnalysis | null
   isRegenerating: boolean
   isAnyBulletBeingEdited: boolean
   isAnyBulletRegenerating: boolean
@@ -56,6 +58,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   editingBulletText,
   bulletErrors,
   settings,
+  jobDescriptionAnalysis,
   isRegenerating,
   regeneratingBullet,
   isAnyBulletBeingEdited,
@@ -150,6 +153,15 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     },
     [data, onRegenerateAllBullets]
   )
+
+  // TODO: implement a strategy to differentiate between high and low priority keywords
+  const keywords = useMemo(() => {
+    return [
+      ...(jobDescriptionAnalysis?.skillsRequired?.hard || []),
+      ...(jobDescriptionAnalysis?.skillsRequired?.soft || []),
+      ...(jobDescriptionAnalysis?.contextualTechnologies || []),
+    ]
+  }, [jobDescriptionAnalysis])
 
   return (
     <div
@@ -305,6 +317,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               sectionId={data.id}
               index={index}
               text={bullet.text}
+              keywords={keywords}
               editingText={isEditingThisBullet ? editingBulletText : ''}
               isRegenerating={isRegeneratingThisBullet}
               isEditing={isEditingThisBullet}

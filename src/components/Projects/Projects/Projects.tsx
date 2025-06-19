@@ -588,6 +588,7 @@ const Projects = ({
                       isNew={isNew}
                       editingBulletIndex={editingBulletIndex}
                       settings={settings}
+                      jobDescriptionAnalysis={jobDescriptionAnalysis}
                       isRegenerating={
                         regeneratingBullet?.section === project.id
                       }
@@ -645,6 +646,7 @@ const Projects = ({
                         data={project}
                         editingBulletIndex={editingBulletIndex}
                         settings={settings}
+                        jobDescriptionAnalysis={jobDescriptionAnalysis}
                         isRegenerating={
                           regeneratingBullet?.section === project.id
                         }
@@ -694,6 +696,7 @@ const Projects = ({
                       data={activeItem}
                       editingBulletIndex={null}
                       settings={settings}
+                      jobDescriptionAnalysis={null}
                       isRegenerating={false}
                       regeneratingBullet={null}
                       onBlockSelect={() => {}}
