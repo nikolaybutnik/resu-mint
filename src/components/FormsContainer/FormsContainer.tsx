@@ -30,7 +30,6 @@ import { EducationBlockData } from '@/lib/types/education'
 import saveAs from 'file-saver'
 import { api, pdfService } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
-import { sanitizeInput } from '@/lib/utils'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -137,7 +136,7 @@ export const FormsContainer: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(initialSettings)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
-  const [skills, setSkills] = useState<{
+  const [_skills, setSkills] = useState<{
     hardSkills: string[]
     softSkills: string[]
   }>(initialSkills)
