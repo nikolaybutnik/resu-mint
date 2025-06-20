@@ -11,7 +11,7 @@ import {
 import { memo, useEffect, useRef, useState } from 'react'
 import { AppSettings } from '@/lib/types/settings'
 import Portal from '@/components/shared/Portal/Portal'
-import { highlightKeywords } from '@/lib/clientUtils'
+import { KeywordUtils } from '@/lib/keywordUtils'
 
 interface BulletPointProps {
   sectionId: string
@@ -364,7 +364,11 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           >
             <p>
               {keywords && keywords.length > 0
-                ? highlightKeywords(text, keywords, styles.keywordHighlight)
+                ? KeywordUtils.highlightKeywords(
+                    text,
+                    keywords,
+                    styles.keywordHighlight
+                  )
                 : text}
             </p>
           </div>

@@ -24,6 +24,12 @@ import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
 import saveAs from 'file-saver'
 import { api, pdfService } from '@/lib/services'
+import {
+  KeywordAlignment,
+  KeywordAnalysis,
+  KeywordUsageStats,
+} from '@/lib/types/keywords'
+import { KeywordUtils } from '@/lib/keywordUtils'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -126,6 +132,28 @@ export const FormsContainer: React.FC = () => {
       setSessionId(newId)
     }
   }, [])
+
+  // TODO: this is a temporary test to see if the keyword alignment is working.
+  // Create a custom hook?
+  useEffect(() => {
+    const keywordAnalysis: KeywordAnalysis = {
+      hardSkills: jobDescriptionAnalysis.skillsRequired.hard,
+      softSkills: jobDescriptionAnalysis.skillsRequired.soft,
+      contextualTechnologies: jobDescriptionAnalysis.contextualTechnologies,
+    }
+
+    const usageStats: KeywordUsageStats[] = KeywordUtils.analyzeKeywordUsage(
+      workExperience,
+      projects,
+      keywordAnalysis
+    )
+
+    const alignment: KeywordAlignment = KeywordUtils.calculateKeywordAlignment(
+      usageStats,
+      keywordAnalysis
+    )
+    console.log('Alignment:', alignment)
+  }, [workExperience, projects, jobDescriptionAnalysis])
 
   useEffect(() => {
     setLoading(true)
