@@ -11,6 +11,7 @@ import Education from '../Education/Education/Education'
 import Settings from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
+import Skills from '../Skills/Skills'
 import { MOBILE_VIEW, ROUTES } from '@/lib/constants'
 import {
   jobDescriptionAnalysisSchema,
@@ -136,7 +137,7 @@ export const FormsContainer: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(initialSettings)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
-  const [, setSkills] = useState<{
+  const [skills, setSkills] = useState<{
     hardSkills: string[]
     softSkills: string[]
   }>(initialSkills)
@@ -401,6 +402,14 @@ export const FormsContainer: React.FC = () => {
     localStorage.setItem(StorageKeys.SETTINGS, JSON.stringify(data))
   }
 
+  const handleSkillsSave = useCallback(
+    (data: { hardSkills: string[]; softSkills: string[] }) => {
+      setSkills(data)
+      localStorage.setItem(StorageKeys.SKILLS, JSON.stringify(data))
+    },
+    []
+  )
+
   const shouldDisableMintButton = useMemo(() => {
     return (
       mintingResume ||
@@ -486,6 +495,9 @@ export const FormsContainer: React.FC = () => {
               loading={loading}
               onSave={handleEducationSave}
             />
+          )}
+          {activeTab === Tabs.SKILLS && (
+            <Skills data={skills} loading={loading} onSave={handleSkillsSave} />
           )}
           {activeTab === Tabs.SETTINGS && (
             <Settings

@@ -58,8 +58,6 @@ export async function POST(request: NextRequest) {
       toolCall.function.arguments
     ) as ParseSectionSkillsResponse
 
-    console.log('skills', skills)
-
     const normalizedSkills: ParseSectionSkillsResponse = {
       hardSkills: skills.hardSkills.map(normalizeSkill),
       softSkills: skills.softSkills.map(normalizeSkill),

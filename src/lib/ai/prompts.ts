@@ -155,21 +155,17 @@ Pattern: "Action + specific task from section + measurable result"
 
 export const parseSectionSkillsPrompt = (sectionDescriptions: string) => {
   return `
-Carefully read the entire text and extract ALL technical and soft skills mentioned. Use the "parse_section_skills" tool.
+Extract concrete skills mentioned in the <DATA> below. Use the "parse_section_skills" tool.
 
-INSTRUCTIONS:
-1. Scan every sentence for technology names, programming languages, tools, and frameworks
-2. Include ALL variations: Java, JavaScript, TypeScript are all different skills
-3. Return single words or standard compounds, lowercase, no duplicates
-4. Be comprehensive - do not skip any mentioned technology
+HARD SKILLS: Programming languages, frameworks, tools, platforms, technical methodologies
+SOFT SKILLS: Communication, leadership, teamwork, problem-solving, and other interpersonal abilities
 
-WHAT TO EXTRACT:
-- Programming languages (java, javascript, typescript, python, etc.)
-- Frameworks/libraries (react, angular, fastapi, etc.) 
-- Tools (postman, cypress, firebase, etc.)
-- Soft skills (collaboration, communication, leadership, etc.)
-
-READ THOROUGHLY - missing skills means incomplete extraction.
+RULES:
+- Extract ONLY skills explicitly mentioned in the <DATA> below
+- Extract SPECIFIC, implementable skills only
+- Skip vague concepts like "responsiveness", "scalability", "user engagement"
+- Single words or compounds, no duplicates, preserve capitalization
+- Don't confuse similar technology names (e.g., JavaScript ≠ Java)
 
 Extract from:
 <DATA>
