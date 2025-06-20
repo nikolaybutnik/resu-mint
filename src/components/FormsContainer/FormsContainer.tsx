@@ -106,6 +106,43 @@ const normalizeForComparison = (skill: string): string => {
   return skill.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
+const buildResumeData = (
+  personalDetails: PersonalDetailsType,
+  workExperience: ExperienceBlockData[],
+  projects: ProjectBlockData[],
+  education: EducationBlockData[]
+): CreatePdfRequest => {
+  return {
+    personalDetails,
+    experienceSection: workExperience,
+    projectSection: projects,
+    educationSection: education,
+  }
+}
+
+const isResumeDataValid = (
+  personalDetails: PersonalDetailsType,
+  workExperience: ExperienceBlockData[],
+  projects: ProjectBlockData[],
+  education: EducationBlockData[],
+  jobDescription: string,
+  jobDescriptionAnalysis: JobDescriptionAnalysis
+): boolean => {
+  // Minimum requirements for a meaningful preview
+  const hasBasicInfo =
+    !!personalDetails.name.trim() && !!personalDetails.email.trim()
+  const hasJobDescription = !!jobDescription.trim()
+  const hasAnalyzedJobDetails = !!jobDescriptionAnalysis
+  const hasContent =
+    workExperience.some((exp) => exp.isIncluded) ||
+    projects.some((proj) => proj.isIncluded) ||
+    education.some((edu) => edu.isIncluded)
+
+  return (
+    hasBasicInfo && hasJobDescription && hasAnalyzedJobDetails && hasContent
+  )
+}
+
 export const FormsContainer: React.FC = () => {
   const previousDescriptionsRef = useRef<string>('')
   const isInitialLoadRef = useRef(true)
@@ -444,6 +481,34 @@ export const FormsContainer: React.FC = () => {
     [jobDescriptionAnalysis]
   )
 
+  const resumeData = useMemo(() => {
+    if (loading) return null
+
+    return buildResumeData(personalDetails, workExperience, projects, education)
+  }, [personalDetails, workExperience, projects, education, loading])
+
+  const isDataValid = useMemo(() => {
+    if (loading || !resumeData) return false
+
+    return isResumeDataValid(
+      personalDetails,
+      workExperience,
+      projects,
+      education,
+      jobDescription,
+      jobDescriptionAnalysis
+    )
+  }, [
+    personalDetails,
+    workExperience,
+    projects,
+    education,
+    loading,
+    resumeData,
+    jobDescription,
+    jobDescriptionAnalysis,
+  ])
+
   return (
     <div className={styles.formsContainer}>
       <div
@@ -518,13 +583,15 @@ export const FormsContainer: React.FC = () => {
           )}
         </div>
       </div>
+
       <div
         className={`${styles.preview} ${
           view === 'preview' ? styles.active : ''
         }`}
       >
-        <ResumePreview />
+        <ResumePreview resumeData={resumeData} isDataValid={isDataValid} />
       </div>
+
       <div className={styles.bottomNav}>
         <button className={styles.navItem} onClick={() => setView('input')}>
           Input
