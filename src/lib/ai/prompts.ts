@@ -164,7 +164,8 @@ RULES:
 - Extract ONLY skills explicitly mentioned in the <DATA> below
 - Extract SPECIFIC, implementable skills only
 - Skip vague concepts like "responsiveness", "scalability", "user engagement"
-- Single words or compounds, no duplicates, preserve capitalization
+- Single words or compounds, no duplicates.
+- Capitalize first letter of the keywords. Preserve natural capitalization of technologies (e.g., "JavaScript, FastAPI")
 - Don't confuse similar technology names (e.g., JavaScript ≠ Java)
 
 Extract from:

@@ -7,11 +7,11 @@ import OpenAI from 'openai'
 import { parseSectionSkillsTool } from '@/lib/ai/tools'
 import { ParseSectionSkillsResponse } from '@/lib/types/api'
 
-export async function POST(request: NextRequest) {
-  const normalizeSkill = (skill: string): string => {
-    return skill.trim().toLowerCase().replace(/\s+/g, ' ') // Collapse multiple spaces
-  }
+const cleanSkill = (skill: string): string => {
+  return skill.trim().replace(/^["']|["']$/g, '')
+}
 
+export async function POST(request: NextRequest) {
   try {
     const rawData = await request.json()
     const validationResult = parseSectionSkillsRequestSchema.safeParse(rawData)
@@ -58,12 +58,12 @@ export async function POST(request: NextRequest) {
       toolCall.function.arguments
     ) as ParseSectionSkillsResponse
 
-    const normalizedSkills: ParseSectionSkillsResponse = {
-      hardSkills: skills.hardSkills.map(normalizeSkill),
-      softSkills: skills.softSkills.map(normalizeSkill),
+    const cleanedSkills = {
+      hardSkills: skills.hardSkills.map(cleanSkill),
+      softSkills: skills.softSkills.map(cleanSkill),
     }
 
-    return NextResponse.json(createSuccessResponse(normalizedSkills), {
+    return NextResponse.json(createSuccessResponse(cleanedSkills), {
       status: 200,
     })
   } catch (error) {

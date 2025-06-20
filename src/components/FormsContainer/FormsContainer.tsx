@@ -102,7 +102,7 @@ const initialSkills: {
   softSkills: [],
 }
 
-const normalizeSkill = (skill: string): string => {
+const normalizeForComparison = (skill: string): string => {
   return skill.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
@@ -154,6 +154,8 @@ export const FormsContainer: React.FC = () => {
     }
   }, [])
 
+  // TODO: now that we have access to the skills which maytch the user's experience,
+  // these skills will need to be prioritized.
   const keywordData = useKeywordAnalysis(
     workExperience,
     projects,
@@ -219,33 +221,25 @@ export const FormsContainer: React.FC = () => {
         const validatedSkills = validationResult.data
 
         setSkills((currentSkills) => {
-          const newSkills: {
-            hardSkills: string[]
-            softSkills: string[]
-          } = {
-            hardSkills: [],
-            softSkills: [],
-          }
+          const existingHardSkillsNormalized = new Set(
+            currentSkills.hardSkills.map(normalizeForComparison)
+          )
+          const existingSoftSkillsNormalized = new Set(
+            currentSkills.softSkills.map(normalizeForComparison)
+          )
 
-          for (const hardSkill of validatedSkills.hardSkills) {
-            const isAlreadyPresent =
-              currentSkills.hardSkills.includes(hardSkill)
-            if (!isAlreadyPresent) {
-              newSkills.hardSkills.push(hardSkill)
-            }
-          }
-
-          for (const softSkill of validatedSkills.softSkills) {
-            const isAlreadyPresent =
-              currentSkills.softSkills.includes(softSkill)
-            if (!isAlreadyPresent) {
-              newSkills.softSkills.push(softSkill)
-            }
-          }
+          const newHardSkills = validatedSkills.hardSkills.filter(
+            (skill) =>
+              !existingHardSkillsNormalized.has(normalizeForComparison(skill))
+          )
+          const newSoftSkills = validatedSkills.softSkills.filter(
+            (skill) =>
+              !existingSoftSkillsNormalized.has(normalizeForComparison(skill))
+          )
 
           const updatedSkills = {
-            hardSkills: [...currentSkills.hardSkills, ...newSkills.hardSkills],
-            softSkills: [...currentSkills.softSkills, ...newSkills.softSkills],
+            hardSkills: [...currentSkills.hardSkills, ...newHardSkills],
+            softSkills: [...currentSkills.softSkills, ...newSoftSkills],
           }
 
           localStorage.setItem(
@@ -298,12 +292,28 @@ export const FormsContainer: React.FC = () => {
         hardSkills: string[]
         softSkills: string[]
       }
-      const normalizedSkills = {
-        hardSkills: [...new Set(parsedSkills.hardSkills.map(normalizeSkill))],
-        softSkills: [...new Set(parsedSkills.softSkills.map(normalizeSkill))],
+
+      // Remove duplicates from loaded skills using normalized comparison but preserve original capitalization
+      const deduplicatedSkills = {
+        hardSkills: parsedSkills.hardSkills.filter(
+          (skill, index, array) =>
+            array.findIndex(
+              (s) => normalizeForComparison(s) === normalizeForComparison(skill)
+            ) === index
+        ),
+        softSkills: parsedSkills.softSkills.filter(
+          (skill, index, array) =>
+            array.findIndex(
+              (s) => normalizeForComparison(s) === normalizeForComparison(skill)
+            ) === index
+        ),
       }
-      setSkills(normalizedSkills)
-      localStorage.setItem(StorageKeys.SKILLS, JSON.stringify(normalizedSkills))
+
+      setSkills(deduplicatedSkills)
+      localStorage.setItem(
+        StorageKeys.SKILLS,
+        JSON.stringify(deduplicatedSkills)
+      )
     } else {
       localStorage.setItem(StorageKeys.SKILLS, JSON.stringify(initialSkills))
       setSkills(initialSkills)

@@ -111,6 +111,23 @@
   background-color: rgba($color-primary, 0.02);
 }
 
+.emptyState {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.emptyMessage {
+  font-size: 14px;
+  color: $color-disabled;
+  text-align: center;
+  font-style: italic;
+  line-height: 1.4;
+  margin: 0;
+}
+
 .skillChip {
   display: flex;
   align-items: center;

@@ -32,16 +32,20 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
 
   const handleAddSkill = useCallback(
     (type: 'hard' | 'soft', skill: string) => {
-      const normalizedSkill = normalizeSkill(skill)
-      if (!normalizedSkill) return
+      const trimmedSkill = skill.trim()
+      if (!trimmedSkill) return
 
       const skillKey = type === 'hard' ? 'hardSkills' : 'softSkills'
 
-      if (localData[skillKey].includes(normalizedSkill)) return
+      const isDuplicate = localData[skillKey].some(
+        (existingSkill) =>
+          normalizeSkill(existingSkill) === normalizeSkill(trimmedSkill)
+      )
+      if (isDuplicate) return
 
       const updatedData = {
         ...localData,
-        [skillKey]: [...localData[skillKey], normalizedSkill],
+        [skillKey]: [...localData[skillKey], trimmedSkill],
       }
 
       setLocalData(updatedData)
@@ -55,7 +59,7 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
         softSkillInputRef.current?.focus()
       }
     },
-    [localData, onSave, normalizeSkill]
+    [localData, onSave]
   )
 
   const handleRemoveSkill = useCallback(
@@ -85,21 +89,17 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
     [hardSkillInput, softSkillInput, handleAddSkill]
   )
 
-  const capitalizeSkill = (skill: string): string => {
-    const hasDash = skill.includes('-')
-    return skill
-      .split(/[\s-]+/)
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(hasDash ? '-' : ' ')
-  }
-
   const isHardSkillDuplicate =
     hardSkillInput.trim() !== '' &&
-    localData.hardSkills.includes(normalizeSkill(hardSkillInput))
+    localData.hardSkills.some(
+      (skill) => normalizeSkill(skill) === normalizeSkill(hardSkillInput)
+    )
 
   const isSoftSkillDuplicate =
     softSkillInput.trim() !== '' &&
-    localData.softSkills.includes(normalizeSkill(softSkillInput))
+    localData.softSkills.some(
+      (skill) => normalizeSkill(skill) === normalizeSkill(softSkillInput)
+    )
 
   const getDuplicateSkill = (
     input: string,
@@ -107,7 +107,10 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
   ): string | null => {
     if (!input.trim()) return null
     const normalizedInput = normalizeSkill(input)
-    return skillsList.find((skill) => skill === normalizedInput) || null
+    return (
+      skillsList.find((skill) => normalizeSkill(skill) === normalizedInput) ||
+      null
+    )
   }
 
   const duplicateHardSkill = getDuplicateSkill(
@@ -149,26 +152,33 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
               </button>
             </div>
             <div className={styles.skillsContainer}>
-              {localData.hardSkills.map((skill, index) => (
-                <div
-                  key={index}
-                  className={`${styles.skillChip} ${
-                    duplicateHardSkill === skill ? styles.duplicate : ''
-                  }`}
-                >
-                  <span className={styles.skillText}>
-                    {capitalizeSkill(skill)}
-                  </span>
-                  <button
-                    type='button'
-                    className={styles.removeButton}
-                    onClick={() => handleRemoveSkill('hard', skill)}
-                    title='Remove skill'
-                  >
-                    <FaTimes size={10} />
-                  </button>
+              {localData.hardSkills.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyMessage}>
+                    Technical skills will be auto-populated when you add work
+                    experience or projects, or you can add them manually above.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                localData.hardSkills.map((skill, index) => (
+                  <div
+                    key={index}
+                    className={`${styles.skillChip} ${
+                      duplicateHardSkill === skill ? styles.duplicate : ''
+                    }`}
+                  >
+                    <span className={styles.skillText}>{skill}</span>
+                    <button
+                      type='button'
+                      className={styles.removeButton}
+                      onClick={() => handleRemoveSkill('hard', skill)}
+                      title='Remove skill'
+                    >
+                      <FaTimes size={10} />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -194,26 +204,33 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
               </button>
             </div>
             <div className={styles.skillsContainer}>
-              {localData.softSkills.map((skill, index) => (
-                <div
-                  key={index}
-                  className={`${styles.skillChip} ${
-                    duplicateSoftSkill === skill ? styles.duplicate : ''
-                  }`}
-                >
-                  <span className={styles.skillText}>
-                    {capitalizeSkill(skill)}
-                  </span>
-                  <button
-                    type='button'
-                    className={styles.removeButton}
-                    onClick={() => handleRemoveSkill('soft', skill)}
-                    title='Remove skill'
-                  >
-                    <FaTimes size={10} />
-                  </button>
+              {localData.softSkills.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyMessage}>
+                    Soft skills will be auto-populated when you add work
+                    experience or projects, or you can add them manually above.
+                  </p>
                 </div>
-              ))}
+              ) : (
+                localData.softSkills.map((skill, index) => (
+                  <div
+                    key={index}
+                    className={`${styles.skillChip} ${
+                      duplicateSoftSkill === skill ? styles.duplicate : ''
+                    }`}
+                  >
+                    <span className={styles.skillText}>{skill}</span>
+                    <button
+                      type='button'
+                      className={styles.removeButton}
+                      onClick={() => handleRemoveSkill('soft', skill)}
+                      title='Remove skill'
+                    >
+                      <FaTimes size={10} />
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </div>
