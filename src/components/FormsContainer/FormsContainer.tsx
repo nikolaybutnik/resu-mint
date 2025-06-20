@@ -24,12 +24,6 @@ import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
 import saveAs from 'file-saver'
 import { api, pdfService } from '@/lib/services'
-import {
-  KeywordAlignment,
-  KeywordAnalysis,
-  KeywordUsageStats,
-} from '@/lib/types/keywords'
-import { KeywordUtils } from '@/lib/keywordUtils'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 
 const Tabs = {

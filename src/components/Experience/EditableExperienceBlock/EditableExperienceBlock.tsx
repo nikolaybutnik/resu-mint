@@ -13,7 +13,6 @@ import { BulletPointErrors } from '@/lib/types/errors'
 import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
-import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { KeywordData } from '@/lib/types/keywords'
 
 interface EditableExperienceBlockProps {
@@ -23,7 +22,6 @@ interface EditableExperienceBlockProps {
   editingBulletText: string
   bulletErrors: BulletPointErrors
   settings: AppSettings
-  jobDescriptionAnalysis: JobDescriptionAnalysis | null
   isRegenerating: boolean
   regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
@@ -76,7 +74,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
   isNew,
   settings,
-  jobDescriptionAnalysis,
   isRegenerating,
   editingBulletIndex,
   editingBulletText,
@@ -299,15 +296,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     },
     [formData, onRegenerateBullet]
   )
-
-  // TODO: develop a strategy to differentiate between high and low priority keywords
-  const keywords = useMemo(() => {
-    return [
-      ...(jobDescriptionAnalysis?.skillsRequired?.hard || []),
-      ...(jobDescriptionAnalysis?.skillsRequired?.soft || []),
-      ...(jobDescriptionAnalysis?.contextualTechnologies || []),
-    ]
-  }, [jobDescriptionAnalysis])
 
   return (
     <section className={styles.editableExperienceBlock}>

@@ -599,7 +599,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       isNew={isNew}
                       editingBulletIndex={editingBulletIndex}
                       settings={settings}
-                      jobDescriptionAnalysis={jobDescriptionAnalysis}
                       isRegenerating={
                         regeneratingBullet?.section === experience.id
                       }
@@ -658,7 +657,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                         keywordData={keywordData}
                         editingBulletIndex={editingBulletIndex}
                         settings={settings}
-                        jobDescriptionAnalysis={jobDescriptionAnalysis}
                         isRegenerating={
                           regeneratingBullet?.section === experience.id
                         }
@@ -711,7 +709,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       keywordData={null}
                       editingBulletIndex={null}
                       settings={settings}
-                      jobDescriptionAnalysis={null}
                       isRegenerating={false}
                       regeneratingBullet={null}
                       onBlockSelect={() => {}}

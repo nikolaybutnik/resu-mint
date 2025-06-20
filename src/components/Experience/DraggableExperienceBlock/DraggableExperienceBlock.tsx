@@ -17,7 +17,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { AppSettings } from '@/lib/types/settings'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
-import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { KeywordData } from '@/lib/types/keywords'
 
 interface DraggableExperienceBlockProps {
@@ -26,7 +25,6 @@ interface DraggableExperienceBlockProps {
   editingBulletText: string
   bulletErrors: BulletPointErrors
   settings: AppSettings
-  jobDescriptionAnalysis: JobDescriptionAnalysis | null
   isRegenerating: boolean
   isAnyBulletBeingEdited: boolean
   isAnyBulletRegenerating: boolean
@@ -61,7 +59,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   editingBulletText,
   bulletErrors,
   settings,
-  jobDescriptionAnalysis,
   isRegenerating,
   regeneratingBullet,
   isAnyBulletBeingEdited,
