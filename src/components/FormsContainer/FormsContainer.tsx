@@ -136,7 +136,7 @@ export const FormsContainer: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(initialSettings)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
-  const [_skills, setSkills] = useState<{
+  const [, setSkills] = useState<{
     hardSkills: string[]
     softSkills: string[]
   }>(initialSkills)
