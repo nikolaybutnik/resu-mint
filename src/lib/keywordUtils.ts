@@ -27,17 +27,19 @@ export class KeywordUtils {
     const allBullets: { text: string; sectionId: string }[] = []
 
     workExperience.forEach((exp) => {
-      exp.isIncluded &&
+      if (exp.isIncluded) {
         exp.bulletPoints.forEach((bullet) => {
           allBullets.push({ text: bullet.text, sectionId: exp.id })
         })
+      }
     })
 
     projects.forEach((project) => {
-      project.isIncluded &&
+      if (project.isIncluded) {
         project.bulletPoints.forEach((bullet) => {
           allBullets.push({ text: bullet.text, sectionId: project.id })
         })
+      }
     })
 
     const analyzeCategory = (
