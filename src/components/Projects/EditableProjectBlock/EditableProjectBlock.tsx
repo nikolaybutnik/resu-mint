@@ -14,6 +14,7 @@ import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { KeywordData } from '@/lib/types/keywords'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
@@ -25,6 +26,7 @@ interface EditableProjectBlockProps {
   jobDescriptionAnalysis: JobDescriptionAnalysis | null
   isRegenerating: boolean
   regeneratingBullet: { section: string; index: number } | null
+  keywordData: KeywordData | null
   onDelete: (id: string) => void
   onClose: () => void
   onSave: (data: ProjectBlockData) => void
@@ -79,6 +81,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   editingBulletText,
   bulletErrors,
   regeneratingBullet,
+  keywordData,
   onDelete,
   onClose,
   onSave,
@@ -563,7 +566,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                 sectionId={formData.id}
                 index={index}
                 text={bullet.text}
-                keywords={keywords}
+                keywordData={keywordData}
                 editingText={isEditingThisBullet ? editingBulletText : ''}
                 isRegenerating={
                   isRegenerating &&

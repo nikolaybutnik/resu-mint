@@ -34,9 +34,11 @@ import { FaPlus } from 'react-icons/fa'
 import { bulletService } from '@/lib/services/bulletService'
 import isEqual from 'lodash/isEqual'
 import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
+import { KeywordData } from '@/lib/types/keywords'
 
 interface WorkExperienceProps {
   data: ExperienceBlockData[]
+  keywordData: KeywordData
   jobDescriptionAnalysis: JobDescriptionAnalysis
   settings: AppSettings
   loading: boolean
@@ -45,6 +47,7 @@ interface WorkExperienceProps {
 
 const WorkExperience: React.FC<WorkExperienceProps> = ({
   data,
+  keywordData,
   jobDescriptionAnalysis,
   settings,
   loading,
@@ -592,6 +595,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                     <EditableExperienceBlock
                       key={experience.id}
                       data={experience}
+                      keywordData={keywordData}
                       isNew={isNew}
                       editingBulletIndex={editingBulletIndex}
                       settings={settings}
@@ -651,6 +655,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                       <DraggableExperienceBlock
                         key={experience.id}
                         data={experience}
+                        keywordData={keywordData}
                         editingBulletIndex={editingBulletIndex}
                         settings={settings}
                         jobDescriptionAnalysis={jobDescriptionAnalysis}
@@ -703,6 +708,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                   {activeItem ? (
                     <DraggableExperienceBlock
                       data={activeItem}
+                      keywordData={null}
                       editingBulletIndex={null}
                       settings={settings}
                       jobDescriptionAnalysis={null}

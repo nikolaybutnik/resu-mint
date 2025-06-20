@@ -30,6 +30,7 @@ import {
   KeywordUsageStats,
 } from '@/lib/types/keywords'
 import { KeywordUtils } from '@/lib/keywordUtils'
+import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -133,27 +134,19 @@ export const FormsContainer: React.FC = () => {
     }
   }, [])
 
-  // TODO: this is a temporary test to see if the keyword alignment is working.
-  // Create a custom hook?
+  const keywordData = useKeywordAnalysis(
+    workExperience,
+    projects,
+    jobDescriptionAnalysis
+  )
+
+  // Temporary debugging logs
   useEffect(() => {
-    const keywordAnalysis: KeywordAnalysis = {
-      hardSkills: jobDescriptionAnalysis.skillsRequired.hard,
-      softSkills: jobDescriptionAnalysis.skillsRequired.soft,
-      contextualTechnologies: jobDescriptionAnalysis.contextualTechnologies,
+    if (keywordData.alignment.overallAlignment > 0) {
+      console.log('Keyword Alignment:', keywordData.alignment)
+      console.log('Priority Keywords for AI:', keywordData.promptKeywords)
     }
-
-    const usageStats: KeywordUsageStats[] = KeywordUtils.analyzeKeywordUsage(
-      workExperience,
-      projects,
-      keywordAnalysis
-    )
-
-    const alignment: KeywordAlignment = KeywordUtils.calculateKeywordAlignment(
-      usageStats,
-      keywordAnalysis
-    )
-    console.log('Alignment:', alignment)
-  }, [workExperience, projects, jobDescriptionAnalysis])
+  }, [keywordData.alignment, keywordData.promptKeywords])
 
   useEffect(() => {
     setLoading(true)
@@ -339,6 +332,7 @@ export const FormsContainer: React.FC = () => {
           {activeTab === Tabs.EXPERIENCE && (
             <WorkExperience
               data={workExperience}
+              keywordData={keywordData}
               loading={loading}
               jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
               settings={memoizedSettings}
@@ -348,6 +342,7 @@ export const FormsContainer: React.FC = () => {
           {activeTab === Tabs.PROJECTS && (
             <Projects
               data={projects}
+              keywordData={keywordData}
               loading={loading}
               jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
               settings={memoizedSettings}

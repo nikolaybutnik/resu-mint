@@ -18,6 +18,7 @@ import { BulletPointErrors } from '@/lib/types/errors'
 import { AppSettings } from '@/lib/types/settings'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { KeywordData } from '@/lib/types/keywords'
 
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
@@ -33,6 +34,7 @@ interface DraggableExperienceBlockProps {
   isOverlay?: boolean
   isDropping?: boolean
   regeneratingBullet?: { section: string; index: number } | null
+  keywordData: KeywordData | null
   onBlockSelect: (id: string) => void
   onRegenerateBullet: (
     sectionId: string,
@@ -54,6 +56,7 @@ interface DraggableExperienceBlockProps {
 
 const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   data,
+  keywordData,
   editingBulletIndex,
   editingBulletText,
   bulletErrors,
@@ -153,15 +156,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
     },
     [data, onRegenerateAllBullets]
   )
-
-  // TODO: implement a strategy to differentiate between high and low priority keywords
-  const keywords = useMemo(() => {
-    return [
-      ...(jobDescriptionAnalysis?.skillsRequired?.hard || []),
-      ...(jobDescriptionAnalysis?.skillsRequired?.soft || []),
-      ...(jobDescriptionAnalysis?.contextualTechnologies || []),
-    ]
-  }, [jobDescriptionAnalysis])
 
   return (
     <div
@@ -309,7 +303,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
               sectionId={data.id}
               index={index}
               text={bullet.text}
-              keywords={keywords}
+              keywordData={keywordData}
               editingText={isEditingThisBullet ? editingBulletText : ''}
               isRegenerating={isRegeneratingThisBullet}
               isEditing={isEditingThisBullet}

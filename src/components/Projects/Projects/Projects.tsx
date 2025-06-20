@@ -34,9 +34,11 @@ import { BulletPointErrors } from '@/lib/types/errors'
 import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import { FaPlus } from 'react-icons/fa'
+import { KeywordData } from '@/lib/types/keywords'
 
 interface ProjectsProps {
   data: ProjectBlockData[]
+  keywordData: KeywordData
   jobDescriptionAnalysis: JobDescriptionAnalysis
   settings: AppSettings
   loading: boolean
@@ -45,6 +47,7 @@ interface ProjectsProps {
 
 const Projects = ({
   data,
+  keywordData,
   jobDescriptionAnalysis,
   settings,
   loading,
@@ -585,6 +588,7 @@ const Projects = ({
                     <EditableProjectBlock
                       key={project.id}
                       data={project}
+                      keywordData={keywordData}
                       isNew={isNew}
                       editingBulletIndex={editingBulletIndex}
                       settings={settings}
@@ -644,6 +648,7 @@ const Projects = ({
                       <DraggableProjectBlock
                         key={project.id}
                         data={project}
+                        keywordData={keywordData}
                         editingBulletIndex={editingBulletIndex}
                         settings={settings}
                         jobDescriptionAnalysis={jobDescriptionAnalysis}
@@ -694,6 +699,7 @@ const Projects = ({
                   {activeItem ? (
                     <DraggableProjectBlock
                       data={activeItem}
+                      keywordData={null}
                       editingBulletIndex={null}
                       settings={settings}
                       jobDescriptionAnalysis={null}

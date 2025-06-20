@@ -28,3 +28,14 @@ export interface KeywordAlignment {
   usedKeywords: string[]
   missingKeywords: string[]
 }
+
+export interface KeywordData {
+  keywordAnalysis: KeywordAnalysis
+  usageStats: KeywordUsageStats[]
+  priority: KeywordPriority
+  promptKeywords: {
+    priorityKeywords: string[]
+    excludeKeywords: string[]
+  }
+  alignment: KeywordAlignment
+}

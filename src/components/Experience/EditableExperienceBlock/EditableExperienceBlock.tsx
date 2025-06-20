@@ -14,6 +14,7 @@ import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { KeywordData } from '@/lib/types/keywords'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -25,6 +26,7 @@ interface EditableExperienceBlockProps {
   jobDescriptionAnalysis: JobDescriptionAnalysis | null
   isRegenerating: boolean
   regeneratingBullet: { section: string; index: number } | null
+  keywordData: KeywordData | null
   onDelete: (id: string) => void
   onClose: () => void
   onSave: (data: ExperienceBlockData) => void
@@ -80,6 +82,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   editingBulletText,
   bulletErrors,
   regeneratingBullet,
+  keywordData,
   onDelete,
   onClose,
   onSave,
@@ -524,7 +527,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                 sectionId={formData.id}
                 index={index}
                 text={bullet.text}
-                keywords={keywords}
+                keywordData={keywordData}
                 editingText={isEditingThisBullet ? editingBulletText : ''}
                 isRegenerating={
                   isRegenerating &&
