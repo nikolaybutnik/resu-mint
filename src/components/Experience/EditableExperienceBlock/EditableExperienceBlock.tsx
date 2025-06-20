@@ -2,7 +2,7 @@ import styles from './EditableExperienceBlock.module.scss'
 import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useDebounce } from '@/lib/clientUtils'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
-import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
+import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { experienceBlockSchema } from '@/lib/validationSchemas'
 import {
   Month,
@@ -370,7 +370,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               }
             >
               <option value=''>Select Month</option>
-              {months.map((month) => (
+              {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}
                 </option>
@@ -421,7 +421,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               }
             >
               <option value=''>Select Month</option>
-              {months.map((month) => (
+              {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}
                 </option>

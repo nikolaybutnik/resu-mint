@@ -1,14 +1,11 @@
 import styles from './Settings.module.scss'
 import { useState, useEffect } from 'react'
 import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
-import { AppSettings, LanguageModel } from '@/lib/types/settings'
-
-enum SettingsFields {
-  BULLETS_PER_EXPERIENCE_BLOCK = 'bulletsPerExperienceBlock',
-  BULLETS_PER_PROJECT_BLOCK = 'bulletsPerProjectBlock',
-  MAX_CHARS_PER_BULLET = 'maxCharsPerBullet',
-  LANGUAGE_MODEL = 'languageModel',
-}
+import {
+  AppSettings,
+  LanguageModel,
+  SettingsFields,
+} from '@/lib/types/settings'
 
 interface SettingsProps {
   data: AppSettings
@@ -25,7 +22,7 @@ const Settings: React.FC<SettingsProps> = ({ data, loading, onSave }) => {
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
-    field: keyof AppSettings
+    field: (typeof SettingsFields)[keyof typeof SettingsFields]
   ) => {
     const value =
       field === SettingsFields.LANGUAGE_MODEL

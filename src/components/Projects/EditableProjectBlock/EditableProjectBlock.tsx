@@ -3,7 +3,7 @@ import { useDebounce } from '@/lib/clientUtils'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { projectBlockSchema } from '@/lib/validationSchemas'
-import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
+import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import {
   BulletPoint as BulletPointType,
@@ -408,7 +408,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               }
             >
               <option value=''>Select Month</option>
-              {months.map((month) => (
+              {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}
                 </option>
@@ -459,7 +459,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               }
             >
               <option value=''>Select Month</option>
-              {months.map((month) => (
+              {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}
                 </option>

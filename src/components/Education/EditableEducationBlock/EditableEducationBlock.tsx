@@ -1,7 +1,7 @@
 import React, { memo, useMemo, useCallback, useState, useEffect } from 'react'
 import { useDebounce } from '@/lib/clientUtils'
 import { FaXmark } from 'react-icons/fa6'
-import { months, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
+import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { educationBlockSchema } from '@/lib/validationSchemas'
 import { Month, EducationBlockData, DegreeStatus } from '@/lib/types/education'
 import { isEqual } from 'lodash'
@@ -325,7 +325,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
                 }
               >
                 <option value=''>Select Month</option>
-                {months.map((month) => (
+                {MONTHS.map((month) => (
                   <option key={month.label} value={month.label}>
                     {month.label}
                   </option>
@@ -376,7 +376,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
                 }
               >
                 <option value=''>Select Month</option>
-                {months.map((month) => (
+                {MONTHS.map((month) => (
                   <option key={month.label} value={month.label}>
                     {month.label}
                   </option>

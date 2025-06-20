@@ -14,10 +14,10 @@ export type ErrorType =
   | 'job_analysis'
   | 'bullet_generation'
 
-export enum ResponseStatus {
-  SUCCESS = 'success',
-  ERROR = 'error',
-}
+export const ResponseStatus = {
+  SUCCESS: 'success',
+  ERROR: 'error',
+} as const
 
 export type ApiError = {
   field: string
@@ -27,12 +27,12 @@ export type ApiError = {
 
 export type ApiErrorResponse = {
   errors: ApiError[]
-  status: ResponseStatus.ERROR
+  status: (typeof ResponseStatus)[keyof typeof ResponseStatus]
 }
 
 export type ApiSuccessResponse<T> = {
   data: T
-  status: ResponseStatus.SUCCESS
+  status: (typeof ResponseStatus)[keyof typeof ResponseStatus]
 }
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse

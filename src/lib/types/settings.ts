@@ -13,3 +13,10 @@ export interface AppSettings {
   maxCharsPerBullet: number
   languageModel: LanguageModel
 }
+
+export const SettingsFields = {
+  BULLETS_PER_EXPERIENCE_BLOCK: 'bulletsPerExperienceBlock',
+  BULLETS_PER_PROJECT_BLOCK: 'bulletsPerProjectBlock',
+  MAX_CHARS_PER_BULLET: 'maxCharsPerBullet',
+  LANGUAGE_MODEL: 'languageModel',
+}

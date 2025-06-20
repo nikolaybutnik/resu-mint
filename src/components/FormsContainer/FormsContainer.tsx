@@ -11,7 +11,7 @@ import Education from '../Education/Education/Education'
 import Settings from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
-import { ROUTES } from '@/lib/constants'
+import { MOBILE_VIEW, ROUTES } from '@/lib/constants'
 import { jobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
 import {
@@ -93,7 +93,7 @@ export const FormsContainer: React.FC = () => {
   const [sessionId, setSessionId] = useState<string>('')
 
   // UI States
-  const [view, setView] = useState<'input' | 'preview'>('input')
+  const [view, setView] = useState<string>(MOBILE_VIEW.INPUT)
   const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
   const [mintingResume, setMintingResume] = useState(false)
   const [loading, setLoading] = useState(true)

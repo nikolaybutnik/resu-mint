@@ -1,4 +1,4 @@
-import { months } from './constants'
+import { MONTHS } from './constants'
 import z from 'zod'
 import { LanguageModel } from './types/settings'
 
@@ -216,12 +216,12 @@ export const experienceBlockSchema = z
 
       const startDate = new Date(
         parseInt(data.startDate.year),
-        months.find((m) => m.label === data.startDate.month)?.num || 0,
+        MONTHS.find((m) => m.label === data.startDate.month)?.num || 0,
         1
       )
       const endDate = new Date(
         parseInt(data.endDate.year),
-        months.find((m) => m.label === data.endDate.month)?.num || 0,
+        MONTHS.find((m) => m.label === data.endDate.month)?.num || 0,
         1
       )
       return endDate >= startDate
@@ -276,12 +276,12 @@ export const projectBlockSchema = z
       // Both months are defined, compare full dates
       const startDate = new Date(
         parseInt(data.startDate.year),
-        months.find((m) => m.label === data.startDate.month)?.num || 0,
+        MONTHS.find((m) => m.label === data.startDate.month)?.num || 0,
         1
       )
       const endDate = new Date(
         parseInt(data.endDate.year),
-        months.find((m) => m.label === data.endDate.month)?.num || 0,
+        MONTHS.find((m) => m.label === data.endDate.month)?.num || 0,
         1
       )
       return endDate >= startDate
@@ -584,12 +584,12 @@ export const educationBlockSchema = z
 
       const startDateObj = new Date(
         parseInt(startDate.year),
-        months.find((m) => m.label === startDate.month)?.num || 0,
+        MONTHS.find((m) => m.label === startDate.month)?.num || 0,
         1
       )
       const endDateObj = new Date(
         parseInt(endDate.year),
-        months.find((m) => m.label === endDate.month)?.num || 0,
+        MONTHS.find((m) => m.label === endDate.month)?.num || 0,
         1
       )
       return endDateObj >= startDateObj

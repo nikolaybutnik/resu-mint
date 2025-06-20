@@ -1,5 +1,6 @@
 import { Month } from './types/projects'
 
+// API
 export const API_BASE_URL = '/api'
 export const ROUTES = {
   ANALYZE_JOB_DESCRIPTION: `${API_BASE_URL}/analyze-job-description`,
@@ -7,7 +8,8 @@ export const ROUTES = {
   CREATE_PDF: `${API_BASE_URL}/create-pdf`,
 }
 
-export const months: { label: Month; num: number }[] = [
+// General
+export const MONTHS: { label: Month; num: number }[] = [
   { label: 'Jan', num: 0 },
   { label: 'Feb', num: 1 },
   { label: 'Mar', num: 2 },
@@ -21,6 +23,11 @@ export const months: { label: Month; num: number }[] = [
   { label: 'Nov', num: 10 },
   { label: 'Dec', num: 11 },
 ]
+
+export const MOBILE_VIEW = {
+  INPUT: 'input',
+  PREVIEW: 'preview',
+}
 
 // Debounce delays
 export const VALIDATION_DELAY = 250
