@@ -674,3 +674,13 @@ export const createPdfRequestSchema = z.object({
   projectSection: z.array(projectBlockSchema),
   educationSection: z.array(educationBlockSchema),
 })
+
+export const parseSectionSkillsRequestSchema = z.object({
+  sectionDescriptions: z.string().min(1, 'Section descriptions are required'),
+  settings: settingsSchema,
+})
+
+export const parseSectionSkillsResponseSchema = z.object({
+  hardSkills: z.array(z.string()),
+  softSkills: z.array(z.string()),
+})

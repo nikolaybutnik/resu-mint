@@ -179,3 +179,29 @@ export const generateJobDescriptionAnalysisTool = () => ({
     },
   },
 })
+
+export const parseSectionSkillsTool = () => ({
+  type: 'function' as const,
+  function: {
+    name: 'parse_section_skills',
+    description:
+      'Parse the skills from the section descriptions and return them categorized as hard skills and soft skills.',
+    parameters: {
+      type: 'object',
+      properties: {
+        hardSkills: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'List of technical/hard skills found in the descriptions',
+        },
+        softSkills: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'List of soft skills found in the descriptions',
+        },
+      },
+      required: ['hardSkills', 'softSkills'],
+    },
+  },
+})

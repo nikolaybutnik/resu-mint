@@ -1,19 +1,5 @@
 import { ZodError } from 'zod'
 
-export type ErrorType =
-  | 'validation'
-  | 'missing_data'
-  | 'server'
-  | 'ai_generation'
-  | 'format'
-  | 'latex_generation'
-  | 'pdf_generation'
-  | 'missing_session_id'
-  | 'read_pdf'
-  | 'resume_generation'
-  | 'job_analysis'
-  | 'bullet_generation'
-
 export const ResponseStatus = {
   SUCCESS: 'success',
   ERROR: 'error',
@@ -22,7 +8,6 @@ export const ResponseStatus = {
 export type ApiError = {
   field: string
   message: string
-  type?: ErrorType
 }
 
 export type ApiErrorResponse = {
@@ -37,12 +22,8 @@ export type ApiSuccessResponse<T> = {
 
 export type ApiResponse<T> = ApiSuccessResponse<T> | ApiErrorResponse
 
-export function createError(
-  field: string,
-  message: string,
-  type?: ErrorType
-): ApiError {
-  return { field, message, type }
+export function createError(field: string, message: string): ApiError {
+  return { field, message }
 }
 
 export function createErrorResponse(errors: ApiError[]): ApiErrorResponse {

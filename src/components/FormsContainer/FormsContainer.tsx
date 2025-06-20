@@ -1,7 +1,7 @@
 'use client'
 
 import styles from './FormsContainer.module.scss'
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import ResumePreview from '@/components/ResumePreview/ResumePreview'
@@ -12,12 +12,17 @@ import Settings from '../Settings/Settings'
 import { JobDescription } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
 import { MOBILE_VIEW, ROUTES } from '@/lib/constants'
-import { jobDescriptionAnalysisSchema } from '@/lib/validationSchemas'
+import {
+  jobDescriptionAnalysisSchema,
+  parseSectionSkillsResponseSchema,
+} from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
 import {
   AnalyzeJobDescriptionRequest,
   CreatePdfRequest,
   JobDescriptionAnalysis,
+  ParseSectionSkillsRequest,
+  ParseSectionSkillsResponse,
 } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { AppSettings, LanguageModel } from '@/lib/types/settings'
@@ -25,6 +30,7 @@ import { EducationBlockData } from '@/lib/types/education'
 import saveAs from 'file-saver'
 import { api, pdfService } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
+import { sanitizeInput } from '@/lib/utils'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -45,6 +51,7 @@ const StorageKeys = {
   PROJECTS: 'resumint_projects',
   EDUCATION: 'resumint_education',
   SETTINGS: 'resumint_settings',
+  SKILLS: 'resumint_skills',
 } as const
 
 const tabs = [
@@ -53,8 +60,8 @@ const tabs = [
   { id: Tabs.EXPERIENCE, label: 'Experience' },
   { id: Tabs.PROJECTS, label: 'Projects' },
   { id: Tabs.EDUCATION, label: 'Education' },
+  { id: Tabs.SKILLS, label: 'Skills' },
   { id: Tabs.SETTINGS, label: 'Settings' },
-  // { id: Tabs.SKILLS, label: 'Skills' },
 ]
 
 const initialPersonalDetails: PersonalDetailsType = {
@@ -87,8 +94,22 @@ const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
 }
 const initialProjects: ProjectBlockData[] = []
 const initialEducation: EducationBlockData[] = []
+const initialSkills: {
+  hardSkills: string[]
+  softSkills: string[]
+} = {
+  hardSkills: [],
+  softSkills: [],
+}
+
+const normalizeSkill = (skill: string): string => {
+  return skill.trim().toLowerCase().replace(/\s+/g, ' ')
+}
 
 export const FormsContainer: React.FC = () => {
+  const previousDescriptionsRef = useRef<string>('')
+  const isInitialLoadRef = useRef(true)
+
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
 
@@ -98,6 +119,7 @@ export const FormsContainer: React.FC = () => {
   const [mintingResume, setMintingResume] = useState(false)
   const [loading, setLoading] = useState(true)
   const [analyzingJob, setAnalyzingJob] = useState(false)
+  const [parsingSkills, setParsingSkills] = useState(false)
 
   // Form States
   const [jobDescription, setJobDescription] = useState<string>(
@@ -115,6 +137,10 @@ export const FormsContainer: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(initialSettings)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
+  const [skills, setSkills] = useState<{
+    hardSkills: string[]
+    softSkills: string[]
+  }>(initialSkills)
 
   // Placeholder until user authentication is implemented
   useEffect(() => {
@@ -134,13 +160,109 @@ export const FormsContainer: React.FC = () => {
     jobDescriptionAnalysis
   )
 
-  // Temporary debugging logs
   useEffect(() => {
-    if (keywordData.alignment.overallAlignment > 0) {
-      console.log('Keyword Alignment:', keywordData.alignment)
-      console.log('Priority Keywords for AI:', keywordData.promptKeywords)
+    const parseSkills = async () => {
+      // Skip if still loading initial data or already parsing
+      if (loading || parsingSkills) return
+
+      setParsingSkills(true)
+
+      const experienceSectionDescriptions: string[] = workExperience
+        .filter((experience) => experience.isIncluded)
+        .map((experience) => experience.description.trim())
+      const projectSectionDescriptions: string[] = projects
+        .filter((project) => project.isIncluded)
+        .map((project) => project.description.trim())
+
+      const combinedDescriptions = [
+        ...experienceSectionDescriptions,
+        ...projectSectionDescriptions,
+      ]
+        .filter((desc) => desc.length > 0)
+        .join('\n')
+        .trim()
+
+      // Skip on first run after loading completes - just set the reference
+      if (isInitialLoadRef.current) {
+        isInitialLoadRef.current = false
+        previousDescriptionsRef.current = combinedDescriptions
+        setParsingSkills(false)
+        return
+      }
+
+      if (combinedDescriptions === previousDescriptionsRef.current) {
+        setParsingSkills(false)
+        return
+      }
+
+      previousDescriptionsRef.current = combinedDescriptions
+
+      try {
+        const payload: ParseSectionSkillsRequest = {
+          sectionDescriptions: combinedDescriptions,
+          settings,
+        }
+
+        const response = await api.post<
+          ParseSectionSkillsRequest,
+          ParseSectionSkillsResponse
+        >(ROUTES.PARSE_SECTION_SKILLS, payload)
+
+        const validationResult =
+          parseSectionSkillsResponseSchema.safeParse(response)
+        if (!validationResult.success) {
+          console.error('Validation errors:', validationResult.error.flatten())
+          setParsingSkills(false)
+          return
+        }
+
+        const validatedSkills = validationResult.data
+
+        setSkills((currentSkills) => {
+          const newSkills: {
+            hardSkills: string[]
+            softSkills: string[]
+          } = {
+            hardSkills: [],
+            softSkills: [],
+          }
+
+          for (const hardSkill of validatedSkills.hardSkills) {
+            const isAlreadyPresent =
+              currentSkills.hardSkills.includes(hardSkill)
+            if (!isAlreadyPresent) {
+              newSkills.hardSkills.push(hardSkill)
+            }
+          }
+
+          for (const softSkill of validatedSkills.softSkills) {
+            const isAlreadyPresent =
+              currentSkills.softSkills.includes(softSkill)
+            if (!isAlreadyPresent) {
+              newSkills.softSkills.push(softSkill)
+            }
+          }
+
+          const updatedSkills = {
+            hardSkills: [...currentSkills.hardSkills, ...newSkills.hardSkills],
+            softSkills: [...currentSkills.softSkills, ...newSkills.softSkills],
+          }
+
+          localStorage.setItem(
+            StorageKeys.SKILLS,
+            JSON.stringify(updatedSkills)
+          )
+          return updatedSkills
+        })
+      } catch (error) {
+        console.error('Error parsing skills:', error)
+      } finally {
+        setParsingSkills(false)
+      }
     }
-  }, [keywordData.alignment, keywordData.promptKeywords])
+
+    parseSkills()
+  }, [workExperience, projects, loading])
 
   useEffect(() => {
     setLoading(true)
@@ -152,6 +274,7 @@ export const FormsContainer: React.FC = () => {
       projects: localStorage.getItem(StorageKeys.PROJECTS),
       education: localStorage.getItem(StorageKeys.EDUCATION),
       settings: localStorage.getItem(StorageKeys.SETTINGS),
+      skills: localStorage.getItem(StorageKeys.SKILLS),
     }
     if (stored.jobDescription) setJobDescription(stored.jobDescription)
     if (stored.analysis) setJobDescriptionAnalysis(JSON.parse(stored.analysis))
@@ -169,6 +292,21 @@ export const FormsContainer: React.FC = () => {
         JSON.stringify(initialSettings)
       )
       setSettings(initialSettings)
+    }
+    if (stored.skills) {
+      const parsedSkills = JSON.parse(stored.skills) as {
+        hardSkills: string[]
+        softSkills: string[]
+      }
+      const normalizedSkills = {
+        hardSkills: [...new Set(parsedSkills.hardSkills.map(normalizeSkill))],
+        softSkills: [...new Set(parsedSkills.softSkills.map(normalizeSkill))],
+      }
+      setSkills(normalizedSkills)
+      localStorage.setItem(StorageKeys.SKILLS, JSON.stringify(normalizedSkills))
+    } else {
+      localStorage.setItem(StorageKeys.SKILLS, JSON.stringify(initialSkills))
+      setSkills(initialSkills)
     }
     setLoading(false)
   }, [])

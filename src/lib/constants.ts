@@ -6,6 +6,7 @@ export const ROUTES = {
   ANALYZE_JOB_DESCRIPTION: `${API_BASE_URL}/analyze-job-description`,
   GENERATE_BULLETS: `${API_BASE_URL}/generate-bullets`,
   CREATE_PDF: `${API_BASE_URL}/create-pdf`,
+  PARSE_SECTION_SKILLS: `${API_BASE_URL}/parse-section-skills`,
 }
 
 // General

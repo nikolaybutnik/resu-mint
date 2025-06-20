@@ -48,8 +48,7 @@ export async function POST(request: NextRequest) {
         createErrorResponse([
           createError(
             'openai',
-            'Failed to analyze job description: No tool call',
-            'ai_generation'
+            'Failed to analyze job description: No tool call'
           ),
         ]),
         { status: 500 }
@@ -65,11 +64,7 @@ export async function POST(request: NextRequest) {
     console.error('Server error:', error)
     return NextResponse.json(
       createErrorResponse([
-        createError(
-          'server',
-          'Failed to analyze job description',
-          'job_analysis'
-        ),
+        createError('server', 'Failed to analyze job description'),
       ]),
       { status: 500 }
     )

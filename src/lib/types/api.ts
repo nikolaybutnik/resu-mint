@@ -69,3 +69,13 @@ export interface CreatePdfRequest {
   projectSection: ProjectBlockData[]
   educationSection: EducationBlockData[]
 }
+
+export interface ParseSectionSkillsRequest {
+  sectionDescriptions: string
+  settings: AppSettings
+}
+
+export interface ParseSectionSkillsResponse {
+  hardSkills: string[]
+  softSkills: string[]
+}
