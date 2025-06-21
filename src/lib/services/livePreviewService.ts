@@ -22,7 +22,6 @@ interface QueuedRequest {
 }
 
 // SCALABILITY CONCERNS:
-// - In-memory cache is lost on page reload
 // - Tectonic can only handle one PDF at a time per server instance (no multi-threading)
 // - CPU intensive, each compilation take 2-5 seconds of full CPU usage
 // - Each compilation uses 100-200MB of RAM
@@ -38,14 +37,24 @@ export class LivePreviewService {
     resolve: (blob: Blob) => void
     reject: (error: Error) => void
   } | null = null
-  private cache = new Map<string, CacheEntry>()
+  private memCache = new Map<string, CacheEntry>()
   private readonly CACHE_DURATION = LIVE_PREVIEW.CACHE_DURATION
   private readonly MAX_CACHE_SIZE = LIVE_PREVIEW.MAX_CACHE_SIZE
+  private readonly MAX_BLOB_SIZE_FOR_STORAGE = 150 * 1024 // 150KB threshold
+  private readonly MAX_LOCALSTORAGE_ITEMS = 15 // Keep 15 PDF blobs in localStorage
 
   // Queue management
   private requestQueue: QueuedRequest[] = []
   private currentRequest: QueuedRequest | null = null
   private isProcessing = false
+
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', () => {
+        this.cancelPending()
+      })
+    }
+  }
 
   /**
    * Generate a deterministic hash from the resume data
@@ -95,26 +104,134 @@ export class LivePreviewService {
   }
 
   /**
+   * Check localStorage for cached blob
+   */
+  private async getFromLocalStorage(hash: string): Promise<Blob | null> {
+    if (typeof window === 'undefined') return null
+
+    try {
+      const stored = localStorage.getItem(`pdf-${hash}`)
+      if (!stored) return null
+
+      const { base64Data, timestamp, mimeType } = JSON.parse(stored)
+
+      // Check if expired
+      if (Date.now() - timestamp > this.CACHE_DURATION) {
+        localStorage.removeItem(`pdf-${hash}`)
+        return null
+      }
+
+      // Convert base64 back to blob
+      const byteCharacters = atob(base64Data)
+      const byteNumbers = new Array(byteCharacters.length)
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i)
+      }
+      const byteArray = new Uint8Array(byteNumbers)
+      return new Blob([byteArray], { type: mimeType })
+    } catch (error) {
+      console.warn('Failed to retrieve from localStorage:', error)
+      return null
+    }
+  }
+
+  /**
+   * Save blob to localStorage if small enough
+   */
+  private async saveToLocalStorage(hash: string, blob: Blob): Promise<void> {
+    if (typeof window === 'undefined') return
+
+    if (blob.size > this.MAX_BLOB_SIZE_FOR_STORAGE) {
+      console.info(
+        `PDF too large (${blob.size} bytes) for localStorage - using memory cache only`
+      )
+      return
+    }
+
+    try {
+      // Convert blob to base64
+      const arrayBuffer = await blob.arrayBuffer()
+      const base64Data = btoa(
+        String.fromCharCode(...new Uint8Array(arrayBuffer))
+      )
+
+      const storageData = {
+        base64Data,
+        timestamp: Date.now(),
+        mimeType: blob.type,
+        size: blob.size,
+      }
+
+      // Clean old entries before adding new one
+      this.cleanLocalStorageCache()
+
+      localStorage.setItem(`pdf-${hash}`, JSON.stringify(storageData))
+      console.info(`Saved PDF (${blob.size} bytes) to localStorage`)
+    } catch (error) {
+      console.warn('Failed to save to localStorage:', error)
+    }
+  }
+
+  /**
+   * Clean old localStorage entries
+   */
+  private cleanLocalStorageCache(): void {
+    if (typeof window === 'undefined') return
+
+    try {
+      const pdfKeys = Object.keys(localStorage).filter((key) =>
+        key.startsWith('pdf-')
+      )
+
+      if (pdfKeys.length >= this.MAX_LOCALSTORAGE_ITEMS) {
+        // Get timestamps and sort by age
+        const entries = pdfKeys
+          .map((key) => {
+            try {
+              const data = JSON.parse(localStorage.getItem(key) || '{}')
+              return { key, timestamp: data.timestamp || 0 }
+            } catch {
+              return { key, timestamp: 0 }
+            }
+          })
+          .sort((a, b) => a.timestamp - b.timestamp)
+
+        // Remove oldest entries
+        const toRemove = entries.slice(
+          0,
+          entries.length - this.MAX_LOCALSTORAGE_ITEMS + 1
+        )
+        toRemove.forEach((entry) => {
+          localStorage.removeItem(entry.key)
+          console.info(`Removed old PDF from localStorage: ${entry.key}`)
+        })
+      }
+    } catch (error) {
+      console.warn('Failed to clean localStorage cache:', error)
+    }
+  }
+
+  /**
    * Clean the cache of expired and over-sized entries
    */
   private cleanCache(): void {
     const now = Date.now()
-    const entries = Array.from(this.cache.entries())
+    const entries = Array.from(this.memCache.entries())
 
     // Remove expired entries
     entries.forEach(([key, entry]) => {
       if (now - entry.timestamp > this.CACHE_DURATION) {
-        this.cache.delete(key)
+        this.memCache.delete(key)
       }
     })
 
     // If still too many, remove oldest
-    if (this.cache.size > this.MAX_CACHE_SIZE) {
+    if (this.memCache.size > this.MAX_CACHE_SIZE) {
       const sortedEntries = entries
         .sort((a, b) => a[1].timestamp - b[1].timestamp)
-        .slice(0, this.cache.size - this.MAX_CACHE_SIZE)
+        .slice(0, this.memCache.size - this.MAX_CACHE_SIZE)
 
-      sortedEntries.forEach(([key]) => this.cache.delete(key))
+      sortedEntries.forEach(([key]) => this.memCache.delete(key))
     }
   }
 
@@ -169,11 +286,15 @@ export class LivePreviewService {
 
         // Only resolve if request wasn't aborted
         if (!request.abortController.signal.aborted) {
-          this.cache.set(request.hash, {
+          // Cache in memory
+          this.memCache.set(request.hash, {
             blob,
             timestamp: Date.now(),
             hash: request.hash,
           })
+
+          // Try to cache in localStorage if small enough
+          await this.saveToLocalStorage(request.hash, blob)
 
           this.cleanCache()
           request.resolve(blob)
@@ -232,13 +353,29 @@ export class LivePreviewService {
     const { debounceMs = LIVE_PREVIEW.DEBOUNCE_MS } = options
     const hash = this.generateHash(data)
 
-    // Check cache first
-    const cached = this.cache.get(hash)
+    // 1. Check in-memory cache first (fastest)
+    const cached = this.memCache.get(hash)
     if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
-      console.info('Using cached PDF preview')
+      console.info('Using in-memory cached PDF')
       return cached.blob
     }
 
+    // 2. Check localStorage (slower but still fast)
+    const localBlob = await this.getFromLocalStorage(hash)
+    if (localBlob) {
+      console.info('Using localStorage cached PDF')
+
+      // Add back to memory cache for faster future access
+      this.memCache.set(hash, {
+        blob: localBlob,
+        timestamp: Date.now(),
+        hash,
+      })
+
+      return localBlob
+    }
+
+    // 3. Generate new PDF
     return new Promise((resolve, reject) => {
       // Cancel previous pending promise if exists
       if (this.pendingPromise) {
@@ -285,12 +422,38 @@ export class LivePreviewService {
   getStats(): {
     queueSize: number
     isProcessing: boolean
-    cacheSize: number
+    memoryCacheSize: number
+    localStorageCacheSize: number
+    localStorageUsageMB: number
   } {
+    if (typeof window === 'undefined') {
+      return {
+        queueSize: this.requestQueue.length,
+        isProcessing: this.isProcessing,
+        memoryCacheSize: this.memCache.size,
+        localStorageCacheSize: 0,
+        localStorageUsageMB: 0,
+      }
+    }
+
+    const pdfKeys = Object.keys(localStorage).filter((key) =>
+      key.startsWith('pdf-')
+    )
+    const localStorageUsage = pdfKeys.reduce((total, key) => {
+      try {
+        const data = JSON.parse(localStorage.getItem(key) || '{}')
+        return total + (data.size || 0)
+      } catch {
+        return total
+      }
+    }, 0)
+
     return {
       queueSize: this.requestQueue.length,
       isProcessing: this.isProcessing,
-      cacheSize: this.cache.size,
+      memoryCacheSize: this.memCache.size,
+      localStorageCacheSize: pdfKeys.length,
+      localStorageUsageMB: localStorageUsage / (1024 * 1024),
     }
   }
 
@@ -327,19 +490,19 @@ export class LivePreviewService {
   }
 
   /**
-   * Clear the cache
+   * Clear both memory and localStorage cache
    */
-  clearCache(): void {
-    this.cache.clear()
-    console.info('PDF cache cleared')
-  }
+  clearAllCache(): void {
+    this.memCache.clear()
 
-  /**
-   * Destroy the service and clean up resources
-   */
-  destroy(): void {
-    this.cancelPending()
-    this.clearCache()
+    if (typeof window !== 'undefined') {
+      const pdfKeys = Object.keys(localStorage).filter((key) =>
+        key.startsWith('pdf-')
+      )
+      pdfKeys.forEach((key) => localStorage.removeItem(key))
+    }
+
+    console.info('PDF cache cleared (memory and localStorage)')
   }
 }
 
