@@ -512,7 +512,9 @@ export const FormsContainer: React.FC = () => {
   return (
     <div className={styles.formsContainer}>
       <div
-        className={`${styles.sidebar} ${view === 'input' ? styles.active : ''}`}
+        className={`${styles.sidebar} ${
+          view === MOBILE_VIEW.INPUT ? styles.active : ''
+        }`}
       >
         <div className={styles.tabNav}>
           {tabs.map((tab) => (
@@ -586,17 +588,23 @@ export const FormsContainer: React.FC = () => {
 
       <div
         className={`${styles.preview} ${
-          view === 'preview' ? styles.active : ''
+          view === MOBILE_VIEW.PREVIEW ? styles.active : ''
         }`}
       >
         <ResumePreview resumeData={resumeData} isDataValid={isDataValid} />
       </div>
 
       <div className={styles.bottomNav}>
-        <button className={styles.navItem} onClick={() => setView('input')}>
+        <button
+          className={styles.navItem}
+          onClick={() => setView(MOBILE_VIEW.INPUT)}
+        >
           Input
         </button>
-        <button className={styles.navItem} onClick={() => setView('preview')}>
+        <button
+          className={styles.navItem}
+          onClick={() => setView(MOBILE_VIEW.PREVIEW)}
+        >
           Preview
         </button>
       </div>
