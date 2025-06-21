@@ -601,9 +601,11 @@ export const FormsContainer: React.FC = () => {
         </button>
       </div>
 
+      {/* TODO: Temporarily hide the minting button. PDF download will be reworked as part of live preview feature */}
       <button
         type='button'
         className={styles.mintButton}
+        style={{ display: 'none' }}
         disabled={shouldDisableMintButton}
         onClick={handleMintResume}
       >
