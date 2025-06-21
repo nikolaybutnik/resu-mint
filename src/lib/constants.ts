@@ -7,7 +7,7 @@ export const ROUTES = {
   GENERATE_BULLETS: `${API_BASE_URL}/generate-bullets`,
   CREATE_PDF: `${API_BASE_URL}/create-pdf`,
   PARSE_SECTION_SKILLS: `${API_BASE_URL}/parse-section-skills`,
-}
+} as const
 
 // General
 export const MONTHS: { label: Month; num: number }[] = [
@@ -28,7 +28,14 @@ export const MONTHS: { label: Month; num: number }[] = [
 export const MOBILE_VIEW = {
   INPUT: 'input',
   PREVIEW: 'preview',
-}
+} as const
+
+export const LIVE_PREVIEW = {
+  DEBOUNCE_MS: 1500, // Wait 1.5s before generating
+  CACHE_DURATION: 10 * 60 * 1000, // Cache for 10 minutes
+  MAX_CACHE_SIZE: 20, // Keep last 20 PDFs
+  RETRY_ATTEMPTS: 2, // Retry failed generations
+} as const
 
 // Debounce delays
 export const VALIDATION_DELAY = 250

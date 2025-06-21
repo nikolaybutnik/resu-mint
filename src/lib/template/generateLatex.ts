@@ -76,6 +76,7 @@ export const generateLatex = async (
   const experienceSection =
     workExperience && workExperience.length > 0
       ? workExperience
+          .filter((exp) => exp.isIncluded !== false)
           .map((exp) => {
             const dateRange = exp.endDate.isPresent
               ? `${exp.startDate.month} ${exp.startDate.year} -- Present`
@@ -108,6 +109,7 @@ ${bulletSection}`
   const projectsSection =
     projects && projects.length > 0
       ? projects
+          .filter((project) => project.isIncluded !== false)
           .map((project) => {
             const dateRange = project.endDate.isPresent
               ? `${project.startDate.month} ${project.startDate.year} -- Present`

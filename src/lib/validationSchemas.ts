@@ -201,6 +201,7 @@ export const experienceBlockSchema = z
       .min(1, 'Location is required')
       .max(100, 'Location must be 100 characters or less'),
     bulletPoints: z.array(bulletPointSchema).optional().default([]),
+    isIncluded: z.boolean().optional().default(true),
   })
   .refine(
     (data) => {
@@ -248,6 +249,7 @@ export const projectBlockSchema = z
       .max(2000, 'Description must be 2000 characters or less')
       .optional(),
     bulletPoints: z.array(bulletPointSchema).default([]),
+    isIncluded: z.boolean().optional().default(true),
   })
   .refine(
     (data) => {
