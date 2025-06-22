@@ -32,8 +32,8 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   const [numPages, setNumPages] = useState<number | null>(null)
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null)
 
-  // Track debounce timer for UI feedback
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const currentRequestIdRef = useRef<number>(0)
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
     setNumPages(numPages)
@@ -51,28 +51,32 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       return
     }
 
+    const requestId = ++currentRequestIdRef.current
+
     // Clear any existing debounce timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
 
-    // Show debouncing state
     setIsDebouncing(true)
     setError(null)
 
-    // Set up debounce timer for UI feedback
+    // Delay is shorter than the actual request debounce to update the UI faster
     debounceTimerRef.current = setTimeout(() => {
-      setIsDebouncing(false)
-      setIsGenerating(true)
-    }, LIVE_PREVIEW.DEBOUNCE_MS)
+      // Only update state if this is still the current request
+      if (requestId === currentRequestIdRef.current) {
+        setIsDebouncing(false)
+        setIsGenerating(true)
+      }
+    }, 300)
 
     try {
       const blob = await livePreviewService.generatePreview(resumeData, {
         debounceMs: LIVE_PREVIEW.DEBOUNCE_MS,
       })
 
-      // Only update if we got a blob (request wasn't cancelled)
-      if (blob) {
+      // Only update if we got a blob and we're still on the current request
+      if (blob && requestId === currentRequestIdRef.current) {
         setPdfBlob(blob)
         setLastGenerated(new Date())
         setError(null)
@@ -86,22 +90,28 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
           err.message.includes('Request superseded') ||
           err.message.includes('signal is aborted'))
 
-      if (!isAbortError) {
+      // Only update error state if we're still on the current request
+      if (!isAbortError && requestId === currentRequestIdRef.current) {
         console.error('Preview generation error:', err)
         setError(
           err instanceof Error ? err.message : 'Failed to generate preview'
         )
-      } else {
+      } else if (isAbortError) {
         console.info(
           'Request cancelled due to newer request. This is expected behavior.'
         )
       }
     } finally {
-      setIsGenerating(false)
-      setIsDebouncing(false)
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-        debounceTimerRef.current = null
+      // Only reset loading states if this request is still current
+      // AND no newer request has started since this one began
+      if (requestId === currentRequestIdRef.current) {
+        setIsGenerating(false)
+        setIsDebouncing(false)
+
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current)
+          debounceTimerRef.current = null
+        }
       }
     }
   }
