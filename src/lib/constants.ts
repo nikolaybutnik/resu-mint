@@ -32,8 +32,11 @@ export const MOBILE_VIEW = {
 
 export const LIVE_PREVIEW = {
   DEBOUNCE_MS: 1500, // Wait 1.5s before generating
-  CACHE_DURATION: 10 * 60 * 1000, // Cache for 10 minutes
-  MAX_CACHE_SIZE: 20, // Keep last 20 PDFs
+  CACHE_DURATION: 10 * 60 * 1000, // Memory cache for 10 minutes
+  LOCALSTORAGE_DURATION: 7 * 24 * 60 * 60 * 1000, // localStorage cache for 7 days
+  MAX_CACHE_SIZE: 20, // Keep last 20 PDFs in memory
+  MAX_BLOB_SIZE_FOR_STORAGE: 112 * 1024, // 112KB threshold (becomes ~150KB after base64)
+  MAX_LOCALSTORAGE_ITEMS: 15, // Keep 15 PDF blobs in localStorage
   RETRY_ATTEMPTS: 2, // Retry failed generations
 } as const
 

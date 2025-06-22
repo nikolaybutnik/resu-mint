@@ -22,10 +22,7 @@ interface QueuedRequest {
 }
 
 // SCALABILITY CONCERNS:
-// - Tectonic can only handle one PDF at a time per server instance (no multi-threading)
-// - CPU intensive, each compilation take 2-5 seconds of full CPU usage
 // - Each compilation uses 100-200MB of RAM
-// - Each browser stores its own PDF
 // - Vercel functions has a 10s timeout
 // - Vercel has a 512MB memory limit, multiple concurrent compilations will fail
 // - Cold starts, first request will be slow (2-3 extra seconds)
@@ -38,10 +35,12 @@ export class LivePreviewService {
     reject: (error: Error) => void
   } | null = null
   private memCache = new Map<string, CacheEntry>()
-  private readonly CACHE_DURATION = LIVE_PREVIEW.CACHE_DURATION
-  private readonly MAX_CACHE_SIZE = LIVE_PREVIEW.MAX_CACHE_SIZE
-  private readonly MAX_BLOB_SIZE_FOR_STORAGE = 150 * 1024 // 150KB threshold
-  private readonly MAX_LOCALSTORAGE_ITEMS = 15 // Keep 15 PDF blobs in localStorage
+  private readonly cacheDuration = LIVE_PREVIEW.CACHE_DURATION
+  private readonly localStorageDuration = LIVE_PREVIEW.LOCALSTORAGE_DURATION
+  private readonly maxCacheSize = LIVE_PREVIEW.MAX_CACHE_SIZE
+  private readonly maxBlobSizeForStorage =
+    LIVE_PREVIEW.MAX_BLOB_SIZE_FOR_STORAGE
+  private readonly maxLocalStorageItems = LIVE_PREVIEW.MAX_LOCALSTORAGE_ITEMS
 
   // Queue management
   private requestQueue: QueuedRequest[] = []
@@ -115,8 +114,7 @@ export class LivePreviewService {
 
       const { base64Data, timestamp, mimeType } = JSON.parse(stored)
 
-      // Check if expired
-      if (Date.now() - timestamp > this.CACHE_DURATION) {
+      if (Date.now() - timestamp > this.localStorageDuration) {
         localStorage.removeItem(`pdf-${hash}`)
         return null
       }
@@ -141,9 +139,10 @@ export class LivePreviewService {
   private async saveToLocalStorage(hash: string, blob: Blob): Promise<void> {
     if (typeof window === 'undefined') return
 
-    if (blob.size > this.MAX_BLOB_SIZE_FOR_STORAGE) {
+    if (blob.size > this.maxBlobSizeForStorage) {
+      const wouldBeEncodedSize = Math.round(blob.size * 1.33)
       console.info(
-        `PDF too large (${blob.size} bytes) for localStorage - using memory cache only`
+        `PDF too large (${blob.size} bytes, would be ~${wouldBeEncodedSize} bytes encoded) for localStorage - using memory cache only`
       )
       return
     }
@@ -165,8 +164,11 @@ export class LivePreviewService {
       // Clean old entries before adding new one
       this.cleanLocalStorageCache()
 
+      const encodedSize = JSON.stringify(storageData).length
       localStorage.setItem(`pdf-${hash}`, JSON.stringify(storageData))
-      console.info(`Saved PDF (${blob.size} bytes) to localStorage`)
+      console.info(
+        `Saved PDF to localStorage: ${blob.size} bytes → ${encodedSize} bytes encoded`
+      )
     } catch (error) {
       console.warn('Failed to save to localStorage:', error)
     }
@@ -183,24 +185,38 @@ export class LivePreviewService {
         key.startsWith('pdf-')
       )
 
-      if (pdfKeys.length >= this.MAX_LOCALSTORAGE_ITEMS) {
-        // Get timestamps and sort by age
-        const entries = pdfKeys
-          .map((key) => {
-            try {
-              const data = JSON.parse(localStorage.getItem(key) || '{}')
-              return { key, timestamp: data.timestamp || 0 }
-            } catch {
-              return { key, timestamp: 0 }
-            }
-          })
-          .sort((a, b) => a.timestamp - b.timestamp)
+      // First, remove expired entries
+      const now = Date.now()
+      const validEntries: { key: string; timestamp: number }[] = []
 
-        // Remove oldest entries
-        const toRemove = entries.slice(
-          0,
-          entries.length - this.MAX_LOCALSTORAGE_ITEMS + 1
+      pdfKeys.forEach((key) => {
+        try {
+          const data = JSON.parse(localStorage.getItem(key) || '{}')
+          const timestamp = data.timestamp || 0
+
+          if (now - timestamp > this.localStorageDuration) {
+            localStorage.removeItem(key)
+            console.info(`Removed expired PDF from localStorage: ${key}`)
+          } else {
+            validEntries.push({ key, timestamp })
+          }
+        } catch {
+          // Remove corrupted entries
+          localStorage.removeItem(key)
+          console.info(`Removed corrupted PDF from localStorage: ${key}`)
+        }
+      })
+
+      // Then, if still too many valid entries, remove oldest ones
+      if (validEntries.length >= this.maxLocalStorageItems) {
+        const sortedEntries = validEntries.sort(
+          (a, b) => a.timestamp - b.timestamp
         )
+        const toRemove = sortedEntries.slice(
+          0,
+          sortedEntries.length - this.maxLocalStorageItems + 1
+        )
+
         toRemove.forEach((entry) => {
           localStorage.removeItem(entry.key)
           console.info(`Removed old PDF from localStorage: ${entry.key}`)
@@ -220,16 +236,16 @@ export class LivePreviewService {
 
     // Remove expired entries
     entries.forEach(([key, entry]) => {
-      if (now - entry.timestamp > this.CACHE_DURATION) {
+      if (now - entry.timestamp > this.cacheDuration) {
         this.memCache.delete(key)
       }
     })
 
     // If still too many, remove oldest
-    if (this.memCache.size > this.MAX_CACHE_SIZE) {
+    if (this.memCache.size > this.maxCacheSize) {
       const sortedEntries = entries
         .sort((a, b) => a[1].timestamp - b[1].timestamp)
-        .slice(0, this.memCache.size - this.MAX_CACHE_SIZE)
+        .slice(0, this.memCache.size - this.maxCacheSize)
 
       sortedEntries.forEach(([key]) => this.memCache.delete(key))
     }
@@ -355,7 +371,7 @@ export class LivePreviewService {
 
     // 1. Check in-memory cache first (fastest)
     const cached = this.memCache.get(hash)
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+    if (cached && Date.now() - cached.timestamp < this.cacheDuration) {
       console.info('Using in-memory cached PDF')
       return cached.blob
     }
