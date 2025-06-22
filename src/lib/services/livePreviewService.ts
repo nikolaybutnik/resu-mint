@@ -50,7 +50,7 @@ export class LivePreviewService {
   constructor() {
     if (typeof window !== 'undefined') {
       window.addEventListener('beforeunload', () => {
-        this.cancelPending()
+        this.forceCancel()
       })
     }
   }
@@ -314,12 +314,19 @@ export class LivePreviewService {
 
           this.cleanCache()
           request.resolve(blob)
+        } else {
+          console.debug(
+            'Request completed but was aborted - not caching result'
+          )
         }
       } catch (error) {
         // Only handle error if request wasn't aborted
         if (!request.abortController.signal.aborted) {
           console.error('PDF generation failed:', error)
           request.reject(error as Error)
+        } else {
+          // Request was aborted - this is expected during rapid changes
+          console.debug('PDF request aborted (expected during rapid changes)')
         }
       }
     } finally {
@@ -474,12 +481,14 @@ export class LivePreviewService {
   }
 
   /**
-   * Cancel all pending requests
+   * Cancel all pending requests (but allow current request to finish)
    */
   cancelPending(): void {
     // Cancel pending debounced promise
     if (this.pendingPromise) {
-      this.pendingPromise.reject(new Error('Request cancelled'))
+      this.pendingPromise.reject(
+        new Error('Request cancelled - newer request pending')
+      )
       this.pendingPromise = null
     }
 
@@ -488,17 +497,32 @@ export class LivePreviewService {
       this.debounceTimer = null
     }
 
-    // Cancel all queued requests
+    // Cancel all queued requests (but not the currently processing one)
     this.requestQueue.forEach((request) => {
       request.abortController.abort()
-      request.reject(new Error('Request cancelled'))
+      request.reject(
+        new Error('Request cancelled - component unmounting or data changed')
+      )
     })
     this.requestQueue = []
 
-    // Cancel current request
+    // Don't cancel the current request - let it finish naturally
+    // This prevents the AbortError when rapid changes occur
+    console.debug(
+      'Cancelled pending requests, allowing current request to complete'
+    )
+  }
+
+  /**
+   * Force cancel ALL requests including currently processing one (for cleanup)
+   */
+  forceCancel(): void {
+    this.cancelPending()
+
+    // Also cancel current request for complete cleanup
     if (this.currentRequest) {
       this.currentRequest.abortController.abort()
-      this.currentRequest.reject(new Error('Request cancelled'))
+      this.currentRequest.reject(new Error('Request cancelled - force cleanup'))
       this.currentRequest = null
     }
 

@@ -6,6 +6,7 @@ import React, { useEffect, useState, useRef } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { livePreviewService } from '@/lib/services/livePreviewService'
 import { LIVE_PREVIEW } from '@/lib/constants'
+import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -77,10 +78,24 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
         setError(null)
       }
     } catch (err) {
-      console.error('Preview generation error:', err)
-      setError(
-        err instanceof Error ? err.message : 'Failed to generate preview'
-      )
+      // Don't show cancellation errors to user - they're expected during rapid changes
+      const isAbortError =
+        err instanceof Error &&
+        (err.name === 'AbortError' ||
+          err.message.includes('Request cancelled') ||
+          err.message.includes('Request superseded') ||
+          err.message.includes('signal is aborted'))
+
+      if (!isAbortError) {
+        console.error('Preview generation error:', err)
+        setError(
+          err instanceof Error ? err.message : 'Failed to generate preview'
+        )
+      } else {
+        console.info(
+          'Request cancelled due to newer request. This is expected behavior.'
+        )
+      }
     } finally {
       setIsGenerating(false)
       setIsDebouncing(false)
@@ -104,29 +119,91 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
     }
   }, [resumeData, isDataValid])
 
-  // Show appropriate loading state
-  const getLoadingMessage = () => {
-    if (isDebouncing) return 'Preparing to generate...'
-    if (isGenerating) return 'Generating preview...'
-    return 'Loading PDF...'
-  }
+  const renderHeaderStatus = () => {
+    // Priority order: error > updating states > missing requirements > last updated
+    if (error) {
+      return (
+        <div className={styles.statusIndicator} data-status='error'>
+          <div className={styles.errorIcon}>⚠</div>
+          <span>Error: {error}</span>
+          <button onClick={generatePreview} className={styles.retryButtonSmall}>
+            Retry
+          </button>
+        </div>
+      )
+    }
 
-  // Show data validity message
-  if (!isDataValid) {
-    return (
-      <div className={styles.preview}>
-        <div className={styles.previewHeader}>
-          <h2>Live Preview</h2>
+    if (isDebouncing || isGenerating) {
+      return (
+        <div className={styles.regeneratingIndicator}>
+          <div className={styles.spinner}></div>
+          <span>{isDebouncing ? 'Preparing...' : 'Updating...'}</span>
         </div>
-        <div className={styles.previewContent}>
-          <div className={styles.emptyState}>
-            <h3>Preview Not Available</h3>
-            <p>
-              Please fill in your personal details and add some experience or
-              projects to see a preview.
-            </p>
+      )
+    }
+
+    // Check specific requirements and provide targeted feedback
+    if (!isDataValid && resumeData) {
+      const personalDetails = resumeData.personalDetails
+      const hasName = !!personalDetails?.name?.trim()
+      const hasEmail = !!personalDetails?.email?.trim()
+      const hasContent =
+        resumeData.experienceSection?.some((exp) => exp.isIncluded) ||
+        resumeData.projectSection?.some((proj) => proj.isIncluded)
+
+      // Priority order for missing requirements
+      if (!hasName) {
+        return (
+          <div className={styles.statusIndicator} data-status='info'>
+            <span>Add your name to continue</span>
           </div>
+        )
+      }
+
+      if (!hasEmail) {
+        return (
+          <div className={styles.statusIndicator} data-status='info'>
+            <span>Add your email to continue</span>
+          </div>
+        )
+      }
+
+      if (!hasContent) {
+        return (
+          <div className={styles.statusIndicator} data-status='info'>
+            <span>Add work experience or projects</span>
+          </div>
+        )
+      }
+
+      // If we have personal details and content but still invalid, must be job description
+      return (
+        <div className={styles.statusIndicator} data-status='info'>
+          <span>Add job description to continue</span>
         </div>
+      )
+    }
+
+    // Fallback for when no resumeData exists yet
+    if (!isDataValid) {
+      return (
+        <div className={styles.statusIndicator} data-status='info'>
+          <span>Complete your details to see preview</span>
+        </div>
+      )
+    }
+
+    if (lastGenerated) {
+      return (
+        <span className={styles.lastUpdated}>
+          Updated {lastGenerated.toLocaleTimeString()}
+        </span>
+      )
+    }
+
+    return (
+      <div className={styles.statusIndicator} data-status='info'>
+        <span>Ready to generate</span>
       </div>
     )
   }
@@ -135,51 +212,19 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
     <div className={styles.preview}>
       <div className={styles.previewHeader}>
         <h2>Live Preview</h2>
-        <div className={styles.headerRight}>
-          {(isDebouncing || isGenerating) && (
-            <div className={styles.regeneratingIndicator}>
-              <div className={styles.spinner}></div>
-              <span>Updating...</span>
-            </div>
-          )}
-          {lastGenerated && !isDebouncing && !isGenerating && (
-            <span className={styles.lastUpdated}>
-              Updated {lastGenerated.toLocaleTimeString()}
-            </span>
-          )}
-        </div>
+        <div className={styles.headerRight}>{renderHeaderStatus()}</div>
       </div>
 
       <div className={styles.previewContent}>
-        {(isDebouncing || isGenerating) && (
-          <div className={styles.loadingState}>
-            <p>{getLoadingMessage()}</p>
-            {isDebouncing && (
-              <div className={styles.debounceIndicator}>
-                <div className={styles.debounceBar}></div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {error && (
-          <div className={styles.errorState}>
-            <p>Error: {error}</p>
-            <button onClick={generatePreview} className={styles.retryButton}>
-              Try Again
-            </button>
-          </div>
-        )}
-
         {pdfBlob && (
           <Document
             file={pdfBlob}
             options={options}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
-            loading={<p>{getLoadingMessage()}</p>}
+            loading={<LoadingSpinner size='lg' />}
           >
-            {Array.from(new Array(numPages || 1), (el, index) => (
+            {Array.from(new Array(numPages || 1), (_el, index) => (
               <Page
                 key={`page_${index + 1}`}
                 pageNumber={index + 1}
@@ -190,9 +235,14 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
           </Document>
         )}
 
-        {!pdfBlob && !isDebouncing && !isGenerating && !error && (
+        {!pdfBlob && !error && (
           <div className={styles.emptyState}>
-            <p>Your resume will appear here.</p>
+            <h3>Resume Preview</h3>
+            <p>
+              {!isDataValid
+                ? 'To generate your resume preview, please provide: your name, email, job description, and at least one work experience or project.'
+                : 'Your resume will appear here once generated.'}
+            </p>
           </div>
         )}
       </div>

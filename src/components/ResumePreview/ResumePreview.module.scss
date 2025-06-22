@@ -42,6 +42,51 @@
   }
 }
 
+.statusIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+
+  span {
+    white-space: nowrap;
+  }
+
+  &[data-status='error'] {
+    color: $color-error;
+  }
+
+  &[data-status='info'] {
+    color: $color-disabled;
+  }
+}
+
+.errorIcon {
+  font-size: 14px;
+  color: $color-error;
+}
+
+.retryButtonSmall {
+  padding: 4px 8px;
+  background: $color-error;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: darken($color-error, 8%);
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
 .spinner {
   width: 14px;
   height: 14px;
@@ -98,102 +143,6 @@
 
   @media (max-width: 768px) {
     padding: 10px;
-  }
-}
-
-.loadingState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-
-  p {
-    font-size: 16px;
-    color: $color-text;
-    margin: 0 0 16px 0;
-    font-weight: 500;
-  }
-}
-
-.debounceIndicator {
-  width: 200px;
-  height: 4px;
-  background: rgba($color-primary, 0.2);
-  border-radius: 2px;
-  overflow: hidden;
-  position: relative;
-}
-
-.debounceBar {
-  height: 100%;
-  background: $color-primary;
-  border-radius: 2px;
-  animation: debounceProgress 1.5s ease-out;
-}
-
-@keyframes debounceProgress {
-  from {
-    width: 0%;
-    transform: translateX(-100%);
-  }
-  to {
-    width: 100%;
-    transform: translateX(0%);
-  }
-}
-
-.errorState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-  background: rgba($color-error, 0.05);
-  border: 1px solid rgba($color-error, 0.2);
-  border-radius: 8px;
-  margin: 20px;
-  max-width: 400px;
-
-  p {
-    font-size: 16px;
-    color: $color-error;
-    margin: 0 0 20px 0;
-    font-weight: 500;
-  }
-}
-
-.retryButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px 24px;
-  background: $color-primary;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
-
-  &:hover {
-    background: darken($color-primary, 8%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba($color-primary, 0.3);
-  }
-
-  &:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 4px rgba($color-primary, 0.3);
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba($color-primary, 0.2);
   }
 }
 
