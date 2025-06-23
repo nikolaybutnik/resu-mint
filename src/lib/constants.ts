@@ -7,6 +7,7 @@ export const ROUTES = {
   GENERATE_BULLETS: `${API_BASE_URL}/generate-bullets`,
   CREATE_PDF: `${API_BASE_URL}/create-pdf`,
   PARSE_SECTION_SKILLS: `${API_BASE_URL}/parse-section-skills`,
+  TECTONIC_HEALTH: `${API_BASE_URL}/tectonic-health`,
 } as const
 
 // General
