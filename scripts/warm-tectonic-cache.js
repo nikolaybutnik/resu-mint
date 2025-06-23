@@ -227,6 +227,20 @@ async function warmCache() {
     'xdg-build-cache'
   )
 
+  // Clean existing cache to prevent accumulation across builds
+  try {
+    if (fs.existsSync(cacheDir)) {
+      console.log('Cleaning existing Tectonic cache...')
+      fs.rmSync(cacheDir, { recursive: true, force: true })
+    }
+    if (fs.existsSync(xdgCacheDir)) {
+      console.log('Cleaning existing XDG cache...')
+      fs.rmSync(xdgCacheDir, { recursive: true, force: true })
+    }
+  } catch (error) {
+    console.warn('Warning: Could not clean existing cache:', error.message)
+  }
+
   try {
     fs.mkdirSync(cacheDir, { recursive: true })
     fs.mkdirSync(xdgCacheDir, { recursive: true })
@@ -310,6 +324,8 @@ async function warmCache() {
 
     const tectonicSize = getDirSize(cacheDir)
     const xdgSize = getDirSize(xdgCacheDir)
+    const totalSize = tectonicSize + xdgSize
+    const totalSizeMB = Math.round((totalSize / 1024 / 1024) * 100) / 100
 
     console.log(`   Tectonic cache: ${cacheDir}`)
     console.log(
@@ -319,11 +335,23 @@ async function warmCache() {
     console.log(
       `   - Files: ${xdgFiles}, Size: ${Math.round(xdgSize / 1024)}KB`
     )
-    console.log(
-      `   Total: ${tectonicFiles + xdgFiles} files, ${Math.round(
-        (tectonicSize + xdgSize) / 1024
-      )}KB`
-    )
+    console.log(`   Total: ${tectonicFiles + xdgFiles} files, ${totalSizeMB}MB`)
+
+    // Warn if cache is unexpectedly large (should be ~20-25MB max)
+    if (totalSizeMB > 30) {
+      console.warn('⚠️  WARNING: Cache size is unexpectedly large!')
+      console.warn(`   Expected: ~20-25MB, Actual: ${totalSizeMB}MB`)
+      console.warn('   This may indicate cache accumulation across builds.')
+      console.warn(
+        '   Consider clearing the cache if deployment size is an issue.'
+      )
+    } else if (totalSizeMB > 25) {
+      console.warn(
+        `⚠️  Cache size is above normal: ${totalSizeMB}MB (expected ~20MB)`
+      )
+    } else {
+      console.log(`✅ Cache size is normal: ${totalSizeMB}MB`)
+    }
   } catch (e) {
     console.log('   Cache directories created (unable to read detailed stats)')
   }
