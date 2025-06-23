@@ -25,7 +25,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { sanitizeResumeBullet } from '@/lib/utils'
-import { PointerSensor } from '@/lib/clientUtils'
+import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import {
   restrictToParentElement,
   restrictToVerticalAxis,
@@ -72,10 +72,45 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     new Set()
   )
 
+  // Prevent default touch behaviors that can interfere with drag
+  useEffect(() => {
+    const preventDefaultTouch = (e: TouchEvent) => {
+      // Only prevent default if we're currently dragging
+      if (activeId) {
+        e.preventDefault()
+      }
+    }
+
+    const preventDefaultWheel = (e: WheelEvent) => {
+      // Prevent scroll during drag
+      if (activeId) {
+        e.preventDefault()
+      }
+    }
+
+    // Always add these listeners to handle touch interactions in dev tools simulation
+    document.addEventListener('touchmove', preventDefaultTouch, {
+      passive: false,
+    })
+    document.addEventListener('wheel', preventDefaultWheel, { passive: false })
+
+    return () => {
+      document.removeEventListener('touchmove', preventDefaultTouch)
+      document.removeEventListener('wheel', preventDefaultWheel)
+    }
+  }, [activeId])
+
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 750, // Long press for touch
+        tolerance: 15,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -528,6 +563,9 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
     setExpandedSections(new Set())
+
+    // Prevent default behaviors during drag using CSS class
+    document.body.classList.add('dragging-active')
   }, [])
 
   const handleDragEnd = useCallback(
@@ -546,6 +584,9 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
+
+      // Restore default behaviors after drag
+      document.body.classList.remove('dragging-active')
     },
     [onSave]
   )
@@ -637,6 +678,11 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                 collisionDetection={closestCenter}
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
+                onDragCancel={() => {
+                  setActiveId(null)
+                  // Restore default behaviors if drag is cancelled
+                  document.body.classList.remove('dragging-active')
+                }}
                 modifiers={[restrictToVerticalAxis, restrictToParentElement]}
               >
                 <SortableContext

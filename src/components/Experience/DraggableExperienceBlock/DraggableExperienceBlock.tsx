@@ -81,9 +81,103 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   onToggleInclude,
 }) => {
   const isFirstRender = useRef(true)
+  const touchCleanupRef = useRef<(() => void) | null>(null)
 
   const [localData, setLocalData] = useState<ExperienceBlockData>(data)
   const [animationKey, setAnimationKey] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+  const [isLongPressing, setIsLongPressing] = useState(false)
+  const [touchFeedback, setTouchFeedback] = useState<{
+    x: number
+    y: number
+    show: boolean
+  } | null>(null)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(
+        window.innerWidth <= 768 ||
+          'ontouchstart' in window ||
+          navigator.maxTouchPoints > 0
+      )
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      if (isMobile && !isAnyBulletBeingEdited && !isAnyBulletRegenerating) {
+        const touch = e.touches[0]
+        const rect = e.currentTarget.getBoundingClientRect()
+
+        const x = touch.clientX - rect.left
+        const y = touch.clientY - rect.top
+
+        setIsLongPressing(true)
+
+        // Wait 150ms before showing animation to differentiate from swipe
+        const showAnimationTimer = setTimeout(() => {
+          setTouchFeedback({ x, y, show: true })
+        }, 150)
+
+        const resetTimer = setTimeout(() => {
+          setIsLongPressing(false)
+          setTouchFeedback(null)
+        }, 850) // 750ms + 100ms buffer
+
+        const cleanup = () => {
+          clearTimeout(showAnimationTimer)
+          clearTimeout(resetTimer)
+        }
+
+        // Store cleanup function in ref
+        touchCleanupRef.current = cleanup
+      }
+    },
+    [isMobile, isAnyBulletBeingEdited, isAnyBulletRegenerating]
+  )
+
+  const handleTouchEnd = useCallback(() => {
+    setIsLongPressing(false)
+    setTouchFeedback(null)
+
+    if (touchCleanupRef.current) {
+      touchCleanupRef.current()
+      touchCleanupRef.current = null
+    }
+  }, [])
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      // If user moves finger too much, cancel the long press
+      if (touchFeedback) {
+        const touch = e.touches[0]
+        const rect = e.currentTarget.getBoundingClientRect()
+        const currentX = touch.clientX - rect.left
+        const currentY = touch.clientY - rect.top
+
+        const distance = Math.sqrt(
+          Math.pow(currentX - touchFeedback.x, 2) +
+            Math.pow(currentY - touchFeedback.y, 2)
+        )
+
+        // Cancel if moved more than 15px
+        if (distance > 15) {
+          setIsLongPressing(false)
+          setTouchFeedback(null)
+
+          if (touchCleanupRef.current) {
+            touchCleanupRef.current()
+            touchCleanupRef.current = null
+          }
+        }
+      }
+    },
+    [touchFeedback]
+  )
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
@@ -102,6 +196,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         transition: isDropping || isDragging ? 'none' : 'transform 0.2s ease',
         zIndex: isDragging ? 10 : 1,
         opacity: isDragging ? 0 : 1,
+        touchAction: isDragging ? 'none' : 'pan-y',
       }
 
   const handleToggleInclude = useCallback(() => {
@@ -166,7 +261,16 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         !localData.isIncluded ? styles.excluded : '',
       ].join(' ')}
     >
-      <div className={styles.draggableExperienceBlock}>
+      <div
+        className={[
+          styles.draggableExperienceBlock,
+          isLongPressing ? styles.longPressing : '',
+        ].join(' ')}
+        title={isMobile ? 'Long press to drag and reorder' : 'Drag to reorder'}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onTouchMove={handleTouchMove}
+      >
         <div className={styles.experienceBlockContent}>
           <h3 className={styles.experienceBlockHeader}>{data.title}</h3>
           <p className={styles.experienceBlockCompany}>{data.companyName}</p>
@@ -342,6 +446,32 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         >
           <FaPlus size={12} />
         </button>
+      )}
+
+      {touchFeedback && touchFeedback.show && (
+        <div
+          className={styles.touchFeedback}
+          style={{
+            left: touchFeedback.x,
+            top: touchFeedback.y,
+          }}
+        >
+          <svg className={styles.progressRing}>
+            <circle
+              className={styles.progressBackground}
+              cx='30'
+              cy='30'
+              r='25'
+            />
+            <circle
+              className={styles.progressForeground}
+              cx='30'
+              cy='30'
+              r='25'
+            />
+            <circle className={styles.progressCenter} cx='30' cy='30' r='8' />
+          </svg>
+        </div>
       )}
     </div>
   )

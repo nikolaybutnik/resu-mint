@@ -1,7 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { PointerSensor as LibPointerSensor } from '@dnd-kit/core'
+import {
+  PointerSensor as LibPointerSensor,
+  MouseSensor as LibMouseSensor,
+  TouchSensor as LibTouchSensor,
+} from '@dnd-kit/core'
 import { PointerEvent } from 'react'
 
 /**
@@ -15,6 +19,34 @@ export class PointerSensor extends LibPointerSensor {
     {
       eventName: 'onPointerDown' as const,
       handler: ({ nativeEvent: event }: PointerEvent) => {
+        return shouldHandleEvent(event.target as HTMLElement)
+      },
+    },
+  ]
+}
+
+/**
+ * Mouse sensor for dnd-kit, blocks activation if data-no-dnd="true" is set on the element
+ */
+export class MouseSensor extends LibMouseSensor {
+  static activators = [
+    {
+      eventName: 'onMouseDown' as const,
+      handler: ({ nativeEvent: event }: React.MouseEvent) => {
+        return shouldHandleEvent(event.target as HTMLElement)
+      },
+    },
+  ]
+}
+
+/**
+ * Touch sensor for dnd-kit, blocks activation if data-no-dnd="true" is set on the element
+ */
+export class TouchSensor extends LibTouchSensor {
+  static activators = [
+    {
+      eventName: 'onTouchStart' as const,
+      handler: ({ nativeEvent: event }: React.TouchEvent) => {
         return shouldHandleEvent(event.target as HTMLElement)
       },
     },
