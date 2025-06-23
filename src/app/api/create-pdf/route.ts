@@ -16,7 +16,11 @@ const TECTONIC_PATH = path.join(
 )
 
 export async function POST(request: NextRequest) {
+  const requestStart = Date.now()
+
   try {
+    console.info('PDF Generation Request Started')
+
     const rawData = await request.json()
 
     const validationResult = createPdfRequestSchema.safeParse(rawData)
@@ -51,19 +55,83 @@ export async function POST(request: NextRequest) {
     const buildCacheDir = path.join(os.tmpdir(), 'tectonic-build-cache')
     const buildXdgCacheDir = path.join(os.tmpdir(), 'xdg-build-cache')
 
-    // Use build cache if it exists (from cache warming), otherwise use shared cache
-    const cacheDir = (await fs
+    console.log('Checking cache availability...')
+
+    // Check cache availability with detailed logging
+    const buildCacheExists = await fs
       .access(buildCacheDir)
       .then(() => true)
-      .catch(() => false))
-      ? buildCacheDir
-      : sharedCacheDir
-    const xdgCacheDir = (await fs
+      .catch(() => false)
+
+    const buildXdgCacheExists = await fs
       .access(buildXdgCacheDir)
       .then(() => true)
-      .catch(() => false))
+      .catch(() => false)
+
+    const sharedCacheExists = await fs
+      .access(sharedCacheDir)
+      .then(() => true)
+      .catch(() => false)
+
+    const sharedXdgCacheExists = await fs
+      .access(sharedXdgCacheDir)
+      .then(() => true)
+      .catch(() => false)
+
+    // Log cache status
+    console.log('Cache Status:')
+    console.log(
+      `   Build Cache: ${
+        buildCacheExists ? 'EXISTS' : 'MISSING'
+      } (${buildCacheDir})`
+    )
+    console.log(
+      `   Build XDG:   ${
+        buildXdgCacheExists ? 'EXISTS' : 'MISSING'
+      } (${buildXdgCacheDir})`
+    )
+    console.log(
+      `   Shared Cache: ${
+        sharedCacheExists ? 'EXISTS' : 'MISSING'
+      } (${sharedCacheDir})`
+    )
+    console.log(
+      `   Shared XDG:   ${
+        sharedXdgCacheExists ? 'EXISTS' : 'MISSING'
+      } (${sharedXdgCacheDir})`
+    )
+
+    // Use build cache if it exists (from cache warming), otherwise use shared cache
+    const cacheDir = buildCacheExists ? buildCacheDir : sharedCacheDir
+    const xdgCacheDir = buildXdgCacheExists
       ? buildXdgCacheDir
       : sharedXdgCacheDir
+
+    // Determine and log cache tier being used
+    const hasBuildCache = buildCacheExists || buildXdgCacheExists
+    const hasRuntimeCache = sharedCacheExists || sharedXdgCacheExists
+
+    let cacheTier = 'COLD_START'
+    let expectedTime = '8-12s'
+
+    if (hasBuildCache) {
+      cacheTier = 'BUILD_CACHE'
+      expectedTime = '2-3s'
+      console.info('Using BUILD CACHE (Pre-warmed) - Expected: 2-3 seconds')
+    } else if (hasRuntimeCache) {
+      cacheTier = 'RUNTIME_CACHE'
+      expectedTime = '4-6s'
+      console.warn('Using RUNTIME CACHE (On-demand) - Expected: 4-12 seconds')
+    } else {
+      console.warn(
+        'NO CACHE FOUND - Cold start download - Expected: 8-12 seconds'
+      )
+    }
+
+    console.log('Selected cache directories:')
+    console.log(`   Tectonic: ${cacheDir}`)
+    console.log(`   XDG:      ${xdgCacheDir}`)
+
     const expectedPdfPath = path.join(tempDir, 'texput.pdf')
 
     // Create cache directories if they don't exist
@@ -73,6 +141,7 @@ export async function POST(request: NextRequest) {
     try {
       try {
         await fs.access(TECTONIC_PATH, fs.constants.F_OK | fs.constants.X_OK)
+        console.log('Tectonic binary found and executable')
       } catch {
         throw new Error(
           `Tectonic binary not found or not executable at ${TECTONIC_PATH}.`
@@ -82,6 +151,9 @@ export async function POST(request: NextRequest) {
       if (!latexTemplate || latexTemplate.trim() === '') {
         throw new Error('Empty LaTeX template')
       }
+
+      console.log('Starting Tectonic compilation...')
+      const compilationStart = Date.now()
 
       const pdfBuffer = await new Promise<Buffer>((resolve, reject) => {
         const tectonic = spawn(
@@ -106,14 +178,31 @@ export async function POST(request: NextRequest) {
         })
 
         tectonic.on('close', async (code) => {
+          const compilationTime = Date.now() - compilationStart
+
           if (code === 0) {
+            console.log(
+              `Tectonic compilation successful in ${compilationTime}ms`
+            )
+            console.info(
+              `Performance: ${cacheTier} (Expected: ${expectedTime}, Actual: ${compilationTime}ms)`
+            )
+
             try {
               const pdfData = await fs.readFile(expectedPdfPath)
+              console.log(
+                `PDF generated successfully (${pdfData.length} bytes)`
+              )
               resolve(pdfData)
             } catch (readError) {
+              console.error('Failed to read generated PDF:', readError)
               reject(new Error(`Failed to read generated PDF: ${readError}`))
             }
           } else {
+            console.error(
+              `Tectonic compilation failed with code ${code} after ${compilationTime}ms`
+            )
+            console.error('Stderr output:', errorOutput)
             reject(
               new Error(
                 `Tectonic process exited with code ${code}: ${errorOutput}`
@@ -123,6 +212,7 @@ export async function POST(request: NextRequest) {
         })
 
         tectonic.on('error', (error: Error & { code?: string }) => {
+          console.error('Tectonic process error:', error)
           if (error.code === 'ENOENT') {
             reject(
               new Error(
@@ -142,6 +232,12 @@ export async function POST(request: NextRequest) {
       // Clean up
       await fs.rm(tempDir, { recursive: true, force: true })
 
+      const totalTime = Date.now() - requestStart
+      console.info(
+        `PDF Request Completed in ${totalTime}ms (Cache: ${cacheTier})`
+      )
+      console.log('─'.repeat(60))
+
       return new NextResponse(pdfBuffer, {
         headers: {
           'Content-Type': 'application/pdf',
@@ -149,12 +245,16 @@ export async function POST(request: NextRequest) {
         },
       })
     } catch (error) {
+      console.error('PDF generation error:', error)
       // Clean up on error
       await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {})
       throw error
     }
   } catch (error) {
-    console.error('Tectonic compilation error:', error)
+    const totalTime = Date.now() - requestStart
+    console.error(`PDF Request Failed after ${totalTime}ms:`, error)
+    console.error('─'.repeat(60))
+
     return NextResponse.json(
       createErrorResponse([createError('server', 'Failed to compile PDF')]),
       { status: 500 }
