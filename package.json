@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "node scripts/download-tectonic.js && next build",
-    "vercel-build": "node scripts/download-tectonic.js && next build",
+    "build": "node scripts/download-tectonic.js && node scripts/warm-tectonic-cache.js && next build",
+    "vercel-build": "node scripts/download-tectonic.js && node scripts/warm-tectonic-cache.js && next build",
     "start": "next start",
     "lint": "next lint",
     "postinstall": "node scripts/download-tectonic.js"

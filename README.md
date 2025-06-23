@@ -118,9 +118,52 @@ ResuMint uses a modern, scalable Next.js architecture with intelligent caching a
 - **Skill Extraction**: Automatic skill detection from user descriptions
 
 ### Performance Optimizations
+
+ResuMint implements a multi-tier caching system to minimize PDF generation latency and eliminate the 3-8-second cold start delays:
+
+#### PDF Generation Cache Strategy
+
+**Cache Flow Decision Tree:**
+
+| Step | Condition | Action | Performance | Details |
+|------|-----------|--------|-------------|---------|
+| 1 | User requests PDF | → Check cache directories | - | API route `/api/create-pdf` |
+| 2 | Build cache exists? | ✅ Use build cache | ⚡ **Fast** (1-3s) | 493 packages pre-cached (~19MB) |
+| 3 | Runtime cache exists? | ✅ Use runtime cache | ⏱️ **Medium** (up to 4s) | Some packages cached |
+| 4 | No cache found | ❌ Download packages | 🐌 **Slow** (up to 8s) | Download + save to runtime cache |
+
+**Cache Directory Priority:**
+```
+1st Priority: /tmp/tectonic-build-cache     (Pre-warmed during deployment)
+2nd Priority: /tmp/tectonic-shared-cache    (Created on first request)
+3rd Fallback: Download fresh packages       (Cold start scenario)
+```
+
+#### Cache Tiers Explained
+
+1. **Build Cache (Pre-warmed)**
+   - **Created**: During deployment by `warm-tectonic-cache.js`
+   - **Contains**: 493 LaTeX packages (~19MB) used by resume templates
+   - **Performance**: ⚡ **Sub-3 second** PDF generation
+   - **Persistence**: Available immediately on server start
+
+2. **Runtime Cache (On-demand)**
+   - **Created**: By first PDF request when build cache is missing
+   - **Contains**: Packages downloaded during runtime
+   - **Performance**: ⏱️ **Medium speed** with some package downloads
+   - **Persistence**: Shared across requests in same container instance
+
+3. **Fallback Strategy**
+   - **Triggers**: When no cache exists (rare cold starts)
+   - **Behavior**: Downloads all packages fresh (~10 seconds)
+   - **Recovery**: Subsequent requests use newly created runtime cache
+
+#### Additional Optimizations
+
 - **Live Preview Service**: Debounced PDF generation with multi-tier caching
 - **Request Queue Management**: Handles concurrent requests with intelligent deduplication
 - **Local Storage Caching**: Persistent PDF caching for improved performance (utilizing blob size strategies)
+- **Cache Warming**: Automated package download during build process
 
 ## Project Structure
 

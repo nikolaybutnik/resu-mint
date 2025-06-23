@@ -36,20 +36,39 @@ export async function POST(request: NextRequest) {
       data.educationSection
     )
 
-    // Create unique temporary directory for output, but shared cache
+    // Create unique temporary directory for output per request
     const tempId = uuidv4()
     const tempDir = await fs.mkdtemp(
       path.join(os.tmpdir(), `resume-${tempId}-`)
     )
 
-    // Use shared cache directories (persist across requests)
+    // Runtime cache directories created during first PDF request if build cache not found (Medium)
+    // Shared across requests in same container
     const sharedCacheDir = path.join(os.tmpdir(), 'tectonic-shared-cache')
     const sharedXdgCacheDir = path.join(os.tmpdir(), 'xdg-shared-cache')
+
+    // Pre-warmed cache directories (Fastest)
+    const buildCacheDir = path.join(os.tmpdir(), 'tectonic-build-cache')
+    const buildXdgCacheDir = path.join(os.tmpdir(), 'xdg-build-cache')
+
+    // Use build cache if it exists (from cache warming), otherwise use shared cache
+    const cacheDir = (await fs
+      .access(buildCacheDir)
+      .then(() => true)
+      .catch(() => false))
+      ? buildCacheDir
+      : sharedCacheDir
+    const xdgCacheDir = (await fs
+      .access(buildXdgCacheDir)
+      .then(() => true)
+      .catch(() => false))
+      ? buildXdgCacheDir
+      : sharedXdgCacheDir
     const expectedPdfPath = path.join(tempDir, 'texput.pdf')
 
-    // Create shared cache directories if they don't exist
-    await fs.mkdir(sharedCacheDir, { recursive: true }).catch(() => {})
-    await fs.mkdir(sharedXdgCacheDir, { recursive: true }).catch(() => {})
+    // Create cache directories if they don't exist
+    await fs.mkdir(cacheDir, { recursive: true }).catch(() => {})
+    await fs.mkdir(xdgCacheDir, { recursive: true }).catch(() => {})
 
     try {
       try {
@@ -72,9 +91,9 @@ export async function POST(request: NextRequest) {
             stdio: ['pipe', 'pipe', 'pipe'],
             env: {
               ...process.env,
-              // Use shared cache directories for better performance
-              TECTONIC_CACHE_DIR: sharedCacheDir,
-              XDG_CACHE_HOME: sharedXdgCacheDir,
+              // Use cache directories for better performance
+              TECTONIC_CACHE_DIR: cacheDir,
+              XDG_CACHE_HOME: xdgCacheDir,
               HOME: tempDir, // Still use temp dir as home for other writes
             },
           }
