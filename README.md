@@ -119,7 +119,7 @@ ResuMint uses a modern, scalable Next.js architecture with intelligent caching a
 
 ### Performance Optimizations
 
-ResuMint implements a multi-tier caching system to minimize PDF generation latency and eliminate the 3-8-second cold start delays:
+ResuMint implements a multi-tier caching system to minimize PDF generation latency and eliminate cold start delays:
 
 #### PDF Generation Cache Strategy
 
@@ -128,34 +128,35 @@ ResuMint implements a multi-tier caching system to minimize PDF generation laten
 | Step | Condition | Action | Performance | Details |
 |------|-----------|--------|-------------|---------|
 | 1 | User requests PDF | → Check cache directories | - | API route `/api/create-pdf` |
-| 2 | Build cache exists? | ✅ Use build cache | ⚡ **Fast** (1-3s) | 493 packages pre-cached (~19MB) |
-| 3 | Runtime cache exists? | ✅ Use runtime cache | ⏱️ **Medium** (up to 4s) | Some packages cached |
-| 4 | No cache found | ❌ Download packages | 🐌 **Slow** (up to 8s) | Download + save to runtime cache |
+| 2 | Persistent cache exists? | ✅ Use persistent cache | ⚡ **Fast** (2-3s) | 496 packages pre-cached (~42MB) |
+| 3 | Runtime cache exists? | ✅ Use runtime cache | ⏱️ **Medium** (4-8s) | Some packages cached |
+| 4 | No cache found | ❌ Download packages | 🐌 **Slow** (8-12s) | Download + save to runtime cache |
 
 **Cache Directory Priority:**
 ```
-1st Priority: /tmp/tectonic-build-cache     (Pre-warmed during deployment)
-2nd Priority: /tmp/tectonic-shared-cache    (Created on first request)
-3rd Fallback: Download fresh packages       (Cold start scenario)
+1st Priority: .vercel-cache/tectonic-build-cache  (Persistent, deployed with app)
+2nd Priority: /tmp/tectonic-shared-cache          (Runtime, created on first request)
+3rd Fallback: Download fresh packages             (Cold start scenario)
 ```
 
 #### Cache Tiers Explained
 
-1. **Build Cache (Pre-warmed)**
-   - **Created**: During deployment by `warm-tectonic-cache.js`
-   - **Contains**: 493 LaTeX packages (~19MB) used by resume templates
-   - **Performance**: ⚡ **Sub-3 second** PDF generation
-   - **Persistence**: Available immediately on server start
+1. **Persistent Cache (Pre-warmed)**
+   - **Created**: During build process by `warm-tectonic-cache.js`
+   - **Contains**: 496 LaTeX packages (~42MB) including comprehensive font collections
+   - **Performance**: ⚡ **2-3 second** PDF generation
+   - **Persistence**: Deployed with application, available immediately
+   - **Environment**: ~19MB on local (macOS), ~42MB in production (Linux + fonts)
 
 2. **Runtime Cache (On-demand)**
-   - **Created**: By first PDF request when build cache is missing
+   - **Created**: By first PDF request when persistent cache is missing
    - **Contains**: Packages downloaded during runtime
-   - **Performance**: ⏱️ **Medium speed** with some package downloads
+   - **Performance**: ⏱️ **4-8 seconds** with some package downloads
    - **Persistence**: Shared across requests in same container instance
 
 3. **Fallback Strategy**
-   - **Triggers**: When no cache exists (rare cold starts)
-   - **Behavior**: Downloads all packages fresh (~10 seconds)
+   - **Triggers**: When no cache exists (rare scenarios)
+   - **Behavior**: Downloads all packages fresh (8-12 seconds)
    - **Recovery**: Subsequent requests use newly created runtime cache
 
 #### Additional Optimizations
@@ -163,7 +164,9 @@ ResuMint implements a multi-tier caching system to minimize PDF generation laten
 - **Live Preview Service**: Debounced PDF generation with multi-tier caching
 - **Request Queue Management**: Handles concurrent requests with intelligent deduplication
 - **Local Storage Caching**: Persistent PDF caching for improved performance (utilizing blob size strategies)
-- **Cache Warming**: Automated package download during build process
+- **Cache Warming**: Automated package download during build with fresh cache creation
+- **Environment Adaptation**: Cache size varies by environment (local vs production) for optimal resource usage
+- **Deployment Integration**: Cache included in deployment via Next.js `outputFileTracingIncludes`
 
 ## Project Structure
 

@@ -14,11 +14,6 @@ const nextConfig: NextConfig = {
     return config
   },
 
-  // Enable static file serving for PDF worker
-  experimental: {
-    esmExternals: 'loose',
-  },
-
   // Include Tectonic cache in deployment
   outputFileTracingIncludes: {
     '/api/create-pdf': ['.vercel-cache/**/*'],

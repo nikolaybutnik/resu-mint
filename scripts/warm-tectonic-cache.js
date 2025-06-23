@@ -337,20 +337,17 @@ async function warmCache() {
     )
     console.log(`   Total: ${tectonicFiles + xdgFiles} files, ${totalSizeMB}MB`)
 
-    // Warn if cache is unexpectedly large (should be ~20-25MB max)
-    if (totalSizeMB > 30) {
-      console.warn('⚠️  WARNING: Cache size is unexpectedly large!')
-      console.warn(`   Expected: ~20-25MB, Actual: ${totalSizeMB}MB`)
-      console.warn('   This may indicate cache accumulation across builds.')
+    // Only warn if cache is truly excessive (likely indicates a real problem)
+    if (totalSizeMB > 100) {
+      console.warn('WARNING: Cache size is unusually large!')
       console.warn(
-        '   Consider clearing the cache if deployment size is an issue.'
+        `   Size: ${totalSizeMB}MB (expected ~20-45MB depending on environment)`
       )
-    } else if (totalSizeMB > 25) {
       console.warn(
-        `⚠️  Cache size is above normal: ${totalSizeMB}MB (expected ~20MB)`
+        '   This may indicate a caching issue or excessive package downloads.'
       )
     } else {
-      console.log(`✅ Cache size is normal: ${totalSizeMB}MB`)
+      console.log(`Cache warming successful: ${totalSizeMB}MB`)
     }
   } catch (e) {
     console.log('   Cache directories created (unable to read detailed stats)')
