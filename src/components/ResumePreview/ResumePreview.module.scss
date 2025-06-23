@@ -111,6 +111,281 @@
   font-weight: 400;
 }
 
+.pdfControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: rgba($color-primary, 0.02);
+  border-bottom: 1px solid rgba($color-primary, 0.1);
+  gap: 10px;
+  flex-wrap: wrap;
+  position: relative;
+
+  @media (max-width: 768px) {
+    padding: 6px 12px;
+    gap: 6px;
+  }
+}
+
+.controlGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.controlButton {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: white;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 4px;
+  color: $color-text;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 30px;
+
+  &:hover:not(:disabled) {
+    background: rgba($color-primary, 0.05);
+    border-color: rgba($color-primary, 0.3);
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &.active {
+    background: $color-primary;
+    color: white;
+    border-color: $color-primary;
+
+    &:hover {
+      background: darken($color-primary, 5%);
+    }
+  }
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 12px;
+    min-height: 36px;
+    font-size: 14px;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
+  }
+}
+
+.zoomControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sliderToggle {
+  padding: 6px;
+  min-width: 30px;
+  justify-content: center;
+
+  @media (max-width: 768px) {
+    min-width: 36px;
+    padding: 8px;
+  }
+}
+
+.downloadButton {
+  background: $color-primary;
+  color: white;
+  border-color: $color-primary;
+
+  &:hover:not(:disabled) {
+    background: darken($color-primary, 8%);
+    border-color: darken($color-primary, 8%);
+  }
+
+  @media (max-width: 768px) {
+    span {
+      display: none; // Hide text on mobile, show only icon
+    }
+  }
+}
+
+.zoomLevel {
+  font-size: 13px;
+  font-weight: 600;
+  color: $color-text;
+  min-width: 45px;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    min-width: 50px;
+  }
+}
+
+.pageInfo {
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-text;
+  min-width: 55px;
+  text-align: center;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    min-width: 60px;
+  }
+}
+
+.zoomSliderContainer {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 280px;
+  padding: 12px;
+  background: white;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  @media (max-width: 768px) {
+    left: 8px;
+    right: 8px;
+    width: auto;
+    transform: none;
+    padding: 16px;
+    border-radius: 8px;
+  }
+}
+
+.zoomSlider {
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba($color-primary, 0.1);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+
+  @media (max-width: 768px) {
+    height: 8px;
+    border-radius: 4px;
+  }
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: $color-primary;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+
+    @media (max-width: 768px) {
+      width: 24px;
+      height: 24px;
+      border: 3px solid white;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+
+      @media (max-width: 768px) {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: $color-primary;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+
+    @media (max-width: 768px) {
+      width: 24px;
+      height: 24px;
+      border: 3px solid white;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    &:hover {
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+
+      @media (max-width: 768px) {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+      }
+    }
+  }
+
+  &::-webkit-slider-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: rgba($color-primary, 0.1);
+    border-radius: 2px;
+
+    @media (max-width: 768px) {
+      height: 8px;
+      border-radius: 4px;
+    }
+  }
+
+  &::-moz-range-track {
+    width: 100%;
+    height: 4px;
+    cursor: pointer;
+    background: rgba($color-primary, 0.1);
+    border-radius: 2px;
+    border: none;
+
+    @media (max-width: 768px) {
+      height: 8px;
+      border-radius: 4px;
+    }
+  }
+}
+
+.zoomSliderLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10px;
+  color: $color-disabled;
+
+  @media (max-width: 768px) {
+    font-size: 12px;
+  }
+}
+
 .previewContent {
   flex: 1;
   overflow: auto;
@@ -119,17 +394,66 @@
   flex-direction: column;
   align-items: flex-start;
   background: #f5f5f5;
-  min-width: 0; // Allow shrinking below content size
+  position: relative;
 
-  // PDF container
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
+
+  // Custom scrollbar styling
+  &::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  // Firefox scrollbar styling
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 0, 0, 0.2) rgba(0, 0, 0, 0.05);
+}
+
+.pdfContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  user-select: none;
+  flex-shrink: 0; // Prevent the container from shrinking
+  margin: 0 auto; // Center the container when it fits, allow scrolling when it doesn't
+
+  @media (max-width: 768px) {
+    gap: 10px;
+  }
+
+  // PDF Document container
   > div {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
-    min-width: max-content;
-    width: 100%;
-    margin: 0 auto;
+    flex-shrink: 0; // Prevent shrinking
+
+    @media (max-width: 768px) {
+      gap: 10px;
+    }
   }
 
   // Individual PDF pages
@@ -137,12 +461,20 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border-radius: 4px;
     background: white;
-    max-width: none; // Allow canvas to be wider than container
-    height: auto; // Maintain aspect ratio
+    flex-shrink: 0; // Prevent canvas from shrinking
   }
 
-  @media (max-width: 768px) {
-    padding: 10px;
+  // Only apply width constraints when fit-to-width is active
+  &.fitToWidth {
+    max-width: 100%;
+
+    @media (max-width: 768px) {
+      canvas {
+        max-width: 100%;
+        width: auto !important;
+        height: auto !important;
+      }
+    }
   }
 }
 
@@ -154,6 +486,8 @@
   padding: 60px 20px;
   text-align: center;
   color: $color-disabled;
+  width: 100%;
+  align-self: center;
 
   h3 {
     font-size: 20px;
