@@ -459,17 +459,17 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           <svg className={styles.progressRing}>
             <circle
               className={styles.progressBackground}
-              cx='30'
-              cy='30'
-              r='25'
+              cx='40'
+              cy='40'
+              r='35'
             />
             <circle
               className={styles.progressForeground}
-              cx='30'
-              cy='30'
-              r='25'
+              cx='40'
+              cy='40'
+              r='35'
             />
-            <circle className={styles.progressCenter} cx='30' cy='30' r='8' />
+            <circle className={styles.progressCenter} cx='40' cy='40' r='12' />
           </svg>
         </div>
       )}

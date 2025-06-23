@@ -143,7 +143,11 @@ const isResumeDataValid = (
   )
 }
 
-export const FormsContainer: React.FC = () => {
+interface FormsContainerProps {
+  view: string
+}
+
+export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const previousDescriptionsRef = useRef<string>('')
   const isInitialLoadRef = useRef(true)
 
@@ -151,7 +155,6 @@ export const FormsContainer: React.FC = () => {
   const [sessionId, setSessionId] = useState<string>('')
 
   // UI States
-  const [view, setView] = useState<string>(MOBILE_VIEW.INPUT)
   const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
   const [mintingResume, setMintingResume] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -593,21 +596,6 @@ export const FormsContainer: React.FC = () => {
         }`}
       >
         <ResumePreview resumeData={resumeData} isDataValid={isDataValid} />
-      </div>
-
-      <div className={styles.bottomNav}>
-        <button
-          className={styles.navItem}
-          onClick={() => setView(MOBILE_VIEW.INPUT)}
-        >
-          Input
-        </button>
-        <button
-          className={styles.navItem}
-          onClick={() => setView(MOBILE_VIEW.PREVIEW)}
-        >
-          Preview
-        </button>
       </div>
 
       {/* TODO: Temporarily hide the minting button. PDF download will be reworked as part of live preview feature */}

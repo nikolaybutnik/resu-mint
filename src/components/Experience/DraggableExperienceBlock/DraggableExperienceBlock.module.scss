@@ -30,7 +30,7 @@
 
 @keyframes progressRing {
   0% {
-    stroke-dashoffset: 157; // Circumference of circle (50 * 2 * π)
+    stroke-dashoffset: 220; // Circumference of circle (35 * 2 * π)
   }
   100% {
     stroke-dashoffset: 0;
@@ -566,24 +566,24 @@
   animation: progressFadeIn 0.15s ease-out forwards;
 
   .progressRing {
-    width: 60px;
-    height: 60px;
+    width: 80px;
+    height: 80px;
     transform: rotate(-90deg);
   }
 
   .progressBackground {
     fill: none;
     stroke: rgba($color-primary, 0.2);
-    stroke-width: 3;
+    stroke-width: 4;
   }
 
   .progressForeground {
     fill: none;
     stroke: $color-primary;
-    stroke-width: 3;
+    stroke-width: 4;
     stroke-linecap: round;
-    stroke-dasharray: 157;
-    stroke-dashoffset: 157;
+    stroke-dasharray: 220;
+    stroke-dashoffset: 220;
     animation: progressRing 0.6s ease-out forwards;
   }
 
