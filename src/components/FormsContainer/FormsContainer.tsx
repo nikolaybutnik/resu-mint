@@ -199,6 +199,7 @@ export const FormsContainer: React.FC = () => {
     jobDescriptionAnalysis
   )
 
+  // TODO: the endpoint is hit when reordering items. Find a way around this.
   useEffect(() => {
     const parseSkills = async () => {
       // Skip if still loading initial data or already parsing

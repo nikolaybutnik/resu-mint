@@ -6,6 +6,7 @@ import { generateLatex } from '@/lib/template/generateLatex'
 import { spawn } from 'child_process'
 import path from 'path'
 import fs from 'fs/promises'
+import { existsSync } from 'fs'
 import { v4 as uuidv4 } from 'uuid'
 import os from 'os'
 
@@ -51,9 +52,18 @@ export async function POST(request: NextRequest) {
     const sharedCacheDir = path.join(os.tmpdir(), 'tectonic-shared-cache')
     const sharedXdgCacheDir = path.join(os.tmpdir(), 'xdg-shared-cache')
 
-    // Pre-warmed cache directories (Fastest)
-    const buildCacheDir = path.join(os.tmpdir(), 'tectonic-build-cache')
-    const buildXdgCacheDir = path.join(os.tmpdir(), 'xdg-build-cache')
+    // Pre-warmed cache directories (Fastest) - check project directory first for Vercel persistence
+    const buildCacheDir = existsSync(
+      path.join(process.cwd(), '.vercel-cache', 'tectonic-build-cache')
+    )
+      ? path.join(process.cwd(), '.vercel-cache', 'tectonic-build-cache')
+      : path.join(os.tmpdir(), 'tectonic-build-cache')
+
+    const buildXdgCacheDir = existsSync(
+      path.join(process.cwd(), '.vercel-cache', 'xdg-build-cache')
+    )
+      ? path.join(process.cwd(), '.vercel-cache', 'xdg-build-cache')
+      : path.join(os.tmpdir(), 'xdg-build-cache')
 
     console.log('Checking cache availability...')
 

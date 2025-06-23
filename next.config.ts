@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
   experimental: {
     esmExternals: 'loose',
   },
+
+  // Include Tectonic cache in deployment
+  outputFileTracingIncludes: {
+    '/api/create-pdf': ['.vercel-cache/**/*'],
+  },
 }
 
 export default nextConfig

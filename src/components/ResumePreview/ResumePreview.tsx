@@ -8,15 +8,13 @@ import { livePreviewService } from '@/lib/services/livePreviewService'
 import { LIVE_PREVIEW } from '@/lib/constants'
 import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url
-).toString()
+// Use CDN for PDF.js worker to avoid build issues
+pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
 
 // Add cMap and standard font options for better compatibility
 const options = {
-  cMapUrl: '/cmaps/',
-  standardFontDataUrl: '/standard_fonts/',
+  cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
+  standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
 }
 
 interface ResumePreviewProps {

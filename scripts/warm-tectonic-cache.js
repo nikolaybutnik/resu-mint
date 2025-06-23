@@ -215,9 +215,17 @@ async function warmCache() {
     process.exit(1)
   }
 
-  // Create cache directories
-  const cacheDir = path.join(os.tmpdir(), 'tectonic-build-cache')
-  const xdgCacheDir = path.join(os.tmpdir(), 'xdg-build-cache')
+  // Create cache directories - use project directory instead of /tmp for Vercel persistence
+  const cacheDir = path.join(
+    process.cwd(),
+    '.vercel-cache',
+    'tectonic-build-cache'
+  )
+  const xdgCacheDir = path.join(
+    process.cwd(),
+    '.vercel-cache',
+    'xdg-build-cache'
+  )
 
   try {
     fs.mkdirSync(cacheDir, { recursive: true })

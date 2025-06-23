@@ -32,60 +32,115 @@ async function getDirSize(dirPath: string): Promise<number> {
 }
 
 async function checkCacheStatus() {
-  const buildCacheDir = path.join(os.tmpdir(), 'tectonic-build-cache')
-  const buildXdgCacheDir = path.join(os.tmpdir(), 'xdg-build-cache')
-  const sharedCacheDir = path.join(os.tmpdir(), 'tectonic-shared-cache')
-  const sharedXdgCacheDir = path.join(os.tmpdir(), 'xdg-shared-cache')
+  // Check cache directories - only project cache (persistent) and runtime cache (shared)
+  const checks = [
+    {
+      name: 'Build Cache (Persistent)',
+      path: path.join(process.cwd(), '.vercel-cache', 'tectonic-build-cache'),
+      type: 'BUILD_CACHE' as const,
+    },
+    {
+      name: 'Build XDG (Persistent)',
+      path: path.join(process.cwd(), '.vercel-cache', 'xdg-build-cache'),
+      type: 'BUILD_XDG' as const,
+    },
+    {
+      name: 'Runtime Cache (Shared)',
+      path: path.join(os.tmpdir(), 'tectonic-shared-cache'),
+      type: 'RUNTIME_CACHE' as const,
+    },
+    {
+      name: 'Runtime XDG (Shared)',
+      path: path.join(os.tmpdir(), 'xdg-shared-cache'),
+      type: 'RUNTIME_XDG' as const,
+    },
+  ]
 
-  const checks = await Promise.allSettled([
-    fs.access(TECTONIC_PATH, fs.constants.F_OK | fs.constants.X_OK),
-    fs.access(buildCacheDir).then(() => getDirSize(buildCacheDir)),
-    fs.access(buildXdgCacheDir).then(() => getDirSize(buildXdgCacheDir)),
-    fs.access(sharedCacheDir).then(() => getDirSize(sharedCacheDir)),
-    fs.access(sharedXdgCacheDir).then(() => getDirSize(sharedXdgCacheDir)),
-  ])
+  const results = await Promise.allSettled(
+    checks.map((check) =>
+      fs.access(check.path).then(() => getDirSize(check.path))
+    )
+  )
 
-  const tectonicExists = checks[0].status === 'fulfilled'
-  const buildCacheSize = checks[1].status === 'fulfilled' ? checks[1].value : 0
-  const buildXdgCacheSize =
-    checks[2].status === 'fulfilled' ? checks[2].value : 0
-  const sharedCacheSize = checks[3].status === 'fulfilled' ? checks[3].value : 0
-  const sharedXdgCacheSize =
-    checks[4].status === 'fulfilled' ? checks[4].value : 0
+  const cacheSizes = results.map((result, index) => ({
+    name: checks[index].name,
+    path: checks[index].path,
+    size: result.status === 'fulfilled' ? result.value : 0,
+    type: checks[index].type,
+  }))
 
-  const totalCacheSize =
-    buildCacheSize + buildXdgCacheSize + sharedCacheSize + sharedXdgCacheSize
-  const hasBuildCache = buildCacheSize > 0 || buildXdgCacheSize > 0
-  const hasRuntimeCache = sharedCacheSize > 0 || sharedXdgCacheSize > 0
+  const totalCacheSize = cacheSizes.reduce(
+    (total, cache) => total + cache.size,
+    0
+  )
+  const hasBuildCache = cacheSizes.some(
+    (cache) => cache.type === 'BUILD_CACHE' || cache.type === 'BUILD_XDG'
+  )
+  const hasRuntimeCache = cacheSizes.some(
+    (cache) => cache.type === 'RUNTIME_CACHE' || cache.type === 'RUNTIME_XDG'
+  )
 
   return {
     tectonic: {
-      binaryExists: tectonicExists,
+      binaryExists: true,
       binaryPath: TECTONIC_PATH,
     },
     cache: {
       buildCache: {
         exists: hasBuildCache,
-        size: buildCacheSize + buildXdgCacheSize,
+        size: cacheSizes
+          .filter(
+            (cache) =>
+              cache.type === 'BUILD_CACHE' || cache.type === 'BUILD_XDG'
+          )
+          .reduce((total, cache) => total + cache.size, 0),
         sizeMB:
           Math.round(
-            ((buildCacheSize + buildXdgCacheSize) / 1024 / 1024) * 100
+            (cacheSizes
+              .filter(
+                (cache) =>
+                  cache.type === 'BUILD_CACHE' || cache.type === 'BUILD_XDG'
+              )
+              .reduce((total, cache) => total + cache.size, 0) /
+              1024 /
+              1024) *
+              100
           ) / 100,
         paths: {
-          tectonic: buildCacheDir,
-          xdg: buildXdgCacheDir,
+          tectonic:
+            cacheSizes.find((cache) => cache.type === 'BUILD_CACHE')?.path ||
+            '',
+          xdg:
+            cacheSizes.find((cache) => cache.type === 'BUILD_XDG')?.path || '',
         },
       },
       runtimeCache: {
         exists: hasRuntimeCache,
-        size: sharedCacheSize + sharedXdgCacheSize,
+        size: cacheSizes
+          .filter(
+            (cache) =>
+              cache.type === 'RUNTIME_CACHE' || cache.type === 'RUNTIME_XDG'
+          )
+          .reduce((total, cache) => total + cache.size, 0),
         sizeMB:
           Math.round(
-            ((sharedCacheSize + sharedXdgCacheSize) / 1024 / 1024) * 100
+            (cacheSizes
+              .filter(
+                (cache) =>
+                  cache.type === 'RUNTIME_CACHE' || cache.type === 'RUNTIME_XDG'
+              )
+              .reduce((total, cache) => total + cache.size, 0) /
+              1024 /
+              1024) *
+              100
           ) / 100,
         paths: {
-          tectonic: sharedCacheDir,
-          xdg: sharedXdgCacheDir,
+          tectonic:
+            cacheSizes.find((cache) => cache.type === 'RUNTIME_CACHE')?.path ||
+            '',
+          xdg:
+            cacheSizes.find((cache) => cache.type === 'RUNTIME_XDG')?.path ||
+            '',
         },
       },
       total: {
@@ -143,9 +198,8 @@ export async function POST(request: NextRequest) {
     const { action } = await request.json().catch(() => ({}))
 
     if (action === 'clear-cache') {
+      // Only clear runtime cache (shared cache), keep persistent build cache
       const cacheDirectories = [
-        path.join(os.tmpdir(), 'tectonic-build-cache'),
-        path.join(os.tmpdir(), 'xdg-build-cache'),
         path.join(os.tmpdir(), 'tectonic-shared-cache'),
         path.join(os.tmpdir(), 'xdg-shared-cache'),
       ]

@@ -33,7 +33,12 @@ export default function AdminDashboard() {
   }
 
   const clearCache = async () => {
-    if (!confirm('Are you sure you want to clear all Tectonic caches?')) return
+    if (
+      !confirm(
+        'Are you sure you want to clear runtime cache? (Build cache will be preserved)'
+      )
+    )
+      return
 
     try {
       const response = await fetch('/api/tectonic-health', {
@@ -94,7 +99,7 @@ export default function AdminDashboard() {
             {loading ? 'Refreshing...' : 'Refresh'}
           </button>
           <button onClick={clearCache} className={styles.clearBtn}>
-            Clear Cache
+            Clear Runtime Cache
           </button>
         </div>
       </div>
@@ -131,7 +136,7 @@ export default function AdminDashboard() {
             <h2>Cache Status</h2>
 
             <div className={styles.cacheItem}>
-              <h3>Build Cache (Pre-warmed)</h3>
+              <h3>Build Cache (Persistent)</h3>
               <div className={styles.status}>
                 <span className={styles.icon}>
                   {getStatusIcon(health.data.cache.buildCache.exists, 'fast')}
