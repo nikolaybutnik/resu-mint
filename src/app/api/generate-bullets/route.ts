@@ -107,6 +107,14 @@ export async function POST(request: NextRequest) {
           'tiktoken unavailable, using fallback token estimation',
           error
         )
+        // Log more details for debugging in production
+        if (error instanceof Error) {
+          console.warn('tiktoken error details:', {
+            name: error.name,
+            message: error.message,
+            stack: error.stack?.split('\n').slice(0, 3).join('\n'), // First few lines only
+          })
+        }
       }
 
       let maxTokens: number
