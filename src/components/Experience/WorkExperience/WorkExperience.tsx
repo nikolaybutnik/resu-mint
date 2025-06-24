@@ -81,7 +81,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 750, // Long press for touch
+        delay: 850,
         tolerance: 15,
       },
     }),
