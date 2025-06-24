@@ -1,7 +1,7 @@
 import styles from './Skills.module.scss'
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { FaPlus, FaTimes } from 'react-icons/fa'
-import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
+import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 
 interface SkillsData {
   hardSkills: string[]

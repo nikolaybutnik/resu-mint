@@ -1,5 +1,5 @@
 import styles from './JobDescription.module.scss'
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
+import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { useDebouncedCallback } from '@/lib/clientUtils'
 import { useEffect, useState } from 'react'
 import { JobDescriptionAnalysis } from '@/lib/types/api'

@@ -6,7 +6,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { Document, Page, pdfjs } from 'react-pdf'
 import { livePreviewService } from '@/lib/services/livePreviewService'
 import { LIVE_PREVIEW } from '@/lib/constants'
-import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
+import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import {
   FiDownload,
   FiZoomIn,

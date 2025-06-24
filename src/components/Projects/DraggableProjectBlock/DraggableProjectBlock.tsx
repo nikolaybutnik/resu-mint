@@ -1,5 +1,5 @@
 import styles from './DraggableProjectBlock.module.scss'
-import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
+import { useCallback, useEffect, useState, useRef, useMemo } from 'react'
 import {
   FaPen,
   FaChevronDown,
@@ -18,6 +18,7 @@ import { AppSettings } from '@/lib/types/settings'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { KeywordData } from '@/lib/types/keywords'
+import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHandler'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
@@ -85,15 +86,15 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   const [localData, setLocalData] = useState<ProjectBlockData>(data)
   const [animationKey, setAnimationKey] = useState(0)
 
+  useEffect(() => {
+    setLocalData(data)
+  }, [data])
+
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id: data.id,
       disabled: isOverlay || isAnyBulletBeingEdited || isAnyBulletRegenerating,
     })
-
-  useEffect(() => {
-    setLocalData(data)
-  }, [data])
 
   const style = isOverlay
     ? { zIndex: 100 }
@@ -104,11 +105,11 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         opacity: isDragging ? 0 : 1,
       }
 
-  const handleToggleInclude = useCallback(() => {
+  const handleToggleInclude = () => {
     const updatedData = { ...localData, isIncluded: !localData.isIncluded }
     setLocalData(updatedData)
     onToggleInclude(data.id, updatedData.isIncluded)
-  }, [data.id, localData, onToggleInclude])
+  }
 
   const bulletPoints = useMemo(
     () => localData.bulletPoints,
@@ -166,7 +167,11 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         !localData.isIncluded ? styles.excluded : '',
       ].join(' ')}
     >
-      <div className={styles.draggableProjectBlock}>
+      <LongPressHandler
+        className={styles.draggableProjectBlock}
+        disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+        title='Long press to drag and reorder'
+      >
         <div className={styles.projectBlockContent}>
           <h3 className={styles.projectBlockHeader}>{data.title}</h3>
           {!localData.isIncluded && (
@@ -249,7 +254,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             )}
           </button>
         </div>
-      </div>
+      </LongPressHandler>
 
       {localData.bulletPoints.length > 0 && (
         <button

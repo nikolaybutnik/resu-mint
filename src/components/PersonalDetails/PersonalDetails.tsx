@@ -1,7 +1,7 @@
 import styles from './PersonalDetails.module.scss'
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useDebounce } from '@/lib/clientUtils'
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
+import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { personalDetailsSchema } from '@/lib/validationSchemas'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 

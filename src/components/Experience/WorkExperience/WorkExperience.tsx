@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { BulletPoint, ExperienceBlockData, Month } from '@/lib/types/experience'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import DraggableExperienceBlock from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
-import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
+import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import { AppSettings } from '@/lib/types/settings'
 import { BulletPointErrors } from '@/lib/types/errors'
@@ -15,9 +15,9 @@ import {
   DragOverlay,
   DragStartEvent,
   useSensors,
+  KeyboardSensor,
+  useSensor,
 } from '@dnd-kit/core'
-import { KeyboardSensor } from '@dnd-kit/core'
-import { useSensor } from '@dnd-kit/core'
 import {
   arrayMove,
   SortableContext,

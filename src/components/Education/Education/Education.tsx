@@ -1,5 +1,5 @@
 import styles from './Education.module.scss'
-import LoadingSpinner from '@/components/LoadingSpinner/LoadingSpinner'
+import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { DegreeStatus, EducationBlockData, Month } from '@/lib/types/education'
 import {
   closestCenter,

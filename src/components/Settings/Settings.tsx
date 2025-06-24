@@ -1,6 +1,6 @@
 import styles from './Settings.module.scss'
 import { useState, useEffect } from 'react'
-import LoadingSpinner from '../LoadingSpinner/LoadingSpinner'
+import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import {
   AppSettings,
   LanguageModel,

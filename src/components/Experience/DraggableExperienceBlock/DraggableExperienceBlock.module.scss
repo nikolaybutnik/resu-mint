@@ -557,39 +557,3 @@
     }
   }
 }
-
-.touchFeedback {
-  position: absolute;
-  pointer-events: none;
-  z-index: 10002;
-  transform: translate(-50%, -50%);
-  animation: progressFadeIn 0.15s ease-out forwards;
-
-  .progressRing {
-    width: 80px;
-    height: 80px;
-    transform: rotate(-90deg);
-  }
-
-  .progressBackground {
-    fill: none;
-    stroke: rgba($color-primary, 0.2);
-    stroke-width: 4;
-  }
-
-  .progressForeground {
-    fill: none;
-    stroke: $color-primary;
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-dasharray: 220;
-    stroke-dashoffset: 220;
-    animation: progressRing 0.6s ease-out forwards;
-  }
-
-  .progressCenter {
-    fill: rgba($color-primary, 0.1);
-    stroke: rgba($color-primary, 0.3);
-    stroke-width: 1;
-  }
-}
