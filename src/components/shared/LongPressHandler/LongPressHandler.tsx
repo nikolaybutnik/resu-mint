@@ -66,7 +66,7 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
         const resetTimer = setTimeout(() => {
           setIsLongPressing(false)
           setTouchFeedback(null)
-        }, 950) // 250ms delay + 600ms animation + 100ms buffer
+        }, 840) // 250ms delay + 580ms animation + 10ms buffer = completes before 850ms TouchSensor
 
         const cleanup = () => {
           clearTimeout(showAnimationTimer)
