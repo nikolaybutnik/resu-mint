@@ -28,26 +28,6 @@
   }
 }
 
-@keyframes progressRing {
-  0% {
-    stroke-dashoffset: 220; // Circumference of circle (35 * 2 * π)
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes progressFadeIn {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, -50%) scale(0.8);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(1);
-  }
-}
-
 .draggableExperienceBlockContainer {
   position: relative;
   border: 1px solid rgba($color-primary, 0.4);
@@ -145,7 +125,6 @@
   }
 
   &.longPressing {
-    transition: all 0.1s ease;
     border-color: $color-primary;
   }
 }

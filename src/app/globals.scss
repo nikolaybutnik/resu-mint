@@ -11,8 +11,6 @@
 
 /* Drag state styles */
 body.dragging-active {
-  overflow: hidden !important;
-  touch-action: none !important;
   user-select: none !important;
   cursor: grabbing !important;
   -webkit-user-select: none !important;
