@@ -1,5 +1,5 @@
 import styles from './DraggableExperienceBlock.module.scss'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   FaChevronDown,
   FaChevronUp,
@@ -80,6 +80,9 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   onLockToggleAll,
   onToggleInclude,
 }) => {
+  const isFirstRender = useRef(true)
+  const touchCleanupRef = useRef<(() => void) | null>(null)
+
   const [localData, setLocalData] = useState<ExperienceBlockData>(data)
   const [animationKey, setAnimationKey] = useState(0)
   const [isMobile, setIsMobile] = useState(false)
@@ -130,6 +133,14 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           setIsLongPressing(false)
           setTouchFeedback(null)
         }, 850) // 750ms + 100ms buffer
+
+        const cleanup = () => {
+          clearTimeout(showAnimationTimer)
+          clearTimeout(resetTimer)
+        }
+
+        // Store cleanup function in ref
+        touchCleanupRef.current = cleanup
       }
     },
     [isMobile, isAnyBulletBeingEdited, isAnyBulletRegenerating]
@@ -138,6 +149,11 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   const handleTouchEnd = useCallback(() => {
     setIsLongPressing(false)
     setTouchFeedback(null)
+
+    if (touchCleanupRef.current) {
+      touchCleanupRef.current()
+      touchCleanupRef.current = null
+    }
   }, [])
 
   const handleTouchMove = useCallback(
@@ -158,6 +174,11 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         if (distance > 15) {
           setIsLongPressing(false)
           setTouchFeedback(null)
+
+          if (touchCleanupRef.current) {
+            touchCleanupRef.current()
+            touchCleanupRef.current = null
+          }
         }
       }
     },
@@ -168,10 +189,15 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
     setLocalData(data)
   }, [data])
 
+  // Clear long press state when actual drag starts
   useEffect(() => {
     if (isDragging) {
       setIsLongPressing(false)
       setTouchFeedback(null)
+      if (touchCleanupRef.current) {
+        touchCleanupRef.current()
+        touchCleanupRef.current = null
+      }
     }
   }, [isDragging])
 
@@ -228,10 +254,11 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   const handleAllBulletsRegenerate = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation()
+      isFirstRender.current = false
       setAnimationKey((prev) => prev + 1)
       onRegenerateAllBullets()
     },
-    [onRegenerateAllBullets]
+    [data, onRegenerateAllBullets]
   )
 
   return (
