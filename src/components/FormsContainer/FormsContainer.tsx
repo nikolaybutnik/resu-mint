@@ -28,8 +28,7 @@ import {
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
-import saveAs from 'file-saver'
-import { api, pdfService } from '@/lib/services'
+import { api } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 
 const Tabs = {
@@ -156,7 +155,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
   // UI States
   const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
-  const [mintingResume, setMintingResume] = useState(false)
   const [loading, setLoading] = useState(true)
   const [analyzingJob, setAnalyzingJob] = useState(false)
   const [parsingSkills, setParsingSkills] = useState(false)
@@ -334,7 +332,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
         softSkills: string[]
       }
 
-      // Remove duplicates from loaded skills using normalized comparison but preserve original capitalization
       const deduplicatedSkills = {
         hardSkills: parsedSkills.hardSkills.filter(
           (skill, index, array) =>
@@ -361,29 +358,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     }
     setLoading(false)
   }, [])
-
-  const handleMintResume = async () => {
-    try {
-      setMintingResume(true)
-
-      const payload: CreatePdfRequest = {
-        personalDetails,
-        experienceSection: workExperience,
-        projectSection: projects,
-        educationSection: education,
-      }
-
-      const pdfBlob = await pdfService.createPdf(payload)
-      saveAs(
-        pdfBlob,
-        `${personalDetails.name.replace(/\s+/g, '-').toLowerCase()}-resume.pdf`
-      )
-    } catch (error) {
-      console.error('PDF creation error:', error)
-    } finally {
-      setMintingResume(false)
-    }
-  }
 
   const handleJobDescriptionSave = async (data: string) => {
     setJobDescription(data)
@@ -460,23 +434,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     },
     []
   )
-
-  const shouldDisableMintButton = useMemo(() => {
-    return (
-      mintingResume ||
-      analyzingJob ||
-      !jobDescription ||
-      !jobDescriptionAnalysis ||
-      !personalDetails.name ||
-      !personalDetails.email
-    )
-  }, [
-    mintingResume,
-    analyzingJob,
-    jobDescription,
-    jobDescriptionAnalysis,
-    personalDetails,
-  ])
 
   // Memoize fairly stable states. States like projects and experience are updated too often.
   const memoizedSettings = useMemo(() => settings, [settings])
@@ -597,17 +554,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       >
         <ResumePreview resumeData={resumeData} isDataValid={isDataValid} />
       </div>
-
-      {/* TODO: Temporarily hide the minting button. PDF download will be reworked as part of live preview feature */}
-      <button
-        type='button'
-        className={styles.mintButton}
-        style={{ display: 'none' }}
-        disabled={shouldDisableMintButton}
-        onClick={handleMintResume}
-      >
-        {mintingResume ? 'Minting...' : 'Mint Resume!'}
-      </button>
     </div>
   )
 }

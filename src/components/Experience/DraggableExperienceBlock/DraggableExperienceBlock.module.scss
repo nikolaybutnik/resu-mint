@@ -133,15 +133,15 @@
   align-items: center;
   flex-wrap: wrap;
   cursor: grab;
-  overflow: hidden; // Clip content but allow parent to overflow for touch feedback
-  border-radius: 6px; // Match parent border radius
+  overflow: hidden;
+  border-radius: 6px;
 
   &:active {
     cursor: grabbing;
   }
 
   @media (max-width: 768px) {
-    cursor: default; // Default cursor on mobile, drag requires long press
+    cursor: default;
   }
 
   &.longPressing {

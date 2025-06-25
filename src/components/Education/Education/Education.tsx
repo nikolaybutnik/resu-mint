@@ -8,10 +8,10 @@ import {
   DragOverlay,
   DragStartEvent,
   useSensors,
+  useSensor,
+  KeyboardSensor,
 } from '@dnd-kit/core'
-import { useSensor } from '@dnd-kit/core'
-import { KeyboardSensor } from '@dnd-kit/core'
-import { PointerSensor } from '@/lib/clientUtils'
+import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import {
   arrayMove,
   SortableContext,
@@ -41,15 +41,34 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
   const [isDropping, setIsDropping] = useState(false)
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: {
-        distance: 8,
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 750,
+        tolerance: 15,
       },
     }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  useEffect(() => {
+    if (activeId) {
+      document.body.classList.add('dragging-active')
+    } else {
+      document.body.classList.remove('dragging-active')
+    }
+
+    return () => {
+      document.body.classList.remove('dragging-active')
+    }
+  }, [activeId])
 
   useEffect(() => {
     setLocalData(data)

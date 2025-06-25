@@ -9,17 +9,23 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease,
     background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
-  overflow: hidden;
+  overflow: visible;
   min-width: 0;
-  touch-action: none;
+  touch-action: manipulation;
 
   &.isDragging {
     background-color: $color-action-item-background;
     opacity: 0.95;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-    cursor: grabbing;
+    cursor: grabbing !important;
     border-color: $color-primary;
     transform: scale(1.02);
+    touch-action: none;
+    user-select: none;
+
+    * {
+      cursor: grabbing !important;
+    }
   }
 
   &.excluded {
@@ -64,7 +70,22 @@
   gap: 8px;
   align-items: center;
   flex-wrap: wrap;
-  cursor: ns-resize;
+  cursor: grab;
+  overflow: hidden;
+  border-radius: 6px;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  @media (max-width: 768px) {
+    cursor: default;
+  }
+
+  &.longPressing {
+    transition: all 0.1s ease;
+    border-color: $color-primary;
+  }
 }
 
 .educationBlockContent {
@@ -93,6 +114,16 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+}
+
+.educationBlockLocation {
+  font-size: 13px;
+  color: $color-disabled;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.8;
 }
 
 .educationBlockDate {

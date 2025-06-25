@@ -4,6 +4,7 @@ import { FaPen, FaEye, FaEyeSlash } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { DegreeStatus, EducationBlockData } from '@/lib/types/education'
+import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHandler'
 
 interface DraggableEducationBlockProps {
   data: EducationBlockData
@@ -38,7 +39,8 @@ const DraggableEducationBlock: React.FC<DraggableEducationBlockProps> = ({
         transform: CSS.Translate.toString(transform),
         transition: isDropping || isDragging ? 'none' : 'transform 0.2s ease',
         zIndex: isDragging ? 10 : 1,
-        opacity: isDragging ? 0 : 1,
+        opacity: isDragging ? 0.5 : 1,
+        touchAction: isDragging ? 'none' : 'manipulation',
       }
 
   const handleToggleInclude = useCallback(() => {
@@ -97,7 +99,11 @@ const DraggableEducationBlock: React.FC<DraggableEducationBlockProps> = ({
         !localData.isIncluded ? styles.excluded : '',
       ].join(' ')}
     >
-      <div className={styles.draggableEducationBlock}>
+      <LongPressHandler
+        className={styles.draggableEducationBlock}
+        disabled={false}
+        title='Long press to drag and reorder'
+      >
         <div className={styles.educationBlockContent}>
           <h3 className={styles.educationBlockHeader}>{data.institution}</h3>
           {!localData.isIncluded && (
@@ -146,7 +152,7 @@ const DraggableEducationBlock: React.FC<DraggableEducationBlockProps> = ({
             )}
           </button>
         </div>
-      </div>
+      </LongPressHandler>
     </div>
   )
 }
