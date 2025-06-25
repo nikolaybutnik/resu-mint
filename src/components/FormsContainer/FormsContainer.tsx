@@ -63,6 +63,15 @@ const tabs = [
   { id: Tabs.SETTINGS, label: 'Settings' },
 ]
 
+const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
+  if (arr1?.length !== arr2?.length) return false
+
+  const sorted1 = [...arr1].sort()
+  const sorted2 = [...arr2].sort()
+
+  return sorted1.every((item, index) => item === sorted2[index])
+}
+
 const initialPersonalDetails: PersonalDetailsType = {
   name: '',
   email: '',
@@ -147,7 +156,10 @@ interface FormsContainerProps {
 }
 
 export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
-  const previousDescriptionsRef = useRef<string>('')
+  const previousDescriptionsRef = useRef<{
+    experience: string[]
+    projects: string[]
+  }>({ experience: [], projects: [] })
   const isInitialLoadRef = useRef(true)
 
   // Application States
@@ -200,45 +212,61 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     jobDescriptionAnalysis
   )
 
-  // TODO: the endpoint is hit when reordering items. Find a way around this.
   useEffect(() => {
     const parseSkills = async () => {
-      // Skip if still loading initial data or already parsing
       if (loading || parsingSkills) return
-
-      setParsingSkills(true)
 
       const experienceSectionDescriptions: string[] = workExperience
         .filter((experience) => experience.isIncluded)
         .map((experience) => experience.description.trim())
+        .filter((desc) => desc.length)
+
       const projectSectionDescriptions: string[] = projects
         .filter((project) => project.isIncluded)
         .map((project) => project.description.trim())
+        .filter((desc) => desc.length)
+
+      // Skip on first run after loading completes - just set the reference
+      if (isInitialLoadRef.current) {
+        isInitialLoadRef.current = false
+        previousDescriptionsRef.current = {
+          experience: experienceSectionDescriptions,
+          projects: projectSectionDescriptions,
+        }
+        return
+      }
+
+      const previousExperience = previousDescriptionsRef.current.experience
+      const previousProjects = previousDescriptionsRef.current.projects
+
+      const experienceUnchanged = arraysHaveSameElements(
+        experienceSectionDescriptions,
+        previousExperience
+      )
+      const projectsUnchanged = arraysHaveSameElements(
+        projectSectionDescriptions,
+        previousProjects
+      )
+
+      if (experienceUnchanged && projectsUnchanged) {
+        return
+      }
+
+      previousDescriptionsRef.current = {
+        experience: experienceSectionDescriptions,
+        projects: projectSectionDescriptions,
+      }
 
       const combinedDescriptions = [
         ...experienceSectionDescriptions,
         ...projectSectionDescriptions,
       ]
-        .filter((desc) => desc.length > 0)
         .join('\n')
         .trim()
 
-      // Skip on first run after loading completes - just set the reference
-      if (isInitialLoadRef.current) {
-        isInitialLoadRef.current = false
-        previousDescriptionsRef.current = combinedDescriptions
-        setParsingSkills(false)
-        return
-      }
-
-      if (combinedDescriptions === previousDescriptionsRef.current) {
-        setParsingSkills(false)
-        return
-      }
-
-      previousDescriptionsRef.current = combinedDescriptions
-
       try {
+        setParsingSkills(true)
+
         const payload: ParseSectionSkillsRequest = {
           sectionDescriptions: combinedDescriptions,
           settings,
