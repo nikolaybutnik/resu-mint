@@ -1,6 +1,7 @@
 'use client'
 
 import styles from './FormsContainer.module.scss'
+import resumePreviewStyles from '@/components/ResumePreview/ResumePreview.module.scss'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData } from '@/lib/types/experience'
@@ -30,6 +31,9 @@ import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
 import { api } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
+import { FiDownload } from 'react-icons/fi'
+import saveAs from 'file-saver'
+import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -151,6 +155,57 @@ const isResumeDataValid = (
   )
 }
 
+const getSafariVersion = (): string | null => {
+  if (typeof window === 'undefined') return null
+
+  const userAgent = navigator.userAgent
+  const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent)
+
+  if (!isSafari) return null
+
+  const versionMatch = userAgent.match(/Version\/(\d+)\.(\d+)/)
+  if (!versionMatch) return null
+
+  return `${versionMatch[1]}.${versionMatch[2]}`
+}
+
+const isUnsupportedSafari = (): boolean => {
+  if (typeof window === 'undefined') return false
+
+  const userAgent = navigator.userAgent
+  const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent)
+
+  if (!isSafari) return false
+
+  const versionMatch = userAgent.match(/Version\/(\d+)\.(\d+)/)
+  if (!versionMatch) return false
+
+  const majorVersion = parseInt(versionMatch[1], 10)
+  const minorVersion = parseInt(versionMatch[2], 10)
+
+  // Only Safari 16.4+ is supported
+  return majorVersion < 16 || (majorVersion === 16 && minorVersion <= 3)
+}
+
+const handleDownload = async (resumeData: CreatePdfRequest): Promise<void> => {
+  if (!resumeData) return
+
+  try {
+    const blob = await api.post<CreatePdfRequest, Blob>(
+      ROUTES.CREATE_PDF,
+      resumeData
+    )
+
+    const fileName = `${
+      resumeData.personalDetails?.name?.replace(/\s+/g, '_') || 'resume'
+    }_${new Date().toISOString().split('T')[0]}.pdf`
+
+    saveAs(blob, fileName)
+  } catch (error) {
+    console.error('Download failed:', error)
+  }
+}
+
 interface FormsContainerProps {
   view: string
 }
@@ -170,6 +225,8 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const [loading, setLoading] = useState(true)
   const [analyzingJob, setAnalyzingJob] = useState(false)
   const [parsingSkills, setParsingSkills] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+  const [safariUnsupported, setSafariUnsupported] = useState(false)
 
   // Form States
   const [jobDescription, setJobDescription] = useState<string>(
@@ -191,6 +248,11 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     hardSkills: string[]
     softSkills: string[]
   }>(initialSkills)
+
+  useEffect(() => {
+    setIsClient(true)
+    setSafariUnsupported(isUnsupportedSafari())
+  }, [])
 
   // Placeholder until user authentication is implemented
   useEffect(() => {
@@ -580,7 +642,48 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           view === MOBILE_VIEW.PREVIEW ? styles.active : ''
         }`}
       >
-        <ResumePreview resumeData={resumeData} isDataValid={isDataValid} />
+        {!isClient ? (
+          <div className={resumePreviewStyles.preview}>
+            <div className={resumePreviewStyles.previewHeader}>
+              <h2>Live Preview</h2>
+            </div>
+            <div className={resumePreviewStyles.previewContent}>
+              <div className={resumePreviewStyles.emptyState}>
+                <LoadingSpinner size='lg' text='Loading PDF viewer...' />
+              </div>
+            </div>
+          </div>
+        ) : safariUnsupported ? (
+          <div className={resumePreviewStyles.preview}>
+            <div className={resumePreviewStyles.previewHeader}>
+              <h2>Live Preview</h2>
+            </div>
+            <div className={resumePreviewStyles.previewContent}>
+              <div className={resumePreviewStyles.emptyState}>
+                <h3>Browser Not Supported</h3>
+                <p>
+                  Safari {getSafariVersion()} is not supported for PDF preview.
+                </p>
+                <p>
+                  Please upgrade to Safari 16.4+ or use Brave/Firefox/Chrome for
+                  the best experience.
+                </p>
+                {isDataValid && resumeData && (
+                  <button
+                    onClick={() => handleDownload(resumeData)}
+                    className={`${resumePreviewStyles.controlButton} ${resumePreviewStyles.downloadButton}`}
+                    style={{ marginTop: '1rem' }}
+                  >
+                    <FiDownload />
+                    <span>Download PDF</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <ResumePreview resumeData={resumeData} isDataValid={isDataValid} />
+        )}
       </div>
     </div>
   )

@@ -3,7 +3,6 @@
 import { CreatePdfRequest } from '@/lib/types/api'
 import styles from './ResumePreview.module.scss'
 import React, { useEffect, useState, useRef, useCallback } from 'react'
-import { Document, Page, pdfjs } from 'react-pdf'
 import { livePreviewService } from '@/lib/services/livePreviewService'
 import { LIVE_PREVIEW } from '@/lib/constants'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
@@ -17,14 +16,45 @@ import {
   FiSliders,
 } from 'react-icons/fi'
 import saveAs from 'file-saver'
+import type { DocumentProps, PageProps } from 'react-pdf'
 
-// Use CDN for PDF.js worker to avoid build issues
-pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`
+interface PdfOptions {
+  cMapUrl: string
+  standardFontDataUrl: string
+}
 
-// Add cMap and standard font options for better compatibility
-const options = {
-  cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/cmaps/`,
-  standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjs.version}/standard_fonts/`,
+interface PdfComponents {
+  Document: React.ComponentType<DocumentProps>
+  Page: React.ComponentType<PageProps>
+  pdfjs: typeof import('pdfjs-dist')
+  options: PdfOptions
+}
+
+const initializePdfjs = async (): Promise<PdfComponents> => {
+  try {
+    const {
+      pdfjs: pdfjsLib,
+      Document: DocumentComponent,
+      Page: PageComponent,
+    } = await import('react-pdf')
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`
+
+    const pdfOptions: PdfOptions = {
+      cMapUrl: `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/cmaps/`,
+      standardFontDataUrl: `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/standard_fonts/`,
+    }
+
+    return {
+      pdfjs: pdfjsLib,
+      Document: DocumentComponent,
+      Page: PageComponent,
+      options: pdfOptions,
+    }
+  } catch (error) {
+    console.error('Failed to initialize PDF.js:', error)
+    throw new Error('PDF viewer is not supported in this browser')
+  }
 }
 
 interface ResumePreviewProps {
@@ -48,11 +78,28 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   const [fitToWidth, setFitToWidth] = useState<boolean>(false)
   const [showZoomSlider, setShowZoomSlider] = useState<boolean>(false)
   const [lastGenerated, setLastGenerated] = useState<Date | null>(null)
+  const [pdfjsReady, setPdfjsReady] = useState(false)
+  const [pdfComponents, setPdfComponents] = useState<PdfComponents | null>(null)
 
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const currentRequestIdRef = useRef<number>(0)
   const previewContentRef = useRef<HTMLDivElement>(null)
   const pdfContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const components = await initializePdfjs()
+        setPdfComponents(components)
+        setPdfjsReady(true)
+      } catch (err) {
+        console.error('PDF.js initialization failed:', err)
+        setError('PDF viewer is not supported in this browser')
+      }
+    }
+
+    init()
+  }, [])
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }): void => {
     setNumPages(numPages)
@@ -74,7 +121,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
 
   const handleZoomIn = (): void => {
     if (fitToWidth) {
-      // When exiting fit-to-width, go to the closest larger standard zoom level
       const closestIndex = ZOOM_LEVELS.findIndex((level) => level > zoom)
       const targetIndex = Math.min(
         closestIndex >= 0 ? closestIndex : ZOOM_LEVELS.length - 1,
@@ -91,7 +137,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
 
   const handleZoomOut = (): void => {
     if (fitToWidth) {
-      // When exiting fit-to-width, go to the closest smaller standard zoom level
       const closestIndex = ZOOM_LEVELS.findIndex((level) => level > zoom)
       const targetIndex = Math.max(
         (closestIndex > 0 ? closestIndex : ZOOM_LEVELS.length) - 1,
@@ -126,7 +171,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       return Math.max(MIN_ZOOM, Math.min(calculatedZoom, MAX_ZOOM))
     }
 
-    // Fallback: US Letter width is 8.5 inches at 96 DPI = 816 pixels
     const standardPageWidth = 8.5 * 96
     const calculatedZoom = availableWidth / standardPageWidth
     return Math.max(MIN_ZOOM, Math.min(calculatedZoom, MAX_ZOOM))
@@ -167,7 +211,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
 
     const requestId = ++currentRequestIdRef.current
 
-    // Clear any existing debounce timer
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
     }
@@ -175,9 +218,7 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
     setIsDebouncing(true)
     setError(null)
 
-    // Delay is shorter than the actual request debounce to update the UI faster
     debounceTimerRef.current = setTimeout(() => {
-      // Only update state if this is still the current request
       if (requestId === currentRequestIdRef.current) {
         setIsDebouncing(false)
         setIsGenerating(true)
@@ -189,14 +230,12 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
         debounceMs: LIVE_PREVIEW.DEBOUNCE_MS,
       })
 
-      // Only update if we got a blob and we're still on the current request
       if (blob && requestId === currentRequestIdRef.current) {
         setPdfBlob(blob)
         setLastGenerated(new Date())
         setError(null)
       }
     } catch (err) {
-      // Don't show cancellation errors to user - they're expected during rapid changes
       const isAbortError =
         err instanceof Error &&
         (err.name === 'AbortError' ||
@@ -204,20 +243,13 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
           err.message.includes('Request superseded') ||
           err.message.includes('signal is aborted'))
 
-      // Only update error state if we're still on the current request
       if (!isAbortError && requestId === currentRequestIdRef.current) {
         console.error('Preview generation error:', err)
         setError(
           err instanceof Error ? err.message : 'Failed to generate preview'
         )
-      } else if (isAbortError) {
-        console.info(
-          'Request cancelled due to newer request. This is expected behavior.'
-        )
       }
     } finally {
-      // Only reset loading states if this request is still current
-      // AND no newer request has started since this one began
       if (requestId === currentRequestIdRef.current) {
         setIsGenerating(false)
         setIsDebouncing(false)
@@ -230,11 +262,9 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
     }
   }
 
-  // Auto-generate when data changes
   useEffect(() => {
     generatePreview()
 
-    // Cleanup on unmount
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
@@ -244,7 +274,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   }, [resumeData, isDataValid])
 
   const renderHeaderStatus = (): React.ReactElement => {
-    // Priority order: error > updating states > missing requirements > last updated
     if (error) {
       return (
         <div className={styles.statusIndicator} data-status='error'>
@@ -266,7 +295,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       )
     }
 
-    // Check specific requirements and provide targeted feedback
     if (!isDataValid && resumeData) {
       const personalDetails = resumeData.personalDetails
       const hasName = !!personalDetails?.name?.trim()
@@ -275,7 +303,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
         resumeData.experienceSection?.some((exp) => exp.isIncluded) ||
         resumeData.projectSection?.some((proj) => proj.isIncluded)
 
-      // Priority order for missing requirements
       if (!hasName) {
         return (
           <div className={styles.statusIndicator} data-status='info'>
@@ -300,7 +327,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
         )
       }
 
-      // If we have personal details and content but still invalid, must be job description
       return (
         <div className={styles.statusIndicator} data-status='info'>
           <span>Add job description to continue</span>
@@ -308,7 +334,6 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       )
     }
 
-    // Fallback for when no resumeData exists yet
     if (!isDataValid) {
       return (
         <div className={styles.statusIndicator} data-status='info'>
@@ -333,7 +358,7 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   }
 
   const renderPdfControls = (): React.ReactElement | null => {
-    if (!pdfBlob || error) return null
+    if (!pdfBlob || error || !pdfjsReady) return null
 
     return (
       <div className={styles.pdfControls}>
@@ -446,32 +471,40 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       {renderPdfControls()}
 
       <div className={styles.previewContent} ref={previewContentRef}>
-        {pdfBlob && (
+        {pdfBlob && pdfjsReady && pdfComponents && (
           <div
             className={`${styles.pdfContainer} ${
               fitToWidth ? styles.fitToWidth : ''
             }`}
             ref={pdfContainerRef}
           >
-            <Document
+            <pdfComponents.Document
               file={pdfBlob}
-              options={options}
+              options={pdfComponents.options}
               onLoadSuccess={onDocumentLoadSuccess}
               onLoadError={onDocumentLoadError}
-              loading={<LoadingSpinner size='lg' />}
+              loading={
+                <LoadingSpinner size='lg' text='Loading PDF viewer...' />
+              }
             >
-              <Page
+              <pdfComponents.Page
                 key={`page_${currentPage}`}
                 pageNumber={currentPage}
                 scale={zoom}
                 renderTextLayer={false}
                 renderAnnotationLayer={false}
               />
-            </Document>
+            </pdfComponents.Document>
           </div>
         )}
 
-        {!pdfBlob && !error && (
+        {!pdfjsReady && !error && (
+          <div className={styles.emptyState}>
+            <LoadingSpinner size='lg' text='Loading PDF viewer...' />
+          </div>
+        )}
+
+        {!pdfBlob && !error && pdfjsReady && (
           <div className={styles.emptyState}>
             <h3>Resume Preview</h3>
             <p>
