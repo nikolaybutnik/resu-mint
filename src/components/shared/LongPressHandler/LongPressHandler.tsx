@@ -58,15 +58,15 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
 
         setIsLongPressing(true)
 
-        // Wait 250ms before showing animation to differentiate from swipe
+        // Wait 150ms before showing animation to differentiate from swipe
         const showAnimationTimer = setTimeout(() => {
           setTouchFeedback({ x, y, show: true })
-        }, 250)
+        }, 150)
 
         const resetTimer = setTimeout(() => {
           setIsLongPressing(false)
           setTouchFeedback(null)
-        }, 840) // 250ms delay + 580ms animation + 10ms buffer = completes before 850ms TouchSensor
+        }, 850) // 750ms + 100ms buffer
 
         const cleanup = () => {
           clearTimeout(showAnimationTimer)
