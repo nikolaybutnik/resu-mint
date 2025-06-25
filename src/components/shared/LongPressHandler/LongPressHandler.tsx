@@ -29,6 +29,7 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
   onClick,
 }) => {
   const touchCleanupRef = useRef<(() => void) | null>(null)
+  const initialScrollRef = useRef<{ x: number; y: number } | null>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [isLongPressing, setIsLongPressing] = useState(false)
   const [touchFeedback, setTouchFeedback] = useState<TouchFeedback | null>(null)
@@ -56,6 +57,12 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
         const x = touch.clientX - rect.left
         const y = touch.clientY - rect.top
 
+        // Store initial scroll position
+        initialScrollRef.current = {
+          x: window.scrollX,
+          y: window.scrollY,
+        }
+
         setIsLongPressing(true)
 
         // Wait 150ms before showing animation to differentiate from swipe
@@ -66,11 +73,13 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
         const resetTimer = setTimeout(() => {
           setIsLongPressing(false)
           setTouchFeedback(null)
+          initialScrollRef.current = null
         }, 850) // 750ms + 100ms buffer
 
         const cleanup = () => {
           clearTimeout(showAnimationTimer)
           clearTimeout(resetTimer)
+          initialScrollRef.current = null
         }
 
         // Store cleanup function in ref
@@ -87,6 +96,7 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
     (e: React.TouchEvent) => {
       setIsLongPressing(false)
       setTouchFeedback(null)
+      initialScrollRef.current = null
 
       if (touchCleanupRef.current) {
         touchCleanupRef.current()
@@ -101,6 +111,27 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
 
   const handleTouchMove = useCallback(
     (e: React.TouchEvent) => {
+      if (initialScrollRef.current) {
+        const currentScrollX = window.scrollX
+        const currentScrollY = window.scrollY
+        const scrollDistance = Math.sqrt(
+          Math.pow(currentScrollX - initialScrollRef.current.x, 2) +
+            Math.pow(currentScrollY - initialScrollRef.current.y, 2)
+        )
+
+        // Cancel if page has scrolled more than 5px
+        if (scrollDistance > 5) {
+          setIsLongPressing(false)
+          setTouchFeedback(null)
+
+          if (touchCleanupRef.current) {
+            touchCleanupRef.current()
+            touchCleanupRef.current = null
+          }
+          return
+        }
+      }
+
       // If user moves finger too much, cancel the long press
       if (touchFeedback) {
         const touch = e.touches[0]
