@@ -1,3 +1,4 @@
+import styles from './EditableEducationBlock.module.scss'
 import React, { memo, useMemo, useCallback, useState, useEffect } from 'react'
 import { useDebounce } from '@/lib/clientUtils'
 import { FaXmark } from 'react-icons/fa6'
@@ -5,13 +6,12 @@ import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { educationBlockSchema } from '@/lib/validationSchemas'
 import { Month, EducationBlockData, DegreeStatus } from '@/lib/types/education'
 import { isEqual } from 'lodash'
-import styles from './EditableEducationBlock.module.scss'
 
 interface EditableEducationBlockProps {
   data: EducationBlockData
   isNew: boolean
   onDelete: (id: string) => void
-  onClose: () => void
+  onClose: (() => void) | undefined
   onSave: (data: EducationBlockData) => void
 }
 
@@ -241,9 +241,15 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             Delete
           </button>
         )}
-        <button type='button' onClick={onClose} className={styles.closeButton}>
-          <FaXmark />
-        </button>
+        {onClose && (
+          <button
+            type='button'
+            onClick={onClose}
+            className={styles.closeButton}
+          >
+            <FaXmark />
+          </button>
+        )}
       </header>
 
       <div>

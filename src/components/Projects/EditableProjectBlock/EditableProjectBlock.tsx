@@ -26,7 +26,7 @@ interface EditableProjectBlockProps {
   regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
   onDelete: (id: string) => void
-  onClose: () => void
+  onClose: (() => void) | undefined
   onSave: (data: ProjectBlockData) => void
   onRegenerateBullet: (
     sectionId: string,
@@ -307,9 +307,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             Delete
           </button>
         )}
-        <button type='button' className={styles.closeButton} onClick={onClose}>
-          <FaXmark />
-        </button>
+        {onClose && (
+          <button
+            type='button'
+            className={styles.closeButton}
+            onClick={onClose}
+          >
+            <FaXmark />
+          </button>
+        )}
       </header>
 
       <div className={styles.projectDetails}>

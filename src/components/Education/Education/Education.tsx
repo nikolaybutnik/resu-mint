@@ -74,6 +74,12 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
     setLocalData(data)
   }, [data])
 
+  useEffect(() => {
+    if (localData.length === 0 && !selectedBlockId && !newBlockId && !loading) {
+      handleSectionAdd()
+    }
+  }, [localData.length, selectedBlockId, newBlockId, loading])
+
   const handleSectionDelete = useCallback(
     (id: string) => {
       const updatedData = localData.filter((education) => education.id !== id)
@@ -166,6 +172,52 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
     [localData, activeId]
   )
 
+  const renderEditableBlock = (
+    education: EducationBlockData,
+    existingBlocks: EducationBlockData[]
+  ) => {
+    const isNew = education.id === newBlockId
+    const showCloseButton = existingBlocks.length > 1 || !isNew
+
+    return (
+      <EditableEducationBlock
+        key={education.id}
+        data={education}
+        isNew={isNew}
+        onDelete={handleSectionDelete}
+        onClose={showCloseButton ? handleSectionClose : undefined}
+        onSave={handleEducationSave}
+      />
+    )
+  }
+
+  const renderDraggableBlock = (
+    education: EducationBlockData,
+    isOverlay = false
+  ) => {
+    if (isOverlay) {
+      return (
+        <DraggableEducationBlock
+          key={education.id}
+          data={education}
+          isOverlay={true}
+          onBlockSelect={() => {}}
+          onToggleInclude={() => {}}
+        />
+      )
+    }
+
+    return (
+      <DraggableEducationBlock
+        key={education.id}
+        data={education}
+        isDropping={isDropping}
+        onBlockSelect={handleSectionSelect}
+        onToggleInclude={handleSectionInclusion}
+      />
+    )
+  }
+
   return (
     <>
       {loading ? (
@@ -173,7 +225,7 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
       ) : (
         <div className={styles.education}>
           <h2 className={styles.formTitle}>Education</h2>
-          {!selectedBlockId && (
+          {!selectedBlockId && localData.length > 0 && (
             <button
               type='button'
               className={styles.addButton}
@@ -189,20 +241,7 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
             {selectedBlockId ? (
               localData
                 .filter((education) => education.id === selectedBlockId)
-                .map((education) => {
-                  const isNew = education.id === newBlockId
-
-                  return (
-                    <EditableEducationBlock
-                      key={education.id}
-                      data={education}
-                      isNew={isNew}
-                      onDelete={handleSectionDelete}
-                      onClose={handleSectionClose}
-                      onSave={handleEducationSave}
-                    />
-                  )
-                })
+                .map((education) => renderEditableBlock(education, localData))
             ) : (
               <DndContext
                 sensors={sensors}
@@ -215,27 +254,12 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
                   items={localData.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {localData.map((education) => {
-                    return (
-                      <DraggableEducationBlock
-                        key={education.id}
-                        data={education}
-                        isDropping={isDropping}
-                        onBlockSelect={handleSectionSelect}
-                        onToggleInclude={handleSectionInclusion}
-                      />
-                    )
-                  })}
+                  {localData.map((education) =>
+                    renderDraggableBlock(education)
+                  )}
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem ? (
-                    <DraggableEducationBlock
-                      data={activeItem}
-                      isOverlay={true}
-                      onBlockSelect={() => {}}
-                      onToggleInclude={() => {}}
-                    />
-                  ) : null}
+                  {activeItem && renderDraggableBlock(activeItem, true)}
                 </DragOverlay>
               </DndContext>
             )}

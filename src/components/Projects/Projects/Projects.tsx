@@ -106,6 +106,12 @@ const Projects = ({
     setLocalData(data)
   }, [data])
 
+  useEffect(() => {
+    if (localData.length === 0 && !selectedBlockId && !newBlockId && !loading) {
+      handleSectionAdd()
+    }
+  }, [localData.length, selectedBlockId, newBlockId, loading])
+
   const findProject = useCallback(
     (id: string) => localData.find((project) => project.id === id),
     [localData]
@@ -573,6 +579,114 @@ const Projects = ({
   const isAnyBulletBeingEdited = !!editingBullet
   const isAnyBulletRegenerating = !!regeneratingBullet
 
+  const getProjectBlockProps = (
+    project: ProjectBlockData,
+    isEditable: boolean
+  ) => {
+    const isEditingBullet = editingBullet?.section === project.id
+    const editingBulletIndex = isEditingBullet ? editingBullet.index : null
+
+    return {
+      data: project,
+      keywordData,
+      editingBulletIndex,
+      settings,
+      isRegenerating: regeneratingBullet?.section === project.id,
+      regeneratingBullet,
+      editingBulletText: isEditingBullet ? editingBullet.text : '',
+      bulletErrors: isEditingBullet ? editingBullet.errors || {} : {},
+      onTextareaChange: handleBulletTextUpdate,
+      onEditBullet: handleBulletEdit,
+      onBulletCancel: handleCancelEdit,
+      onAddBullet: (sectionId: string) =>
+        handleAddBullet(sectionId, !isEditable),
+      onBulletSave: () => handleBulletSave(!isEditable),
+      onBulletDelete: (sectionId: string, index: number) =>
+        handleBulletDelete(sectionId, index, !isEditable),
+      onLockToggle: (sectionId: string, index: number) =>
+        handleLockToggle(sectionId, index, !isEditable),
+    }
+  }
+
+  const renderEditableBlock = (
+    project: ProjectBlockData,
+    existingBlocks: ProjectBlockData[]
+  ) => {
+    const sharedProps = getProjectBlockProps(project, true)
+    const isNew = project.id === newBlockId
+    const showCloseButton = existingBlocks.length > 1 || !isNew
+
+    return (
+      <EditableProjectBlock
+        {...sharedProps}
+        key={project.id}
+        isNew={isNew}
+        onDelete={handleSectionDelete}
+        onClose={showCloseButton ? handleSectionClose : undefined}
+        onSave={handleProjectSave}
+        onRegenerateBullet={(sectionId, index, formData) =>
+          handleBulletRegenerate(sectionId, index, formData)
+        }
+      />
+    )
+  }
+
+  const renderDraggableBlock = (
+    project: ProjectBlockData,
+    isOverlay = false
+  ) => {
+    const sharedProps = getProjectBlockProps(project, false)
+
+    if (isOverlay) {
+      return (
+        <DraggableProjectBlock
+          {...sharedProps}
+          key={project.id}
+          keywordData={null}
+          editingBulletIndex={null}
+          isRegenerating={false}
+          regeneratingBullet={null}
+          editingBulletText=''
+          bulletErrors={{}}
+          isOverlay={true}
+          isExpanded={false}
+          isDropping={false}
+          isAnyBulletBeingEdited={false}
+          isAnyBulletRegenerating={false}
+          onDrawerToggle={() => {}}
+          onBlockSelect={() => {}}
+          onRegenerateBullet={() => {}}
+          onRegenerateAllBullets={() => {}}
+          onLockToggleAll={() => {}}
+          onToggleInclude={() => {}}
+        />
+      )
+    }
+
+    return (
+      <DraggableProjectBlock
+        {...sharedProps}
+        key={project.id}
+        isDropping={isDropping}
+        isExpanded={expandedSections.has(project.id)}
+        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
+        isAnyBulletRegenerating={isAnyBulletRegenerating}
+        onDrawerToggle={() => toggleSectionExpanded(project.id)}
+        onBlockSelect={handleSectionSelect}
+        onRegenerateBullet={(sectionId, index) =>
+          handleBulletRegenerate(sectionId, index)
+        }
+        onRegenerateAllBullets={handleAllBulletsRegenerate}
+        onLockToggleAll={(sectionId, shouldLock) =>
+          handleLockToggleAll(sectionId, shouldLock)
+        }
+        onToggleInclude={(sectionId, isIncluded) =>
+          handleSectionInclusion(sectionId, isIncluded)
+        }
+      />
+    )
+  }
+
   return (
     <>
       {loading ? (
@@ -580,7 +694,7 @@ const Projects = ({
       ) : (
         <div className={styles.projects}>
           <h2 className={styles.formTitle}>Projects</h2>
-          {!selectedBlockId && (
+          {!selectedBlockId && localData.length > 0 && (
             <button
               type='button'
               className={styles.addButton}
@@ -596,53 +710,7 @@ const Projects = ({
             {selectedBlockId ? (
               localData
                 .filter((project) => project.id === selectedBlockId)
-                .map((project) => {
-                  const isNew = project.id === newBlockId
-                  const isEditingBullet = editingBullet?.section === project.id
-                  const editingBulletIndex = isEditingBullet
-                    ? editingBullet.index
-                    : null
-
-                  return (
-                    <EditableProjectBlock
-                      key={project.id}
-                      data={project}
-                      keywordData={keywordData}
-                      isNew={isNew}
-                      editingBulletIndex={editingBulletIndex}
-                      settings={settings}
-                      isRegenerating={
-                        regeneratingBullet?.section === project.id
-                      }
-                      regeneratingBullet={regeneratingBullet}
-                      editingBulletText={
-                        isEditingBullet ? editingBullet.text : ''
-                      }
-                      bulletErrors={
-                        isEditingBullet ? editingBullet.errors || {} : {}
-                      }
-                      onDelete={handleSectionDelete}
-                      onClose={handleSectionClose}
-                      onSave={handleProjectSave}
-                      onRegenerateBullet={(sectionId, index, formData) =>
-                        handleBulletRegenerate(sectionId, index, formData)
-                      }
-                      onAddBullet={(sectionId) =>
-                        handleAddBullet(sectionId, false)
-                      }
-                      onEditBullet={handleBulletEdit}
-                      onBulletSave={() => handleBulletSave(false)}
-                      onBulletCancel={handleCancelEdit}
-                      onBulletDelete={(sectionId, index) =>
-                        handleBulletDelete(sectionId, index, false)
-                      }
-                      onTextareaChange={handleBulletTextUpdate}
-                      onLockToggle={(sectionId, index) => {
-                        handleLockToggle(sectionId, index, false)
-                      }}
-                    />
-                  )
-                })
+                .map((project) => renderEditableBlock(project, localData))
             ) : (
               <DndContext
                 sensors={sensors}
@@ -655,93 +723,10 @@ const Projects = ({
                   items={localData.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {localData.map((project) => {
-                    const isEditingBullet =
-                      editingBullet?.section === project.id
-                    const editingBulletIndex = isEditingBullet
-                      ? editingBullet.index
-                      : null
-
-                    return (
-                      <DraggableProjectBlock
-                        key={project.id}
-                        data={project}
-                        keywordData={keywordData}
-                        editingBulletIndex={editingBulletIndex}
-                        settings={settings}
-                        isRegenerating={
-                          regeneratingBullet?.section === project.id
-                        }
-                        regeneratingBullet={regeneratingBullet}
-                        editingBulletText={
-                          isEditingBullet ? editingBullet.text : ''
-                        }
-                        bulletErrors={
-                          isEditingBullet ? editingBullet.errors || {} : {}
-                        }
-                        isDropping={isDropping}
-                        isExpanded={expandedSections.has(project.id)}
-                        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
-                        isAnyBulletRegenerating={isAnyBulletRegenerating}
-                        onTextareaChange={handleBulletTextUpdate}
-                        onBlockSelect={handleSectionSelect}
-                        onRegenerateBullet={(sectionId, index) =>
-                          handleBulletRegenerate(sectionId, index)
-                        }
-                        onRegenerateAllBullets={handleAllBulletsRegenerate}
-                        onAddBullet={(sectionId) =>
-                          handleAddBullet(sectionId, false)
-                        }
-                        onDrawerToggle={() => toggleSectionExpanded(project.id)}
-                        onEditBullet={handleBulletEdit}
-                        onBulletSave={() => handleBulletSave(true)}
-                        onBulletCancel={handleCancelEdit}
-                        onBulletDelete={(sectionId, index) =>
-                          handleBulletDelete(sectionId, index, true)
-                        }
-                        onLockToggle={(sectionId, index) => {
-                          handleLockToggle(sectionId, index, true)
-                        }}
-                        onLockToggleAll={(sectionId, shouldLock) => {
-                          handleLockToggleAll(sectionId, shouldLock)
-                        }}
-                        onToggleInclude={(sectionId, isIncluded) => {
-                          handleSectionInclusion(sectionId, isIncluded)
-                        }}
-                      />
-                    )
-                  })}
+                  {localData.map((project) => renderDraggableBlock(project))}
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem ? (
-                    <DraggableProjectBlock
-                      data={activeItem}
-                      keywordData={null}
-                      editingBulletIndex={null}
-                      settings={settings}
-                      isRegenerating={false}
-                      regeneratingBullet={null}
-                      onBlockSelect={() => {}}
-                      onRegenerateBullet={() => {}}
-                      onRegenerateAllBullets={() => {}}
-                      onAddBullet={() => {}}
-                      onEditBullet={() => {}}
-                      onBulletSave={() => {}}
-                      onBulletCancel={() => {}}
-                      onBulletDelete={() => {}}
-                      onTextareaChange={() => {}}
-                      editingBulletText={''}
-                      bulletErrors={{}}
-                      isOverlay={true}
-                      isExpanded={false}
-                      onDrawerToggle={() => {}}
-                      isAnyBulletBeingEdited={false}
-                      isAnyBulletRegenerating={false}
-                      onLockToggle={() => {}}
-                      onLockToggleAll={() => {}}
-                      onToggleInclude={() => {}}
-                    />
-                  ) : null}
+                  {activeItem && renderDraggableBlock(activeItem, true)}
                 </DragOverlay>
               </DndContext>
             )}

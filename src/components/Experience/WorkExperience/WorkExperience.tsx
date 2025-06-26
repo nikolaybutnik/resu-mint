@@ -620,13 +620,14 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     existingBlocks: ExperienceBlockData[]
   ) => {
     const sharedProps = getExperienceBlockProps(experience, true)
-    const showCloseButton = existingBlocks.length > 1
+    const isNew = experience.id === newBlockId
+    const showCloseButton = existingBlocks.length > 1 || !isNew
 
     return (
       <EditableExperienceBlock
         {...sharedProps}
         key={experience.id}
-        isNew={experience.id === newBlockId}
+        isNew={isNew}
         onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
         onSave={handleExperienceSave}
@@ -700,7 +701,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       ) : (
         <div className={styles.experience}>
           <h2 className={styles.formTitle}>Work Experience</h2>
-          {!selectedBlockId && (
+          {!selectedBlockId && localData.length > 0 && (
             <button
               type='button'
               className={styles.addButton}
