@@ -106,6 +106,12 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setLocalData(data)
   }, [data])
 
+  useEffect(() => {
+    if (localData.length === 0 && !selectedBlockId && !newBlockId && !loading) {
+      handleSectionAdd()
+    }
+  }, [localData.length, selectedBlockId, newBlockId, loading])
+
   const findExperience = useCallback(
     (id: string) => localData.find((experience) => experience.id === id),
     [localData]
@@ -580,6 +586,113 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const isAnyBulletBeingEdited = !!editingBullet
   const isAnyBulletRegenerating = !!regeneratingBullet
 
+  const getExperienceBlockProps = (
+    experience: ExperienceBlockData,
+    isEditable: boolean
+  ) => {
+    const isEditingBullet = editingBullet?.section === experience.id
+    const editingBulletIndex = isEditingBullet ? editingBullet.index : null
+
+    return {
+      data: experience,
+      keywordData,
+      editingBulletIndex,
+      settings,
+      isRegenerating: regeneratingBullet?.section === experience.id,
+      regeneratingBullet,
+      editingBulletText: isEditingBullet ? editingBullet.text : '',
+      bulletErrors: isEditingBullet ? editingBullet.errors || {} : {},
+      onTextareaChange: handleBulletTextUpdate,
+      onEditBullet: handleBulletEdit,
+      onBulletCancel: handleCancelEdit,
+      onAddBullet: (sectionId: string) =>
+        handleAddBullet(sectionId, !isEditable),
+      onBulletSave: () => handleBulletSave(!isEditable),
+      onBulletDelete: (sectionId: string, index: number) =>
+        handleBulletDelete(sectionId, index, !isEditable),
+      onLockToggle: (sectionId: string, index: number) =>
+        handleLockToggle(sectionId, index, !isEditable),
+    }
+  }
+
+  const renderEditableBlock = (
+    experience: ExperienceBlockData,
+    existingBlocks: ExperienceBlockData[]
+  ) => {
+    const sharedProps = getExperienceBlockProps(experience, true)
+    const showCloseButton = existingBlocks.length > 1
+
+    return (
+      <EditableExperienceBlock
+        {...sharedProps}
+        key={experience.id}
+        isNew={experience.id === newBlockId}
+        onDelete={handleSectionDelete}
+        onClose={showCloseButton ? handleSectionClose : undefined}
+        onSave={handleExperienceSave}
+        onRegenerateBullet={(sectionId, index, formData) =>
+          handleBulletRegenerate(sectionId, index, formData)
+        }
+      />
+    )
+  }
+
+  const renderDraggableBlock = (
+    experience: ExperienceBlockData,
+    isOverlay = false
+  ) => {
+    const sharedProps = getExperienceBlockProps(experience, false)
+
+    if (isOverlay) {
+      return (
+        <DraggableExperienceBlock
+          {...sharedProps}
+          key={experience.id}
+          keywordData={null}
+          editingBulletIndex={null}
+          isRegenerating={false}
+          regeneratingBullet={null}
+          editingBulletText=''
+          bulletErrors={{}}
+          isOverlay={true}
+          isExpanded={false}
+          isDropping={false}
+          isAnyBulletBeingEdited={false}
+          isAnyBulletRegenerating={false}
+          onDrawerToggle={() => {}}
+          onBlockSelect={() => {}}
+          onRegenerateBullet={() => {}}
+          onRegenerateAllBullets={() => {}}
+          onLockToggleAll={() => {}}
+          onToggleInclude={() => {}}
+        />
+      )
+    }
+
+    return (
+      <DraggableExperienceBlock
+        {...sharedProps}
+        key={experience.id}
+        isDropping={isDropping}
+        isExpanded={expandedSections.has(experience.id)}
+        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
+        isAnyBulletRegenerating={isAnyBulletRegenerating}
+        onDrawerToggle={() => toggleSectionExpanded(experience.id)}
+        onBlockSelect={handleSectionSelect}
+        onRegenerateBullet={(sectionId, index) =>
+          handleBulletRegenerate(sectionId, index)
+        }
+        onRegenerateAllBullets={handleAllBulletsRegenerate}
+        onLockToggleAll={(sectionId, shouldLock) =>
+          handleLockToggleAll(sectionId, shouldLock)
+        }
+        onToggleInclude={(sectionId, isIncluded) =>
+          handleSectionInclusion(sectionId, isIncluded)
+        }
+      />
+    )
+  }
+
   return (
     <>
       {loading ? (
@@ -602,54 +715,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             {selectedBlockId ? (
               localData
                 .filter((experience) => experience.id === selectedBlockId)
-                .map((experience) => {
-                  const isNew = experience.id === newBlockId
-                  const isEditingBullet =
-                    editingBullet?.section === experience.id
-                  const editingBulletIndex = isEditingBullet
-                    ? editingBullet.index
-                    : null
-
-                  return (
-                    <EditableExperienceBlock
-                      key={experience.id}
-                      data={experience}
-                      keywordData={keywordData}
-                      isNew={isNew}
-                      editingBulletIndex={editingBulletIndex}
-                      settings={settings}
-                      isRegenerating={
-                        regeneratingBullet?.section === experience.id
-                      }
-                      regeneratingBullet={regeneratingBullet}
-                      editingBulletText={
-                        isEditingBullet ? editingBullet.text : ''
-                      }
-                      bulletErrors={
-                        isEditingBullet ? editingBullet.errors || {} : {}
-                      }
-                      onDelete={handleSectionDelete}
-                      onClose={handleSectionClose}
-                      onSave={handleExperienceSave}
-                      onRegenerateBullet={(sectionId, index, formData) =>
-                        handleBulletRegenerate(sectionId, index, formData)
-                      }
-                      onAddBullet={(sectionId) =>
-                        handleAddBullet(sectionId, false)
-                      }
-                      onEditBullet={handleBulletEdit}
-                      onBulletSave={() => handleBulletSave(false)}
-                      onBulletCancel={handleCancelEdit}
-                      onBulletDelete={(sectionId, index) =>
-                        handleBulletDelete(sectionId, index, false)
-                      }
-                      onTextareaChange={handleBulletTextUpdate}
-                      onLockToggle={(sectionId, index) => {
-                        handleLockToggle(sectionId, index, false)
-                      }}
-                    />
-                  )
-                })
+                .map((experience) => renderEditableBlock(experience, localData))
             ) : (
               <DndContext
                 sensors={sensors}
@@ -662,95 +728,12 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                   items={localData.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {localData.map((experience) => {
-                    const isEditingBullet =
-                      editingBullet?.section === experience.id
-                    const editingBulletIndex = isEditingBullet
-                      ? editingBullet.index
-                      : null
-
-                    return (
-                      <DraggableExperienceBlock
-                        key={experience.id}
-                        data={experience}
-                        keywordData={keywordData}
-                        editingBulletIndex={editingBulletIndex}
-                        settings={settings}
-                        isRegenerating={
-                          regeneratingBullet?.section === experience.id
-                        }
-                        regeneratingBullet={regeneratingBullet}
-                        editingBulletText={
-                          isEditingBullet ? editingBullet.text : ''
-                        }
-                        bulletErrors={
-                          isEditingBullet ? editingBullet.errors || {} : {}
-                        }
-                        isDropping={isDropping}
-                        isExpanded={expandedSections.has(experience.id)}
-                        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
-                        isAnyBulletRegenerating={isAnyBulletRegenerating}
-                        onTextareaChange={handleBulletTextUpdate}
-                        onDrawerToggle={() =>
-                          toggleSectionExpanded(experience.id)
-                        }
-                        onBlockSelect={handleSectionSelect}
-                        onRegenerateBullet={(sectionId, index) =>
-                          handleBulletRegenerate(sectionId, index)
-                        }
-                        onRegenerateAllBullets={handleAllBulletsRegenerate}
-                        onAddBullet={(sectionId) =>
-                          handleAddBullet(sectionId, false)
-                        }
-                        onEditBullet={handleBulletEdit}
-                        onBulletSave={() => handleBulletSave(true)}
-                        onBulletCancel={handleCancelEdit}
-                        onBulletDelete={(sectionId, index) =>
-                          handleBulletDelete(sectionId, index, true)
-                        }
-                        onLockToggle={(sectionId, index) => {
-                          handleLockToggle(sectionId, index, true)
-                        }}
-                        onLockToggleAll={(sectionId, shouldLock) => {
-                          handleLockToggleAll(sectionId, shouldLock)
-                        }}
-                        onToggleInclude={(sectionId, isIncluded) => {
-                          handleSectionInclusion(sectionId, isIncluded)
-                        }}
-                      />
-                    )
-                  })}
+                  {localData.map((experience) =>
+                    renderDraggableBlock(experience)
+                  )}
                 </SortableContext>
                 <DragOverlay>
-                  {activeItem ? (
-                    <DraggableExperienceBlock
-                      data={activeItem}
-                      keywordData={null}
-                      editingBulletIndex={null}
-                      settings={settings}
-                      isRegenerating={false}
-                      regeneratingBullet={null}
-                      onBlockSelect={() => {}}
-                      onRegenerateBullet={() => {}}
-                      onRegenerateAllBullets={() => {}}
-                      onAddBullet={() => {}}
-                      onEditBullet={() => {}}
-                      onBulletSave={() => {}}
-                      onBulletCancel={() => {}}
-                      onBulletDelete={() => {}}
-                      onTextareaChange={() => {}}
-                      editingBulletText={''}
-                      bulletErrors={{}}
-                      isOverlay={true}
-                      isExpanded={false}
-                      onDrawerToggle={() => {}}
-                      isAnyBulletBeingEdited={false}
-                      isAnyBulletRegenerating={false}
-                      onLockToggle={() => {}}
-                      onLockToggleAll={() => {}}
-                      onToggleInclude={() => {}}
-                    />
-                  ) : null}
+                  {activeItem && renderDraggableBlock(activeItem, true)}
                 </DragOverlay>
               </DndContext>
             )}

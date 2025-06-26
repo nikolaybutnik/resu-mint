@@ -26,7 +26,7 @@ interface EditableExperienceBlockProps {
   regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
   onDelete: (id: string) => void
-  onClose: () => void
+  onClose: (() => void) | undefined
   onSave: (data: ExperienceBlockData) => void
   onRegenerateBullet: (
     sectionId: string,
@@ -310,9 +310,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             Delete
           </button>
         )}
-        <button type='button' className={styles.closeButton} onClick={onClose}>
-          <FaXmark />
-        </button>
+        {onClose && (
+          <button
+            type='button'
+            className={styles.closeButton}
+            onClick={onClose}
+          >
+            <FaXmark />
+          </button>
+        )}
       </header>
 
       <div className={styles.jobDetails}>
