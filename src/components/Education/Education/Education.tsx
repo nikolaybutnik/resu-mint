@@ -254,9 +254,11 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
                   items={localData.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {localData.map((education) =>
-                    renderDraggableBlock(education)
-                  )}
+                  <div className={styles.educationsContainer}>
+                    {localData.map((education) =>
+                      renderDraggableBlock(education)
+                    )}
+                  </div>
                 </SortableContext>
                 <DragOverlay>
                   {activeItem && renderDraggableBlock(activeItem, true)}

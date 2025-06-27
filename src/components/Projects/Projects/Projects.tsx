@@ -433,11 +433,30 @@ const Projects = ({
       const sanitized = sanitizeResumeBullet(text, true)
       if (sanitized.trim() === '') return
 
-      const updatedProject = {
-        ...project,
-        bulletPoints: project.bulletPoints.map((bullet, idx) =>
-          idx === index ? { ...bullet, text: sanitized } : bullet
-        ),
+      // Check if this is a new bullet beyond existing bullets
+      const isNewBullet = index >= project.bulletPoints.length
+
+      let updatedProject: ProjectBlockData
+
+      if (isNewBullet) {
+        // Add new bullet to the array
+        const newBullet = {
+          id: uuidv4(),
+          text: sanitized,
+          isLocked: false,
+        }
+        updatedProject = {
+          ...project,
+          bulletPoints: [...project.bulletPoints, newBullet],
+        }
+      } else {
+        // Update existing bullet
+        updatedProject = {
+          ...project,
+          bulletPoints: project.bulletPoints.map((bullet, idx) =>
+            idx === index ? { ...bullet, text: sanitized } : bullet
+          ),
+        }
       }
 
       updateProject(updatedProject)
@@ -462,11 +481,13 @@ const Projects = ({
     const project = findProject(sectionId)
     if (!project) return
 
-    // If new bullet, remove
-    if (
-      index === project.bulletPoints.length - 1 &&
-      project.bulletPoints[index].text === ''
-    ) {
+    // Check if this is a new bullet that doesn't exist in main state
+    const isNewBullet =
+      index >= project.bulletPoints.length ||
+      (index === project.bulletPoints.length - 1 &&
+        project.bulletPoints[index].text === '')
+
+    if (isNewBullet) {
       const updatedProject = {
         ...project,
         bulletPoints: project.bulletPoints.slice(0, -1),
@@ -599,12 +620,12 @@ const Projects = ({
       onEditBullet: handleBulletEdit,
       onBulletCancel: handleCancelEdit,
       onAddBullet: (sectionId: string) =>
-        handleAddBullet(sectionId, !isEditable),
+        handleAddBullet(sectionId, isEditable),
       onBulletSave: () => handleBulletSave(!isEditable),
       onBulletDelete: (sectionId: string, index: number) =>
-        handleBulletDelete(sectionId, index, !isEditable),
+        handleBulletDelete(sectionId, index, true),
       onLockToggle: (sectionId: string, index: number) =>
-        handleLockToggle(sectionId, index, !isEditable),
+        handleLockToggle(sectionId, index, true),
     }
   }
 

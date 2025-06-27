@@ -440,11 +440,30 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       const sanitized = sanitizeResumeBullet(text, true)
       if (sanitized.trim() === '') return
 
-      const updatedExperience = {
-        ...experience,
-        bulletPoints: experience.bulletPoints.map((bullet, idx) =>
-          idx === index ? { ...bullet, text: sanitized } : bullet
-        ),
+      // Check if this is a new bullet beyond existing bullets
+      const isNewBullet = index >= experience.bulletPoints.length
+
+      let updatedExperience: ExperienceBlockData
+
+      if (isNewBullet) {
+        // Add new bullet to the array
+        const newBullet = {
+          id: uuidv4(),
+          text: sanitized,
+          isLocked: false,
+        }
+        updatedExperience = {
+          ...experience,
+          bulletPoints: [...experience.bulletPoints, newBullet],
+        }
+      } else {
+        // Update existing bullet
+        updatedExperience = {
+          ...experience,
+          bulletPoints: experience.bulletPoints.map((bullet, idx) =>
+            idx === index ? { ...bullet, text: sanitized } : bullet
+          ),
+        }
       }
 
       updateExperience(updatedExperience)
@@ -469,11 +488,13 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     const experience = findExperience(sectionId)
     if (!experience) return
 
-    // If new bullet, remove
-    if (
-      index === experience.bulletPoints.length - 1 &&
-      experience.bulletPoints[index].text === ''
-    ) {
+    // Check if this is a new bullet that doesn't exist in main state
+    const isNewBullet =
+      index >= experience.bulletPoints.length ||
+      (index === experience.bulletPoints.length - 1 &&
+        experience.bulletPoints[index].text === '')
+
+    if (isNewBullet) {
       const updatedExperience = {
         ...experience,
         bulletPoints: experience.bulletPoints.slice(0, -1),
@@ -606,12 +627,12 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       onEditBullet: handleBulletEdit,
       onBulletCancel: handleCancelEdit,
       onAddBullet: (sectionId: string) =>
-        handleAddBullet(sectionId, !isEditable),
+        handleAddBullet(sectionId, isEditable),
       onBulletSave: () => handleBulletSave(!isEditable),
       onBulletDelete: (sectionId: string, index: number) =>
-        handleBulletDelete(sectionId, index, !isEditable),
+        handleBulletDelete(sectionId, index, true),
       onLockToggle: (sectionId: string, index: number) =>
-        handleLockToggle(sectionId, index, !isEditable),
+        handleLockToggle(sectionId, index, true),
     }
   }
 
@@ -729,9 +750,11 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
                   items={localData.map((item) => item.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  {localData.map((experience) =>
-                    renderDraggableBlock(experience)
-                  )}
+                  <div className={styles.experiencesContainer}>
+                    {localData.map((experience) =>
+                      renderDraggableBlock(experience)
+                    )}
+                  </div>
                 </SortableContext>
                 <DragOverlay>
                   {activeItem && renderDraggableBlock(activeItem, true)}
