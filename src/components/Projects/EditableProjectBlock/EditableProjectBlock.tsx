@@ -177,6 +177,17 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     []
   )
 
+  const normalizeTechnology = useCallback((tech: string): string => {
+    return tech.trim().toLowerCase().replace(/\s+/g, ' ')
+  }, [])
+
+  const isTechDuplicate = useMemo(() => {
+    if (!techInput.trim()) return false
+    return formData.technologies.some(
+      (tech) => normalizeTechnology(tech) === normalizeTechnology(techInput)
+    )
+  }, [techInput, formData.technologies, normalizeTechnology])
+
   const handleChange = useCallback(
     (
       field: (typeof FieldType)[keyof typeof FieldType],
@@ -265,6 +276,35 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
       }))
     },
     [sanitizeYear]
+  )
+
+  const handleAddTechnology = useCallback(() => {
+    const trimmedTech = techInput.trim()
+    if (!trimmedTech || isTechDuplicate) return
+
+    handleChange(FieldType.TECHNOLOGIES, [
+      ...formData.technologies,
+      trimmedTech,
+    ])
+    setTechInput('')
+  }, [techInput, isTechDuplicate, formData.technologies, handleChange])
+
+  const getDuplicateTechnology = useCallback(
+    (input: string, techList: string[]): string | null => {
+      if (!input.trim()) return null
+      const normalizedInput = normalizeTechnology(input)
+      return (
+        techList.find(
+          (tech) => normalizeTechnology(tech) === normalizedInput
+        ) || null
+      )
+    },
+    [normalizeTechnology]
+  )
+
+  const duplicateTechnology = getDuplicateTechnology(
+    techInput,
+    formData.technologies
   )
 
   const handleDelete = useCallback(() => {
@@ -363,11 +403,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && techInput.trim()) {
                   e.preventDefault()
-                  handleChange(FieldType.TECHNOLOGIES, [
-                    ...formData.technologies,
-                    techInput.trim(),
-                  ])
-                  setTechInput('')
+                  handleAddTechnology()
                 }
               }}
               placeholder='Type and press Enter'
@@ -375,15 +411,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             <button
               type='button'
               className={styles.chipAddButton}
-              onClick={() => {
-                if (techInput.trim()) {
-                  handleChange(FieldType.TECHNOLOGIES, [
-                    ...formData.technologies,
-                    techInput.trim(),
-                  ])
-                  setTechInput('')
-                }
-              }}
+              onClick={handleAddTechnology}
+              disabled={!techInput.trim() || isTechDuplicate}
             >
               <FaPlus />
             </button>
@@ -391,8 +420,13 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 
           <div className={styles.chipsContainer}>
             {formData.technologies.map((tech, index) => (
-              <div key={index} className={styles.chip}>
-                {tech}
+              <div
+                key={index}
+                className={`${styles.chip} ${
+                  duplicateTechnology === tech ? styles.duplicate : ''
+                }`}
+              >
+                <span className={styles.skillText}>{tech}</span>
                 <button
                   type='button'
                   className={styles.removeChip}
@@ -402,6 +436,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                       formData.technologies.filter((_, i) => i !== index)
                     )
                   }
+                  title='Remove technology'
                 >
                   <FaXmark />
                 </button>
