@@ -1,5 +1,5 @@
 import styles from './EditableExperienceBlock.module.scss'
-import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
+import React, { useMemo, useCallback, useState, useEffect } from 'react'
 import { useDebounce } from '@/lib/clientUtils'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
