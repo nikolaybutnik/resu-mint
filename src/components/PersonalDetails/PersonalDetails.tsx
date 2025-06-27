@@ -76,10 +76,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
       ) : (
         <form className={styles.formSection} onSubmit={handleSubmit}>
           <h2 className={styles.formTitle}>Personal Details</h2>
+
           <div className={styles.formField}>
+            <label className={styles.label}>Full Name *</label>
             <input
               name='name'
-              placeholder='Full Name *'
+              placeholder='Enter your full name'
               className={styles.formInput}
               value={formValues.name}
               onChange={handleChange}
@@ -88,10 +90,13 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               <p className={styles.formError}>{errors.name}</p>
             )}
           </div>
+
           <div className={styles.formField}>
+            <label className={styles.label}>Email *</label>
             <input
               name='email'
-              placeholder='Email *'
+              type='email'
+              placeholder='Enter your email address'
               className={styles.formInput}
               value={formValues.email}
               onChange={handleChange}
@@ -100,10 +105,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               <p className={styles.formError}>{errors.email}</p>
             )}
           </div>
+
           <div className={styles.formField}>
+            <label className={styles.label}>Phone</label>
             <input
               name='phone'
-              placeholder='Phone (e.g., +1234567890)'
+              placeholder='e.g., +1234567890'
               className={styles.formInput}
               value={formValues.phone || ''}
               onChange={handleChange}
@@ -112,10 +119,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               <p className={styles.formError}>{errors.phone}</p>
             )}
           </div>
+
           <div className={styles.formField}>
+            <label className={styles.label}>Location</label>
             <input
               name='location'
-              placeholder='Location (e.g., New York, NY)'
+              placeholder='e.g., New York, NY'
               className={styles.formInput}
               value={formValues.location || ''}
               onChange={handleChange}
@@ -124,10 +133,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               <p className={styles.formError}>{errors.location}</p>
             )}
           </div>
+
           <div className={styles.formField}>
+            <label className={styles.label}>LinkedIn URL</label>
             <input
               name='linkedin'
-              placeholder='LinkedIn URL'
+              placeholder='https://linkedin.com/in/your-profile'
               className={styles.formInput}
               value={formValues.linkedin || ''}
               onChange={handleChange}
@@ -136,10 +147,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               <p className={styles.formError}>{errors.linkedin}</p>
             )}
           </div>
+
           <div className={styles.formField}>
+            <label className={styles.label}>GitHub URL</label>
             <input
               name='github'
-              placeholder='GitHub URL'
+              placeholder='https://github.com/your-username'
               className={styles.formInput}
               value={formValues.github || ''}
               onChange={handleChange}
@@ -148,10 +161,12 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               <p className={styles.formError}>{errors.github}</p>
             )}
           </div>
+
           <div className={styles.formField}>
+            <label className={styles.label}>Website URL</label>
             <input
               name='website'
-              placeholder='Website URL'
+              placeholder='https://your-website.com'
               className={styles.formInput}
               value={formValues.website || ''}
               onChange={handleChange}
@@ -160,13 +175,16 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
               <p className={styles.formError}>{errors.website}</p>
             )}
           </div>
-          <button
-            type='submit'
-            className={styles.formButton}
-            disabled={!isValid}
-          >
-            Save
-          </button>
+
+          <div className={styles.actionButtons}>
+            <button
+              type='submit'
+              className={styles.formButton}
+              disabled={!isValid}
+            >
+              Save
+            </button>
+          </div>
         </form>
       )}
     </>

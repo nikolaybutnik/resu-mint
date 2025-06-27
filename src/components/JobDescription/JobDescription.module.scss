@@ -1,12 +1,16 @@
+@use 'sass:color';
 @import '../../styles/variables.scss';
+@import '../../styles/mixins';
 
 .jobDescription {
+  @include section-container;
   background: $color-background;
   width: 100%;
   padding-bottom: 48px;
 }
 
 .formTitle {
+  @include section-title;
   font-size: 26px;
   font-weight: 600;
   margin-bottom: 24px;
@@ -19,18 +23,11 @@
 }
 
 .formTextarea {
-  font-family: $font-family-base;
-  padding: 16px;
-  font-size: 14px;
-  border: 1px solid $color-border;
-  border-radius: 6px;
-  min-width: 100%;
-  max-width: 100%;
+  @include form-input-base;
   min-height: 180px;
-  margin-top: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  line-height: 1.6;
   resize: vertical;
+  line-height: 1.6;
+  width: 100%;
 
   &::placeholder {
     color: $color-placeholder;
@@ -39,7 +36,7 @@
   }
 
   &:hover {
-    border-color: darken($color-border, 10%);
+    border-color: color.adjust($color-border, $lightness: -10%);
   }
 
   &:focus {
@@ -55,7 +52,7 @@
   }
 
   &:disabled {
-    background-color: #f9fafb;
+    background-color: $color-action-item-background;
     cursor: not-allowed;
     opacity: 0.8;
   }
@@ -70,13 +67,6 @@
   }
 }
 
-.formTitle {
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: $color-text;
-}
-
 .jobDescriptionContainer {
   display: flex;
   flex-direction: column;
@@ -84,7 +74,7 @@
 }
 
 .jobDescriptionAnalysis {
-  background: #f9fafb;
+  background: $color-action-item-background;
   border-radius: 4px;
   padding: 16px;
   border: 1px solid $color-border;
@@ -100,7 +90,7 @@
 }
 
 .jobTitleSection {
-  background: white;
+  background: $color-background;
   border-radius: 4px;
   padding: 12px 16px;
   margin-bottom: 20px;
@@ -126,6 +116,7 @@
 }
 
 .workTypeBadge {
+  @include simple-tag;
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 12px;
@@ -158,7 +149,7 @@
 
 .analysisItem {
   padding: 12px;
-  background: white;
+  background: $color-background;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
@@ -183,12 +174,7 @@
 }
 
 .skillTag {
-  background: rgba($color-primary, 0.1);
-  color: $color-primary;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
-  display: inline-block;
+  @include simple-tag;
 }
 
 .companyInfo {
@@ -201,6 +187,7 @@
 }
 
 .emptyState {
+  @include empty-message;
   color: $color-disabled;
   font-style: italic;
   font-size: 14px;
@@ -241,6 +228,7 @@
   display: none;
 
   @media (max-width: 768px) {
+    @include button-base;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -250,11 +238,8 @@
     width: 36px;
     height: 36px;
     background: rgba($color-primary, 0.9);
-    color: white;
-    border: none;
+    color: $color-background;
     border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     z-index: 10;
 
@@ -265,12 +250,10 @@
 
     &:hover {
       background: $color-primary;
-      transform: scale(1.1);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     &:active {
-      transform: scale(1.05);
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
     }
   }
@@ -291,7 +274,7 @@
     top: -10px;
     left: -12px;
     background-color: $color-primary;
-    color: white;
+    color: $color-background;
     width: 24px;
     height: 24px;
     border-radius: 50%;

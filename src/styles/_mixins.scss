@@ -1,0 +1,1453 @@
+@use 'sass:color';
+@import './variables';
+
+// ========================================
+// LAYOUT & CONTAINER MIXINS
+// ========================================
+
+// Main section container (Skills, Projects, Education, etc.)
+@mixin section-container {
+  background: $color-background;
+  width: 100%;
+  padding-bottom: 48px;
+}
+
+// Section title styling
+@mixin section-title {
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  color: $color-text;
+}
+
+// Subsection title styling (Skills subsections, etc.)
+@mixin subsection-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: $color-primary;
+}
+
+// Skill section spacing (for Skills component subsections)
+@mixin skill-section {
+  margin-bottom: 32px;
+}
+
+// Empty state styling (for empty chips containers, etc.)
+@mixin empty-state {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+@mixin empty-message {
+  font-size: 14px;
+  color: $color-disabled;
+  text-align: center;
+  font-style: italic;
+  line-height: 1.4;
+  margin: 0;
+}
+
+// Card container for editable blocks
+@mixin card-container {
+  background: $color-background;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 16px;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+}
+
+// Draggable container base styling
+@mixin draggable-container {
+  position: relative;
+  border: 1px solid rgba($color-primary, 0.4);
+  border-radius: 6px;
+  background-color: $color-background;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+  overflow: visible;
+  min-width: 0;
+  touch-action: manipulation;
+
+  &.isDragging {
+    background-color: $color-action-item-background;
+    opacity: 0.95;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    cursor: grabbing !important;
+    border-color: $color-primary;
+    transform: scale(1.02);
+    touch-action: none;
+    user-select: none;
+
+    * {
+      cursor: grabbing !important;
+    }
+  }
+
+  &.excluded {
+    opacity: 0.7;
+    background-color: $color-action-item-background;
+    border-color: rgba($color-disabled, 0.4);
+  }
+
+  &.isDragging.excluded {
+    opacity: 0.95;
+    background-color: $color-action-item-background;
+    border-color: $color-primary;
+  }
+}
+
+// Form field container
+@mixin form-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12px;
+}
+
+// Form label styling
+@mixin form-label {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: $color-text;
+}
+
+// Chip/tag container
+@mixin chip-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 40px;
+  padding: 12px;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 6px;
+  background-color: rgba($color-primary, 0.02);
+}
+
+// Individual chip/tag styling
+@mixin skill-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba($color-primary, 0.1);
+  color: $color-primary;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba($color-primary, 0.3);
+  box-shadow: 0 1px 3px rgba($color-primary, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    border-color: rgba($color-primary, 0.5);
+    box-shadow: 0 2px 6px rgba($color-primary, 0.15);
+    transform: translateY(-1px) scale(1.02);
+  }
+
+  &.duplicate {
+    background: rgba($color-regenerate, 0.15);
+    border-color: rgba($color-regenerate, 0.5);
+    color: $color-regenerate;
+    animation: duplicateHighlight 0.5s ease-in-out;
+
+    .skillText {
+      color: $color-regenerate;
+      font-weight: 600;
+    }
+
+    .removeButton,
+    .removeChip {
+      color: rgba($color-regenerate, 0.8);
+
+      &:hover {
+        background-color: rgba($color-regenerate, 0.2);
+        color: $color-regenerate;
+      }
+    }
+  }
+}
+
+// Simple tag styling (for tech tags, skill tags without interaction)
+@mixin simple-tag {
+  background: rgba($color-primary, 0.1);
+  color: $color-primary;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  border: 1px solid rgba($color-primary, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    border-color: rgba($color-primary, 0.4);
+    box-shadow: 0 1px 3px rgba($color-primary, 0.1);
+    transform: translateY(-1px) scale(1.01);
+  }
+}
+
+// Skill text inside chips
+@mixin skill-text {
+  white-space: nowrap;
+}
+
+// Remove button for chips
+@mixin chip-remove-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 50%;
+  color: rgba($color-primary, 0.7);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+
+  svg {
+    height: 10px;
+    width: 10px;
+  }
+
+  &:hover {
+    background-color: rgba($color-primary, 0.2);
+    color: $color-primary;
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+// Input container for chip inputs (Skills, Technologies)
+@mixin chip-input-container {
+  position: relative;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+// Keyframes for chip animations
+@keyframes duplicateHighlight {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+// Action buttons container (save, cancel, etc.)
+@mixin action-buttons-container {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid rgba($color-border, 0.3);
+}
+
+// Header with close/delete buttons
+@mixin card-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+// List container (for projects, education, experience lists)
+@mixin list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Full-width add button (used in Projects, Education, WorkExperience)
+@mixin full-width-add-button {
+  @include button-base;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba($color-primary, 0.4);
+  border-radius: 6px;
+  background-color: $color-background;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  font-size: 16px;
+  font-weight: 500;
+  color: $color-primary;
+  margin-bottom: 16px;
+
+  svg {
+    height: 12px;
+    width: 12px;
+    color: $color-primary;
+  }
+
+  &:hover {
+    background-color: rgba($color-primary, 0.1);
+    border-color: $color-primary;
+    transform: scale(1.02);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+    svg {
+      color: $color-primary;
+    }
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background-color: $color-action-item-background;
+    border-color: $color-border;
+    color: $color-disabled;
+    opacity: 0.7;
+    pointer-events: none;
+    box-shadow: none;
+
+    svg {
+      color: $color-disabled;
+    }
+  }
+}
+
+// ========================================
+// FORM INPUT MIXINS
+// ========================================
+
+// Base input field styling mixin
+@mixin form-input-base {
+  font-family: $font-family-base;
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 12px 16px;
+  border: 1px solid rgba($color-primary, 0.4);
+  border-radius: 6px;
+  background: $color-background;
+  color: $color-text;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+  }
+
+  &::placeholder {
+    color: $color-disabled;
+    opacity: 0.7;
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.6;
+  }
+
+  // Responsive adjustments
+  @media (max-width: 480px) {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  @media (max-width: 375px) {
+    font-size: 14px;
+    padding: 8px 10px;
+  }
+}
+
+// Textarea specific styling mixin
+@mixin form-textarea-base {
+  @include form-input-base;
+  resize: vertical;
+  min-height: 80px;
+  width: 100%;
+
+  // Auto-resize on mobile, disable manual resize
+  @media (max-width: 768px) {
+    resize: none;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, height 0.1s ease;
+  }
+}
+
+// Input with embedded button styling
+@mixin form-input-with-button($button-width: 60px) {
+  @include form-input-base;
+  width: 100%;
+  min-width: 0;
+  padding-right: $button-width;
+
+  @media (max-width: 480px) {
+    padding-right: $button-width - 10px;
+  }
+
+  @media (max-width: 375px) {
+    padding-right: $button-width - 15px;
+  }
+}
+
+// ========================================
+// BUTTON MIXINS
+// ========================================
+
+// Base button styling - common to all buttons
+@mixin button-base {
+  font-family: $font-family-base;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
+    box-shadow 0.2s ease, border-color 0.2s ease;
+
+  &:hover {
+    transform: scale(1.02);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    pointer-events: none;
+    opacity: 0.6;
+    transform: none;
+  }
+}
+
+// Close button (X button, typically round)
+@mixin close-button {
+  @include button-base;
+  background: $color-action-item-background;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  color: $color-text;
+
+  svg {
+    height: 18px;
+    width: 18px;
+  }
+
+  &:hover {
+    background: $color-primary;
+    color: white;
+    transform: scale(1.05);
+  }
+}
+
+// Delete button (destructive action)
+@mixin delete-button {
+  @include button-base;
+  background: transparent;
+  border: 1.5px solid $color-error;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 14px;
+  color: $color-error;
+  margin-right: auto;
+
+  &:hover {
+    background: $color-error;
+    color: white;
+    transform: scale(1.02);
+  }
+}
+
+// Primary save button (main action)
+@mixin save-button {
+  @include button-base;
+  background: linear-gradient(135deg, $color-primary, $color-primary-hover);
+  color: white;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 15px;
+
+  &:hover {
+    background: linear-gradient(
+      135deg,
+      $color-primary-hover,
+      color.adjust($color-primary-hover, $lightness: -5%)
+    );
+    box-shadow: 0 2px 8px rgba($color-primary, 0.3);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+  }
+}
+
+// Small icon button (toolbar buttons)
+@mixin icon-button-small($size: 24px) {
+  @include button-base;
+  width: $size;
+  height: $size;
+  background: $color-background;
+  border: 1px solid $color-border;
+  border-radius: 4px;
+  font-size: 12px;
+  color: $color-disabled;
+
+  svg {
+    height: 12px;
+    width: 12px;
+  }
+}
+
+// Edit button variant
+@mixin edit-button {
+  @include icon-button-small(28px);
+  padding: 4px;
+
+  svg {
+    height: 14px;
+    width: 14px;
+    color: $color-text;
+  }
+
+  &:hover {
+    background: $color-primary;
+    border-color: $color-primary;
+    transform: scale(1.05);
+
+    svg {
+      color: $color-background;
+    }
+  }
+}
+
+// Delete button variant (small, toolbar style)
+@mixin delete-button-small {
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-error;
+    color: $color-background;
+    border-color: $color-error;
+  }
+}
+
+// Save button variant (small, toolbar style)
+@mixin save-button-small {
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-transformative;
+    color: $color-background;
+    border-color: $color-transformative;
+  }
+}
+
+// Cancel button variant (small, toolbar style)
+@mixin cancel-button-small {
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-primary;
+    color: $color-background;
+    border-color: $color-primary;
+  }
+}
+
+// Regenerate button variant (small, toolbar style)
+@mixin regenerate-button-small {
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-regenerate;
+    color: $color-background;
+    border-color: $color-regenerate;
+  }
+}
+
+// Embedded button styling (for inputs)
+@mixin embedded-button-base {
+  @include button-base;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  bottom: 6px;
+  margin: auto 0;
+  padding: 6px;
+  border: 1px solid rgba($color-primary, 0.4);
+  border-radius: 4px;
+  background-color: $color-background;
+  color: $color-primary;
+  height: 36px;
+  width: 36px;
+  z-index: 2;
+
+  svg {
+    height: 12px;
+    width: 12px;
+    color: $color-primary;
+  }
+
+  &:hover:not(:disabled) {
+    background-color: rgba($color-primary, 0.1);
+    border-color: $color-primary;
+    transform: scale(1.05);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active:not(:disabled) {
+    transform: scale(0.95);
+  }
+
+  &:disabled {
+    background-color: $color-action-item-background;
+    border-color: $color-border;
+    color: $color-disabled;
+    cursor: not-allowed;
+    box-shadow: none;
+
+    svg {
+      color: $color-disabled;
+    }
+  }
+
+  @media (max-width: 480px) {
+    height: 32px;
+    width: 32px;
+    padding: 4px;
+    right: 5px;
+    top: 5px;
+    bottom: 5px;
+
+    svg {
+      height: 10px;
+      width: 10px;
+    }
+  }
+
+  @media (max-width: 375px) {
+    height: 28px;
+    width: 28px;
+    padding: 4px;
+    right: 4px;
+    top: 4px;
+    bottom: 4px;
+
+    svg {
+      height: 10px;
+      width: 10px;
+    }
+  }
+}
+
+// Secondary add button
+@mixin add-button {
+  @include button-base;
+  background: $color-action-item-background;
+  color: $color-text;
+  border-radius: 4px;
+  width: 60px;
+  height: 36px;
+  font-size: 14px;
+
+  &:hover {
+    background: rgba($color-primary, 0.2);
+    color: $color-primary;
+  }
+
+  svg {
+    margin-right: 4px;
+    height: 12px;
+    width: 12px;
+  }
+}
+
+// Toggle include/exclude button
+@mixin toggle-include-button {
+  @include edit-button;
+
+  &.included {
+    background: $color-primary;
+    border-color: $color-primary;
+
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &.excluded {
+    background: $color-background;
+    border-color: $color-border;
+
+    svg {
+      color: $color-disabled;
+    }
+  }
+
+  &:hover {
+    &.included {
+      background: color.adjust($color-primary, $lightness: -5%);
+      border-color: $color-primary;
+      transform: scale(1.05);
+
+      svg {
+        color: $color-background;
+      }
+    }
+
+    &.excluded {
+      background: $color-primary;
+      border-color: $color-primary;
+      transform: scale(1.05);
+
+      svg {
+        color: $color-background;
+      }
+    }
+  }
+}
+
+// Add bullet button (full width, subtle)
+@mixin add-bullet-button {
+  font-family: $font-family-base;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  background: rgba($color-primary, 0.12);
+  border-top: 1px solid rgba($color-primary, 0.2);
+  border-radius: 0 0 6px 6px;
+  width: 100%;
+  padding: 4px 0;
+  color: $color-disabled;
+  height: 24px;
+  transition: background 0.2s ease, color 0.2s ease;
+
+  svg {
+    height: 12px;
+    width: 12px;
+    pointer-events: none;
+  }
+
+  &:hover {
+    background: $color-primary;
+    color: $color-text;
+    border-radius: 0 0 6px 6px;
+
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    border-radius: 0 0 6px 6px;
+    pointer-events: none;
+    opacity: 0.6;
+  }
+}
+
+// Lock/unlock button variants
+@mixin lock-button {
+  @include button-base;
+  flex: 1;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  height: 28px;
+  gap: 6px;
+  overflow: hidden;
+
+  svg {
+    flex-shrink: 0;
+    height: 12px;
+    width: 12px;
+    z-index: 3;
+  }
+
+  &.lock-all {
+    background: $color-badge-red-background;
+    border: 1px solid rgba($color-badge-red, 0.3);
+    color: $color-badge-red;
+
+    svg {
+      color: $color-badge-red;
+    }
+
+    &:hover {
+      background: color.adjust($color-badge-red-background, $lightness: -3%);
+      border-color: $color-badge-red;
+    }
+  }
+
+  &.unlock-all {
+    background: $color-badge-green-background;
+    border: 1px solid rgba($color-badge-green, 0.3);
+    color: $color-badge-green;
+
+    svg {
+      color: $color-badge-green;
+    }
+
+    &:hover {
+      background: color.adjust($color-badge-green-background, $lightness: -3%);
+      border-color: $color-badge-green;
+    }
+  }
+}
+
+// ========================================
+// FORM ELEMENT MIXINS
+// ========================================
+
+// Error message styling with slideIn animation
+@mixin form-error {
+  font-size: 13px;
+  font-weight: 500;
+  color: $color-error;
+  margin: 6px 0;
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideIn 0.3s ease forwards;
+}
+
+// Flash warning message styling
+@mixin flash-warning {
+  color: $color-warning;
+  animation: slideIn 0.3s ease-out forwards;
+}
+
+// Character count base styling
+@mixin character-count {
+  font-size: 12px;
+  color: $color-disabled;
+  display: block;
+  margin-bottom: 4px;
+
+  &.warning {
+    color: $color-warning;
+  }
+
+  &.exceeded {
+    color: $color-error !important;
+    font-weight: 600 !important;
+  }
+}
+
+// Character count exceeded state (use this for exceeded classes)
+@mixin character-count-exceeded {
+  @include character-count;
+  color: $color-error !important;
+  font-weight: 600 !important;
+}
+
+// Custom checkbox styling
+@mixin custom-checkbox {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+
+  input {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid $color-border;
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s ease, background 0.2s ease;
+
+    &:checked {
+      background: $color-primary;
+      border-color: $color-primary;
+    }
+
+    &:checked::after {
+      content: '\2713';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    &:focus {
+      outline: 2px solid rgba($color-primary, 0.2);
+      outline-offset: 2px;
+    }
+  }
+
+  .checkboxLabel {
+    font-size: 14px;
+    margin-left: 8px;
+    cursor: pointer;
+    color: $color-text;
+  }
+}
+
+// Date inputs grid layout
+@mixin date-inputs-grid {
+  display: grid;
+  grid-template-columns: 140px 90px;
+  gap: 12px;
+
+  .monthInput {
+    width: 100%;
+  }
+
+  .yearInput {
+    width: 100%;
+  }
+}
+
+// Custom select element styling
+@mixin custom-select {
+  font-family: $font-family-base;
+  font-size: 15px;
+  padding: 10px 12px;
+  border: 2px solid $color-border;
+  border-radius: 4px;
+  background: $color-background;
+  color: $color-text;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  outline: none;
+  margin-top: 2px;
+
+  &:focus {
+    border-color: $color-primary;
+    box-shadow: 0 2px 0 0 $color-primary;
+  }
+
+  &:disabled {
+    background-color: $color-border;
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+// Range slider styling (webkit + moz)
+@mixin range-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: $color-border;
+  outline: none;
+  transition: background 0.2s ease;
+
+  &::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: $color-primary;
+    cursor: pointer;
+    border: 2px solid $color-background;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      background: $color-primary-hover;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  &::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: $color-primary;
+    cursor: pointer;
+    border: 2px solid $color-background;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      background: $color-primary-hover;
+      transform: scale(1.1);
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  &::-webkit-slider-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: $color-border;
+    border-radius: 3px;
+  }
+
+  &::-moz-range-track {
+    width: 100%;
+    height: 6px;
+    cursor: pointer;
+    background: $color-border;
+    border-radius: 3px;
+    border: none;
+  }
+
+  &:hover {
+    background: color.adjust($color-border, $lightness: 5%);
+  }
+
+  &:focus {
+    background: color.adjust($color-border, $lightness: 5%);
+    &::-webkit-slider-thumb {
+      background: $color-primary-hover;
+      transform: scale(1.15);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    &::-moz-range-thumb {
+      background: $color-primary-hover;
+      transform: scale(1.15);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: $color-border;
+    &::-webkit-slider-thumb {
+      background: $color-disabled;
+      border-color: $color-background;
+      box-shadow: none;
+    }
+    &::-moz-range-thumb {
+      background: $color-disabled;
+      border-color: $color-background;
+      box-shadow: none;
+    }
+  }
+}
+
+// ========================================
+// UI COMPONENT MIXINS
+// ========================================
+
+// Bullet points section styling
+@mixin bullet-points-section {
+  margin: 24px 0;
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+    color: $color-text;
+  }
+}
+
+// Bullet header (with controls)
+@mixin bullet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+// Bullet points container
+@mixin bullet-points-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+// Drawer toggle button styling
+@mixin drawer-toggle-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 4px 0;
+  background: rgba($color-primary, 0.12);
+  border: none;
+  border-top: 1px solid rgba($color-primary, 0.4);
+  cursor: pointer;
+  color: $color-disabled;
+  border-radius: 0 0 6px 6px;
+  transition: color 0.2s ease, border-radius 0.2s ease-in-out,
+    border-bottom 0.2s ease-in-out;
+  height: 24px;
+  margin: 0;
+
+  svg {
+    height: 12px;
+    width: 12px;
+    pointer-events: none;
+  }
+
+  &:hover {
+    background: $color-primary;
+    color: $color-text;
+    svg {
+      color: $color-background;
+    }
+  }
+
+  &.noRadius {
+    border-radius: 0;
+  }
+
+  &.disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+    &:hover {
+      background: $color-action-item-background;
+      color: $color-disabled;
+    }
+  }
+
+  &.expanded {
+    border-bottom: 1px solid rgba($color-primary, 0.4);
+  }
+}
+
+// Expandable drawer content
+@mixin expandable-drawer {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s, padding 0s 0.25s;
+  user-select: text;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: transparent;
+  touch-action: pan-y;
+
+  &.expanded {
+    padding: 8px 8px 0;
+    max-height: 2000px;
+    transition: max-height 0.5s ease-in-out, padding 0s;
+    overflow: visible;
+  }
+}
+
+// Primary action button (elevated style)
+@mixin primary-action-button {
+  font-family: $font-family-base;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: $color-background;
+  background: $color-primary;
+  border: 2px solid $color-primary;
+  border-radius: 6px;
+  cursor: pointer;
+  transform: translateY(0);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+
+  &:hover {
+    background: $color-primary-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 8px $color-border;
+  }
+
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  }
+
+  &:disabled {
+    background: $color-border;
+    border-color: $color-border;
+    color: $color-disabled;
+    cursor: not-allowed;
+    transform: translateY(0);
+    box-shadow: none;
+  }
+}
+
+// Keyword highlight styling
+@mixin keyword-highlight {
+  background-color: rgba($color-primary, 0.15);
+  color: $color-primary;
+  font-weight: 600;
+  padding: 1px 3px;
+  border-radius: 3px;
+  border: 1px solid rgba($color-primary, 0.2);
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: rgba($color-primary, 0.25);
+    border-color: rgba($color-primary, 0.4);
+  }
+}
+
+// ========================================
+// ANIMATION KEYFRAMES
+// ========================================
+
+// Magic button animations
+@keyframes pulseGlow {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    transform: scale(1.05);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba($color-regenerate, 0.6);
+    transform: scale(1.1);
+  }
+}
+
+@keyframes magicBurst {
+  0% {
+    width: 20px;
+    height: 20px;
+    opacity: 1;
+    border-width: 3px;
+  }
+  100% {
+    width: 60px;
+    height: 60px;
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+// Slide in animation (for errors, etc.)
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Fade animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+// Shimmer loading animation
+@keyframes shimmer {
+  0% {
+    background-position: -250% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+// Progress ring animation
+@keyframes progressRing {
+  0% {
+    stroke-dashoffset: 220; // Circumference of circle (35 * 2 * π)
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes progressFadeIn {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.8);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+// ========================================
+// DRAGGABLE COMPONENT MIXINS
+// ========================================
+
+// Generate all button (magic wand button)
+@mixin generate-all-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: $color-regenerate;
+  border: 1px solid $color-regenerate;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px;
+  width: 28px;
+  height: 28px;
+  overflow: visible;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+
+  svg {
+    height: 14px;
+    width: 14px;
+    color: $color-background;
+    z-index: 3;
+  }
+
+  &:hover {
+    border-color: $color-regenerate;
+    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    transform: scale(1.05);
+    animation: pulseGlow 1.2s ease-in-out infinite;
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+    opacity: 0.7;
+    pointer-events: none;
+
+    svg {
+      color: rgba($color-disabled, 0.5);
+    }
+  }
+}
+
+// Magic ripple effect
+@mixin magic-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background-color: transparent;
+  border: 3px solid rgba($color-regenerate, 0.8);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+  animation: magicBurst 0.8s ease-out forwards;
+}
+
+// Draggable block inner layout
+@mixin draggable-block {
+  display: flex;
+  flex-direction: row;
+  padding: 8px 12px;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  cursor: grab;
+  overflow: hidden;
+  border-radius: 6px;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  @media (max-width: 768px) {
+    cursor: default;
+  }
+
+  &.longPressing {
+    transition: all 0.1s ease;
+    border-color: $color-primary;
+  }
+}
+
+// Block content layout
+@mixin block-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 180px;
+  gap: 4px;
+  min-width: 0;
+}
+
+// Block header styling
+@mixin block-header {
+  font-size: 16px;
+  font-weight: 600;
+  color: $color-primary;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Block date styling
+@mixin block-date {
+  font-size: 13px;
+  color: $color-disabled;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+// Block actions container
+@mixin block-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+}
+
+// Excluded block text
+@mixin excluded-block-text {
+  font-size: 12px;
+  color: $color-disabled;
+  margin: 0;
+  white-space: wrap;
+  overflow: hidden;
+  font-style: italic;
+}
+
+// Lock buttons container
+@mixin lock-buttons-container {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  touch-action: manipulation;
+
+  .lockAllButton,
+  .unlockAllButton {
+    @include lock-button;
+  }
+}

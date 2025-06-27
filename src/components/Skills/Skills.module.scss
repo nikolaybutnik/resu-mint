@@ -1,253 +1,54 @@
 @import '../../styles/variables';
+@import '../../styles/mixins';
 
 .skills {
-  background: $color-background;
-  width: 100%;
-  padding-bottom: 48px;
+  @include section-container;
 }
 
 .formTitle {
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: $color-text;
+  @include section-title;
 }
 
 .skillSection {
-  margin-bottom: 32px;
+  @include skill-section;
 }
 
 .sectionTitle {
-  font-size: 18px;
-  font-weight: 600;
-  margin-bottom: 16px;
-  color: $color-primary;
+  @include subsection-title;
 }
 
 .inputContainer {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  align-items: center;
-  min-width: 0;
-  position: relative;
+  @include chip-input-container;
 }
 
 .skillInput {
-  font-family: $font-family-base;
-  flex: 1;
-  min-width: 0;
-  padding: 12px 60px 12px 16px;
-  border: 1px solid rgba($color-primary, 0.4);
-  border-radius: 6px;
-  background-color: $color-background;
-  font-size: 16px;
-  color: $color-text;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-
-  &::placeholder {
-    color: $color-disabled;
-  }
-
-  &:focus {
-    outline: none;
-    border-color: $color-primary;
-    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
-  }
-
-  @media (max-width: 480px) {
-    font-size: 14px;
-    padding: 10px 50px 10px 12px;
-  }
-
-  @media (max-width: 375px) {
-    font-size: 14px;
-    padding: 8px 45px 8px 10px;
-  }
+  @include form-input-with-button(60px);
 }
 
 .addButton {
-  font-family: $font-family-base;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: absolute;
-  right: 6px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 8px;
-  border: 1px solid rgba($color-primary, 0.4);
-  border-radius: 4px;
-  background-color: $color-background;
-  cursor: pointer;
-  color: $color-primary;
-  height: 36px;
-  width: 36px;
-  flex-shrink: 0;
-  z-index: 2;
-  transition: transform 0.2s ease, box-shadow 0.2s ease,
-    background-color 0.2s ease, border-color 0.2s ease;
-
-  svg {
-    height: 12px;
-    width: 12px;
-    color: $color-primary;
-  }
-
-  &:hover:not(:disabled) {
-    background-color: rgba($color-primary, 0.1);
-    border-color: $color-primary;
-    transform: translateY(-50%) scale(1.05);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-
-  &:active:not(:disabled) {
-    transform: translateY(-50%) scale(0.95);
-  }
-
-  &:disabled {
-    background-color: $color-action-item-background;
-    border-color: $color-border;
-    color: $color-disabled;
-    opacity: 0.7;
-    cursor: not-allowed;
-    box-shadow: none;
-
-    svg {
-      color: $color-disabled;
-    }
-  }
-
-  @media (max-width: 480px) {
-    height: 32px;
-    width: 32px;
-    padding: 6px;
-    right: 5px;
-  }
-
-  @media (max-width: 375px) {
-    height: 28px;
-    width: 28px;
-    padding: 4px;
-    right: 4px;
-
-    svg {
-      height: 10px;
-      width: 10px;
-    }
-  }
+  @include embedded-button-base;
 }
 
 .skillsContainer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  min-height: 40px;
-  padding: 12px;
-  border: 1px solid rgba($color-primary, 0.2);
-  border-radius: 6px;
-  background-color: rgba($color-primary, 0.02);
+  @include chip-container;
 }
 
 .emptyState {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 0;
+  @include empty-state;
 }
 
 .emptyMessage {
-  font-size: 14px;
-  color: $color-disabled;
-  text-align: center;
-  font-style: italic;
-  line-height: 1.4;
-  margin: 0;
+  @include empty-message;
 }
 
 .skillChip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba($color-primary, 0.1);
-  color: $color-primary;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: 6px;
-  border: 1px solid rgba($color-primary, 0.3);
-  box-shadow: 0 1px 3px rgba($color-primary, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-
-  &:hover {
-    border-color: rgba($color-primary, 0.5);
-    box-shadow: 0 2px 6px rgba($color-primary, 0.15);
-    transform: translateY(-1px) scale(1.02);
-  }
-
-  &.duplicate {
-    background: rgba($color-regenerate, 0.15);
-    border-color: rgba($color-regenerate, 0.5);
-    color: $color-regenerate;
-    animation: duplicateHighlight 0.5s ease-in-out;
-
-    .skillText {
-      color: $color-regenerate;
-      font-weight: 600;
-    }
-
-    .removeButton {
-      color: rgba($color-regenerate, 0.8);
-
-      &:hover {
-        background-color: rgba($color-regenerate, 0.2);
-        color: $color-regenerate;
-      }
-    }
-  }
-}
-
-@keyframes duplicateHighlight {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
+  @include skill-chip;
 }
 
 .skillText {
-  white-space: nowrap;
+  @include skill-text;
 }
 
 .removeButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  padding: 2px;
-  border-radius: 50%;
-  color: rgba($color-primary, 0.7);
-  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
-
-  svg {
-    height: 10px;
-    width: 10px;
-  }
-
-  &:hover {
-    background-color: rgba($color-primary, 0.2);
-    color: $color-primary;
-    transform: scale(1.1);
-  }
-
-  &:active {
-    transform: scale(0.9);
-  }
+  @include chip-remove-button;
 }

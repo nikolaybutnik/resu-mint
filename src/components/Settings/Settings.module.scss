@@ -1,17 +1,13 @@
 @use 'sass:color';
 @import '../../styles/variables';
+@import '../../styles/mixins';
 
 .settings {
-  background: $color-background;
-  width: 100%;
-  padding-bottom: 48px;
+  @include section-container;
 }
 
 .formTitle {
-  font-size: 26px;
-  font-weight: 600;
-  margin-bottom: 24px;
-  color: $color-text;
+  @include section-title;
 }
 
 .formGroup {
@@ -43,105 +39,9 @@
 }
 
 .rangeInput {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: $color-border;
-  outline: none;
-  transition: background 0.2s ease;
-
-  &::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: $color-primary;
-    cursor: pointer;
-    border: 2px solid $color-background;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-      background: $color-primary-hover;
-      transform: scale(1.1);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  &::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: $color-primary;
-    cursor: pointer;
-    border: 2px solid $color-background;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-
-    &:hover {
-      background: $color-primary-hover;
-      transform: scale(1.1);
-      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
-    }
-  }
-
-  &:hover {
-    background: color.adjust($color-border, $lightness: 5%);
-  }
-
-  &:focus {
-    background: color.adjust($color-border, $lightness: 5%);
-    &::-webkit-slider-thumb {
-      background: $color-primary-hover;
-      transform: scale(1.15);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-    &::-moz-range-thumb {
-      background: $color-primary-hover;
-      transform: scale(1.15);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    background: $color-border;
-    &::-webkit-slider-thumb {
-      background: $color-disabled;
-      border-color: $color-background;
-      box-shadow: none;
-    }
-    &::-moz-range-thumb {
-      background: $color-disabled;
-      border-color: $color-background;
-      box-shadow: none;
-    }
-  }
+  @include range-slider;
 }
 
 .select {
-  font-family: $font-family-base;
-  font-size: 15px;
-  padding: 10px 12px;
-  border: 2px solid $color-border;
-  border-radius: 4px;
-  background: $color-background;
-  color: $color-text;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-  outline: none;
-  margin-top: 2px;
-
-  &:focus {
-    border-color: $color-primary;
-    box-shadow: 0 2px 0 0 $color-primary;
-  }
-
-  &:disabled {
-    background-color: $color-border;
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+  @include custom-select;
 }

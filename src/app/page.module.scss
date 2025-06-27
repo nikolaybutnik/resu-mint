@@ -1,4 +1,5 @@
 @import '../styles/_variables.scss';
+@import '../styles/_mixins.scss';
 
 .appWrapper {
   font-family: $font-family-base;
@@ -46,7 +47,7 @@
   }
 
   .navItem {
-    font-family: $font-family-base;
+    @include button-base;
     flex: 1;
     padding: 12px 20px;
     background: $color-background;
@@ -54,21 +55,13 @@
     border-radius: 6px;
     font-size: 16px;
     font-weight: 500;
-    cursor: pointer;
     color: $color-primary;
-    transition: transform 0.2s ease, box-shadow 0.2s ease,
-      background-color 0.2s ease, border-color 0.2s ease;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 
     &:hover {
       background-color: rgba($color-primary, 0.1);
       border-color: $color-primary;
-      transform: scale(1.02);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-
-    &:active {
-      transform: scale(0.98);
     }
 
     &.active {

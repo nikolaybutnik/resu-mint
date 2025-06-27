@@ -1,4 +1,5 @@
 @import '../../../styles/variables.scss';
+@import '../../../styles/mixins';
 
 .bulletContainer {
   position: relative;
@@ -57,31 +58,35 @@
   gap: 8px;
 }
 
-.deleteButton,
-.editButton,
-.regenerateButton,
-.saveButton,
-.cancelButton,
-.confirmButton,
-.cancelButton,
-.lockButton {
-  width: 24px;
-  height: 24px;
-  background: $color-background;
-  border: 1px solid $color-border;
-  border-radius: 4px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: $color-disabled;
-  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease,
-    border-color 0.2s ease;
+.deleteButton {
+  @include delete-button-small;
+  z-index: 3;
 }
 
-.deleteButton {
-  z-index: 3;
+.editButton {
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-primary;
+    color: $color-background;
+    border-color: $color-primary;
+  }
+}
+
+.saveButton {
+  @include save-button-small;
+}
+
+.regenerateButton {
+  @include regenerate-button-small;
+}
+
+.cancelButton {
+  @include cancel-button-small;
+}
+
+.confirmButton {
+  @include icon-button-small;
 
   &:hover {
     background: $color-error;
@@ -90,31 +95,9 @@
   }
 }
 
-.editButton:hover {
-  background: $color-primary;
-  color: $color-background;
-  border-color: $color-primary;
-}
-
-.saveButton:hover {
-  background: $color-transformative;
-  color: $color-background;
-  border-color: $color-transformative;
-}
-
-.regenerateButton:hover {
-  background: $color-regenerate;
-  color: $color-background;
-  border-color: $color-regenerate;
-}
-
-.cancelButton:hover {
-  background: $color-primary;
-  color: $color-background;
-  border-color: $color-primary;
-}
-
 .lockButton {
+  @include icon-button-small;
+
   &.locked {
     svg {
       color: $color-badge-red;
@@ -194,12 +177,6 @@
   color: $color-text;
 }
 
-.confirmButton:hover {
-  background: $color-error;
-  color: $color-background;
-  border-color: $color-error;
-}
-
 .regenerateConfirmPopup .confirmButton:hover {
   background: $color-regenerate;
   color: $color-background;
@@ -218,36 +195,7 @@
 }
 
 .keywordHighlight {
-  background-color: rgba($color-primary, 0.15);
-  color: $color-primary;
-  font-weight: 600;
-  padding: 1px 3px;
-  border-radius: 3px;
-  border: 1px solid rgba($color-primary, 0.2);
-  transition: all 0.2s ease;
-
-  &:hover {
-    background-color: rgba($color-primary, 0.25);
-    border-color: rgba($color-primary, 0.4);
-  }
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes fadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
+  @include keyword-highlight;
 }
 
 .bulletText {
@@ -318,52 +266,24 @@
 }
 
 .characterCount {
-  font-size: 12px;
-  color: $color-disabled;
-  display: block;
-  margin-bottom: 4px;
+  @include character-count;
 }
 
 .characterCountWarning {
-  color: $color-warning;
+  @include character-count;
+  @include flash-warning;
 }
 
 .characterCountExceeded {
+  @include character-count;
   color: $color-error;
   font-weight: 600;
 }
 
 .formError {
-  font-size: 13px;
-  font-weight: 500;
-  color: $color-error;
-  margin: 6px 0;
-  opacity: 0;
-  transform: translateX(-10px);
-  animation: slideIn 0.3s ease-out forwards;
+  @include form-error;
 }
 
 .flashWarning {
-  color: $color-warning;
-  animation: slideIn 0.3s ease-out forwards;
-}
-
-@keyframes slideIn {
-  0% {
-    opacity: 0;
-    transform: translateX(-8px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -250% 0;
-  }
-  100% {
-    background-position: 250% 0;
-  }
+  @include flash-warning;
 }

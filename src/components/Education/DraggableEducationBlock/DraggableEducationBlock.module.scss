@@ -1,38 +1,11 @@
 @use 'sass:color';
 @import '../../../styles/variables';
+@import '../../../styles/mixins';
 
 .draggableEducationBlockContainer {
-  position: relative;
-  border: 1px solid rgba($color-primary, 0.4);
-  border-radius: 6px;
-  background-color: $color-background;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease,
-    background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
-  overflow: visible;
-  min-width: 0;
-  touch-action: manipulation;
-
-  &.isDragging {
-    background-color: $color-action-item-background;
-    opacity: 0.95;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-    cursor: grabbing !important;
-    border-color: $color-primary;
-    transform: scale(1.02);
-    touch-action: none;
-    user-select: none;
-
-    * {
-      cursor: grabbing !important;
-    }
-  }
+  @include draggable-container;
 
   &.excluded {
-    opacity: 0.7;
-    background-color: $color-action-item-background;
-    border-color: rgba($color-disabled, 0.4);
-
     .educationBlockHeader {
       color: $color-disabled;
     }
@@ -51,9 +24,6 @@
   }
 
   &.isDragging.excluded {
-    opacity: 0.95;
-    background-color: $color-action-item-background;
-    border-color: $color-primary;
     .educationBlockHeader,
     .educationBlockDate,
     .educationBlockDegree,
@@ -64,46 +34,15 @@
 }
 
 .draggableEducationBlock {
-  display: flex;
-  flex-direction: row;
-  padding: 8px 12px;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
-  cursor: grab;
-  overflow: hidden;
-  border-radius: 6px;
-
-  &:active {
-    cursor: grabbing;
-  }
-
-  @media (max-width: 768px) {
-    cursor: default;
-  }
-
-  &.longPressing {
-    transition: all 0.1s ease;
-    border-color: $color-primary;
-  }
+  @include draggable-block;
 }
 
 .educationBlockContent {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 180px;
-  gap: 4px;
-  min-width: 0;
+  @include block-content;
 }
 
 .educationBlockHeader {
-  font-size: 16px;
-  font-weight: 600;
-  color: $color-primary;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include block-header;
 }
 
 .educationBlockDegree {
@@ -127,12 +66,7 @@
 }
 
 .educationBlockDate {
-  font-size: 13px;
-  color: $color-disabled;
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  @include block-date;
 }
 
 .educationBlockStatus {
@@ -146,114 +80,17 @@
 }
 
 .educationBlockActions {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-  align-items: center;
+  @include block-actions;
 }
 
 .editButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: $color-background;
-  border: 1px solid $color-border;
-  border-radius: 4px;
-  cursor: pointer;
-  padding: 4px;
-  width: 28px;
-  height: 28px;
-  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease,
-    transform 0.2s ease;
-
-  svg {
-    height: 14px;
-    width: 14px;
-    color: $color-text;
-  }
-
-  &:hover {
-    background: $color-primary;
-    border-color: $color-primary;
-    transform: scale(1.05);
-    svg {
-      color: $color-background;
-    }
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-    opacity: 0.7;
-    pointer-events: none;
-
-    svg {
-      color: rgba($color-disabled, 0.5);
-    }
-  }
+  @include edit-button;
 }
 
 .toggleIncludeButton {
-  @extend .editButton;
-  background: $color-background;
-
-  &.included {
-    background: $color-primary;
-    border-color: $color-primary;
-    svg {
-      color: $color-background;
-    }
-  }
-
-  &.excluded {
-    background: $color-background;
-    border-color: $color-border;
-    svg {
-      color: $color-disabled;
-    }
-  }
-
-  &:hover {
-    &.included {
-      background: color.adjust($color-primary, $lightness: -5%);
-      border-color: $color-primary;
-      transform: scale(1.05);
-      svg {
-        color: $color-background;
-      }
-    }
-    &.excluded {
-      background: $color-primary;
-      border-color: $color-primary;
-      transform: scale(1.05);
-      svg {
-        color: $color-background;
-      }
-    }
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    border-color: $color-border;
-    opacity: 0.7;
-    pointer-events: none;
-
-    svg {
-      color: rgba($color-disabled, 0.5);
-    }
-  }
+  @include toggle-include-button;
 }
 
 .educationBlockExcluded {
-  font-size: 12px;
-  color: $color-disabled;
-  margin: 0;
-  white-space: wrap;
-  overflow: hidden;
-  font-style: italic;
+  @include excluded-block-text;
 }

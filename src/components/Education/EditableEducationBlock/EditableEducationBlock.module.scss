@@ -1,100 +1,38 @@
 @use 'sass:color';
 @import '../../../styles/variables';
+@import '../../../styles/mixins';
 
 .editableEducationBlock {
-  background: $color-background;
-  width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  border: 1px solid rgba($color-primary, 0.2);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  padding: 16px;
-  transition: box-shadow 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-  }
+  @include card-container;
 }
 
 .header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 20px;
+  @include card-header;
 }
 
 .closeButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: $color-action-item-background;
-  border: none;
-  border-radius: 50%;
-  width: 32px;
-  height: 32px;
-  cursor: pointer;
-  color: $color-text;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-
-  svg {
-    height: 18px;
-    width: 18px;
-  }
-
-  &:hover {
-    background: $color-primary;
-    color: white;
-    transform: scale(1.05);
-  }
+  @include close-button;
 }
 
 .deleteButton {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 1.5px solid $color-error;
-  border-radius: 4px;
-  padding: 6px 12px;
-  font-size: 14px;
-  font-weight: 500;
-  color: $color-error;
-  cursor: pointer;
-  margin-right: auto;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-
-  &:hover {
-    background: $color-error;
-    color: white;
-    transform: scale(1.02);
-  }
+  @include delete-button;
 }
 
 .formField {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 12px;
+  @include form-field;
 }
 
 .label {
-  font-size: 15px;
-  font-weight: 600;
-  margin-bottom: 6px;
-  color: $color-text;
+  @include form-label;
 }
 
 .formInput {
-  font-family: $font-family-base;
+  @include form-input-base;
   font-size: 14px;
-  line-height: 1.5;
   padding: 8px;
   border: 1.5px solid $color-border;
-  border-radius: 4px;
   background: white;
-  color: $color-text;
-  outline: none;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
     border-color: $color-primary;
@@ -115,20 +53,12 @@
 }
 
 .formTextarea {
-  font-family: $font-family-base;
+  @include form-textarea-base;
   font-size: 14px;
-  line-height: 1.5;
   padding: 8px;
   border: 1.5px solid $color-border;
-  border-radius: 4px;
   background: white;
-  color: $color-text;
-  outline: none;
-  resize: vertical;
-  min-height: 80px;
-  width: 100%;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
     border-color: $color-primary;
@@ -149,165 +79,25 @@
 }
 
 .dateInputs {
-  display: grid;
-  grid-template-columns: 140px 90px;
-  gap: 12px;
-
-  .monthInput {
-    width: 100%;
-  }
-
-  .yearInput {
-    width: 100%;
-  }
+  @include date-inputs-grid;
 }
 
 .checkboxField {
-  display: flex;
-  align-items: center;
-  margin-top: 8px;
-
-  input {
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border: 1.5px solid $color-border;
-    border-radius: 4px;
-    cursor: pointer;
-    position: relative;
-    transition: border-color 0.2s ease, background 0.2s ease;
-
-    &:checked {
-      background: $color-primary;
-      border-color: $color-primary;
-    }
-
-    &:checked::after {
-      content: '\2713';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 12px;
-      font-weight: bold;
-    }
-
-    &:focus {
-      outline: 2px solid rgba($color-primary, 0.2);
-      outline-offset: 2px;
-    }
-  }
-
-  .checkboxLabel {
-    font-size: 14px;
-    margin-left: 8px;
-    cursor: pointer;
-    color: $color-text;
-  }
+  @include custom-checkbox;
 }
 
 .formError {
-  font-size: 13px;
-  font-weight: 500;
-  color: $color-error;
-  margin: 6px 0;
-  opacity: 0;
-  transform: translateX(-10px);
-  animation: slideIn 0.3s ease forwards;
-}
-
-@keyframes slideIn {
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+  @include form-error;
 }
 
 .actionButtons {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid rgba($color-border, 0.3);
-}
-
-.button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  padding: 4px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease;
-
-  &:hover {
-    transform: scale(1.02);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    pointer-events: none;
-  }
+  @include action-buttons-container;
 }
 
 .saveButton {
-  @extend .button;
-  background: linear-gradient(135deg, $color-primary, $color-primary-hover);
-  color: white;
-  border: none;
-  padding: 10px 20px;
-
-  &:hover {
-    background: linear-gradient(
-      135deg,
-      $color-primary-hover,
-      color.adjust($color-primary-hover, $lightness: -5%)
-    );
-    box-shadow: 0 2px 8px rgba($color-primary, 0.3);
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-    opacity: 0.6;
-  }
+  @include save-button;
 }
 
 .addButton {
-  @extend .button;
-  background: $color-action-item-background;
-  color: $color-text;
-  border: none;
-  width: 60px;
-  height: 36px;
-  font-size: 14px;
-
-  &:hover {
-    background: rgba($color-primary, 0.2);
-    color: $color-primary;
-  }
-
-  svg {
-    margin-right: 4px;
-    height: 12px;
-    width: 12px;
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-    opacity: 0.6;
-  }
+  @include add-button;
 }
