@@ -123,12 +123,14 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                         )}
                     </div>
                     {jobDescriptionAnalysis.jobSummary && (
-                      <button
-                        className={styles.expandButton}
-                        onClick={() => setExpandedSummary(!expandedSummary)}
-                      >
-                        {expandedSummary ? 'Show less' : 'Show more'}
-                      </button>
+                      <div className={styles.expandButtonContainer}>
+                        <button
+                          className={styles.contentExpandButton}
+                          onClick={() => setExpandedSummary(!expandedSummary)}
+                        >
+                          {expandedSummary ? 'Show less' : 'Show more'}
+                        </button>
+                      </div>
                     )}
                   </div>
 
@@ -239,14 +241,16 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
                         )}
                     </div>
                     {jobDescriptionAnalysis.companyDescription && (
-                      <button
-                        className={styles.expandButton}
-                        onClick={() =>
-                          setExpandedCompanyDesc(!expandedCompanyDesc)
-                        }
-                      >
-                        {expandedCompanyDesc ? 'Show less' : 'Show more'}
-                      </button>
+                      <div className={styles.expandButtonContainer}>
+                        <button
+                          className={styles.contentExpandButton}
+                          onClick={() =>
+                            setExpandedCompanyDesc(!expandedCompanyDesc)
+                          }
+                        >
+                          {expandedCompanyDesc ? 'Show less' : 'Show more'}
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
