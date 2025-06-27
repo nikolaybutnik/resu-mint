@@ -3,6 +3,8 @@ import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { useDebouncedCallback } from '@/lib/clientUtils'
 import { useEffect, useState } from 'react'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { useMobile } from '@/lib/hooks'
+import { FiChevronUp, FiChevronDown } from 'react-icons/fi'
 
 interface JobDescriptionProps {
   data: string
@@ -22,7 +24,9 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
   const [localData, setLocalData] = useState(data)
   const [expandedSummary, setExpandedSummary] = useState(false)
   const [expandedCompanyDesc, setExpandedCompanyDesc] = useState(false)
+  const [isTextareaExpanded, setIsTextareaExpanded] = useState(false)
 
+  const isMobile = useMobile()
   const debouncedOnSave = useDebouncedCallback(onSave, 2000)
 
   useEffect(() => {
@@ -47,14 +51,25 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
             <div className={styles.jobDescriptionContainer}>
               <div className={styles.textareaWrapper}>
                 <textarea
-                  className={styles.formTextarea}
-                  placeholder='Paste the entire job description here. Formatting doesn’t matter. Wait for the analysis to complete, and your resume will be generated to align with the exact description of the job.'
+                  className={`${styles.formTextarea} ${
+                    isMobile && isTextareaExpanded ? styles.expanded : ''
+                  }`}
+                  placeholder='Paste the entire job description here and wait for analysis to complete. When you start building your resume, it will be aligned with the job description.'
                   value={localData}
                   onChange={handleChange}
                   disabled={analyzing}
                   onFocus={(e) => e.target.select()}
                   onClick={(e) => e.currentTarget.select()}
                 />
+                {isMobile && (
+                  <button
+                    className={styles.expandButton}
+                    onClick={() => setIsTextareaExpanded(!isTextareaExpanded)}
+                    type='button'
+                  >
+                    {isTextareaExpanded ? <FiChevronUp /> : <FiChevronDown />}
+                  </button>
+                )}
               </div>
 
               <div className={styles.jobDescriptionAnalysis}>
