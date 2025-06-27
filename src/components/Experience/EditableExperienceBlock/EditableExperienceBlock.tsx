@@ -328,9 +328,17 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         )}
       </header>
 
+      <div className={styles.requiredFieldsNote}>
+        <span className={styles.requiredIndicator}>*</span>
+        Indicates a required field
+      </div>
+
       <div className={styles.jobDetails}>
         <div className={styles.formField}>
-          <label className={styles.label}>Job Title *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Job Title
+          </label>
           <input
             type='text'
             className={styles.formInput}
@@ -343,7 +351,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Company Name *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Company Name
+          </label>
           <input
             type='text'
             className={styles.formInput}
@@ -360,7 +371,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Location *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Location
+          </label>
           <input
             type='text'
             className={styles.formInput}
@@ -373,7 +387,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Start Date *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Start Date
+          </label>
           <div className={styles.dateInputs}>
             <select
               className={[styles.formInput, styles.monthInput].join(' ')}
@@ -423,7 +440,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>End Date *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            End Date
+          </label>
           <div className={styles.dateInputs}>
             <select
               className={[styles.formInput, styles.monthInput].join(' ')}

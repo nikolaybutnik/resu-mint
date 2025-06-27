@@ -259,9 +259,17 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         )}
       </header>
 
+      <div className={styles.requiredFieldsNote}>
+        <span className={styles.requiredIndicator}>*</span>
+        Indicates a required field
+      </div>
+
       <div>
         <div className={styles.formField}>
-          <label className={styles.label}>Institution *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Institution
+          </label>
           <input
             type='text'
             className={styles.formInput}
@@ -279,7 +287,10 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Degree *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Degree
+          </label>
           <input
             type='text'
             className={styles.formInput}

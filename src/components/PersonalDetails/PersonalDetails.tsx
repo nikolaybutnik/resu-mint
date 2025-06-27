@@ -77,8 +77,16 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
         <form className={styles.formSection} onSubmit={handleSubmit}>
           <h2 className={styles.formTitle}>Personal Details</h2>
 
+          <div className={styles.requiredFieldsNote}>
+            <span className={styles.requiredIndicator}>*</span>
+            Indicates a required field
+          </div>
+
           <div className={styles.formField}>
-            <label className={styles.label}>Full Name *</label>
+            <label className={styles.label}>
+              <span className={styles.requiredIndicator}>*</span>
+              Full Name
+            </label>
             <input
               name='name'
               placeholder='Enter your full name'
@@ -92,7 +100,10 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
           </div>
 
           <div className={styles.formField}>
-            <label className={styles.label}>Email *</label>
+            <label className={styles.label}>
+              <span className={styles.requiredIndicator}>*</span>
+              Email
+            </label>
             <input
               name='email'
               type='email'

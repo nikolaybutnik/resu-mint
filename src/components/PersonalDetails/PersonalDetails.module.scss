@@ -9,12 +9,20 @@
   @include section-title;
 }
 
+.requiredFieldsNote {
+  @include required-fields-note;
+}
+
 .formField {
   @include form-field;
 }
 
 .label {
   @include form-label;
+}
+
+.requiredIndicator {
+  @include required-field-indicator;
 }
 
 .formInput {

@@ -122,6 +122,32 @@
   font-weight: 600;
   margin-bottom: 6px;
   color: $color-text;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// Required field indicator (red asterisk before label)
+@mixin required-field-indicator {
+  color: $color-error;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1;
+}
+
+// Required fields note (explanatory text at top of forms)
+@mixin required-fields-note {
+  font-size: 13px;
+  color: $color-error;
+  margin-bottom: 20px;
+  font-style: italic;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  .asterisk {
+    @include required-field-indicator;
+  }
 }
 
 // Chip/tag container

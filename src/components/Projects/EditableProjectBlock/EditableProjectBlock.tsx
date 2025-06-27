@@ -365,9 +365,17 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         )}
       </header>
 
+      <div className={styles.requiredFieldsNote}>
+        <span className={styles.requiredIndicator}>*</span>
+        Indicates a required field
+      </div>
+
       <div className={styles.projectDetails}>
         <div className={styles.formField}>
-          <label className={styles.label}>Project Title *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Project Title
+          </label>
           <input
             type='text'
             className={styles.formInput}
@@ -452,7 +460,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Start Date *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Start Date
+          </label>
           <div className={styles.dateInputs}>
             <select
               className={[styles.formInput, styles.monthInput].join(' ')}
@@ -502,7 +513,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>End Date *</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            End Date
+          </label>
           <div className={styles.dateInputs}>
             <select
               className={[styles.formInput, styles.monthInput].join(' ')}

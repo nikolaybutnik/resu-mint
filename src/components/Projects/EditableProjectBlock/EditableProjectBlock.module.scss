@@ -101,3 +101,11 @@
 .emptyState {
   @include empty-message;
 }
+
+.requiredFieldsNote {
+  @include required-fields-note;
+}
+
+.requiredIndicator {
+  @include required-field-indicator;
+}
