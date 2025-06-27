@@ -17,7 +17,7 @@
 }
 
 .container {
-  height: calc(var(--vh) - 80px);
+  min-height: calc(var(--vh) - 80px);
   flex: 1;
   display: flex;
   max-width: 1600px;

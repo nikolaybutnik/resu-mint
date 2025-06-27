@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import styles from './LongPressHandler.module.scss'
+import { useMobile } from '@/lib/hooks'
 
 interface TouchFeedback {
   x: number
@@ -30,23 +31,9 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
 }) => {
   const touchCleanupRef = useRef<(() => void) | null>(null)
   const initialTouchRef = useRef<{ x: number; y: number } | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
+  const isMobile = useMobile()
   const [isLongPressing, setIsLongPressing] = useState(false)
   const [touchFeedback, setTouchFeedback] = useState<TouchFeedback | null>(null)
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(
-        window.innerWidth <= 768 ||
-          'ontouchstart' in window ||
-          navigator.maxTouchPoints > 0
-      )
-    }
-
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
 
   const handleTouchStart = useCallback(
     (e: React.TouchEvent) => {

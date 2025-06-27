@@ -1,5 +1,5 @@
 import styles from './EditableExperienceBlock.module.scss'
-import React, { useMemo, useCallback, useState, useEffect } from 'react'
+import React, { useMemo, useCallback, useState, useEffect, useRef } from 'react'
 import { useDebounce } from '@/lib/clientUtils'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
@@ -14,6 +14,7 @@ import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { KeywordData } from '@/lib/types/keywords'
+import { useAutoResizeTextarea } from '@/lib/hooks'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -97,6 +98,12 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const [fieldErrors, setFieldErrors] = useState<
     ValidationErrors<FieldErrorKey>
   >({})
+
+  const {
+    textareaRef,
+    handleChange: handleTextareaChange,
+    handleInput,
+  } = useAutoResizeTextarea(formData.description)
 
   const debouncedFormData = useDebounce(formData, VALIDATION_DELAY)
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
@@ -483,13 +490,16 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         <div className={styles.formField}>
           <label className={styles.label}>Description</label>
           <textarea
+            ref={textareaRef}
             className={styles.formTextarea}
             value={formData.description}
             rows={4}
             placeholder='Describe your experience in detail. Format however you like.'
-            onChange={(e) =>
-              handleChange(FieldType.DESCRIPTION, e.target.value)
-            }
+            onChange={(e) => {
+              const newValue = handleTextareaChange(e)
+              handleChange(FieldType.DESCRIPTION, newValue)
+            }}
+            onInput={handleInput}
           />
           {debouncedTouched.description && fieldErrors.invalidDescription && (
             <p className={styles.formError}>

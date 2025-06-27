@@ -14,6 +14,7 @@ import { AppSettings } from '@/lib/types/settings'
 import { isEqual } from 'lodash'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { KeywordData } from '@/lib/types/keywords'
+import { useAutoResizeTextarea } from '@/lib/hooks'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
@@ -97,6 +98,12 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     ValidationErrors<FieldErrorKey>
   >({})
   const [techInput, setTechInput] = useState('')
+
+  const {
+    textareaRef,
+    handleChange: handleTextareaChange,
+    handleInput,
+  } = useAutoResizeTextarea(formData.description)
 
   const debouncedFormData = useDebounce(formData, VALIDATION_DELAY)
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
@@ -521,14 +528,17 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         <div className={styles.formField}>
           <label className={styles.label}>Description</label>
           <textarea
+            ref={textareaRef}
             className={styles.formTextarea}
             value={formData.description}
             rows={4}
             maxLength={1000}
             placeholder='Describe your project in detail. Format however you like.'
-            onChange={(e) =>
-              handleChange(FieldType.DESCRIPTION, e.target.value)
-            }
+            onChange={(e) => {
+              const newValue = handleTextareaChange(e)
+              handleChange(FieldType.DESCRIPTION, newValue)
+            }}
+            onInput={handleInput}
           />
           {debouncedTouched.description && fieldErrors.invalidDescription && (
             <p className={styles.formError}>

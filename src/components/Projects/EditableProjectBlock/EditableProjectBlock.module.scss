@@ -139,6 +139,13 @@
     color: $color-placeholder;
     opacity: 0.7;
   }
+
+  // Auto-resize on mobile, disable manual resize
+  @media (max-width: 768px) {
+    resize: none;
+    overflow: hidden;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, height 0.1s ease;
+  }
 }
 
 .chipInputContainer {

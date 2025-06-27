@@ -6,6 +6,7 @@ import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
 import { educationBlockSchema } from '@/lib/validationSchemas'
 import { Month, EducationBlockData, DegreeStatus } from '@/lib/types/education'
 import { isEqual } from 'lodash'
+import { useAutoResizeTextarea } from '@/lib/hooks'
 
 interface EditableEducationBlockProps {
   data: EducationBlockData
@@ -56,6 +57,12 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   const [fieldErrors, setFieldErrors] = useState<
     ValidationErrors<FieldErrorKey>
   >({})
+
+  const {
+    textareaRef,
+    handleChange: handleTextareaChange,
+    handleInput,
+  } = useAutoResizeTextarea(formData.description || '')
 
   const debouncedFormData = useDebounce(formData, VALIDATION_DELAY)
   const debouncedTouched = useDebounce(touched, TOUCH_DELAY)
@@ -429,14 +436,17 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         <div className={styles.formField}>
           <label className={styles.label}>Description</label>
           <textarea
+            ref={textareaRef}
             className={styles.formTextarea}
             value={formData.description || ''}
             rows={4}
             maxLength={2000}
             placeholder='Describe your education experience, achievements, relevant coursework, etc.'
-            onChange={(e) =>
-              handleChange(FieldType.DESCRIPTION, e.target.value)
-            }
+            onChange={(e) => {
+              const newValue = handleTextareaChange(e)
+              handleChange(FieldType.DESCRIPTION, newValue)
+            }}
+            onInput={handleInput}
           />
           {debouncedTouched.description && fieldErrors.invalidDescription && (
             <p className={styles.formError}>
