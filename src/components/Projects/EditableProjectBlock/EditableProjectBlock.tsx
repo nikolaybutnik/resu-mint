@@ -419,29 +419,35 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           </div>
 
           <div className={styles.chipsContainer}>
-            {formData.technologies.map((tech, index) => (
-              <div
-                key={index}
-                className={`${styles.chip} ${
-                  duplicateTechnology === tech ? styles.duplicate : ''
-                }`}
-              >
-                <span className={styles.skillText}>{tech}</span>
-                <button
-                  type='button'
-                  className={styles.removeChip}
-                  onClick={() =>
-                    handleChange(
-                      FieldType.TECHNOLOGIES,
-                      formData.technologies.filter((_, i) => i !== index)
-                    )
-                  }
-                  title='Remove technology'
-                >
-                  <FaXmark />
-                </button>
+            {formData.technologies.length === 0 ? (
+              <div className={styles.emptyState}>
+                <p>Enter the technologies you used in this project.</p>
               </div>
-            ))}
+            ) : (
+              formData.technologies.map((tech, index) => (
+                <div
+                  key={index}
+                  className={`${styles.chip} ${
+                    duplicateTechnology === tech ? styles.duplicate : ''
+                  }`}
+                >
+                  <span className={styles.skillText}>{tech}</span>
+                  <button
+                    type='button'
+                    className={styles.removeChip}
+                    onClick={() =>
+                      handleChange(
+                        FieldType.TECHNOLOGIES,
+                        formData.technologies.filter((_, i) => i !== index)
+                      )
+                    }
+                    title='Remove technology'
+                  >
+                    <FaXmark />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
