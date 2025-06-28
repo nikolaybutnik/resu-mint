@@ -43,14 +43,25 @@ export function formatErrorsForClient(errors: ApiError[]): {
   }, {} as { [key: string]: string })
 }
 
-export function zodErrorsToApiErrors(
+export const zodErrorsToApiErrors = (
   zodErrors: ZodError['errors']
-): ApiError[] {
+): ApiError[] => {
   return zodErrors.map((error) => ({
     field: error.path.join('.') || 'value',
     message: error.message,
     type: 'validation',
   }))
+}
+
+export const zodErrorsToFormErrors = (
+  error: ZodError
+): Record<string, string> => {
+  return error.errors.reduce((acc, err) => {
+    if (err.path.length > 0) {
+      acc[err.path[0] as string] = err.message
+    }
+    return acc
+  }, {} as Record<string, string>)
 }
 
 export type BulletPointErrors = {

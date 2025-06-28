@@ -3,58 +3,33 @@
 @import '../../../styles/mixins';
 
 .stepContent {
-  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.welcomeForm {
+.form {
+  width: 100%;
   max-width: 400px;
-  margin: 0 auto;
-  text-align: left;
 }
 
 .formField {
-  margin-bottom: 1.5rem;
+  @include form-field;
 }
 
 .formLabel {
-  display: block;
-  font-weight: 600;
-  color: $color-text;
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
+  @include form-label;
 }
 
 .formInput {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid $color-border;
-  border-radius: 8px;
-  font-family: $font-family-base;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: $color-primary;
-  }
-
-  &::placeholder {
-    color: $color-placeholder;
-  }
-
-  &.error {
-    border-color: $color-error;
-  }
+  @include form-input-base;
 }
 
 .formError {
-  display: block;
-  color: $color-error;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-  font-weight: 500;
+  @include form-error;
 }
 
+// TODO: make mixin when styling direction is decided on
 .submitButton {
   @include button-base;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);

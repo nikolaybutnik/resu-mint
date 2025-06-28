@@ -2,6 +2,28 @@
 @import './variables';
 
 // ========================================
+// BREAKPOINTS
+// ========================================
+
+@mixin breakpoint($point) {
+  @if $point == mobile {
+    @media (max-width: 480px) {
+      @content;
+    }
+  }
+  @if $point == tablet {
+    @media (min-width: 481px) and (max-width: 1024px) {
+      @content;
+    }
+  }
+  @if $point == desktop {
+    @media (min-width: 1025px) {
+      @content;
+    }
+  }
+}
+
+// ========================================
 // LAYOUT & CONTAINER MIXINS
 // ========================================
 
@@ -118,13 +140,16 @@
 
 // Form label styling
 @mixin form-label {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   margin-bottom: 6px;
   color: $color-text;
   display: flex;
   align-items: center;
-  gap: 4px;
+
+  @include breakpoint(mobile) {
+    font-size: 14px;
+  }
 }
 
 // Required field indicator (red asterisk before label)
@@ -375,7 +400,7 @@
   }
 
   &::placeholder {
-    color: $color-disabled;
+    color: $color-placeholder;
     opacity: 0.7;
   }
 
@@ -384,17 +409,21 @@
     color: $color-disabled;
     border-color: $color-border;
     opacity: 0.6;
+    cursor: not-allowed;
+    user-select: none;
   }
 
-  // Responsive adjustments
-  @media (max-width: 480px) {
+  &.error {
+    border-color: $color-error;
+
+    &:focus {
+      box-shadow: 0 0 0 3px rgba($color-error, 0.1);
+    }
+  }
+
+  @include breakpoint(mobile) {
     font-size: 14px;
     padding: 10px 12px;
-  }
-
-  @media (max-width: 375px) {
-    font-size: 14px;
-    padding: 8px 10px;
   }
 }
 
@@ -855,7 +884,8 @@
   color: $color-error;
   margin: 6px 0;
   opacity: 0;
-  transform: translateX(-10px);
+  transform: translateX(-8px);
+  display: inline-block;
   animation: slideIn 0.3s ease forwards;
 }
 

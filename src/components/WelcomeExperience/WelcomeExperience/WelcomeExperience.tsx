@@ -338,31 +338,6 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     }
   }, [currentStep, isClient, currentWelcomeState.completedSteps])
 
-  // Handle personal details submission from child component
-  const handlePersonalDetailsSubmit = (
-    personalDetailsData: PersonalDetailsType
-  ) => {
-    // Save to localStorage
-    localStorage.setItem(
-      STORAGE_KEYS.PERSONAL_DETAILS,
-      JSON.stringify(personalDetailsData)
-    )
-
-    // Update welcome state and move to next step
-    const newWelcomeState = shouldShowWelcomeExperience()
-    setCurrentWelcomeState(newWelcomeState)
-
-    const nextStep = getNextIncompleteStep(currentStep + 1, newWelcomeState)
-    if (
-      nextStep < WELCOME_STEPS.length &&
-      isStepAccessible(nextStep, newWelcomeState)
-    ) {
-      setCurrentStep(nextStep)
-    } else {
-      onComplete()
-    }
-  }
-
   const getPersonalizedStepData = (stepId: number): WelcomeStep => {
     const personalizationData = getPersonalizationData()
     const personalizedContent = getPersonalizedContent(
@@ -475,6 +450,35 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     }
   }
 
+  const getPersonalDetails = (): PersonalDetailsType | undefined => {
+    const personalDetails = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS)
+    return personalDetails
+      ? (JSON.parse(personalDetails) as PersonalDetailsType)
+      : undefined
+  }
+
+  const handlePersonalDetailsSubmit = (
+    personalDetailsData: PersonalDetailsType
+  ): void => {
+    localStorage.setItem(
+      STORAGE_KEYS.PERSONAL_DETAILS,
+      JSON.stringify(personalDetailsData)
+    )
+
+    const newWelcomeState = shouldShowWelcomeExperience()
+    setCurrentWelcomeState(newWelcomeState)
+
+    const nextStep = getNextIncompleteStep(currentStep + 1, newWelcomeState)
+    if (
+      nextStep < WELCOME_STEPS.length &&
+      isStepAccessible(nextStep, newWelcomeState)
+    ) {
+      setCurrentStep(nextStep)
+    } else {
+      onComplete()
+    }
+  }
+
   const renderStepContent = () => {
     if (!isClient) return null
 
@@ -486,14 +490,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         return (
           <PersonalDetailsStep
             onSubmit={handlePersonalDetailsSubmit}
-            initialData={(() => {
-              const personalDetails = localStorage.getItem(
-                STORAGE_KEYS.PERSONAL_DETAILS
-              )
-              return personalDetails
-                ? (JSON.parse(personalDetails) as PersonalDetailsType)
-                : undefined
-            })()}
+            initialData={getPersonalDetails()}
           />
         )
 
