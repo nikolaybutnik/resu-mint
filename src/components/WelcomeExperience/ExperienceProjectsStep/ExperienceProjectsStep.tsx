@@ -6,12 +6,45 @@ import {
   experienceBlockSchema,
   projectBlockSchema,
 } from '@/lib/validationSchemas'
-import { ExperienceBlockData } from '@/lib/types/experience'
+import {
+  ExperienceBlockData,
+  StartDate,
+  EndDate,
+  Month,
+} from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
 
 interface ExperienceProjectsStepProps {
   onContinue: () => void
 }
+
+// Union type for form data that can handle both experience and project fields
+type FormDataType = {
+  id?: string
+  title?: string
+  companyName?: string
+  location?: string
+  startDate?: StartDate
+  endDate?: EndDate
+  description?: string
+  technologies?: string[]
+  link?: string
+  bulletPoints?: { id: string; text: string; isLocked: boolean }[]
+  isIncluded?: boolean
+}
+
+// Type for data items stored in localStorage
+type StoredDataItem = ExperienceBlockData | ProjectBlockData
+
+// Type for form field values (more flexible for form inputs)
+type FormFieldValue =
+  | string
+  | boolean
+  | StartDate
+  | EndDate
+  | string[]
+  | Partial<StartDate>
+  | Partial<EndDate>
 
 export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   onContinue,
@@ -19,7 +52,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   const [selectedOption, setSelectedOption] = useState<
     'experience' | 'project' | null
   >(null)
-  const [formData, setFormData] = useState<Record<string, any>>({})
+  const [formData, setFormData] = useState<FormDataType>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasExistingData, setHasExistingData] = useState(false)
 
@@ -29,9 +62,11 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     const projectData = localStorage.getItem(STORAGE_KEYS.PROJECTS)
 
     const hasExperience = experienceData
-      ? JSON.parse(experienceData).length > 0
+      ? (JSON.parse(experienceData) as StoredDataItem[]).length > 0
       : false
-    const hasProject = projectData ? JSON.parse(projectData).length > 0 : false
+    const hasProject = projectData
+      ? (JSON.parse(projectData) as StoredDataItem[]).length > 0
+      : false
 
     // Reset form state
     setSelectedOption(null)
@@ -41,7 +76,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   }, [])
 
   // Form field handlers
-  const handleFieldChange = (field: string, value: any) => {
+  const handleFieldChange = (field: string, value: FormFieldValue) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
@@ -68,7 +103,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     const existingData = localStorage.getItem(storageKey)
 
     if (existingData) {
-      const parsedData = JSON.parse(existingData)
+      const parsedData = JSON.parse(existingData) as StoredDataItem[]
       if (Array.isArray(parsedData) && parsedData.length > 0) {
         // Load the most recent entry for editing
         setFormData(parsedData[parsedData.length - 1])
@@ -147,14 +182,16 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
 
     // Save to localStorage
     const existingData = localStorage.getItem(storageKey)
-    const dataArray = existingData ? JSON.parse(existingData) : []
+    const dataArray: StoredDataItem[] = existingData
+      ? JSON.parse(existingData)
+      : []
 
     const isEditing =
-      formData.id && dataArray.some((item: any) => item.id === formData.id)
+      formData.id && dataArray.some((item) => item.id === formData.id)
 
     if (isEditing) {
       // Update existing entry
-      const index = dataArray.findIndex((item: any) => item.id === formData.id)
+      const index = dataArray.findIndex((item) => item.id === formData.id)
       if (index !== -1) {
         dataArray[index] = dataToSave
       }
@@ -173,14 +210,16 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     const experienceData = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
     const projectData = localStorage.getItem(STORAGE_KEYS.PROJECTS)
     const hasExperience = experienceData
-      ? JSON.parse(experienceData).length > 0
+      ? (JSON.parse(experienceData) as StoredDataItem[]).length > 0
       : false
-    const hasProject = projectData ? JSON.parse(projectData).length > 0 : false
+    const hasProject = projectData
+      ? (JSON.parse(projectData) as StoredDataItem[]).length > 0
+      : false
 
     if (hasExperience && hasProject) {
       return (
         <>
-          <p>Great! You've added both experience and project.</p>
+          <p>Great! You&apos;ve added both experience and project.</p>
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
@@ -207,7 +246,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     } else if (hasExperience) {
       return (
         <>
-          <p>You've added work experience. You can also add a project:</p>
+          <p>You&apos;ve added work experience. You can also add a project:</p>
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
@@ -234,7 +273,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     } else if (hasProject) {
       return (
         <>
-          <p>You've added a project. You can also add work experience:</p>
+          <p>You&apos;ve added a project. You can also add work experience:</p>
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
@@ -261,7 +300,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     } else {
       return (
         <>
-          <p>Choose what you'd like to add:</p>
+          <p>Choose what you&apos;d like to add:</p>
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
@@ -382,7 +421,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                     onChange={(e) =>
                       handleFieldChange('startDate', {
                         ...formData.startDate,
-                        month: e.target.value,
+                        month: e.target.value as Month | '',
                       })
                     }
                   >
@@ -434,7 +473,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                     onChange={(e) =>
                       handleFieldChange('endDate', {
                         ...formData.endDate,
-                        month: e.target.value,
+                        month: e.target.value as Month | '',
                         isPresent: false,
                       })
                     }
@@ -481,7 +520,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                       handleFieldChange('endDate', {
                         month: e.target.checked
                           ? ''
-                          : formData.endDate?.month || '',
+                          : (formData.endDate?.month as Month | '') || '',
                         year: e.target.checked
                           ? ''
                           : formData.endDate?.year || '',

@@ -7,6 +7,10 @@ import {
   shouldShowWelcomeExperience,
 } from '@/lib/utils'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
+import { ExperienceBlockData } from '@/lib/types/experience'
+import { ProjectBlockData } from '@/lib/types/projects'
+import { EducationBlockData } from '@/lib/types/education'
+import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { STORAGE_KEYS } from '@/lib/constants'
 import { PersonalDetailsStep } from '../PersonalDetailsStep/PersonalDetailsStep'
 import { WelcomeStep } from '../WelcomeStep/WelcomeStep'
@@ -44,6 +48,12 @@ interface PersonalizationData {
   currentSchool: string
   hasJobDescription: boolean
   targetJobTitle: string
+}
+
+// Type for skills stored in localStorage
+interface StoredSkills {
+  hardSkills: string[]
+  softSkills: string[]
 }
 
 const WELCOME_STEPS: WelcomeStep[] = [
@@ -130,7 +140,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         STORAGE_KEYS.PERSONAL_DETAILS
       )
       if (personalDetails) {
-        const parsed = JSON.parse(personalDetails)
+        const parsed = JSON.parse(personalDetails) as PersonalDetailsType
         if (parsed.name?.trim()) {
           defaultData.fullName = parsed.name.trim()
           defaultData.firstName = parsed.name.trim().split(' ')[0]
@@ -141,9 +151,9 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       }
 
       // Experience Data
-      const experience = localStorage.getItem('resumint_experience')
+      const experience = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
       if (experience) {
-        const parsedExp = JSON.parse(experience)
+        const parsedExp = JSON.parse(experience) as ExperienceBlockData[]
         if (Array.isArray(parsedExp) && parsedExp.length > 0) {
           defaultData.hasExperience = true
           defaultData.experienceCount = parsedExp.length
@@ -151,16 +161,16 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
           // Get most recent job info
           const recentJob = parsedExp[0] // Assuming first is most recent
           if (recentJob) {
-            defaultData.recentJobTitle = recentJob.jobTitle || ''
-            defaultData.recentCompany = recentJob.company || ''
+            defaultData.recentJobTitle = recentJob.title || ''
+            defaultData.recentCompany = recentJob.companyName || ''
           }
         }
       }
 
       // Projects Data
-      const projects = localStorage.getItem('resumint_projects')
+      const projects = localStorage.getItem(STORAGE_KEYS.PROJECTS)
       if (projects) {
-        const parsedProjects = JSON.parse(projects)
+        const parsedProjects = JSON.parse(projects) as ProjectBlockData[]
         if (Array.isArray(parsedProjects) && parsedProjects.length > 0) {
           defaultData.hasProjects = true
           defaultData.projectCount = parsedProjects.length
@@ -168,9 +178,9 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       }
 
       // Education Data
-      const education = localStorage.getItem('resumint_education')
+      const education = localStorage.getItem(STORAGE_KEYS.EDUCATION)
       if (education) {
-        const parsedEducation = JSON.parse(education)
+        const parsedEducation = JSON.parse(education) as EducationBlockData[]
         if (Array.isArray(parsedEducation) && parsedEducation.length > 0) {
           defaultData.hasEducation = true
           defaultData.educationCount = parsedEducation.length
@@ -179,19 +189,19 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
           const recentEducation = parsedEducation[0] // Assuming first is most recent
           if (recentEducation) {
             defaultData.currentDegree = recentEducation.degree || ''
-            defaultData.currentSchool = recentEducation.school || ''
+            defaultData.currentSchool = recentEducation.institution || ''
           }
         }
       }
 
       // Skills Data
-      const skills = localStorage.getItem('resumint_skills')
+      const skills = localStorage.getItem(STORAGE_KEYS.SKILLS)
       if (skills) {
-        const parsedSkills = JSON.parse(skills)
+        const parsedSkills = JSON.parse(skills) as StoredSkills
         if (parsedSkills && typeof parsedSkills === 'object') {
           // Combine all skill categories and get top ones
           const allSkills: string[] = []
-          Object.values(parsedSkills).forEach((skillArray: any) => {
+          Object.values(parsedSkills).forEach((skillArray: string[]) => {
             if (Array.isArray(skillArray)) {
               allSkills.push(...skillArray)
             }
@@ -201,16 +211,18 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       }
 
       // Job Description Data
-      const jobDescription = localStorage.getItem('resumint_jobDescription')
+      const jobDescription = localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION)
       const jobAnalysis = localStorage.getItem(
-        'resumint_jobDescriptionAnalysis'
+        STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS
       )
       if (jobDescription?.trim()) {
         defaultData.hasJobDescription = true
 
         if (jobAnalysis) {
           try {
-            const parsedAnalysis = JSON.parse(jobAnalysis)
+            const parsedAnalysis = JSON.parse(
+              jobAnalysis
+            ) as JobDescriptionAnalysis
             if (parsedAnalysis?.jobTitle) {
               defaultData.targetJobTitle = parsedAnalysis.jobTitle
             }
@@ -478,7 +490,9 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
               const personalDetails = localStorage.getItem(
                 STORAGE_KEYS.PERSONAL_DETAILS
               )
-              return personalDetails ? JSON.parse(personalDetails) : undefined
+              return personalDetails
+                ? (JSON.parse(personalDetails) as PersonalDetailsType)
+                : undefined
             })()}
           />
         )

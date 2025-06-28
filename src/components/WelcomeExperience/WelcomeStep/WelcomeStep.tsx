@@ -29,8 +29,8 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onGetStarted }) => {
             <div className={styles.featureIcon}>🎯</div>
             <h3>Job-Specific</h3>
             <p>
-              Get personalized suggestions based on the specific role you're
-              applying for
+              Get personalized suggestions based on the specific role
+              you&apos;re applying for
             </p>
           </div>
         </div>

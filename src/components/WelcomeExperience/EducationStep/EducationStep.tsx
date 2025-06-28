@@ -3,19 +3,39 @@ import { useState, useEffect } from 'react'
 import { STORAGE_KEYS } from '@/lib/constants'
 import { v4 as uuidv4 } from 'uuid'
 import { educationBlockSchema } from '@/lib/validationSchemas'
-import { EducationBlockData, DegreeStatus } from '@/lib/types/education'
+import {
+  EducationBlockData,
+  DegreeStatus,
+  StartDate,
+  EndDate,
+  Month,
+} from '@/lib/types/education'
 
 interface EducationStepProps {
   onContinue: () => void
   onSkip: () => void
 }
 
+// Form data type for education
+type EducationFormData = Partial<EducationBlockData>
+
+// Type for form field values
+type FormFieldValue =
+  | string
+  | boolean
+  | StartDate
+  | EndDate
+  | DegreeStatus
+  | undefined
+  | Partial<StartDate>
+  | Partial<EndDate>
+
 export const EducationStep: React.FC<EducationStepProps> = ({
   onContinue,
   onSkip,
 }) => {
   const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState<Record<string, any>>({})
+  const [formData, setFormData] = useState<EducationFormData>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasExistingData, setHasExistingData] = useState(false)
 
@@ -33,7 +53,7 @@ export const EducationStep: React.FC<EducationStepProps> = ({
   }, [])
 
   // Form field handlers
-  const handleFieldChange = (field: string, value: any) => {
+  const handleFieldChange = (field: string, value: FormFieldValue) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
     // Clear error when user starts typing
     if (errors[field]) {
@@ -54,7 +74,7 @@ export const EducationStep: React.FC<EducationStepProps> = ({
     // Load existing data
     const existingData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
     if (existingData) {
-      const parsedData = JSON.parse(existingData)
+      const parsedData = JSON.parse(existingData) as EducationBlockData[]
       if (Array.isArray(parsedData) && parsedData.length > 0) {
         // Load the most recent entry for editing
         setFormData(parsedData[parsedData.length - 1])
@@ -102,20 +122,22 @@ export const EducationStep: React.FC<EducationStepProps> = ({
 
     // Save to localStorage
     const existingData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
-    const dataArray = existingData ? JSON.parse(existingData) : []
+    const dataArray: EducationBlockData[] = existingData
+      ? JSON.parse(existingData)
+      : []
 
     const isEditing =
-      formData.id && dataArray.some((item: any) => item.id === formData.id)
+      formData.id && dataArray.some((item) => item.id === formData.id)
 
     if (isEditing) {
       // Update existing entry
-      const index = dataArray.findIndex((item: any) => item.id === formData.id)
+      const index = dataArray.findIndex((item) => item.id === formData.id)
       if (index !== -1) {
-        dataArray[index] = validationResult.data
+        dataArray[index] = validationResult.data as EducationBlockData
       }
     } else {
       // Add new entry
-      dataArray.push(validationResult.data)
+      dataArray.push(validationResult.data as EducationBlockData)
     }
 
     localStorage.setItem(STORAGE_KEYS.EDUCATION, JSON.stringify(dataArray))
@@ -128,7 +150,7 @@ export const EducationStep: React.FC<EducationStepProps> = ({
     if (hasExistingData) {
       return (
         <>
-          <p>You've added education details. You can edit or continue:</p>
+          <p>You&apos;ve added education details. You can edit or continue:</p>
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
@@ -237,7 +259,12 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                 className={styles.formInput}
                 value={formData.degreeStatus || ''}
                 onChange={(e) =>
-                  handleFieldChange('degreeStatus', e.target.value)
+                  handleFieldChange(
+                    'degreeStatus',
+                    e.target.value === ''
+                      ? undefined
+                      : (e.target.value as DegreeStatus)
+                  )
                 }
               >
                 <option value=''>Select status</option>
@@ -274,7 +301,7 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                     onChange={(e) =>
                       handleFieldChange('startDate', {
                         ...formData.startDate,
-                        month: e.target.value,
+                        month: e.target.value as Month | '',
                       })
                     }
                   >
@@ -326,7 +353,7 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                     onChange={(e) =>
                       handleFieldChange('endDate', {
                         ...formData.endDate,
-                        month: e.target.value,
+                        month: e.target.value as Month | '',
                       })
                     }
                   >
