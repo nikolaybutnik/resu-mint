@@ -14,13 +14,14 @@ import {
 export const useKeywordAnalysis = (
   workExperience: ExperienceBlockData[],
   projects: ProjectBlockData[],
-  jobDescriptionAnalysis: JobDescriptionAnalysis
+  jobDescriptionAnalysis: JobDescriptionAnalysis | null
 ): KeywordData => {
   const keywordAnalysis: KeywordAnalysis = useMemo(
     () => ({
-      hardSkills: jobDescriptionAnalysis.skillsRequired.hard,
-      softSkills: jobDescriptionAnalysis.skillsRequired.soft,
-      contextualTechnologies: jobDescriptionAnalysis.contextualTechnologies,
+      hardSkills: jobDescriptionAnalysis?.skillsRequired?.hard || [],
+      softSkills: jobDescriptionAnalysis?.skillsRequired?.soft || [],
+      contextualTechnologies:
+        jobDescriptionAnalysis?.contextualTechnologies || [],
     }),
     [jobDescriptionAnalysis]
   )

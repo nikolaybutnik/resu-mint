@@ -41,6 +41,18 @@ export const LIVE_PREVIEW = {
   RETRY_ATTEMPTS: 2, // Retry failed generations
 } as const
 
+export const STORAGE_KEYS = {
+  SESSION_ID: 'resumint_sessionId',
+  JOB_DESCRIPTION: 'resumint_jobDescription',
+  JOB_DESCRIPTION_ANALYSIS: 'resumint_jobDescriptionAnalysis',
+  PERSONAL_DETAILS: 'resumint_personalDetails',
+  EXPERIENCE: 'resumint_experience',
+  PROJECTS: 'resumint_projects',
+  EDUCATION: 'resumint_education',
+  SETTINGS: 'resumint_settings',
+  SKILLS: 'resumint_skills',
+} as const
+
 // Debounce delays
 export const VALIDATION_DELAY = 250
 export const TOUCH_DELAY = 300

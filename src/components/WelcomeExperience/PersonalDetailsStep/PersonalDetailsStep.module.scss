@@ -1,0 +1,85 @@
+@use 'sass:color';
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.stepContent {
+  margin-top: 2rem;
+}
+
+.welcomeForm {
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.formField {
+  margin-bottom: 1.5rem;
+}
+
+.formLabel {
+  display: block;
+  font-weight: 600;
+  color: $color-text;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.formInput {
+  width: 100%;
+  padding: 0.875rem 1rem;
+  border: 2px solid $color-border;
+  border-radius: 8px;
+  font-family: $font-family-base;
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+
+  &::placeholder {
+    color: $color-placeholder;
+  }
+
+  &.error {
+    border-color: $color-error;
+  }
+}
+
+.formError {
+  display: block;
+  color: $color-error;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  font-weight: 500;
+}
+
+.submitButton {
+  @include button-base;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.875rem 2rem;
+  font-weight: 500;
+  width: 100%;
+  margin-top: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  }
+}

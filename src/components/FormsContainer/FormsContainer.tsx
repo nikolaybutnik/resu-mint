@@ -29,11 +29,12 @@ import {
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
-import { api } from '@/lib/services'
+import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 import { FiDownload } from 'react-icons/fi'
 import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
+import { STORAGE_KEYS } from '@/lib/constants'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -43,18 +44,6 @@ const Tabs = {
   EDUCATION: 'Education',
   SKILLS: 'Skills',
   SETTINGS: 'Settings',
-} as const
-
-const StorageKeys = {
-  SESSION_ID: 'resumint_sessionId',
-  JOB_DESCRIPTION: 'resumint_jobDescription',
-  JOB_DESCRIPTION_ANALYSIS: 'resumint_jobDescriptionAnalysis',
-  PERSONAL_DETAILS: 'resumint_personalDetails',
-  EXPERIENCE: 'resumint_experience',
-  PROJECTS: 'resumint_projects',
-  EDUCATION: 'resumint_education',
-  SETTINGS: 'resumint_settings',
-  SKILLS: 'resumint_skills',
 } as const
 
 const tabs = [
@@ -193,7 +182,8 @@ const handleDownload = async (resumeData: CreatePdfRequest): Promise<void> => {
   try {
     const blob = await api.post<CreatePdfRequest, Blob>(
       ROUTES.CREATE_PDF,
-      resumeData
+      resumeData,
+      { responseType: ResponseType.BLOB }
     )
 
     const fileName = `${
@@ -256,12 +246,12 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
   // Placeholder until user authentication is implemented
   useEffect(() => {
-    const storedId = window.localStorage.getItem(StorageKeys.SESSION_ID)
+    const storedId = window.localStorage.getItem(STORAGE_KEYS.SESSION_ID)
     if (storedId) {
       setSessionId(storedId)
     } else {
       const newId = uuidv4()
-      window.localStorage.setItem(StorageKeys.SESSION_ID, newId)
+      window.localStorage.setItem(STORAGE_KEYS.SESSION_ID, newId)
       setSessionId(newId)
     }
   }, [])
@@ -372,7 +362,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           }
 
           localStorage.setItem(
-            StorageKeys.SKILLS,
+            STORAGE_KEYS.SKILLS,
             JSON.stringify(updatedSkills)
           )
           return updatedSkills
@@ -390,14 +380,14 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   useEffect(() => {
     setLoading(true)
     const stored = {
-      jobDescription: localStorage.getItem(StorageKeys.JOB_DESCRIPTION),
-      analysis: localStorage.getItem(StorageKeys.JOB_DESCRIPTION_ANALYSIS),
-      personalDetails: localStorage.getItem(StorageKeys.PERSONAL_DETAILS),
-      workExperience: localStorage.getItem(StorageKeys.EXPERIENCE),
-      projects: localStorage.getItem(StorageKeys.PROJECTS),
-      education: localStorage.getItem(StorageKeys.EDUCATION),
-      settings: localStorage.getItem(StorageKeys.SETTINGS),
-      skills: localStorage.getItem(StorageKeys.SKILLS),
+      jobDescription: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION),
+      analysis: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS),
+      personalDetails: localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS),
+      workExperience: localStorage.getItem(STORAGE_KEYS.EXPERIENCE),
+      projects: localStorage.getItem(STORAGE_KEYS.PROJECTS),
+      education: localStorage.getItem(STORAGE_KEYS.EDUCATION),
+      settings: localStorage.getItem(STORAGE_KEYS.SETTINGS),
+      skills: localStorage.getItem(STORAGE_KEYS.SKILLS),
     }
     if (stored.jobDescription) setJobDescription(stored.jobDescription)
     if (stored.analysis) setJobDescriptionAnalysis(JSON.parse(stored.analysis))
@@ -411,7 +401,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       setSettings(JSON.parse(stored.settings))
     } else {
       localStorage.setItem(
-        StorageKeys.SETTINGS,
+        STORAGE_KEYS.SETTINGS,
         JSON.stringify(initialSettings)
       )
       setSettings(initialSettings)
@@ -439,11 +429,11 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
       setSkills(deduplicatedSkills)
       localStorage.setItem(
-        StorageKeys.SKILLS,
+        STORAGE_KEYS.SKILLS,
         JSON.stringify(deduplicatedSkills)
       )
     } else {
-      localStorage.setItem(StorageKeys.SKILLS, JSON.stringify(initialSkills))
+      localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(initialSkills))
       setSkills(initialSkills)
     }
     setLoading(false)
@@ -451,7 +441,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
   const handleJobDescriptionSave = async (data: string) => {
     setJobDescription(data)
-    localStorage.setItem(StorageKeys.JOB_DESCRIPTION, data)
+    localStorage.setItem(STORAGE_KEYS.JOB_DESCRIPTION, data)
 
     try {
       setAnalyzingJob(true)
@@ -476,7 +466,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       const analysis = validationResult.data as JobDescriptionAnalysis
       setJobDescriptionAnalysis(analysis)
       localStorage.setItem(
-        StorageKeys.JOB_DESCRIPTION_ANALYSIS,
+        STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS,
         JSON.stringify(analysis)
       )
     } catch (error) {
@@ -488,39 +478,39 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
   const handlePersonalDetailsSave = (data: PersonalDetailsType) => {
     setPersonalDetails(data)
-    localStorage.setItem(StorageKeys.PERSONAL_DETAILS, JSON.stringify(data))
+    localStorage.setItem(STORAGE_KEYS.PERSONAL_DETAILS, JSON.stringify(data))
   }
 
   const handleWorkExperienceSave = (data: ExperienceBlockData[]) => {
     setWorkExperience(data)
     if (data.length > 0) {
-      localStorage.setItem(StorageKeys.EXPERIENCE, JSON.stringify(data))
+      localStorage.setItem(STORAGE_KEYS.EXPERIENCE, JSON.stringify(data))
     }
   }
 
   const handleProjectsSave = useCallback((data: ProjectBlockData[]) => {
     setProjects(data)
     if (data.length > 0) {
-      localStorage.setItem(StorageKeys.PROJECTS, JSON.stringify(data))
+      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(data))
     }
   }, [])
 
   const handleEducationSave = useCallback((data: EducationBlockData[]) => {
     setEducation(data)
     if (data.length > 0) {
-      localStorage.setItem(StorageKeys.EDUCATION, JSON.stringify(data))
+      localStorage.setItem(STORAGE_KEYS.EDUCATION, JSON.stringify(data))
     }
   }, [])
 
   const handleSettingsSave = (data: AppSettings) => {
     setSettings(data)
-    localStorage.setItem(StorageKeys.SETTINGS, JSON.stringify(data))
+    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data))
   }
 
   const handleSkillsSave = useCallback(
     (data: { hardSkills: string[]; softSkills: string[] }) => {
       setSkills(data)
-      localStorage.setItem(StorageKeys.SKILLS, JSON.stringify(data))
+      localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(data))
     },
     []
   )

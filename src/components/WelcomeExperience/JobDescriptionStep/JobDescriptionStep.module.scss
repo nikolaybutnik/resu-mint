@@ -1,0 +1,160 @@
+@use 'sass:color';
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.requiredFieldsNote {
+  font-size: 0.875rem;
+  color: $color-disabled;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.requiredIndicator {
+  color: $color-error;
+  margin-right: 0.25rem;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formField {
+  @include form-field;
+}
+
+.formLabel {
+  @include form-label;
+}
+
+.formTextarea {
+  @include form-textarea-base;
+  min-height: 200px;
+  max-height: 400px;
+  line-height: 1.6;
+
+  &::placeholder {
+    color: $color-placeholder;
+    font-style: italic;
+    opacity: 0.8;
+  }
+
+  &:disabled {
+    background-color: $color-action-item-background;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+
+  &.error {
+    border-color: $color-error;
+    box-shadow: 0 0 0 3px rgba($color-error, 0.1);
+  }
+}
+
+.errorMessage {
+  color: $color-error;
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+
+  &::before {
+    content: '⚠';
+    font-size: 1rem;
+  }
+}
+
+.analyzingContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem 0;
+  background: $color-action-item-background;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+}
+
+.analysisSuccess {
+  padding: 1rem;
+  background: rgba($color-transformative, 0.1);
+  border: 1px solid rgba($color-transformative, 0.3);
+  border-radius: 8px;
+  color: $color-transformative;
+  font-weight: 500;
+  text-align: center;
+  font-size: 0.95rem;
+}
+
+.actionButtons {
+  @include action-buttons-container;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.analyzeButton {
+  @include button-base;
+  background: transparent;
+  color: $color-primary;
+  border: 2px solid $color-primary;
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  border-radius: 10px;
+  align-self: center;
+
+  &:hover {
+    background: color.adjust($color-primary, $lightness: 45%);
+    border-color: $color-primary;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.continueButton {
+  @include button-base;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 2rem;
+  font-weight: 500;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  align-self: center;
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  &:disabled {
+    background: $color-disabled;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+
+    &:hover {
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  @media (max-width: 480px) {
+    width: 100%;
+    order: -1; // Put continue button first on mobile
+  }
+}

@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from './constants'
+
 /**
  * Sanitizes user input for UI display, preventing XSS and normalizing text
  *
@@ -298,4 +300,200 @@ export const extractLinkedInUsername = (linkedinUrl?: string): string => {
  */
 export const extractWebsiteDomain = (websiteUrl?: string): string => {
   return websiteUrl?.replace(/^https?:\/\//, '').replace(/\/$/, '') || ''
+}
+
+/**
+ * Validates and sanitizes URLs or email addresses
+ * Unified function that can handle both URL and email validation/sanitization
+ *
+ * @param input - The URL or email to validate/sanitize
+ * @param type - The type of validation ('url' or 'email')
+ * @param options - Optional configuration for URL validation
+ * @returns The sanitized URL/email or empty string if invalid
+ */
+export const validateAndSanitizeInput = (
+  input: string,
+  type: 'url' | 'email',
+  options?: {
+    allowedDomains?: string[]
+  }
+): string => {
+  if (!input) return ''
+
+  if (type === 'email') {
+    return validateEmail(input) ? input.trim() : ''
+  }
+
+  if (type === 'url') {
+    return sanitizeUrl(input, options?.allowedDomains)
+  }
+
+  return ''
+}
+
+/**
+ * Validates email address using comprehensive rules
+ * Based on the same validation logic used in our Zod schemas
+ *
+ * @param email - The email address to validate
+ * @returns True if email is valid, false otherwise
+ */
+export const validateEmail = (email: string): boolean => {
+  if (!email || typeof email !== 'string') return false
+
+  const trimmedEmail = email.trim()
+  if (!trimmedEmail) return false
+
+  // Basic email regex pattern that matches most valid email formats
+  // This is similar to what Zod uses internally for email validation
+  const emailRegex =
+    /^[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z0-9](?:[a-zA-Z0-9-]*[a-zA-Z0-9])?$/
+
+  if (!emailRegex.test(trimmedEmail)) return false
+
+  // Additional validation rules
+  const parts = trimmedEmail.split('@')
+  if (parts.length !== 2) return false
+
+  const [localPart, domain] = parts
+
+  // Local part validation (before @)
+  if (localPart.length === 0 || localPart.length > 64) return false
+  if (localPart.startsWith('.') || localPart.endsWith('.')) return false
+  if (localPart.includes('..')) return false
+
+  // Domain part validation (after @)
+  if (domain.length === 0 || domain.length > 253) return false
+  if (domain.startsWith('.') || domain.endsWith('.')) return false
+  if (domain.includes('..')) return false
+
+  // Domain must have at least one dot and valid TLD
+  const domainParts = domain.split('.')
+  if (domainParts.length < 2) return false
+
+  // Each domain part must be valid
+  for (const part of domainParts) {
+    if (part.length === 0 || part.length > 63) return false
+    if (part.startsWith('-') || part.endsWith('-')) return false
+    if (!/^[a-zA-Z0-9-]+$/.test(part)) return false
+  }
+
+  // TLD (last part) must be at least 2 characters and only letters
+  const tld = domainParts[domainParts.length - 1]
+  if (tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) return false
+
+  return true
+}
+
+export interface WelcomeExperienceState {
+  shouldShow: boolean
+  startStep: number
+  completedSteps: number[]
+}
+
+/**
+ * Determines if the user needs the welcome experience and which step to start at
+ * Returns detailed state about welcome experience progress
+ */
+export const shouldShowWelcomeExperience = (): WelcomeExperienceState => {
+  if (typeof window === 'undefined') {
+    return { shouldShow: false, startStep: 0, completedSteps: [] }
+  }
+
+  try {
+    const completedSteps: number[] = []
+    let startStep = 0
+
+    // Step 1: Check for basic personal details (name + email)
+    const personalDetails = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS)
+    let hasPersonalDetails = false
+    if (personalDetails) {
+      const parsed = JSON.parse(personalDetails)
+      if (parsed.name?.trim() && parsed.email?.trim()) {
+        hasPersonalDetails = true
+        completedSteps.push(0) // Welcome screen is considered completed
+        completedSteps.push(1) // Personal details are completed
+      }
+    }
+
+    // Step 2: Check for work experience OR projects (at least one required)
+    const experience = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
+    const projects = localStorage.getItem(STORAGE_KEYS.PROJECTS)
+    let hasExperienceOrProjects = false
+
+    if (experience) {
+      const parsedExp = JSON.parse(experience)
+      if (Array.isArray(parsedExp) && parsedExp.length > 0) {
+        hasExperienceOrProjects = true
+      }
+    }
+
+    if (!hasExperienceOrProjects && projects) {
+      const parsedProjects = JSON.parse(projects)
+      if (Array.isArray(parsedProjects) && parsedProjects.length > 0) {
+        hasExperienceOrProjects = true
+      }
+    }
+
+    if (hasExperienceOrProjects) {
+      completedSteps.push(2)
+    }
+
+    // Step 3: Check for education (optional - user can skip)
+    const education = localStorage.getItem(STORAGE_KEYS.EDUCATION)
+    let hasEducation = false
+    if (education) {
+      const parsed = JSON.parse(education)
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        hasEducation = true
+        completedSteps.push(3)
+      }
+    }
+
+    // Step 4: Check for job description and analysis
+    const jobDescription = localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION)
+    const jobAnalysis = localStorage.getItem(
+      STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS
+    )
+    let hasJobDetails = false
+
+    if (jobDescription?.trim() && jobAnalysis) {
+      try {
+        const parsedAnalysis = JSON.parse(jobAnalysis)
+        // Handle both direct format and wrapped format with data property
+        const analysisData = parsedAnalysis.data || parsedAnalysis
+        if (analysisData && analysisData.jobTitle) {
+          hasJobDetails = true
+          completedSteps.push(4)
+        }
+      } catch {
+        // Invalid analysis, treat as not completed
+      }
+    }
+
+    // Determine if welcome experience should show and starting step
+    if (!hasPersonalDetails) {
+      startStep = 0
+    } else if (!hasExperienceOrProjects) {
+      startStep = 2
+    } else if (!hasEducation) {
+      startStep = 3 // Optional step - user can choose to skip
+    } else if (!hasJobDetails) {
+      startStep = 4
+    }
+
+    // Show welcome if any required steps are missing
+    const shouldShow =
+      !hasPersonalDetails || !hasExperienceOrProjects || !hasJobDetails
+
+    return {
+      shouldShow,
+      startStep,
+      completedSteps,
+    }
+  } catch (error) {
+    console.error('Error checking welcome experience state:', error)
+    // On error, default to showing welcome from the beginning
+    return { shouldShow: true, startStep: 0, completedSteps: [] }
+  }
 }
