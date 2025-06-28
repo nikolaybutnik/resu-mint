@@ -7,3 +7,8 @@ export interface PersonalDetails {
   github?: string
   website?: string
 }
+
+export type PersonalDetailsFormState = {
+  errors: Record<string, string>
+  data?: PersonalDetails
+}

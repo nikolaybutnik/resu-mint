@@ -1,5 +1,5 @@
 @use 'sass:color';
-@import '../../styles/variables.scss';
+@import '../../styles/variables';
 @import '../../styles/mixins';
 
 .formsContainer {
@@ -10,16 +10,21 @@
 }
 
 .sidebar {
-  width: 40%;
+  width: 35%;
+  max-width: 450px;
   background-color: $color-background;
   padding: 24px;
   overflow-y: auto;
   border-right: 1px solid $color-border;
+
+  @include breakpoint(tablet) {
+    max-width: 100%;
+  }
 }
 
 .preview {
-  width: 60%;
-  padding: 20px;
+  flex: 1;
+  padding-bottom: 20px;
   overflow-y: auto;
   background-color: $color-action-item-background;
 }
@@ -80,16 +85,7 @@
   @include form-error;
 }
 
-@media (max-width: 1024px) and (min-width: 769px) {
-  .sidebar {
-    width: 40%;
-  }
-  .preview {
-    width: 60%;
-  }
-}
-
-@media (max-width: 768px) {
+@include breakpoint(tablet) {
   .container {
     flex-direction: column;
     position: relative;

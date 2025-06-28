@@ -118,7 +118,7 @@
   flex-wrap: wrap;
   position: relative;
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     padding: 6px 12px;
     gap: 6px;
   }
@@ -167,7 +167,7 @@
     height: 14px;
   }
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     padding: 8px 12px;
     min-height: 36px;
     font-size: 14px;
@@ -190,7 +190,7 @@
   min-width: 30px;
   justify-content: center;
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     min-width: 36px;
     padding: 8px;
   }
@@ -206,7 +206,7 @@
     border-color: $color-primary-hover;
   }
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     span {
       display: none; // Hide text on mobile, show only icon
     }
@@ -220,7 +220,7 @@
   min-width: 45px;
   text-align: center;
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     font-size: 14px;
     min-width: 50px;
   }
@@ -233,7 +233,7 @@
   min-width: 55px;
   text-align: center;
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     font-size: 14px;
     min-width: 60px;
   }
@@ -255,7 +255,7 @@
   flex-direction: column;
   gap: 6px;
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     left: 8px;
     right: 8px;
     width: auto;
@@ -275,7 +275,7 @@
   font-size: 10px;
   color: $color-disabled;
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     font-size: 12px;
   }
 }
@@ -290,7 +290,7 @@
   background: $color-action-item-background;
   position: relative;
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     padding: 10px;
   }
 
@@ -333,7 +333,7 @@
   flex-shrink: 0; // Prevent the container from shrinking
   margin: 0 auto; // Center the container when it fits, allow scrolling when it doesn't
 
-  @media (max-width: 768px) {
+  @include breakpoint(mobile) {
     gap: 10px;
   }
 
@@ -345,7 +345,7 @@
     gap: 20px;
     flex-shrink: 0; // Prevent shrinking
 
-    @media (max-width: 768px) {
+    @include breakpoint(mobile) {
       gap: 10px;
     }
   }
@@ -362,7 +362,7 @@
   &.fitToWidth {
     max-width: 100%;
 
-    @media (max-width: 768px) {
+    @include breakpoint(tablet) {
       canvas {
         max-width: 100%;
         width: auto !important;

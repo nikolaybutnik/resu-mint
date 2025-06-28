@@ -59,3 +59,14 @@ export const TOUCH_DELAY = 300
 
 // Durations
 export const DROPPING_ANIMATION_DURATION = 250
+
+// Form Data
+export const PERSONAL_DETAILS_FORM_DATA_KEYS = {
+  NAME: 'name',
+  EMAIL: 'email',
+  PHONE: 'phone',
+  LOCATION: 'location',
+  LINKEDIN: 'linkedin',
+  GITHUB: 'github',
+  WEBSITE: 'website',
+} as const

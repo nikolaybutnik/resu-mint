@@ -1,13 +1,13 @@
 import styles from './PersonalDetails.module.scss'
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useDebounce } from '@/lib/clientUtils'
+import { useActionState } from 'react'
+import { useFormStatus } from 'react-dom'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
-import { personalDetailsSchema } from '@/lib/validationSchemas'
-import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
-
-type ValidationErrors = {
-  [key in keyof PersonalDetailsType]?: string
-}
+import {
+  PersonalDetailsFormState,
+  PersonalDetails as PersonalDetailsType,
+} from '@/lib/types/personalDetails'
+import { submitPersonalDetails } from '@/lib/actions/personalDetailsActions'
+import { PERSONAL_DETAILS_FORM_DATA_KEYS } from '@/lib/constants'
 
 interface PersonalDetailsProps {
   data: PersonalDetailsType
@@ -15,66 +15,89 @@ interface PersonalDetailsProps {
   onSave: (data: PersonalDetailsType) => void
 }
 
+const FORM_FIELDS = [
+  {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.NAME,
+    label: 'Full Name',
+    type: 'text',
+    placeholder: 'Enter your full name',
+    required: true,
+  },
+  {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL,
+    label: 'Email',
+    type: 'text', // Using text to avoid browser validation conflicts
+    placeholder: 'Enter your email address',
+    required: true,
+  },
+  {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.PHONE,
+    label: 'Phone',
+    type: 'text',
+    placeholder: 'e.g., +1234567890',
+    required: false,
+  },
+  {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.LOCATION,
+    label: 'Location',
+    type: 'text',
+    placeholder: 'e.g., New York, NY',
+    required: false,
+  },
+  {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.LINKEDIN,
+    label: 'LinkedIn URL',
+    type: 'text',
+    placeholder: 'https://linkedin.com/in/your-profile',
+    required: false,
+  },
+  {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.GITHUB,
+    label: 'GitHub URL',
+    type: 'text',
+    placeholder: 'https://github.com/your-username',
+    required: false,
+  },
+  {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.WEBSITE,
+    label: 'Website URL',
+    type: 'text',
+    placeholder: 'https://your-website.com',
+    required: false,
+  },
+] as const
+
+// TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
+const SubmitButton: React.FC = () => {
+  const { pending } = useFormStatus()
+
+  return (
+    <button type='submit' className={styles.formButton} disabled={pending}>
+      Save
+    </button>
+  )
+}
+
 const PersonalDetails: React.FC<PersonalDetailsProps> = ({
   data,
   loading,
   onSave,
 }) => {
-  const [formValues, setFormValues] = useState<PersonalDetailsType>(data)
-  const [touched, setTouched] = useState<
-    Partial<Record<keyof PersonalDetailsType, boolean>>
-  >({})
-
-  useEffect(() => {
-    setFormValues(data)
-    setTouched({})
-  }, [data])
-
-  const isValid = useMemo(
-    () => personalDetailsSchema.safeParse(formValues).success,
-    [formValues]
-  )
-
-  const debouncedFormValues = useDebounce(formValues, 300)
-
-  const errors = useMemo(() => {
-    const result = personalDetailsSchema.safeParse(debouncedFormValues)
-    if (result.success) {
-      return {} as ValidationErrors
-    }
-    const errors: ValidationErrors = {}
-    result.error.issues.forEach((issue) => {
-      const field = issue.path[0] as keyof PersonalDetailsType
-      errors[field] = issue.message
-    })
-    return errors
-  }, [debouncedFormValues])
-
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>): void => {
-      const { name, value } = e.target
-      setFormValues((prev) => ({ ...prev, [name]: value }))
-      setTouched((prev) => ({ ...prev, [name]: true }))
-    },
-    []
-  )
-
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault()
-      if (isValid) {
-        onSave(formValues)
-      }
-    },
-    [formValues, isValid, onSave]
+  const [state, formAction] = useActionState(
+    (prevState: PersonalDetailsFormState, formData: FormData) =>
+      submitPersonalDetails(prevState, formData, onSave),
+    {
+      errors: {},
+      data,
+    } as PersonalDetailsFormState
   )
 
   return (
     <>
       {loading ? (
-        <LoadingSpinner text='Saving your details...' size='lg' />
+        <LoadingSpinner text='Loading your details...' size='lg' />
       ) : (
-        <form className={styles.formSection} onSubmit={handleSubmit}>
+        <form className={styles.formSection} action={formAction}>
           <h2 className={styles.formTitle}>Personal Details</h2>
 
           <div className={styles.requiredFieldsNote}>
@@ -82,119 +105,33 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
             Indicates a required field
           </div>
 
-          <div className={styles.formField}>
-            <label className={styles.label}>
-              <span className={styles.requiredIndicator}>*</span>
-              Full Name
-            </label>
-            <input
-              name='name'
-              placeholder='Enter your full name'
-              className={styles.formInput}
-              value={formValues.name}
-              onChange={handleChange}
-            />
-            {touched.name && errors.name && (
-              <p className={styles.formError}>{errors.name}</p>
-            )}
-          </div>
-
-          <div className={styles.formField}>
-            <label className={styles.label}>
-              <span className={styles.requiredIndicator}>*</span>
-              Email
-            </label>
-            <input
-              name='email'
-              type='email'
-              placeholder='Enter your email address'
-              className={styles.formInput}
-              value={formValues.email}
-              onChange={handleChange}
-            />
-            {touched.email && errors.email && (
-              <p className={styles.formError}>{errors.email}</p>
-            )}
-          </div>
-
-          <div className={styles.formField}>
-            <label className={styles.label}>Phone</label>
-            <input
-              name='phone'
-              placeholder='e.g., +1234567890'
-              className={styles.formInput}
-              value={formValues.phone || ''}
-              onChange={handleChange}
-            />
-            {touched.phone && errors.phone && (
-              <p className={styles.formError}>{errors.phone}</p>
-            )}
-          </div>
-
-          <div className={styles.formField}>
-            <label className={styles.label}>Location</label>
-            <input
-              name='location'
-              placeholder='e.g., New York, NY'
-              className={styles.formInput}
-              value={formValues.location || ''}
-              onChange={handleChange}
-            />
-            {touched.location && errors.location && (
-              <p className={styles.formError}>{errors.location}</p>
-            )}
-          </div>
-
-          <div className={styles.formField}>
-            <label className={styles.label}>LinkedIn URL</label>
-            <input
-              name='linkedin'
-              placeholder='https://linkedin.com/in/your-profile'
-              className={styles.formInput}
-              value={formValues.linkedin || ''}
-              onChange={handleChange}
-            />
-            {touched.linkedin && errors.linkedin && (
-              <p className={styles.formError}>{errors.linkedin}</p>
-            )}
-          </div>
-
-          <div className={styles.formField}>
-            <label className={styles.label}>GitHub URL</label>
-            <input
-              name='github'
-              placeholder='https://github.com/your-username'
-              className={styles.formInput}
-              value={formValues.github || ''}
-              onChange={handleChange}
-            />
-            {touched.github && errors.github && (
-              <p className={styles.formError}>{errors.github}</p>
-            )}
-          </div>
-
-          <div className={styles.formField}>
-            <label className={styles.label}>Website URL</label>
-            <input
-              name='website'
-              placeholder='https://your-website.com'
-              className={styles.formInput}
-              value={formValues.website || ''}
-              onChange={handleChange}
-            />
-            {touched.website && errors.website && (
-              <p className={styles.formError}>{errors.website}</p>
-            )}
-          </div>
+          {FORM_FIELDS.map((field) => (
+            <div key={field.name} className={styles.formField}>
+              <label className={styles.label}>
+                {field.required && (
+                  <span className={styles.requiredIndicator}>*</span>
+                )}
+                {field.label}
+              </label>
+              <input
+                type={field.type}
+                name={field.name}
+                className={`${styles.formInput} ${
+                  state?.errors?.[field.name] ? styles.error : ''
+                }`}
+                defaultValue={state.data?.[field.name] || ''}
+                placeholder={field.placeholder}
+              />
+              {state?.errors?.[field.name] && (
+                <span className={styles.formError}>
+                  {state.errors[field.name]}
+                </span>
+              )}
+            </div>
+          ))}
 
           <div className={styles.actionButtons}>
-            <button
-              type='submit'
-              className={styles.formButton}
-              disabled={!isValid}
-            >
-              Save
-            </button>
+            <SubmitButton />
           </div>
         </form>
       )}
