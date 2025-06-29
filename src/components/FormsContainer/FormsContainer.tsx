@@ -215,6 +215,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     projects: string[]
   }>({ experience: [], projects: [] })
   const isInitialLoadRef = useRef(true)
+  const sidebarRef = useRef<HTMLDivElement>(null)
 
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
@@ -524,6 +525,13 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     []
   )
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    if (sidebarRef.current) {
+      sidebarRef.current.scrollTop = 0
+    }
+  }
+
   // Memoize fairly stable states. States like projects and experience are updated too often.
   const memoizedSettings = useMemo(() => settings, [settings])
   const memoizedJobDescriptionAnalysis = useMemo(
@@ -562,6 +570,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   return (
     <div className={styles.formsContainer}>
       <div
+        ref={sidebarRef}
         className={`${styles.sidebar} ${
           view === MOBILE_VIEW.INPUT ? styles.active : ''
         }`}
@@ -575,7 +584,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
                 className={`${styles.tabButton} ${
                   activeTab === tab.id ? styles.activeTab : ''
                 }`}
-                onClick={() => setActiveTab(tab.id)}
+                onClick={() => handleTabChange(tab.id)}
               >
                 <IconComponent className={styles.tabIcon} />
                 <span className={styles.tabLabel}>{tab.label}</span>

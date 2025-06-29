@@ -35,11 +35,15 @@
   justify-content: space-between;
   gap: 4px;
   margin-bottom: 16px;
-  background: rgba($color-primary, 0.03);
+  background: $color-background;
   border: 1px solid rgba($color-primary, 0.1);
   border-radius: 8px;
   padding: 8px;
   width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .tabButton {
@@ -75,7 +79,7 @@
 
     .tabTooltip {
       opacity: 1;
-      transition-delay: 0.3s;
+      transition-delay: 0.1s;
     }
   }
 }
