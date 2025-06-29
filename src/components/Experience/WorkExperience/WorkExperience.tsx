@@ -188,8 +188,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       )
       setLocalData(updatedData)
       onSave(updatedData)
-      setSelectedBlockId(null)
-      setNewBlockId(null)
     },
     [localData, onSave]
   )
@@ -242,12 +240,14 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
    * @param sectionId - The ID of the experience section to regenerate.
    * @param index - The index of the bullet point to regenerate.
    * @param formData - The form data of the experience block if it is being edited.
+   * @param shouldSave - Whether to save the regenerated bullet to storage.
    */
   const handleBulletRegenerate = useCallback(
     async (
       sectionId: string,
       index: number,
-      formData?: ExperienceBlockData
+      formData?: ExperienceBlockData,
+      shouldSave?: boolean
     ) => {
       const data = formData || findExperience(sectionId)
       if (!data) return
@@ -269,10 +269,10 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
               id: sectionId,
               type: 'experience',
               title: formData.title,
-              description: formData.description,
-              existingBullets: formData.bulletPoints.filter(
-                (bullet) => bullet.id !== regeneratingBulletId
-              ),
+              description: formData.description || '',
+              existingBullets: formData.bulletPoints
+                .filter((bullet) => bullet.id !== regeneratingBulletId)
+                .map((bp) => ({ ...bp, isLocked: bp.isLocked ?? false })),
               targetBulletIds: [regeneratingBulletId],
             },
           ]
@@ -286,8 +286,11 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
               id: sectionId,
               type: 'experience',
               title: data.title,
-              description: data.description,
-              existingBullets,
+              description: data.description || '',
+              existingBullets: existingBullets.map((bp) => ({
+                ...bp,
+                isLocked: bp.isLocked ?? false,
+              })),
               targetBulletIds: [regeneratingBulletId],
             },
           ]
@@ -318,18 +321,21 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             })
           } else {
             // Else, update bullet in local state
-            const updatedBullets = data.bulletPoints.map((bullet) =>
+            const sourceData = formData || data
+            const updatedBullets = sourceData.bulletPoints.map((bullet) =>
               bullet.id === regeneratingBulletId
                 ? { ...bullet, text: generatedBullet.text }
                 : bullet
             )
             const updatedExperience = {
-              ...data,
+              ...sourceData,
               bulletPoints: updatedBullets,
             }
+
             updateExperience(updatedExperience)
-            // If formData is provided, don't save to storage because the block is being edited
-            const shouldSaveToStorage = !formData
+            // Use explicit shouldSave parameter, or default to !formData for backwards compatibility
+            const shouldSaveToStorage =
+              shouldSave !== undefined ? shouldSave : !formData
             if (shouldSaveToStorage) {
               onSave(
                 localData.map((experience) =>
@@ -607,10 +613,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const isAnyBulletBeingEdited = !!editingBullet
   const isAnyBulletRegenerating = !!regeneratingBullet
 
-  const getExperienceBlockProps = (
-    experience: ExperienceBlockData,
-    isEditable: boolean
-  ) => {
+  const getExperienceBlockProps = (experience: ExperienceBlockData) => {
     const isEditingBullet = editingBullet?.section === experience.id
     const editingBulletIndex = isEditingBullet ? editingBullet.index : null
 
@@ -626,9 +629,8 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       onTextareaChange: handleBulletTextUpdate,
       onEditBullet: handleBulletEdit,
       onBulletCancel: handleCancelEdit,
-      onAddBullet: (sectionId: string) =>
-        handleAddBullet(sectionId, isEditable),
-      onBulletSave: () => handleBulletSave(!isEditable),
+      onAddBullet: (sectionId: string) => handleAddBullet(sectionId, false),
+      onBulletSave: () => handleBulletSave(true),
       onBulletDelete: (sectionId: string, index: number) =>
         handleBulletDelete(sectionId, index, true),
       onLockToggle: (sectionId: string, index: number) =>
@@ -640,7 +642,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     experience: ExperienceBlockData,
     existingBlocks: ExperienceBlockData[]
   ) => {
-    const sharedProps = getExperienceBlockProps(experience, true)
+    const sharedProps = getExperienceBlockProps(experience)
     const isNew = experience.id === newBlockId
     const showCloseButton = existingBlocks.length > 1 || !isNew
 
@@ -652,8 +654,8 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
         onSave={handleExperienceSave}
-        onRegenerateBullet={(sectionId, index, formData) =>
-          handleBulletRegenerate(sectionId, index, formData)
+        onRegenerateBullet={(sectionId, index, formData, shouldSave) =>
+          handleBulletRegenerate(sectionId, index, formData, shouldSave)
         }
       />
     )
@@ -663,7 +665,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     experience: ExperienceBlockData,
     isOverlay = false
   ) => {
-    const sharedProps = getExperienceBlockProps(experience, false)
+    const sharedProps = getExperienceBlockProps(experience)
 
     if (isOverlay) {
       return (

@@ -15,7 +15,7 @@ export type Month =
 export interface BulletPoint {
   id: string
   text: string
-  isLocked: boolean
+  isLocked?: boolean
 }
 
 export type StartDate = {
@@ -36,7 +36,12 @@ export interface ExperienceBlockData {
   endDate: EndDate
   companyName: string
   location: string
-  description: string
+  description?: string
   bulletPoints: BulletPoint[]
   isIncluded: boolean
+}
+
+export interface ExperienceFormState {
+  errors: Record<string, string>
+  data?: ExperienceBlockData
 }

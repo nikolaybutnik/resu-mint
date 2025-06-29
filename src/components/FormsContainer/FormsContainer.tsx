@@ -270,7 +270,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
       const experienceSectionDescriptions: string[] = workExperience
         .filter((experience) => experience.isIncluded)
-        .map((experience) => experience.description.trim())
+        .map((experience) => experience.description?.trim() || '')
         .filter((desc) => desc.length)
 
       const projectSectionDescriptions: string[] = projects

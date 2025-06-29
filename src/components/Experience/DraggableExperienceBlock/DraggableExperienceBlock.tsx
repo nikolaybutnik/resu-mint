@@ -315,7 +315,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
                 (isAnyBulletBeingEdited && !isEditingThisBullet)
               }
               errors={isEditingThisBullet ? bulletErrors : emptyErrors}
-              isLocked={bullet.isLocked}
+              isLocked={bullet.isLocked ?? false}
               settings={settings}
               isDangerousAction={true}
               onCancelEdit={onBulletCancel}

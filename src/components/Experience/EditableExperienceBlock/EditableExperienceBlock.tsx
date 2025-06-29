@@ -1,20 +1,25 @@
 import styles from './EditableExperienceBlock.module.scss'
-import React, { useMemo, useCallback, useState, useEffect } from 'react'
-import { useDebounce } from '@/lib/clientUtils'
+import React, {
+  useMemo,
+  useCallback,
+  useState,
+  useEffect,
+  useActionState,
+} from 'react'
+import { useFormStatus } from 'react-dom'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
-import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
-import { experienceBlockSchema } from '@/lib/validationSchemas'
+import { MONTHS } from '@/lib/constants'
 import {
-  Month,
   ExperienceBlockData,
-  BulletPoint as BulletPointType,
+  ExperienceFormState,
 } from '@/lib/types/experience'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { AppSettings } from '@/lib/types/settings'
-import { isEqual } from 'lodash'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
+import { submitExperience } from '@/lib/actions/experienceActions'
+import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -32,7 +37,8 @@ interface EditableExperienceBlockProps {
   onRegenerateBullet: (
     sectionId: string,
     index: number,
-    formData?: ExperienceBlockData
+    formData?: ExperienceBlockData,
+    shouldSave?: boolean
   ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
@@ -42,34 +48,6 @@ interface EditableExperienceBlockProps {
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onLockToggle: (sectionId: string, index: number) => void
 }
-
-type FieldErrorKey =
-  | 'invalidTitle'
-  | 'invalidDescription'
-  | 'invalidLocation'
-  | 'invalidCompanyName'
-  | 'invalidStartDateMonth'
-  | 'invalidStartDateYear'
-  | 'invalidEndDateMonth'
-  | 'invalidEndDateYear'
-  | 'invalidEndDate'
-
-type ValidationErrors<T extends string = string> = {
-  [K in T]?: string[]
-}
-
-const FieldType = {
-  TITLE: 'title',
-  DESCRIPTION: 'description',
-  COMPANY_NAME: 'companyName',
-  LOCATION: 'location',
-  START_DATE_MONTH: 'startDate.month',
-  START_DATE_YEAR: 'startDate.year',
-  END_DATE_IS_PRESENT: 'endDate.isPresent',
-  END_DATE_MONTH: 'endDate.month',
-  END_DATE_YEAR: 'endDate.year',
-  BULLET_POINTS: 'bulletPoints',
-} as const
 
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
@@ -93,216 +71,72 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   onTextareaChange,
   onLockToggle,
 }) => {
-  const [formData, setFormData] = useState<ExperienceBlockData>(data)
-  const [touched, setTouched] = useState<Record<string, boolean>>({})
-  const [fieldErrors, setFieldErrors] = useState<
-    ValidationErrors<FieldErrorKey>
-  >({})
+  const [state, formAction] = useActionState(
+    (prevState: ExperienceFormState, formData: FormData): ExperienceFormState =>
+      submitExperience(prevState, formData, onSave, data.bulletPoints),
+    {
+      errors: {},
+      data,
+    } as ExperienceFormState
+  )
+
+  const [isCurrentlyWorking, setIsCurrentlyWorking] = useState(
+    state.data?.endDate?.isPresent || false
+  )
+  const [description, setDescription] = useState(state.data?.description || '')
+
+  useEffect(() => {
+    setIsCurrentlyWorking(state.data?.endDate?.isPresent || false)
+  }, [state.data?.endDate?.isPresent])
+
+  useEffect(() => {
+    setDescription(state.data?.description || '')
+  }, [state.data?.description])
 
   const {
     textareaRef,
     handleChange: handleTextareaChange,
     handleInput,
-  } = useAutoResizeTextarea(formData.description)
+  } = useAutoResizeTextarea(description)
 
-  const debouncedFormData = useDebounce(formData, VALIDATION_DELAY)
-  const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
-
-  useEffect(() => {
-    setFormData(data)
-  }, [])
-
-  useEffect(() => {
-    setFormData((prev) => {
-      if (!isEqual(prev.bulletPoints, data.bulletPoints)) {
-        return {
-          ...prev,
-          bulletPoints: data.bulletPoints,
-        }
-      }
-      return prev
-    })
-  }, [data])
-
-  useEffect(() => {
-    const result = experienceBlockSchema.safeParse(debouncedFormData)
-    if (result.success) {
-      setFieldErrors({})
-      return
-    }
-
-    const errors: ValidationErrors<FieldErrorKey> = {}
-    result.error.issues
-      .filter((issue) => issue.message !== '')
-      .forEach((issue) => {
-        const path = issue.path.join('.')
-        if (!path.startsWith('bulletPoints.')) {
-          switch (path) {
-            case 'title':
-              errors.invalidTitle = [issue.message]
-              break
-            case 'description':
-              errors.invalidDescription = [issue.message]
-              break
-            case 'location':
-              errors.invalidLocation = [issue.message]
-              break
-            case 'companyName':
-              errors.invalidCompanyName = [issue.message]
-              break
-            case 'startDate.month':
-              errors.invalidStartDateMonth = [issue.message]
-              break
-            case 'startDate.year':
-              errors.invalidStartDateYear = [issue.message]
-              break
-            case 'endDate.month':
-              errors.invalidEndDateMonth = [issue.message]
-              break
-            case 'endDate.year':
-              errors.invalidEndDateYear = [issue.message]
-              break
-            case 'endDate':
-              errors.invalidEndDate = [issue.message]
-              break
-          }
-        }
-      })
-    setFieldErrors((prev) => (isEqual(prev, errors) ? prev : errors))
-  }, [debouncedFormData])
-
-  const isValid = useMemo(() => {
-    return experienceBlockSchema.safeParse(formData).success
-  }, [formData])
-
-  const sanitizeYear = useCallback(
-    (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4),
-    []
-  )
-
-  const handleChange = useCallback(
-    (
-      field: (typeof FieldType)[keyof typeof FieldType],
-      value: string | string[] | boolean | BulletPointType,
-      bulletIndex?: number
-    ) => {
-      setFormData((prev) => {
-        if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
-          return {
-            ...prev,
-            bulletPoints: prev.bulletPoints.map((bullet, index) =>
-              index === bulletIndex
-                ? {
-                    id: bullet.id,
-                    text: value as string,
-                    isLocked: bullet.isLocked,
-                  }
-                : bullet
-            ),
-          }
-        }
-
-        const updateHandlers: Record<
-          string,
-          (
-            prev: ExperienceBlockData,
-            val: string | string[] | boolean | BulletPointType
-          ) => ExperienceBlockData
-        > = {
-          [FieldType.TITLE]: (prev, val) => ({
-            ...prev,
-            title: val as string,
-          }),
-          [FieldType.COMPANY_NAME]: (prev, val) => ({
-            ...prev,
-            companyName: val as string,
-          }),
-          [FieldType.LOCATION]: (prev, val) => ({
-            ...prev,
-            location: val as string,
-          }),
-          [FieldType.START_DATE_MONTH]: (prev, val) => ({
-            ...prev,
-            startDate: { ...prev.startDate, month: val as Month },
-          }),
-          [FieldType.START_DATE_YEAR]: (prev, val) => ({
-            ...prev,
-            startDate: { ...prev.startDate, year: sanitizeYear(val as string) },
-          }),
-          [FieldType.END_DATE_IS_PRESENT]: (prev, val) => ({
-            ...prev,
-            endDate: val
-              ? { month: '', year: '', isPresent: true }
-              : { ...prev.endDate, isPresent: false },
-          }),
-          [FieldType.END_DATE_MONTH]: (prev, val) => ({
-            ...prev,
-            endDate: { ...prev.endDate, month: val as Month, isPresent: false },
-          }),
-          [FieldType.END_DATE_YEAR]: (prev, val) => ({
-            ...prev,
-            endDate: {
-              ...prev.endDate,
-              year: sanitizeYear(val as string),
-              isPresent: false,
-            },
-          }),
-          [FieldType.DESCRIPTION]: (prev, val) => ({
-            ...prev,
-            description: val as string,
-          }),
-        }
-
-        const handler = updateHandlers[field]
-        return handler ? handler(prev, value) : prev
-      })
-
-      setTouched((prev) => ({
-        ...prev,
-        [field]: true,
-        ...(field === FieldType.END_DATE_IS_PRESENT
-          ? { endDate: true, 'endDate.month': true, 'endDate.year': true }
-          : field.startsWith('endDate')
-          ? { endDate: true }
-          : {}),
-      }))
-    },
-    [sanitizeYear]
-  )
-
-  const handleDelete = useCallback(() => {
+  const handleDelete = (): void => {
     if (
       window.confirm(
         'Are you sure you want to delete this work experience? This action cannot be undone.'
       )
     ) {
-      onDelete(formData.id)
+      onDelete(data.id)
     }
-  }, [formData.id, onDelete])
-
-  const handleSave = useCallback(() => {
-    if (isValid) {
-      onSave(formData)
-    }
-  }, [formData, isValid, onSave])
+  }
 
   const emptyBulletErrors = useMemo(() => ({}), [])
   const combinedBulletErrors = useMemo(
     () =>
-      formData.bulletPoints.map((_, index) =>
+      data.bulletPoints.map((_, index) =>
         editingBulletIndex === index ? bulletErrors : emptyBulletErrors
       ),
-    [bulletErrors, editingBulletIndex, formData.bulletPoints, emptyBulletErrors]
+    [bulletErrors, editingBulletIndex, data.bulletPoints, emptyBulletErrors]
   )
 
   const handleRegenerateBullet = useCallback(
     (sectionId: string, index: number) => {
-      if (sectionId === formData.id) {
-        onRegenerateBullet(sectionId, index, formData)
+      if (sectionId === data.id) {
+        onRegenerateBullet(sectionId, index, data, true)
       }
     },
-    [formData, onRegenerateBullet]
+    [data.id, data, onRegenerateBullet]
   )
+
+  // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
+  const SubmitButton: React.FC = () => {
+    const { pending } = useFormStatus()
+
+    return (
+      <button type='submit' className={styles.saveButton} disabled={pending}>
+        Save
+      </button>
+    )
+  }
 
   return (
     <section className={styles.editableExperienceBlock}>
@@ -333,7 +167,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         Indicates a required field
       </div>
 
-      <div className={styles.jobDetails}>
+      <form action={formAction} className={styles.jobDetails}>
         <div className={styles.formField}>
           <label className={styles.label}>
             <span className={styles.requiredIndicator}>*</span>
@@ -341,12 +175,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           </label>
           <input
             type='text'
-            className={styles.formInput}
-            value={formData.title}
-            onChange={(e) => handleChange(FieldType.TITLE, e.target.value)}
+            name={EXPERIENCE_FORM_DATA_KEYS.TITLE}
+            className={`${styles.formInput} ${
+              state?.errors?.title ? styles.error : ''
+            }`}
+            defaultValue={state.data?.title}
+            placeholder='Enter your job title'
           />
-          {debouncedTouched.title && fieldErrors.invalidTitle && (
-            <p className={styles.formError}>{fieldErrors.invalidTitle[0]}</p>
+          {state?.errors?.title && (
+            <span className={styles.formError}>{state.errors.title}</span>
           )}
         </div>
 
@@ -357,16 +194,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           </label>
           <input
             type='text'
-            className={styles.formInput}
-            value={formData.companyName}
-            onChange={(e) =>
-              handleChange(FieldType.COMPANY_NAME, e.target.value)
-            }
+            name={EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME}
+            className={`${styles.formInput} ${
+              state?.errors?.companyName ? styles.error : ''
+            }`}
+            defaultValue={state.data?.companyName}
+            placeholder='Enter the company name'
           />
-          {debouncedTouched.companyName && fieldErrors.invalidCompanyName && (
-            <p className={styles.formError}>
-              {fieldErrors.invalidCompanyName[0]}
-            </p>
+          {state?.errors?.companyName && (
+            <span className={styles.formError}>{state.errors.companyName}</span>
           )}
         </div>
 
@@ -377,12 +213,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           </label>
           <input
             type='text'
-            className={styles.formInput}
-            value={formData.location}
-            onChange={(e) => handleChange(FieldType.LOCATION, e.target.value)}
+            name={EXPERIENCE_FORM_DATA_KEYS.LOCATION}
+            className={`${styles.formInput} ${
+              state?.errors?.location ? styles.error : ''
+            }`}
+            defaultValue={state.data?.location}
+            placeholder='Enter the location'
           />
-          {debouncedTouched.location && fieldErrors.invalidLocation && (
-            <p className={styles.formError}>{fieldErrors.invalidLocation[0]}</p>
+          {state?.errors?.location && (
+            <span className={styles.formError}>{state.errors.location}</span>
           )}
         </div>
 
@@ -393,11 +232,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           </label>
           <div className={styles.dateInputs}>
             <select
+              key={state.data?.startDate?.month} // Force re-render, selects are not re-rendered when defaultValue changes.
+              name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH}
               className={[styles.formInput, styles.monthInput].join(' ')}
-              value={formData.startDate.month}
-              onChange={(e) =>
-                handleChange(FieldType.START_DATE_MONTH, e.target.value)
-              }
+              defaultValue={state.data?.startDate?.month || ''}
             >
               <option value=''>Select Month</option>
               {MONTHS.map((month) => (
@@ -408,10 +246,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             </select>
             <input
               type='text'
-              name='startDate.year'
+              name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR}
               placeholder='YYYY'
               className={[styles.formInput, styles.yearInput].join(' ')}
-              value={formData.startDate.year}
+              defaultValue={state.data?.startDate?.year || ''}
               maxLength={4}
               onInput={(e) => {
                 const value = e.currentTarget.value
@@ -421,22 +259,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                     .slice(0, 4)
                 }
               }}
-              onChange={(e) =>
-                handleChange(FieldType.START_DATE_YEAR, e.target.value)
-              }
             />
           </div>
-          {fieldErrors.invalidStartDateMonth && (
-            <p className={styles.formError}>
-              {fieldErrors.invalidStartDateMonth[0]}
-            </p>
+          {state?.errors?.startDate && (
+            <span className={styles.formError}>{state.errors.startDate}</span>
           )}
-          {debouncedTouched[FieldType.START_DATE_YEAR] &&
-            fieldErrors.invalidStartDateYear && (
-              <p className={styles.formError}>
-                {fieldErrors.invalidStartDateYear[0]}
-              </p>
-            )}
         </div>
 
         <div className={styles.formField}>
@@ -446,12 +273,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           </label>
           <div className={styles.dateInputs}>
             <select
+              key={state.data?.endDate?.month}
+              name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH}
               className={[styles.formInput, styles.monthInput].join(' ')}
-              value={formData.endDate.month}
-              disabled={formData.endDate.isPresent}
-              onChange={(e) =>
-                handleChange(FieldType.END_DATE_MONTH, e.target.value)
-              }
+              defaultValue={state.data?.endDate?.month || ''}
+              disabled={isCurrentlyWorking}
             >
               <option value=''>Select Month</option>
               {MONTHS.map((month) => (
@@ -465,8 +291,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               name='endDate.year'
               placeholder='YYYY'
               className={[styles.formInput, styles.yearInput].join(' ')}
-              disabled={formData.endDate.isPresent}
-              value={formData.endDate.year}
+              defaultValue={state.data?.endDate?.year || ''}
+              disabled={isCurrentlyWorking}
               maxLength={4}
               onInput={(e) => {
                 const value = e.currentTarget.value
@@ -476,34 +302,25 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                     .slice(0, 4)
                 }
               }}
-              onChange={(e) =>
-                handleChange(FieldType.END_DATE_YEAR, e.target.value)
-              }
             />
           </div>
           <div className={styles.checkboxField}>
             <input
               type='checkbox'
-              checked={formData.endDate.isPresent}
-              onChange={(e) =>
-                handleChange(FieldType.END_DATE_IS_PRESENT, e.target.checked)
-              }
+              name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT}
+              value='true'
+              defaultChecked={state.data?.endDate?.isPresent || false}
+              key={`checkbox-${state.data?.endDate?.isPresent}`} // Force re-render when state changes
+              onChange={(e) => {
+                setIsCurrentlyWorking(e.target.checked)
+              }}
             />
-            <label className={styles.checkboxLabel}>Present</label>
+            <label className={styles.checkboxLabel}>
+              Currently Working Here
+            </label>
           </div>
-          {fieldErrors.invalidEndDateMonth && (
-            <p className={styles.formError}>
-              {fieldErrors.invalidEndDateMonth[0]}
-            </p>
-          )}
-          {debouncedTouched['endDate.year'] &&
-            fieldErrors.invalidEndDateYear && (
-              <p className={styles.formError}>
-                {fieldErrors.invalidEndDateYear[0]}
-              </p>
-            )}
-          {debouncedTouched.endDate && fieldErrors.invalidEndDate && (
-            <p className={styles.formError}>{fieldErrors.invalidEndDate[0]}</p>
+          {state?.errors?.endDate && (
+            <span className={styles.formError}>{state.errors.endDate}</span>
           )}
         </div>
 
@@ -511,23 +328,26 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <label className={styles.label}>Description</label>
           <textarea
             ref={textareaRef}
+            name={EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION}
             className={styles.formTextarea}
-            value={formData.description}
+            value={description}
             rows={4}
-            placeholder='Describe your experience in detail. Format however you like.'
+            placeholder='Describe your experience in detail. Focus on listing your responsibilities, achievements, and the tools you used.'
             onChange={(e) => {
               const newValue = handleTextareaChange(e)
-              handleChange(FieldType.DESCRIPTION, newValue)
+              setDescription(newValue)
             }}
             onInput={handleInput}
           />
-          {debouncedTouched.description && fieldErrors.invalidDescription && (
-            <p className={styles.formError}>
-              {fieldErrors.invalidDescription[0]}
-            </p>
+          {state?.errors?.description && (
+            <span className={styles.formError}>{state.errors.description}</span>
           )}
         </div>
-      </div>
+
+        <div className={styles.actionButtons}>
+          <SubmitButton />
+        </div>
+      </form>
 
       <div className={styles.bulletPoints}>
         <div className={styles.bulletHeader}>
@@ -535,27 +355,27 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <button
             type='button'
             className={styles.addButton}
-            onClick={() => onAddBullet(formData.id)}
-            disabled={isRegenerating || !isValid}
+            onClick={() => onAddBullet(data.id)}
+            disabled={isRegenerating}
           >
             <FaPlus /> Add
           </button>
         </div>
         <div className={styles.bulletPointsContainer}>
-          {formData.bulletPoints.map((bullet, index) => {
+          {data.bulletPoints.map((bullet, index) => {
             const isEditingThisBullet = editingBulletIndex === index
 
             return (
               <BulletPoint
                 key={bullet.id}
-                sectionId={formData.id}
+                sectionId={data.id}
                 index={index}
                 text={bullet.text}
                 keywordData={keywordData}
                 editingText={isEditingThisBullet ? editingBulletText : ''}
                 isRegenerating={
                   isRegenerating &&
-                  regeneratingBullet?.section === formData.id &&
+                  regeneratingBullet?.section === data.id &&
                   regeneratingBullet?.index === index
                 }
                 isEditing={isEditingThisBullet}
@@ -563,13 +383,14 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                   isRegenerating ||
                   (editingBulletIndex !== null && !isEditingThisBullet)
                 }
-                errors={combinedBulletErrors[index]}
+                errors={combinedBulletErrors?.[index] || {}}
                 settings={settings}
-                isLocked={bullet.isLocked}
+                isLocked={bullet.isLocked || false}
+                isDangerousAction={true}
                 onCancelEdit={onBulletCancel}
-                onBulletDelete={(index) => onBulletDelete(formData.id, index)}
+                onBulletDelete={(index) => onBulletDelete(data.id, index)}
                 onBulletSave={onBulletSave}
-                onBulletEdit={(index) => onEditBullet(formData.id, index)}
+                onBulletEdit={(index) => onEditBullet(data.id, index)}
                 onBulletRegenerate={handleRegenerateBullet}
                 onTextareaChange={onTextareaChange}
                 onLockToggle={(sectionId, index) => {
@@ -579,17 +400,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             )
           })}
         </div>
-      </div>
-
-      <div className={styles.actionButtons}>
-        <button
-          type='button'
-          className={styles.saveButton}
-          onClick={handleSave}
-          disabled={!isValid || editingBulletIndex !== null || isRegenerating}
-        >
-          Save
-        </button>
       </div>
     </section>
   )

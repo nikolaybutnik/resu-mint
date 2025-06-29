@@ -70,3 +70,16 @@ export const PERSONAL_DETAILS_FORM_DATA_KEYS = {
   GITHUB: 'github',
   WEBSITE: 'website',
 } as const
+
+export const EXPERIENCE_FORM_DATA_KEYS = {
+  TITLE: 'title',
+  DESCRIPTION: 'description',
+  COMPANY_NAME: 'companyName',
+  LOCATION: 'location',
+  START_DATE_MONTH: 'startDate.month',
+  START_DATE_YEAR: 'startDate.year',
+  END_DATE_IS_PRESENT: 'endDate.isPresent',
+  END_DATE_MONTH: 'endDate.month',
+  END_DATE_YEAR: 'endDate.year',
+  BULLET_POINTS: 'bulletPoints',
+} as const

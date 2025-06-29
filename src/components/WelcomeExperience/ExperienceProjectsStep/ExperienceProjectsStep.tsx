@@ -106,7 +106,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
       const parsedData = JSON.parse(existingData) as StoredDataItem[]
       if (Array.isArray(parsedData) && parsedData.length > 0) {
         // Load the most recent entry for editing
-        setFormData(parsedData[parsedData.length - 1])
+        setFormData(parsedData[parsedData.length - 1] as FormDataType)
         return
       }
     }

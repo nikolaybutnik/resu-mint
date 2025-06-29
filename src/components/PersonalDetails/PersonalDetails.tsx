@@ -15,7 +15,7 @@ interface PersonalDetailsProps {
   onSave: (data: PersonalDetailsType) => void
 }
 
-const FORM_FIELDS = [
+const formFields = [
   {
     name: PERSONAL_DETAILS_FORM_DATA_KEYS.NAME,
     label: 'Full Name',
@@ -65,7 +65,7 @@ const FORM_FIELDS = [
     placeholder: 'https://your-website.com',
     required: false,
   },
-] as const
+]
 
 // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
 const SubmitButton: React.FC = () => {
@@ -105,7 +105,7 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
             Indicates a required field
           </div>
 
-          {FORM_FIELDS.map((field) => (
+          {formFields.map((field) => (
             <div key={field.name} className={styles.formField}>
               <label className={styles.label}>
                 {field.required && (
