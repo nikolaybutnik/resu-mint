@@ -9,6 +9,10 @@
   padding-bottom: 48px;
 }
 
+.jobDescriptionContainer {
+  @include list-container;
+}
+
 .formTitle {
   @include section-title;
   font-size: 26px;
@@ -57,7 +61,7 @@
     opacity: 0.8;
   }
 
-  @media (max-width: 768px) {
+  @include breakpoint(tablet) {
     resize: none;
 
     &.expanded {
@@ -227,7 +231,7 @@
 .expandButton {
   display: none;
 
-  @media (max-width: 768px) {
+  @include breakpoint(tablet) {
     @include button-base;
     display: flex;
     align-items: center;

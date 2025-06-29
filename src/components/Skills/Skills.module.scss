@@ -9,6 +9,10 @@
   @include section-title;
 }
 
+.formFieldsContainer {
+  @include list-container;
+}
+
 .skillSection {
   @include skill-section;
 }
@@ -17,20 +21,32 @@
   @include subsection-title;
 }
 
-.inputContainer {
+.chipInputContainer {
   @include chip-input-container;
+
+  .formInput {
+    @include form-input-with-button(60px);
+  }
+
+  .chipAddButton {
+    @include embedded-button-base;
+  }
 }
 
-.skillInput {
-  @include form-input-with-button(60px);
-}
-
-.addButton {
-  @include embedded-button-base;
-}
-
-.skillsContainer {
+.chipsContainer {
   @include chip-container;
+
+  .chip {
+    @include skill-chip;
+  }
+
+  .skillText {
+    @include skill-text;
+  }
+
+  .removeChip {
+    @include chip-remove-button;
+  }
 }
 
 .emptyState {
@@ -39,16 +55,4 @@
 
 .emptyMessage {
   @include empty-message;
-}
-
-.skillChip {
-  @include skill-chip;
-}
-
-.skillText {
-  @include skill-text;
-}
-
-.removeButton {
-  @include chip-remove-button;
 }

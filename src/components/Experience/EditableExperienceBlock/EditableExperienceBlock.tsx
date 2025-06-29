@@ -1,11 +1,5 @@
 import styles from './EditableExperienceBlock.module.scss'
-import React, {
-  useMemo,
-  useCallback,
-  useState,
-  useEffect,
-  useActionState,
-} from 'react'
+import React, { useCallback, useState, useEffect, useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { MONTHS } from '@/lib/constants'
@@ -109,15 +103,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     }
   }
 
-  const emptyBulletErrors = useMemo(() => ({}), [])
-  const combinedBulletErrors = useMemo(
-    () =>
-      data.bulletPoints.map((_, index) =>
-        editingBulletIndex === index ? bulletErrors : emptyBulletErrors
-      ),
-    [bulletErrors, editingBulletIndex, data.bulletPoints, emptyBulletErrors]
-  )
-
   const handleRegenerateBullet = useCallback(
     (sectionId: string, index: number) => {
       if (sectionId === data.id) {
@@ -140,7 +125,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
   return (
     <section className={styles.editableExperienceBlock}>
-      <header className={styles.header}>
+      <div className={styles.header}>
         {!isNew && (
           <button
             type='button'
@@ -160,7 +145,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             <FaXmark />
           </button>
         )}
-      </header>
+      </div>
 
       <div className={styles.requiredFieldsNote}>
         <span className={styles.requiredIndicator}>*</span>
@@ -237,7 +222,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               className={[styles.formInput, styles.monthInput].join(' ')}
               defaultValue={state.data?.startDate?.month || ''}
             >
-              <option value=''>Select Month</option>
+              <option value=''>Month</option>
               {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}
@@ -383,7 +368,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                   isRegenerating ||
                   (editingBulletIndex !== null && !isEditingThisBullet)
                 }
-                errors={combinedBulletErrors?.[index] || {}}
+                errors={editingBulletIndex === index ? bulletErrors : {}}
                 settings={settings}
                 isLocked={bullet.isLocked || false}
                 isDangerousAction={true}

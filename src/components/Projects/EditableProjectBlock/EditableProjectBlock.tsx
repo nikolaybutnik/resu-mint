@@ -1,20 +1,21 @@
 import styles from './EditableProjectBlock.module.scss'
-import { useDebounce } from '@/lib/clientUtils'
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import { FaPlus, FaXmark } from 'react-icons/fa6'
-import { projectBlockSchema } from '@/lib/validationSchemas'
-import { MONTHS, TOUCH_DELAY, VALIDATION_DELAY } from '@/lib/constants'
-import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import {
-  BulletPoint as BulletPointType,
-  Month,
-  ProjectBlockData,
-} from '@/lib/types/projects'
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react'
+import { FaPlus, FaXmark } from 'react-icons/fa6'
+import { MONTHS, PROJECT_FORM_DATA_KEYS } from '@/lib/constants'
+import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
+import { ProjectBlockData, ProjectFormState } from '@/lib/types/projects'
 import { AppSettings } from '@/lib/types/settings'
-import { isEqual } from 'lodash'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
+import { submitProject } from '@/lib/actions/projectActions'
+import { useFormStatus } from 'react-dom'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
@@ -32,7 +33,8 @@ interface EditableProjectBlockProps {
   onRegenerateBullet: (
     sectionId: string,
     index: number,
-    formData?: ProjectBlockData
+    formData?: ProjectBlockData,
+    shouldSave?: boolean
   ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
@@ -42,33 +44,6 @@ interface EditableProjectBlockProps {
   onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onLockToggle: (sectionId: string, index: number) => void
 }
-
-type FieldErrorKey =
-  | 'invalidTitle'
-  | 'invalidLink'
-  | 'invalidDescription'
-  | 'invalidStartDateMonth'
-  | 'invalidStartDateYear'
-  | 'invalidEndDateMonth'
-  | 'invalidEndDateYear'
-  | 'invalidEndDate'
-
-type ValidationErrors<T extends string = string> = {
-  [K in T]?: string[]
-}
-
-const FieldType = {
-  TITLE: 'title',
-  DESCRIPTION: 'description',
-  TECHNOLOGIES: 'technologies',
-  START_DATE_MONTH: 'startDate.month',
-  START_DATE_YEAR: 'startDate.year',
-  END_DATE_IS_PRESENT: 'endDate.isPresent',
-  END_DATE_MONTH: 'endDate.month',
-  END_DATE_YEAR: 'endDate.year',
-  BULLET_POINTS: 'bulletPoints',
-  LINK: 'link',
-} as const
 
 const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   data,
@@ -92,90 +67,36 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   onTextareaChange,
   onLockToggle,
 }) => {
-  const [formData, setFormData] = useState<ProjectBlockData>(data)
-  const [touched, setTouched] = useState<Record<string, boolean>>({})
-  const [fieldErrors, setFieldErrors] = useState<
-    ValidationErrors<FieldErrorKey>
-  >({})
+  const [state, formAction] = useActionState(
+    (prevState: ProjectFormState, formData: FormData): ProjectFormState =>
+      submitProject(prevState, formData, onSave, data.bulletPoints),
+    {
+      errors: {},
+      data,
+    } as ProjectFormState
+  )
   const [techInput, setTechInput] = useState('')
+  const [technologies, setTechnologies] = useState<string[]>(
+    state.data?.technologies || []
+  )
+  const [isCurrent, setIsCurrent] = useState(
+    state.data?.endDate?.isPresent || false
+  )
+  const [description, setDescription] = useState(state.data?.description || '')
+
+  useEffect(() => {
+    setIsCurrent(state.data?.endDate?.isPresent || false)
+  }, [state.data?.endDate?.isPresent])
+
+  useEffect(() => {
+    setDescription(state.data?.description || '')
+  }, [state.data?.description])
 
   const {
     textareaRef,
     handleChange: handleTextareaChange,
     handleInput,
-  } = useAutoResizeTextarea(formData.description)
-
-  const debouncedFormData = useDebounce(formData, VALIDATION_DELAY)
-  const debouncedTouched = useDebounce(touched, TOUCH_DELAY) // Ensures validation runs before showing errors
-
-  useEffect(() => {
-    setFormData(data)
-  }, [])
-
-  useEffect(() => {
-    setFormData((prev) => {
-      if (!isEqual(prev.bulletPoints, data.bulletPoints)) {
-        return {
-          ...prev,
-          bulletPoints: data.bulletPoints,
-        }
-      }
-      return prev
-    })
-  }, [data])
-
-  useEffect(() => {
-    const result = projectBlockSchema.safeParse(debouncedFormData)
-    if (result.success) {
-      setFieldErrors({})
-      return
-    }
-
-    const errors: ValidationErrors<FieldErrorKey> = {}
-    result.error.issues
-      .filter((issue) => issue.message !== '')
-      .forEach((issue) => {
-        const path = issue.path.join('.')
-        if (!path.startsWith('bulletPoints.')) {
-          switch (path) {
-            case 'title':
-              errors.invalidTitle = [issue.message]
-              break
-            case 'link':
-              errors.invalidLink = [issue.message]
-              break
-            case 'description':
-              errors.invalidDescription = [issue.message]
-              break
-            case 'startDate.month':
-              errors.invalidStartDateMonth = [issue.message]
-              break
-            case 'startDate.year':
-              errors.invalidStartDateYear = [issue.message]
-              break
-            case 'endDate.month':
-              errors.invalidEndDateMonth = [issue.message]
-              break
-            case 'endDate.year':
-              errors.invalidEndDateYear = [issue.message]
-              break
-            case 'endDate':
-              errors.invalidEndDate = [issue.message]
-              break
-          }
-        }
-      })
-    setFieldErrors((prev) => (isEqual(prev, errors) ? prev : errors))
-  }, [debouncedFormData])
-
-  const isValid = useMemo(() => {
-    return projectBlockSchema.safeParse(formData).success
-  }, [formData])
-
-  const sanitizeYear = useCallback(
-    (val: string) => val.replace(/[^0-9]/g, '').slice(0, 4),
-    []
-  )
+  } = useAutoResizeTextarea(description)
 
   const normalizeTechnology = useCallback((tech: string): string => {
     return tech.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -183,111 +104,18 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 
   const isTechDuplicate = useMemo(() => {
     if (!techInput.trim()) return false
-    return formData.technologies.some(
+    return technologies.some(
       (tech) => normalizeTechnology(tech) === normalizeTechnology(techInput)
     )
-  }, [techInput, formData.technologies, normalizeTechnology])
-
-  const handleChange = useCallback(
-    (
-      field: (typeof FieldType)[keyof typeof FieldType],
-      value: string | string[] | boolean | BulletPointType,
-      bulletIndex?: number
-    ) => {
-      setFormData((prev) => {
-        if (field === FieldType.BULLET_POINTS && bulletIndex !== undefined) {
-          return {
-            ...prev,
-            bulletPoints: prev.bulletPoints.map((bullet, index) =>
-              index === bulletIndex
-                ? {
-                    id: bullet.id,
-                    text: value as string,
-                    isLocked: bullet.isLocked,
-                  }
-                : bullet
-            ),
-          }
-        }
-
-        const updateHandlers: Record<
-          string,
-          (
-            prev: ProjectBlockData,
-            val: string | string[] | boolean | BulletPointType
-          ) => ProjectBlockData
-        > = {
-          [FieldType.TITLE]: (prev, val) => ({
-            ...prev,
-            title: val as string,
-          }),
-          [FieldType.DESCRIPTION]: (prev, val) => ({
-            ...prev,
-            description: val as string,
-          }),
-          [FieldType.TECHNOLOGIES]: (prev, val) => ({
-            ...prev,
-            technologies: Array.isArray(val) ? val : prev.technologies,
-          }),
-          [FieldType.START_DATE_MONTH]: (prev, val) => ({
-            ...prev,
-            startDate: { ...prev.startDate, month: val as Month },
-          }),
-          [FieldType.START_DATE_YEAR]: (prev, val) => ({
-            ...prev,
-            startDate: { ...prev.startDate, year: sanitizeYear(val as string) },
-          }),
-          [FieldType.END_DATE_IS_PRESENT]: (prev, val) => ({
-            ...prev,
-            endDate: val
-              ? { month: '' as Month, year: '', isPresent: true }
-              : { ...prev.endDate, isPresent: false },
-          }),
-          [FieldType.END_DATE_MONTH]: (prev, val) => ({
-            ...prev,
-            endDate: { ...prev.endDate, month: val as Month, isPresent: false },
-          }),
-          [FieldType.END_DATE_YEAR]: (prev, val) => ({
-            ...prev,
-            endDate: {
-              ...prev.endDate,
-              year: sanitizeYear(val as string),
-              isPresent: false,
-            },
-          }),
-          [FieldType.LINK]: (prev, val) => ({
-            ...prev,
-            link: val as string,
-          }),
-        }
-
-        const handler = updateHandlers[field]
-        return handler ? handler(prev, value) : prev
-      })
-
-      setTouched((prev) => ({
-        ...prev,
-        [field]: true,
-        ...(field === 'endDate.isPresent'
-          ? { endDate: true, 'endDate.month': true, 'endDate.year': true }
-          : field.startsWith('endDate')
-          ? { endDate: true }
-          : {}),
-      }))
-    },
-    [sanitizeYear]
-  )
+  }, [techInput, technologies, normalizeTechnology])
 
   const handleAddTechnology = useCallback(() => {
     const trimmedTech = techInput.trim()
     if (!trimmedTech || isTechDuplicate) return
 
-    handleChange(FieldType.TECHNOLOGIES, [
-      ...formData.technologies,
-      trimmedTech,
-    ])
+    setTechnologies((prev) => [...prev, trimmedTech])
     setTechInput('')
-  }, [techInput, isTechDuplicate, formData.technologies, handleChange])
+  }, [techInput, isTechDuplicate])
 
   const getDuplicateTechnology = useCallback(
     (input: string, techList: string[]): string | null => {
@@ -302,48 +130,41 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     [normalizeTechnology]
   )
 
-  const duplicateTechnology = getDuplicateTechnology(
-    techInput,
-    formData.technologies
-  )
+  const duplicateTechnology = getDuplicateTechnology(techInput, technologies)
 
-  const handleDelete = useCallback(() => {
+  const handleDelete = (): void => {
     if (
       window.confirm(
         'Are you sure you want to delete this project? This action cannot be undone.'
       )
     ) {
-      onDelete(formData.id)
+      onDelete(data.id)
     }
-  }, [formData.id, onDelete])
-
-  const handleSave = useCallback(() => {
-    if (isValid) {
-      onSave(formData)
-    }
-  }, [formData, isValid, onSave])
-
-  const emptyBulletErrors = useMemo(() => ({}), [])
-  const combinedBulletErrors = useMemo(
-    () =>
-      formData.bulletPoints.map((_, index) =>
-        editingBulletIndex === index ? bulletErrors : emptyBulletErrors
-      ),
-    [bulletErrors, editingBulletIndex, formData.bulletPoints, emptyBulletErrors]
-  )
+  }
 
   const handleRegenerateBullet = useCallback(
     (sectionId: string, index: number) => {
-      if (sectionId === formData.id) {
-        onRegenerateBullet(sectionId, index, formData)
+      if (sectionId === data.id) {
+        onRegenerateBullet(sectionId, index, data, true)
       }
     },
-    [formData, onRegenerateBullet]
+    [data.id, data, onRegenerateBullet]
   )
+
+  // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
+  const SubmitButton: React.FC = () => {
+    const { pending } = useFormStatus()
+
+    return (
+      <button type='submit' className={styles.saveButton} disabled={pending}>
+        Save
+      </button>
+    )
+  }
 
   return (
     <section className={styles.editableProjectBlock}>
-      <header className={styles.header}>
+      <div className={styles.header}>
         {!isNew && (
           <button
             type='button'
@@ -363,27 +184,37 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             <FaXmark />
           </button>
         )}
-      </header>
+      </div>
 
       <div className={styles.requiredFieldsNote}>
         <span className={styles.requiredIndicator}>*</span>
         Indicates a required field
       </div>
 
-      <div className={styles.projectDetails}>
+      <form action={formAction} className={styles.projectDetails}>
+        {/* Hidden input synced with technologies state to send technologies array to form action */}
+        <input
+          type='hidden'
+          name={PROJECT_FORM_DATA_KEYS.TECHNOLOGIES}
+          value={technologies.join(',')}
+        />
+
         <div className={styles.formField}>
           <label className={styles.label}>
             <span className={styles.requiredIndicator}>*</span>
-            Project Title
+            Project Name
           </label>
           <input
             type='text'
-            className={styles.formInput}
-            value={formData.title}
-            onChange={(e) => handleChange(FieldType.TITLE, e.target.value)}
+            name={PROJECT_FORM_DATA_KEYS.TITLE}
+            className={`${styles.formInput} ${
+              state?.errors?.title ? styles.error : ''
+            }`}
+            defaultValue={state.data?.title}
+            placeholder='Enter the name of your project'
           />
-          {debouncedTouched.title && fieldErrors.invalidTitle && (
-            <p className={styles.formError}>{fieldErrors.invalidTitle[0]}</p>
+          {state?.errors?.title && (
+            <span className={styles.formError}>{state.errors.title}</span>
           )}
         </div>
 
@@ -391,17 +222,20 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           <label className={styles.label}>Project URL</label>
           <input
             type='text'
-            className={styles.formInput}
-            value={formData.link}
-            onChange={(e) => handleChange(FieldType.LINK, e.target.value)}
+            name={PROJECT_FORM_DATA_KEYS.LINK}
+            className={`${styles.formInput} ${
+              state?.errors?.link ? styles.error : ''
+            }`}
+            defaultValue={state.data?.link}
+            placeholder='Enter the URL of your project'
           />
-          {debouncedTouched.link && fieldErrors.invalidLink && (
-            <p className={styles.formError}>{fieldErrors.invalidLink[0]}</p>
+          {state?.errors?.link && (
+            <span className={styles.formError}>{state.errors.link}</span>
           )}
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Technologies</label>
+          <label className={styles.label}>Tools & Technologies</label>
           <div className={styles.chipInputContainer}>
             <input
               type='text'
@@ -427,12 +261,12 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           </div>
 
           <div className={styles.chipsContainer}>
-            {formData.technologies.length === 0 ? (
+            {technologies.length === 0 ? (
               <div className={styles.emptyState}>
                 <p>Enter the technologies you used in this project.</p>
               </div>
             ) : (
-              formData.technologies.map((tech, index) => (
+              technologies.map((tech: string, index: number) => (
                 <div
                   key={index}
                   className={`${styles.chip} ${
@@ -443,12 +277,11 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                   <button
                     type='button'
                     className={styles.removeChip}
-                    onClick={() =>
-                      handleChange(
-                        FieldType.TECHNOLOGIES,
-                        formData.technologies.filter((_, i) => i !== index)
+                    onClick={() => {
+                      setTechnologies((prev) =>
+                        prev.filter((_, i) => i !== index)
                       )
-                    }
+                    }}
                     title='Remove technology'
                   >
                     <FaXmark />
@@ -466,13 +299,12 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           </label>
           <div className={styles.dateInputs}>
             <select
+              key={state.data?.startDate?.month} // Force re-render, selects are not re-rendered when defaultValue changes.
+              name={PROJECT_FORM_DATA_KEYS.START_DATE_MONTH}
               className={[styles.formInput, styles.monthInput].join(' ')}
-              value={formData.startDate.month}
-              onChange={(e) =>
-                handleChange(FieldType.START_DATE_MONTH, e.target.value)
-              }
+              defaultValue={state.data?.startDate?.month || ''}
             >
-              <option value=''>Select Month</option>
+              <option value=''>Month</option>
               {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}
@@ -481,10 +313,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             </select>
             <input
               type='text'
-              name='startDate.year'
+              name={PROJECT_FORM_DATA_KEYS.START_DATE_YEAR}
               placeholder='YYYY'
               className={[styles.formInput, styles.yearInput].join(' ')}
-              value={formData.startDate.year}
+              defaultValue={state.data?.startDate?.year || ''}
               maxLength={4}
               onInput={(e) => {
                 const value = e.currentTarget.value
@@ -494,22 +326,11 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                     .slice(0, 4)
                 }
               }}
-              onChange={(e) =>
-                handleChange(FieldType.START_DATE_YEAR, e.target.value)
-              }
             />
           </div>
-          {fieldErrors.invalidStartDateMonth && (
-            <p className={styles.formError}>
-              {fieldErrors.invalidStartDateMonth[0]}
-            </p>
+          {state?.errors?.startDate && (
+            <span className={styles.formError}>{state.errors.startDate}</span>
           )}
-          {debouncedTouched[FieldType.START_DATE_YEAR] &&
-            fieldErrors.invalidStartDateYear && (
-              <p className={styles.formError}>
-                {fieldErrors.invalidStartDateYear[0]}
-              </p>
-            )}
         </div>
 
         <div className={styles.formField}>
@@ -519,14 +340,13 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           </label>
           <div className={styles.dateInputs}>
             <select
+              key={state.data?.endDate?.month}
+              name={PROJECT_FORM_DATA_KEYS.END_DATE_MONTH}
               className={[styles.formInput, styles.monthInput].join(' ')}
-              value={formData.endDate.month}
-              disabled={formData.endDate.isPresent}
-              onChange={(e) =>
-                handleChange(FieldType.END_DATE_MONTH, e.target.value)
-              }
+              defaultValue={state.data?.endDate?.month || ''}
+              disabled={isCurrent}
             >
-              <option value=''>Select Month</option>
+              <option value=''>Month</option>
               {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}
@@ -538,8 +358,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               name='endDate.year'
               placeholder='YYYY'
               className={[styles.formInput, styles.yearInput].join(' ')}
-              disabled={formData.endDate.isPresent}
-              value={formData.endDate.year}
+              defaultValue={state.data?.endDate?.year || ''}
+              disabled={isCurrent}
               maxLength={4}
               onInput={(e) => {
                 const value = e.currentTarget.value
@@ -549,34 +369,25 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                     .slice(0, 4)
                 }
               }}
-              onChange={(e) =>
-                handleChange(FieldType.END_DATE_YEAR, e.target.value)
-              }
             />
           </div>
           <div className={styles.checkboxField}>
             <input
               type='checkbox'
-              checked={formData.endDate.isPresent}
-              onChange={(e) =>
-                handleChange(FieldType.END_DATE_IS_PRESENT, e.target.checked)
-              }
+              name={PROJECT_FORM_DATA_KEYS.END_DATE_IS_PRESENT}
+              value='true'
+              defaultChecked={state.data?.endDate?.isPresent || false}
+              key={`checkbox-${state.data?.endDate?.isPresent}`} // Force re-render when state changes
+              onChange={(e) => {
+                setIsCurrent(e.target.checked)
+              }}
             />
-            <label className={styles.checkboxLabel}>Present</label>
+            <label className={styles.checkboxLabel}>
+              Currently Working on this Project
+            </label>
           </div>
-          {fieldErrors.invalidEndDateMonth && (
-            <p className={styles.formError}>
-              {fieldErrors.invalidEndDateMonth[0]}
-            </p>
-          )}
-          {debouncedTouched['endDate.year'] &&
-            fieldErrors.invalidEndDateYear && (
-              <p className={styles.formError}>
-                {fieldErrors.invalidEndDateYear[0]}
-              </p>
-            )}
-          {debouncedTouched.endDate && fieldErrors.invalidEndDate && (
-            <p className={styles.formError}>{fieldErrors.invalidEndDate[0]}</p>
+          {state?.errors?.endDate && (
+            <span className={styles.formError}>{state.errors.endDate}</span>
           )}
         </div>
 
@@ -584,24 +395,26 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           <label className={styles.label}>Description</label>
           <textarea
             ref={textareaRef}
+            name={PROJECT_FORM_DATA_KEYS.DESCRIPTION}
             className={styles.formTextarea}
-            value={formData.description}
+            value={description}
             rows={4}
-            maxLength={1000}
-            placeholder='Describe your project in detail. Format however you like.'
+            placeholder='Describe your project in detail. Focus on listing your responsibilities, achievements, and the tools you used.'
             onChange={(e) => {
               const newValue = handleTextareaChange(e)
-              handleChange(FieldType.DESCRIPTION, newValue)
+              setDescription(newValue)
             }}
             onInput={handleInput}
           />
-          {debouncedTouched.description && fieldErrors.invalidDescription && (
-            <p className={styles.formError}>
-              {fieldErrors.invalidDescription[0]}
-            </p>
+          {state?.errors?.description && (
+            <span className={styles.formError}>{state.errors.description}</span>
           )}
         </div>
-      </div>
+
+        <div className={styles.actionButtons}>
+          <SubmitButton />
+        </div>
+      </form>
 
       <div className={styles.bulletPoints}>
         <div className={styles.bulletHeader}>
@@ -609,27 +422,27 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           <button
             type='button'
             className={styles.addButton}
-            onClick={() => onAddBullet(formData.id)}
-            disabled={isRegenerating || !isValid}
+            onClick={() => onAddBullet(data.id)}
+            disabled={isRegenerating}
           >
             <FaPlus /> Add
           </button>
         </div>
         <div className={styles.bulletPointsContainer}>
-          {formData.bulletPoints.map((bullet, index) => {
+          {data.bulletPoints.map((bullet, index) => {
             const isEditingThisBullet = editingBulletIndex === index
 
             return (
               <BulletPoint
                 key={bullet.id}
-                sectionId={formData.id}
+                sectionId={data.id}
                 index={index}
                 text={bullet.text}
                 keywordData={keywordData}
                 editingText={isEditingThisBullet ? editingBulletText : ''}
                 isRegenerating={
                   isRegenerating &&
-                  regeneratingBullet?.section === formData.id &&
+                  regeneratingBullet?.section === data.id &&
                   regeneratingBullet?.index === index
                 }
                 isEditing={isEditingThisBullet}
@@ -637,13 +450,14 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                   isRegenerating ||
                   (editingBulletIndex !== null && !isEditingThisBullet)
                 }
-                errors={combinedBulletErrors[index]}
+                errors={editingBulletIndex === index ? bulletErrors : {}}
                 settings={settings}
-                isLocked={bullet.isLocked}
+                isLocked={bullet.isLocked || false}
+                isDangerousAction={true}
                 onCancelEdit={onBulletCancel}
-                onBulletDelete={(index) => onBulletDelete(formData.id, index)}
+                onBulletDelete={(index) => onBulletDelete(data.id, index)}
                 onBulletSave={onBulletSave}
-                onBulletEdit={(index) => onEditBullet(formData.id, index)}
+                onBulletEdit={(index) => onEditBullet(data.id, index)}
                 onBulletRegenerate={handleRegenerateBullet}
                 onTextareaChange={onTextareaChange}
                 onLockToggle={(sectionId, index) => {
@@ -653,17 +467,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             )
           })}
         </div>
-      </div>
-
-      <div className={styles.actionButtons}>
-        <button
-          type='button'
-          className={styles.saveButton}
-          onClick={handleSave}
-          disabled={!isValid || editingBulletIndex !== null || isRegenerating}
-        >
-          Save
-        </button>
       </div>
     </section>
   )

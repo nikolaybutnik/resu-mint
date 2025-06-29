@@ -275,7 +275,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
       const projectSectionDescriptions: string[] = projects
         .filter((project) => project.isIncluded)
-        .map((project) => project.description.trim())
+        .map((project) => project.description?.trim() || '')
         .filter((desc) => desc.length)
 
       // Skip on first run after loading completes - just set the reference

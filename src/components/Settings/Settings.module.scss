@@ -10,6 +10,10 @@
   @include section-title;
 }
 
+.formFieldsContainer {
+  @include list-container;
+}
+
 .formGroup {
   display: flex;
   flex-direction: column;

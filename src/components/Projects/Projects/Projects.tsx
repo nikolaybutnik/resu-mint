@@ -183,8 +183,6 @@ const Projects = ({
       )
       setLocalData(updatedData)
       onSave(updatedData)
-      setSelectedBlockId(null)
-      setNewBlockId(null)
     },
     [localData, onSave]
   )
@@ -237,9 +235,15 @@ const Projects = ({
    * @param sectionId - The ID of the project section to regenerate.
    * @param index - The index of the bullet point to regenerate.
    * @param formData - The form data of the project block if it is being edited.
+   * @param shouldSave - Whether to save the regenerated bullet to storage.
    */
   const handleBulletRegenerate = useCallback(
-    async (sectionId: string, index: number, formData?: ProjectBlockData) => {
+    async (
+      sectionId: string,
+      index: number,
+      formData?: ProjectBlockData,
+      shouldSave?: boolean
+    ) => {
       const data = formData || findProject(sectionId)
       if (!data) return
 
@@ -261,10 +265,10 @@ const Projects = ({
               type: 'project',
               title: formData.title,
               technologies: formData.technologies,
-              description: formData.description,
-              existingBullets: formData.bulletPoints.filter(
-                (bullet) => bullet.id !== regeneratingBulletId
-              ),
+              description: formData.description || '',
+              existingBullets: formData.bulletPoints
+                .filter((bullet) => bullet.id !== regeneratingBulletId)
+                .map((bp) => ({ ...bp, isLocked: bp.isLocked ?? false })),
               targetBulletIds: [regeneratingBulletId],
             },
           ]
@@ -279,8 +283,11 @@ const Projects = ({
               type: 'project',
               title: data.title,
               technologies: data.technologies,
-              description: data.description,
-              existingBullets,
+              description: data.description || '',
+              existingBullets: existingBullets.map((bp) => ({
+                ...bp,
+                isLocked: bp.isLocked ?? false,
+              })),
               targetBulletIds: [regeneratingBulletId],
             },
           ]
@@ -311,18 +318,20 @@ const Projects = ({
             })
           } else {
             // Else, update bullet in local state
-            const updatedBullets = data.bulletPoints.map((bullet) =>
+            const sourceData = formData || data
+            const updatedBullets = sourceData.bulletPoints.map((bullet) =>
               bullet.id === regeneratingBulletId
                 ? { ...bullet, text: generatedBullet.text }
                 : bullet
             )
             const updatedProject = {
-              ...data,
+              ...sourceData,
               bulletPoints: updatedBullets,
             }
             updateProject(updatedProject)
-            // If formData is provided, don't save to storage because the block is being edited
-            const shouldSaveToStorage = !formData
+            // Use explicit shouldSave parameter, or default to !formData for backwards compatibility
+            const shouldSaveToStorage =
+              shouldSave !== undefined ? shouldSave : !formData
             if (shouldSaveToStorage) {
               onSave(
                 localData.map((project) =>
@@ -600,10 +609,7 @@ const Projects = ({
   const isAnyBulletBeingEdited = !!editingBullet
   const isAnyBulletRegenerating = !!regeneratingBullet
 
-  const getProjectBlockProps = (
-    project: ProjectBlockData,
-    isEditable: boolean
-  ) => {
+  const getProjectBlockProps = (project: ProjectBlockData) => {
     const isEditingBullet = editingBullet?.section === project.id
     const editingBulletIndex = isEditingBullet ? editingBullet.index : null
 
@@ -619,9 +625,8 @@ const Projects = ({
       onTextareaChange: handleBulletTextUpdate,
       onEditBullet: handleBulletEdit,
       onBulletCancel: handleCancelEdit,
-      onAddBullet: (sectionId: string) =>
-        handleAddBullet(sectionId, isEditable),
-      onBulletSave: () => handleBulletSave(!isEditable),
+      onAddBullet: (sectionId: string) => handleAddBullet(sectionId, false),
+      onBulletSave: () => handleBulletSave(true),
       onBulletDelete: (sectionId: string, index: number) =>
         handleBulletDelete(sectionId, index, true),
       onLockToggle: (sectionId: string, index: number) =>
@@ -633,7 +638,7 @@ const Projects = ({
     project: ProjectBlockData,
     existingBlocks: ProjectBlockData[]
   ) => {
-    const sharedProps = getProjectBlockProps(project, true)
+    const sharedProps = getProjectBlockProps(project)
     const isNew = project.id === newBlockId
     const showCloseButton = existingBlocks.length > 1 || !isNew
 
@@ -645,8 +650,8 @@ const Projects = ({
         onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
         onSave={handleProjectSave}
-        onRegenerateBullet={(sectionId, index, formData) =>
-          handleBulletRegenerate(sectionId, index, formData)
+        onRegenerateBullet={(sectionId, index, formData, shouldSave) =>
+          handleBulletRegenerate(sectionId, index, formData, shouldSave)
         }
       />
     )
@@ -656,7 +661,7 @@ const Projects = ({
     project: ProjectBlockData,
     isOverlay = false
   ) => {
-    const sharedProps = getProjectBlockProps(project, false)
+    const sharedProps = getProjectBlockProps(project)
 
     if (isOverlay) {
       return (

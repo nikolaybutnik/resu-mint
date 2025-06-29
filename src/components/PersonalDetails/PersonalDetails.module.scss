@@ -9,6 +9,10 @@
   @include section-title;
 }
 
+.formFieldsContainer {
+  @include list-container;
+}
+
 .requiredFieldsNote {
   @include required-fields-note;
 }

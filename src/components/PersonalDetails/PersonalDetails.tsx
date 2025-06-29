@@ -100,35 +100,37 @@ const PersonalDetails: React.FC<PersonalDetailsProps> = ({
         <form className={styles.formSection} action={formAction}>
           <h2 className={styles.formTitle}>Personal Details</h2>
 
-          <div className={styles.requiredFieldsNote}>
-            <span className={styles.requiredIndicator}>*</span>
-            Indicates a required field
-          </div>
-
-          {formFields.map((field) => (
-            <div key={field.name} className={styles.formField}>
-              <label className={styles.label}>
-                {field.required && (
-                  <span className={styles.requiredIndicator}>*</span>
-                )}
-                {field.label}
-              </label>
-              <input
-                type={field.type}
-                name={field.name}
-                className={`${styles.formInput} ${
-                  state?.errors?.[field.name] ? styles.error : ''
-                }`}
-                defaultValue={state.data?.[field.name] || ''}
-                placeholder={field.placeholder}
-              />
-              {state?.errors?.[field.name] && (
-                <span className={styles.formError}>
-                  {state.errors[field.name]}
-                </span>
-              )}
+          <div className={styles.formFieldsContainer}>
+            <div className={styles.requiredFieldsNote}>
+              <span className={styles.requiredIndicator}>*</span>
+              Indicates a required field
             </div>
-          ))}
+
+            {formFields.map((field) => (
+              <div key={field.name} className={styles.formField}>
+                <label className={styles.label}>
+                  {field.required && (
+                    <span className={styles.requiredIndicator}>*</span>
+                  )}
+                  {field.label}
+                </label>
+                <input
+                  type={field.type}
+                  name={field.name}
+                  className={`${styles.formInput} ${
+                    state?.errors?.[field.name] ? styles.error : ''
+                  }`}
+                  defaultValue={state.data?.[field.name] || ''}
+                  placeholder={field.placeholder}
+                />
+                {state?.errors?.[field.name] && (
+                  <span className={styles.formError}>
+                    {state.errors[field.name]}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
 
           <div className={styles.actionButtons}>
             <SubmitButton />

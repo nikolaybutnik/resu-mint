@@ -83,3 +83,16 @@ export const EXPERIENCE_FORM_DATA_KEYS = {
   END_DATE_YEAR: 'endDate.year',
   BULLET_POINTS: 'bulletPoints',
 } as const
+
+export const PROJECT_FORM_DATA_KEYS = {
+  TITLE: 'title',
+  DESCRIPTION: 'description',
+  TECHNOLOGIES: 'technologies',
+  LINK: 'link',
+  START_DATE_MONTH: 'startDate.month',
+  START_DATE_YEAR: 'startDate.year',
+  END_DATE_IS_PRESENT: 'endDate.isPresent',
+  END_DATE_MONTH: 'endDate.month',
+  END_DATE_YEAR: 'endDate.year',
+  BULLET_POINTS: 'bulletPoints',
+} as const
