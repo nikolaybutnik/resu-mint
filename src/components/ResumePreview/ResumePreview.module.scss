@@ -360,14 +360,12 @@
 
   // Only apply width constraints when fit-to-width is active
   &.fitToWidth {
-    max-width: 100%;
+    width: 100%;
 
-    @include breakpoint(tablet) {
-      canvas {
-        max-width: 100%;
-        width: auto !important;
-        height: auto !important;
-      }
+    canvas {
+      max-width: 100%;
+      width: auto !important;
+      height: auto !important;
     }
   }
 }
