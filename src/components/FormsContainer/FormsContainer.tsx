@@ -31,7 +31,16 @@ import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
 import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
-import { FiDownload } from 'react-icons/fi'
+import {
+  FiDownload,
+  FiUser,
+  FiBriefcase,
+  FiFolder,
+  FiFileText,
+  FiBook,
+  FiTool,
+  FiSettings,
+} from 'react-icons/fi'
 import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
 import { STORAGE_KEYS } from '@/lib/constants'
@@ -47,13 +56,13 @@ const Tabs = {
 } as const
 
 const tabs = [
-  { id: Tabs.JOB_DETAILS, label: 'Job Details' },
-  { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details' },
-  { id: Tabs.EXPERIENCE, label: 'Experience' },
-  { id: Tabs.PROJECTS, label: 'Projects' },
-  { id: Tabs.EDUCATION, label: 'Education' },
-  { id: Tabs.SKILLS, label: 'Skills' },
-  { id: Tabs.SETTINGS, label: 'Settings' },
+  { id: Tabs.JOB_DETAILS, label: 'Job Details', icon: FiFileText },
+  { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details', icon: FiUser },
+  { id: Tabs.EXPERIENCE, label: 'Experience', icon: FiBriefcase },
+  { id: Tabs.PROJECTS, label: 'Projects', icon: FiFolder },
+  { id: Tabs.EDUCATION, label: 'Education', icon: FiBook },
+  { id: Tabs.SKILLS, label: 'Skills', icon: FiTool },
+  { id: Tabs.SETTINGS, label: 'Settings', icon: FiSettings },
 ]
 
 const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
@@ -558,17 +567,22 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
         }`}
       >
         <div className={styles.tabNav}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              className={`${styles.tabButton} ${
-                activeTab === tab.id ? styles.activeTab : ''
-              }`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {tab.label}
-            </button>
-          ))}
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon
+            return (
+              <button
+                key={tab.id}
+                className={`${styles.tabButton} ${
+                  activeTab === tab.id ? styles.activeTab : ''
+                }`}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <IconComponent className={styles.tabIcon} />
+                <span className={styles.tabLabel}>{tab.label}</span>
+                <div className={styles.tabTooltip}>{tab.label}</div>
+              </button>
+            )
+          })}
         </div>
         <div className={styles.tabContent}>
           {activeTab === Tabs.JOB_DETAILS && (

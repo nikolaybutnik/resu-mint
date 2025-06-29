@@ -31,31 +31,102 @@
 
 .tabNav {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 16px;
+  background: rgba($color-primary, 0.03);
+  border: 1px solid rgba($color-primary, 0.1);
+  border-radius: 8px;
+  padding: 8px;
+  width: 100%;
 }
 
 .tabButton {
   @include button-base;
-  padding: 10px 15px;
-  background-color: $color-action-item-background;
-  border-radius: 5px;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  background-color: transparent;
+  border-radius: 6px;
   color: $color-text;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  position: relative;
+  flex: 1;
+  min-height: 40px;
 
   &.activeTab {
     background-color: $color-primary;
     color: $color-background;
+    border-color: $color-primary;
   }
 
   &:hover {
     background-color: rgba($color-primary, 0.1);
+    border-color: rgba($color-primary, 0.2);
     transform: none;
 
     &.activeTab {
       background-color: $color-primary-hover;
+      border-color: $color-primary-hover;
     }
+
+    .tabTooltip {
+      opacity: 1;
+      transition-delay: 0.3s;
+    }
+  }
+}
+
+.tabIcon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.tabLabel {
+  display: none; // Hidden since we're using tooltips instead
+}
+
+.tabTooltip {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: $color-background;
+  color: $color-primary;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+  border-radius: 6px;
+  border: 1px solid rgba($color-primary, 0.2);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+  &::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: rgba($color-primary, 0.2);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(1px);
+    border: 5px solid transparent;
+    border-bottom-color: $color-background;
   }
 }
 
