@@ -40,6 +40,8 @@ import {
   FiBook,
   FiTool,
   FiSettings,
+  FiChevronLeft,
+  FiChevronRight,
 } from 'react-icons/fi'
 import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
@@ -56,13 +58,43 @@ const Tabs = {
 } as const
 
 const tabs = [
-  { id: Tabs.JOB_DETAILS, label: 'Job Details', icon: FiFileText },
-  { id: Tabs.PERSONAL_DETAILS, label: 'Personal Details', icon: FiUser },
-  { id: Tabs.EXPERIENCE, label: 'Experience', icon: FiBriefcase },
-  { id: Tabs.PROJECTS, label: 'Projects', icon: FiFolder },
-  { id: Tabs.EDUCATION, label: 'Education', icon: FiBook },
-  { id: Tabs.SKILLS, label: 'Skills', icon: FiTool },
-  { id: Tabs.SETTINGS, label: 'Settings', icon: FiSettings },
+  {
+    id: Tabs.JOB_DETAILS,
+    label: 'Job Details',
+    shortLabel: 'Job',
+    icon: FiFileText,
+  },
+  {
+    id: Tabs.PERSONAL_DETAILS,
+    label: 'Personal Details',
+    shortLabel: 'Info',
+    icon: FiUser,
+  },
+  {
+    id: Tabs.EXPERIENCE,
+    label: 'Experience',
+    shortLabel: 'Work',
+    icon: FiBriefcase,
+  },
+  {
+    id: Tabs.PROJECTS,
+    label: 'Projects',
+    shortLabel: 'Projects',
+    icon: FiFolder,
+  },
+  {
+    id: Tabs.EDUCATION,
+    label: 'Education',
+    shortLabel: 'School',
+    icon: FiBook,
+  },
+  { id: Tabs.SKILLS, label: 'Skills', shortLabel: 'Skills', icon: FiTool },
+  {
+    id: Tabs.SETTINGS,
+    label: 'Settings',
+    shortLabel: 'Settings',
+    icon: FiSettings,
+  },
 ]
 
 const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
@@ -216,6 +248,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   }>({ experience: [], projects: [] })
   const isInitialLoadRef = useRef(true)
   const sidebarRef = useRef<HTMLDivElement>(null)
+  const tabNavRef = useRef<HTMLDivElement>(null)
 
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
@@ -227,6 +260,8 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const [parsingSkills, setParsingSkills] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [safariUnsupported, setSafariUnsupported] = useState(false)
+  const [showLeftScroll, setShowLeftScroll] = useState(false)
+  const [showRightScroll, setShowRightScroll] = useState(false)
 
   // Form States
   const [jobDescription, setJobDescription] = useState<string>(
@@ -532,6 +567,33 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     }
   }
 
+  const checkScrollIndicators = () => {
+    const tabNav = tabNavRef.current
+    if (!tabNav) return
+
+    const { scrollLeft, scrollWidth, clientWidth } = tabNav
+    setShowLeftScroll(scrollLeft > 0)
+    setShowRightScroll(scrollLeft < scrollWidth - clientWidth - 1)
+  }
+
+  useEffect(() => {
+    const tabNav = tabNavRef.current
+    if (!tabNav) return
+
+    checkScrollIndicators()
+
+    const handleScroll = () => checkScrollIndicators()
+    const handleResize = () => checkScrollIndicators()
+
+    tabNav.addEventListener('scroll', handleScroll)
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      tabNav.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [checkScrollIndicators])
+
   // Memoize fairly stable states. States like projects and experience are updated too often.
   const memoizedSettings = useMemo(() => settings, [settings])
   const memoizedJobDescriptionAnalysis = useMemo(
@@ -575,23 +637,39 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           view === MOBILE_VIEW.INPUT ? styles.active : ''
         }`}
       >
-        <div className={styles.tabNav}>
-          {tabs.map((tab) => {
-            const IconComponent = tab.icon
-            return (
-              <button
-                key={tab.id}
-                className={`${styles.tabButton} ${
-                  activeTab === tab.id ? styles.activeTab : ''
-                }`}
-                onClick={() => handleTabChange(tab.id)}
-              >
-                <IconComponent className={styles.tabIcon} />
-                <span className={styles.tabLabel}>{tab.label}</span>
-                <div className={styles.tabTooltip}>{tab.label}</div>
-              </button>
-            )
-          })}
+        <div className={styles.tabNavContainer}>
+          <div ref={tabNavRef} className={styles.tabNav}>
+            {tabs.map((tab) => {
+              const IconComponent = tab.icon
+              return (
+                <button
+                  key={tab.id}
+                  className={`${styles.tabButton} ${
+                    activeTab === tab.id ? styles.activeTab : ''
+                  }`}
+                  onClick={() => handleTabChange(tab.id)}
+                >
+                  <IconComponent className={styles.tabIcon} />
+                  <span className={styles.tabLabel}>{tab.label}</span>
+                  <span className={styles.tabShortLabel}>{tab.shortLabel}</span>
+                </button>
+              )
+            })}
+          </div>
+          {showLeftScroll && (
+            <div
+              className={`${styles.scrollIndicator} ${styles.leftIndicator}`}
+            >
+              <FiChevronLeft className={styles.scrollArrow} />
+            </div>
+          )}
+          {showRightScroll && (
+            <div
+              className={`${styles.scrollIndicator} ${styles.rightIndicator}`}
+            >
+              <FiChevronRight className={styles.scrollArrow} />
+            </div>
+          )}
         </div>
         <div className={styles.tabContent}>
           {activeTab === Tabs.JOB_DETAILS && (

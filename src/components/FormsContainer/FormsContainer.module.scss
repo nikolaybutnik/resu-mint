@@ -24,6 +24,11 @@
     gap: 0;
     padding: 0;
   }
+
+  @include breakpoint(mobile) {
+    display: block;
+    padding: 24px;
+  }
 }
 
 .preview {
@@ -33,12 +38,20 @@
   background-color: $color-action-item-background;
 }
 
+.tabNavContainer {
+  position: relative;
+  margin-bottom: 16px;
+
+  @include breakpoint(tablet) {
+    margin-bottom: 0;
+  }
+}
+
 .tabNav {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   gap: 4px;
-  margin-bottom: 16px;
   background: $color-background;
   border: 1px solid rgba($color-primary, 0.1);
   border-radius: 8px;
@@ -52,9 +65,8 @@
   @include breakpoint(tablet) {
     flex-direction: column;
     justify-content: flex-start;
-    width: 250px !important;
+    width: 220px !important;
     height: fit-content;
-    margin-bottom: 0;
     padding-right: 0 !important;
     gap: 4px;
     flex-shrink: 0;
@@ -62,6 +74,29 @@
     border: none;
     box-shadow: none;
     background: transparent;
+  }
+
+  @include breakpoint(mobile) {
+    flex-direction: row;
+    justify-content: flex-start;
+    position: sticky;
+    top: 0;
+    width: 100% !important;
+    gap: 8px;
+    padding: 8px;
+    background: $color-background;
+    border: 1px solid rgba($color-primary, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    flex-wrap: nowrap;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 }
 
@@ -114,6 +149,22 @@
       opacity: 0; // Hide tooltips on tablet
     }
   }
+
+  @include breakpoint(mobile) {
+    justify-content: center;
+    padding: 8px 10px;
+    flex: 0 0 auto;
+    gap: 0;
+    min-height: 52px;
+    flex-direction: column;
+    align-items: center;
+    white-space: nowrap;
+    width: auto;
+
+    &:hover .tabTooltip {
+      opacity: 0; // Hide tooltips on mobile
+    }
+  }
 }
 
 .tabIcon {
@@ -134,6 +185,29 @@
     display: block;
     font-size: 15px;
     font-weight: 600;
+    white-space: nowrap;
+  }
+
+  @include breakpoint(mobile) {
+    display: none; // Hide labels on mobile to save space
+  }
+}
+
+.tabShortLabel {
+  display: none; // Hidden on desktop since we use tooltips
+
+  @include breakpoint(tablet) {
+    display: none; // Hidden on tablet since we show full labels
+  }
+
+  @include breakpoint(mobile) {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    color: inherit;
+    text-align: center;
+    margin-top: 3px;
+    line-height: 1;
     white-space: nowrap;
   }
 }
@@ -178,6 +252,56 @@
   }
 }
 
+.scrollIndicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 32px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 101;
+
+  @include breakpoint(mobile) {
+    display: flex;
+  }
+}
+
+.leftIndicator {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    $color-background 0%,
+    $color-background 60%,
+    rgba($color-background, 0.8) 80%,
+    rgba($color-background, 0) 100%
+  );
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+.rightIndicator {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    $color-background 0%,
+    $color-background 60%,
+    rgba($color-background, 0.8) 80%,
+    rgba($color-background, 0) 100%
+  );
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+.scrollArrow {
+  width: 16px;
+  height: 16px;
+  color: $color-primary;
+  opacity: 0.7;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+}
+
 .tabContent {
   display: flex;
   flex-direction: column;
@@ -187,6 +311,12 @@
     margin-left: 0;
     padding: 24px;
     flex: 1;
+  }
+
+  @include breakpoint(mobile) {
+    margin-left: 0;
+    padding: 0;
+    flex: none;
   }
 }
 
@@ -229,5 +359,11 @@
 
   .sidebar.active {
     display: flex; // Only sidebar needs flex for row layout
+  }
+}
+
+@include breakpoint(mobile) {
+  .sidebar.active {
+    display: block; // Override tablet's flex for mobile
   }
 }

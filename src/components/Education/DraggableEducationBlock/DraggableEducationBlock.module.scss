@@ -43,6 +43,12 @@
 
 .educationBlockHeader {
   @include block-header;
+
+  @include breakpoint(tablet) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
 }
 
 .educationBlockDegree {
@@ -53,6 +59,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-weight: 500;
+
+  @include breakpoint(tablet) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
 }
 
 .educationBlockLocation {
@@ -63,10 +75,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
   opacity: 0.8;
+
+  @include breakpoint(tablet) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
 }
 
 .educationBlockDate {
   @include block-date;
+
+  @include breakpoint(tablet) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
 }
 
 .educationBlockStatus {
@@ -77,6 +101,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-style: italic;
+
+  @include breakpoint(tablet) {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
 }
 
 .educationBlockActions {
