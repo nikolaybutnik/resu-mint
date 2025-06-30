@@ -11,6 +11,8 @@ export const FormSelectionState = {
   project: 'project',
 } as const
 
+export type StoredDataItem = ExperienceBlockData | ProjectBlockData
+
 export type ExperienceProjectFormData = {
   type: 'experience' | 'project'
   id?: string
@@ -155,10 +157,13 @@ export const submitExperienceProject = (
     const dataArray = existingData ? JSON.parse(existingData) : []
 
     const isEditing =
-      savedData.id && dataArray.some((item: any) => item.id === savedData.id)
+      savedData.id &&
+      dataArray.some((item: StoredDataItem) => item.id === savedData.id)
 
     if (isEditing) {
-      const index = dataArray.findIndex((item: any) => item.id === savedData.id)
+      const index = dataArray.findIndex(
+        (item: StoredDataItem) => item.id === savedData.id
+      )
       if (index !== -1) {
         dataArray[index] = savedData
       }

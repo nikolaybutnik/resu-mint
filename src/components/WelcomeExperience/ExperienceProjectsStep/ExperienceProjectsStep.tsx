@@ -6,16 +6,15 @@ import {
   experienceProjectInitialState,
 } from '@/lib/actions/experienceProjectActions'
 import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
-import { ExperienceBlockData } from '@/lib/types/experience'
-import { ProjectBlockData } from '@/lib/types/projects'
 import { useAutoResizeTextarea } from '@/lib/hooks/useAutoResizeTextarea'
-import { FormSelectionState } from '@/lib/actions/experienceProjectActions'
+import {
+  FormSelectionState,
+  StoredDataItem,
+} from '@/lib/actions/experienceProjectActions'
 
 interface ExperienceProjectsStepProps {
   onContinue: () => void
 }
-
-type StoredDataItem = ExperienceBlockData | ProjectBlockData
 
 export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   onContinue,
@@ -23,7 +22,6 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   const [selectedOption, setSelectedOption] = useState<
     keyof typeof FormSelectionState | null
   >(null)
-  const [hasExistingData, setHasExistingData] = useState(false)
   const [isEditingExisting, setIsEditingExisting] = useState(false)
 
   const [formState, formAction] = useActionState(
@@ -70,24 +68,8 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     formAction(formData)
   }
 
-  useEffect(() => {
-    const experienceData = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
-    const projectData = localStorage.getItem(STORAGE_KEYS.PROJECTS)
-
-    const hasExperience = experienceData
-      ? (JSON.parse(experienceData) as StoredDataItem[]).length > 0
-      : false
-    const hasProject = projectData
-      ? (JSON.parse(projectData) as StoredDataItem[]).length > 0
-      : false
-
-    setSelectedOption(null)
-    setHasExistingData(hasExperience || hasProject)
-  }, [])
-
   const handleDiscardAndReplace = () => {
     setSelectedOption(null)
-    setHasExistingData(false)
   }
 
   const handleOptionSelect = (option: keyof typeof FormSelectionState) => {
