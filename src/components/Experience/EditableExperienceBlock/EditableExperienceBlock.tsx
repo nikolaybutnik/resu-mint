@@ -273,7 +273,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             </select>
             <input
               type='text'
-              name='endDate.year'
+              name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR}
               placeholder='YYYY'
               className={[styles.formInput, styles.yearInput].join(' ')}
               defaultValue={state.data?.endDate?.year || ''}

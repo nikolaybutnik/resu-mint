@@ -1,62 +1,75 @@
 import styles from './ExperienceProjectsStep.module.scss'
-import { useState, useEffect } from 'react'
-import { STORAGE_KEYS } from '@/lib/constants'
-import { v4 as uuidv4 } from 'uuid'
+import { useState, useEffect, useActionState } from 'react'
+import { MONTHS, STORAGE_KEYS } from '@/lib/constants'
 import {
-  experienceBlockSchema,
-  projectBlockSchema,
-} from '@/lib/validationSchemas'
-import {
-  ExperienceBlockData,
-  StartDate,
-  EndDate,
-  Month,
-} from '@/lib/types/experience'
+  submitExperienceProject,
+  experienceProjectInitialState,
+} from '@/lib/actions/experienceProjectActions'
+import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
+import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
+import { useAutoResizeTextarea } from '@/lib/hooks/useAutoResizeTextarea'
+import { FormSelectionState } from '@/lib/actions/experienceProjectActions'
 
 interface ExperienceProjectsStepProps {
   onContinue: () => void
 }
 
-// Union type for form data that can handle both experience and project fields
-type FormDataType = {
-  id?: string
-  title?: string
-  companyName?: string
-  location?: string
-  startDate?: StartDate
-  endDate?: EndDate
-  description?: string
-  technologies?: string[]
-  link?: string
-  bulletPoints?: { id: string; text: string; isLocked: boolean }[]
-  isIncluded?: boolean
-}
-
-// Type for data items stored in localStorage
 type StoredDataItem = ExperienceBlockData | ProjectBlockData
-
-// Type for form field values (more flexible for form inputs)
-type FormFieldValue =
-  | string
-  | boolean
-  | StartDate
-  | EndDate
-  | string[]
-  | Partial<StartDate>
-  | Partial<EndDate>
 
 export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   onContinue,
 }) => {
   const [selectedOption, setSelectedOption] = useState<
-    'experience' | 'project' | null
+    keyof typeof FormSelectionState | null
   >(null)
-  const [formData, setFormData] = useState<FormDataType>({})
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const [hasExistingData, setHasExistingData] = useState(false)
+  const [isEditingExisting, setIsEditingExisting] = useState(false)
 
-  // Check for existing data when component mounts
+  const [formState, formAction] = useActionState(
+    submitExperienceProject,
+    experienceProjectInitialState
+  )
+
+  const [isCurrent, setIsCurrent] = useState(
+    formState.data?.endDate?.isPresent || false
+  )
+  const [description, setDescription] = useState(
+    formState.data?.description || ''
+  )
+
+  const {
+    textareaRef,
+    handleChange: handleTextareaChange,
+    handleInput,
+  } = useAutoResizeTextarea(description)
+
+  useEffect(() => {
+    setIsCurrent(formState.data?.endDate?.isPresent || false)
+    setDescription(formState.data?.description || '')
+  }, [formState.data?.endDate?.isPresent, formState.data?.description])
+
+  useEffect(() => {
+    const resetFormData = new FormData()
+    resetFormData.set('type', selectedOption || 'reset')
+    resetFormData.set('reset', 'true')
+    formAction(resetFormData)
+    setIsEditingExisting(false)
+  }, [selectedOption, formAction])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!selectedOption) return
+
+    const form = e.target as HTMLFormElement
+    const formData = new FormData(form)
+
+    formData.append('type', selectedOption)
+
+    formAction(formData)
+  }
+
   useEffect(() => {
     const experienceData = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
     const projectData = localStorage.getItem(STORAGE_KEYS.PROJECTS)
@@ -68,143 +81,46 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
       ? (JSON.parse(projectData) as StoredDataItem[]).length > 0
       : false
 
-    // Reset form state
     setSelectedOption(null)
-    setFormData({})
-    setErrors({})
     setHasExistingData(hasExperience || hasProject)
   }, [])
 
-  // Form field handlers
-  const handleFieldChange = (field: string, value: FormFieldValue) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }))
-    }
-  }
-
-  // Handle discarding existing data and starting fresh
   const handleDiscardAndReplace = () => {
     setSelectedOption(null)
-    setFormData({})
-    setErrors({})
     setHasExistingData(false)
   }
 
-  // Handle selecting an option (either new or edit existing)
-  const handleOptionSelect = (option: 'experience' | 'project') => {
-    setSelectedOption(option)
-    setErrors({})
-
-    // Load existing data if it exists
+  const handleOptionSelect = (option: keyof typeof FormSelectionState) => {
     const storageKey =
-      option === 'experience' ? STORAGE_KEYS.EXPERIENCE : STORAGE_KEYS.PROJECTS
+      option === FormSelectionState.experience
+        ? STORAGE_KEYS.EXPERIENCE
+        : STORAGE_KEYS.PROJECTS
     const existingData = localStorage.getItem(storageKey)
+    const hasExistingData = existingData && JSON.parse(existingData).length > 0
 
-    if (existingData) {
+    setSelectedOption(option)
+
+    if (hasExistingData) {
       const parsedData = JSON.parse(existingData) as StoredDataItem[]
-      if (Array.isArray(parsedData) && parsedData.length > 0) {
-        // Load the most recent entry for editing
-        setFormData(parsedData[parsedData.length - 1] as FormDataType)
-        return
-      }
-    }
+      const latestEntry = parsedData[parsedData.length - 1]
 
-    // No existing data, start fresh
-    setFormData({})
+      // Timeout to ensure reset completes first
+      setTimeout(() => {
+        const loadFormData = new FormData()
+        loadFormData.set('type', option)
+        loadFormData.set('load', 'true')
+        loadFormData.set('existingData', JSON.stringify(latestEntry))
+        formAction(loadFormData)
+        setIsEditingExisting(true)
+      }, 50)
+    }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!selectedOption) return
-
-    // Prepare form data with required fields
-    const baseData = {
-      id: formData.id || uuidv4(), // Keep existing ID if updating
-      ...formData,
-      isIncluded: true,
-      bulletPoints: formData.bulletPoints || [],
+  useEffect(() => {
+    if (formState.success) {
+      onContinue()
     }
-
-    let validationResult
-    let storageKey
-    let dataToSave
-
-    if (selectedOption === 'experience') {
-      const experienceData = {
-        ...baseData,
-        title: formData.title || '',
-        companyName: formData.companyName || '',
-        location: formData.location || '',
-        startDate: formData.startDate || { month: '', year: '' },
-        endDate: formData.endDate || {
-          isPresent: false,
-          month: '',
-          year: '',
-        },
-        description: formData.description || '',
-      } as ExperienceBlockData
-
-      validationResult = experienceBlockSchema.safeParse(experienceData)
-      storageKey = STORAGE_KEYS.EXPERIENCE
-      dataToSave = experienceData
-    } else {
-      const projectData = {
-        ...baseData,
-        title: formData.title || '',
-        startDate: formData.startDate || { month: '', year: '' },
-        endDate: formData.endDate || {
-          isPresent: false,
-          month: '',
-          year: '',
-        },
-        technologies: formData.technologies || [],
-        link: formData.link || '',
-        description: formData.description || '',
-      } as ProjectBlockData
-
-      validationResult = projectBlockSchema.safeParse(projectData)
-      storageKey = STORAGE_KEYS.PROJECTS
-      dataToSave = projectData
-    }
-
-    if (!validationResult.success) {
-      const newErrors: Record<string, string> = {}
-      validationResult.error.issues.forEach((issue) => {
-        const path = issue.path.join('.')
-        newErrors[path] = issue.message
-      })
-      setErrors(newErrors)
-      return
-    }
-
-    // Save to localStorage
-    const existingData = localStorage.getItem(storageKey)
-    const dataArray: StoredDataItem[] = existingData
-      ? JSON.parse(existingData)
-      : []
-
-    const isEditing =
-      formData.id && dataArray.some((item) => item.id === formData.id)
-
-    if (isEditing) {
-      // Update existing entry
-      const index = dataArray.findIndex((item) => item.id === formData.id)
-      if (index !== -1) {
-        dataArray[index] = dataToSave
-      }
-    } else {
-      // Add new entry
-      dataArray.push(dataToSave)
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify(dataArray))
-
-    // Continue to next step
-    onContinue()
-  }
+  }, [formState.success, onContinue])
 
   const renderSelectionPhase = () => {
     const experienceData = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
@@ -223,13 +139,13 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('experience')}
+              onClick={() => handleOptionSelect(FormSelectionState.experience)}
             >
               Edit Work Experience
             </button>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('project')}
+              onClick={() => handleOptionSelect(FormSelectionState.project)}
             >
               Edit Personal Project
             </button>
@@ -250,13 +166,13 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('experience')}
+              onClick={() => handleOptionSelect(FormSelectionState.experience)}
             >
               Edit Work Experience
             </button>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('project')}
+              onClick={() => handleOptionSelect(FormSelectionState.project)}
             >
               Add Personal Project
             </button>
@@ -277,13 +193,13 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('experience')}
+              onClick={() => handleOptionSelect(FormSelectionState.experience)}
             >
               Add Work Experience
             </button>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('project')}
+              onClick={() => handleOptionSelect(FormSelectionState.project)}
             >
               Edit Personal Project
             </button>
@@ -304,13 +220,13 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('experience')}
+              onClick={() => handleOptionSelect(FormSelectionState.experience)}
             >
               Add Work Experience
             </button>
             <button
               className={styles.choiceButton}
-              onClick={() => handleOptionSelect('project')}
+              onClick={() => handleOptionSelect(FormSelectionState.project)}
             >
               Add Personal Project
             </button>
@@ -324,67 +240,65 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     <div className={styles.stepContent}>
       <div className={styles.welcomeForm}>
         {!selectedOption ? (
-          // Selection phase
           <div className={styles.placeholderContent}>
             {renderSelectionPhase()}
           </div>
         ) : (
-          // Form phase
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} key={`form-${selectedOption}`}>
             <div className={styles.formField}>
               <button
                 type='button'
                 className={styles.backToChoiceButton}
                 onClick={handleDiscardAndReplace}
               >
-                {hasExistingData
-                  ? '← Replace with different option'
-                  : '← Back to selection'}
+                ← Back to selection
               </button>
             </div>
 
             <div className={styles.formField}>
               <label className={styles.formLabel}>
-                {selectedOption === 'experience'
+                {selectedOption === FormSelectionState.experience
                   ? 'Job Title'
                   : 'Project Title'}
               </label>
               <input
                 type='text'
+                name={EXPERIENCE_FORM_DATA_KEYS.TITLE}
+                key={`title-${selectedOption}`}
                 className={`${styles.formInput} ${
-                  errors.title ? styles.error : ''
+                  formState.errors.title ? styles.error : ''
                 }`}
-                value={formData.title || ''}
-                onChange={(e) => handleFieldChange('title', e.target.value)}
+                defaultValue={formState.data?.title || ''}
                 placeholder={
-                  selectedOption === 'experience'
+                  selectedOption === FormSelectionState.experience
                     ? 'e.g., Software Engineer'
                     : 'e.g., Personal Website'
                 }
               />
-              {errors.title && (
-                <span className={styles.formError}>{errors.title}</span>
+              {formState.errors.title && (
+                <span className={styles.formError}>
+                  {formState.errors.title}
+                </span>
               )}
             </div>
 
-            {selectedOption === 'experience' && (
+            {selectedOption === FormSelectionState.experience && (
               <>
                 <div className={styles.formField}>
                   <label className={styles.formLabel}>Company</label>
                   <input
                     type='text'
+                    name={EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME}
+                    key={`companyName-${selectedOption}`}
                     className={`${styles.formInput} ${
-                      errors.companyName ? styles.error : ''
+                      formState.errors.companyName ? styles.error : ''
                     }`}
-                    value={formData.companyName || ''}
-                    onChange={(e) =>
-                      handleFieldChange('companyName', e.target.value)
-                    }
+                    defaultValue={formState.data?.companyName || ''}
                     placeholder='e.g., Google'
                   />
-                  {errors.companyName && (
+                  {formState.errors.companyName && (
                     <span className={styles.formError}>
-                      {errors.companyName}
+                      {formState.errors.companyName}
                     </span>
                   )}
                 </div>
@@ -393,17 +307,18 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                   <label className={styles.formLabel}>Location</label>
                   <input
                     type='text'
+                    name={EXPERIENCE_FORM_DATA_KEYS.LOCATION}
+                    key={`location-${selectedOption}`}
                     className={`${styles.formInput} ${
-                      errors.location ? styles.error : ''
+                      formState.errors.location ? styles.error : ''
                     }`}
-                    value={formData.location || ''}
-                    onChange={(e) =>
-                      handleFieldChange('location', e.target.value)
-                    }
+                    defaultValue={formState.data?.location || ''}
                     placeholder='e.g., San Francisco, CA'
                   />
-                  {errors.location && (
-                    <span className={styles.formError}>{errors.location}</span>
+                  {formState.errors.location && (
+                    <span className={styles.formError}>
+                      {formState.errors.location}
+                    </span>
                   )}
                 </div>
               </>
@@ -414,50 +329,38 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                 <label className={styles.formLabel}>Start Date</label>
                 <div className={styles.dateInputs}>
                   <select
-                    className={`${styles.formInput} ${
-                      errors['startDate.month'] ? styles.error : ''
-                    }`}
-                    value={formData.startDate?.month || ''}
-                    onChange={(e) =>
-                      handleFieldChange('startDate', {
-                        ...formData.startDate,
-                        month: e.target.value as Month | '',
-                      })
-                    }
+                    key={formState.data?.startDate?.month}
+                    name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH}
+                    className={[styles.formInput, styles.monthInput].join(' ')}
+                    defaultValue={formState.data?.startDate?.month || ''}
                   >
                     <option value=''>Month</option>
-                    <option value='Jan'>January</option>
-                    <option value='Feb'>February</option>
-                    <option value='Mar'>March</option>
-                    <option value='Apr'>April</option>
-                    <option value='May'>May</option>
-                    <option value='Jun'>June</option>
-                    <option value='Jul'>July</option>
-                    <option value='Aug'>August</option>
-                    <option value='Sep'>September</option>
-                    <option value='Oct'>October</option>
-                    <option value='Nov'>November</option>
-                    <option value='Dec'>December</option>
+                    {MONTHS.map((month) => (
+                      <option key={month.label} value={month.label}>
+                        {month.label}
+                      </option>
+                    ))}
                   </select>
                   <input
                     type='text'
-                    className={`${styles.formInput} ${
-                      errors['startDate.year'] ? styles.error : ''
-                    }`}
-                    value={formData.startDate?.year || ''}
-                    onChange={(e) =>
-                      handleFieldChange('startDate', {
-                        ...formData.startDate,
-                        year: e.target.value,
-                      })
-                    }
-                    placeholder='Year'
+                    name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR}
+                    placeholder='YYYY'
+                    className={[styles.formInput, styles.yearInput].join(' ')}
+                    defaultValue={formState.data?.startDate?.year || ''}
                     maxLength={4}
+                    onInput={(e) => {
+                      const value = e.currentTarget.value
+                      if (!/^\d{0,4}$/.test(value)) {
+                        e.currentTarget.value = value
+                          .replace(/[^0-9]/g, '')
+                          .slice(0, 4)
+                      }
+                    }}
                   />
                 </div>
-                {(errors['startDate.month'] || errors['startDate.year']) && (
+                {formState.errors?.startDate && (
                   <span className={styles.formError}>
-                    {errors['startDate.month'] || errors['startDate.year']}
+                    {formState.errors.startDate}
                   </span>
                 )}
               </div>
@@ -466,77 +369,57 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                 <label className={styles.formLabel}>End Date</label>
                 <div className={styles.dateInputs}>
                   <select
-                    className={`${styles.formInput} ${
-                      errors['endDate.month'] ? styles.error : ''
-                    }`}
-                    value={formData.endDate?.month || ''}
-                    onChange={(e) =>
-                      handleFieldChange('endDate', {
-                        ...formData.endDate,
-                        month: e.target.value as Month | '',
-                        isPresent: false,
-                      })
-                    }
-                    disabled={formData.endDate?.isPresent}
+                    key={formState.data?.endDate?.month}
+                    name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH}
+                    className={[styles.formInput, styles.monthInput].join(' ')}
+                    defaultValue={formState.data?.endDate?.month || ''}
+                    disabled={isCurrent}
                   >
                     <option value=''>Month</option>
-                    <option value='Jan'>January</option>
-                    <option value='Feb'>February</option>
-                    <option value='Mar'>March</option>
-                    <option value='Apr'>April</option>
-                    <option value='May'>May</option>
-                    <option value='Jun'>June</option>
-                    <option value='Jul'>July</option>
-                    <option value='Aug'>August</option>
-                    <option value='Sep'>September</option>
-                    <option value='Oct'>October</option>
-                    <option value='Nov'>November</option>
-                    <option value='Dec'>December</option>
+                    {MONTHS.map((month) => (
+                      <option key={month.label} value={month.label}>
+                        {month.label}
+                      </option>
+                    ))}
                   </select>
                   <input
                     type='text'
-                    className={`${styles.formInput} ${
-                      errors['endDate.year'] ? styles.error : ''
-                    }`}
-                    value={formData.endDate?.year || ''}
-                    onChange={(e) =>
-                      handleFieldChange('endDate', {
-                        ...formData.endDate,
-                        year: e.target.value,
-                        isPresent: false,
-                      })
-                    }
-                    placeholder='Year'
+                    name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR}
+                    placeholder='YYYY'
+                    className={[styles.formInput, styles.yearInput].join(' ')}
+                    defaultValue={formState.data?.endDate?.year || ''}
+                    disabled={isCurrent}
                     maxLength={4}
-                    disabled={formData.endDate?.isPresent}
+                    onInput={(e) => {
+                      const value = e.currentTarget.value
+                      if (!/^\d{0,4}$/.test(value)) {
+                        e.currentTarget.value = value
+                          .replace(/[^0-9]/g, '')
+                          .slice(0, 4)
+                      }
+                    }}
                   />
                 </div>
                 <div className={styles.presentCheckbox}>
                   <input
                     type='checkbox'
-                    id='isPresent'
-                    checked={formData.endDate?.isPresent || false}
-                    onChange={(e) =>
-                      handleFieldChange('endDate', {
-                        month: e.target.checked
-                          ? ''
-                          : (formData.endDate?.month as Month | '') || '',
-                        year: e.target.checked
-                          ? ''
-                          : formData.endDate?.year || '',
-                        isPresent: e.target.checked,
-                      })
-                    }
+                    name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT}
+                    value='true'
+                    defaultChecked={formState.data?.endDate?.isPresent || false}
+                    key={`checkbox-${formState.data?.endDate?.isPresent}`}
+                    onChange={(e) => {
+                      setIsCurrent(e.target.checked)
+                    }}
                   />
                   <label htmlFor='isPresent' className={styles.checkboxLabel}>
-                    {selectedOption === 'experience'
+                    {selectedOption === FormSelectionState.experience
                       ? 'Currently working here'
                       : 'Currently working on this'}
                   </label>
                 </div>
-                {(errors['endDate.month'] || errors['endDate.year']) && (
+                {formState.errors?.endDate && (
                   <span className={styles.formError}>
-                    {errors['endDate.month'] || errors['endDate.year']}
+                    {formState.errors.endDate}
                   </span>
                 )}
               </div>
@@ -545,27 +428,31 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
             <div className={styles.formField}>
               <label className={styles.formLabel}>Description (Optional)</label>
               <textarea
-                className={`${styles.formTextarea} ${
-                  errors.description ? styles.error : ''
-                }`}
-                value={formData.description || ''}
-                onChange={(e) =>
-                  handleFieldChange('description', e.target.value)
-                }
+                ref={textareaRef}
+                name={EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION}
+                className={styles.formTextarea}
+                value={description}
+                rows={4}
                 placeholder={
-                  selectedOption === 'experience'
+                  selectedOption === FormSelectionState.experience
                     ? 'Describe your role and responsibilities, what you did, what technologies you used, etc. This is optional but if entered, the AI will be able to more effectively optimize and tailor the resume content.'
                     : 'Describe your project, what you did, what technologies you used, etc. This is optional but if entered, the AI will be able to more effectively optimize and tailor the resume content.'
                 }
-                rows={3}
+                onChange={(e) => {
+                  const newValue = handleTextareaChange(e)
+                  setDescription(newValue)
+                }}
+                onInput={handleInput}
               />
-              {errors.description && (
-                <span className={styles.formError}>{errors.description}</span>
+              {formState.errors?.description && (
+                <span className={styles.formError}>
+                  {formState.errors.description}
+                </span>
               )}
             </div>
 
             <button type='submit' className={styles.submitButton}>
-              {hasExistingData ? 'Update & Continue' : 'Continue'}
+              {isEditingExisting ? 'Update & Continue' : 'Continue'}
             </button>
           </form>
         )}

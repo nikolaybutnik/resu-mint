@@ -51,56 +51,23 @@
 }
 
 .formField {
-  margin-bottom: 1.5rem;
+  @include form-field;
 }
 
 .formLabel {
-  display: block;
-  font-weight: 600;
-  color: $color-text;
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
+  @include form-label;
 }
 
 .formInput {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid $color-border;
-  border-radius: 8px;
-  font-family: $font-family-base;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-
-  &:focus {
-    outline: none;
-    border-color: $color-primary;
-  }
-
-  &::placeholder {
-    color: $color-placeholder;
-  }
-
-  &.error {
-    border-color: $color-error;
-  }
+  @include form-input-base;
 }
 
 .formError {
-  display: block;
-  color: $color-error;
-  font-size: 0.875rem;
-  margin-top: 0.5rem;
-  font-weight: 500;
+  @include form-error;
 }
 
 .formTextarea {
   @include form-textarea-base;
-  min-height: 140px;
-  max-height: 300px;
-
-  &.error {
-    border-color: $color-error;
-  }
 }
 
 .submitButton {
@@ -153,20 +120,8 @@
   }
 }
 
-.dateRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
-  }
-}
-
 .dateInputs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
+  @include date-inputs-grid;
 }
 
 .presentCheckbox {
