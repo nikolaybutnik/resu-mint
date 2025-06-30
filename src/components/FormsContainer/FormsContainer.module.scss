@@ -41,10 +41,9 @@
 .tabNavContainer {
   position: relative;
   margin-bottom: 16px;
-
-  @include breakpoint(tablet) {
-    margin-bottom: 0;
-  }
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .tabNav {
@@ -57,15 +56,12 @@
   border-radius: 8px;
   padding: 8px;
   width: 100%;
-  position: sticky;
-  top: 0;
-  z-index: 100;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 
   @include breakpoint(tablet) {
     flex-direction: column;
     justify-content: flex-start;
-    width: 220px !important;
+    width: 200px !important;
     height: fit-content;
     padding-right: 0 !important;
     gap: 4px;
@@ -79,8 +75,6 @@
   @include breakpoint(mobile) {
     flex-direction: row;
     justify-content: flex-start;
-    position: sticky;
-    top: 0;
     width: 100% !important;
     gap: 8px;
     padding: 8px;
@@ -152,10 +146,10 @@
 
   @include breakpoint(mobile) {
     justify-content: center;
-    padding: 8px 10px;
+    padding: 10px 12px;
     flex: 0 0 auto;
     gap: 0;
-    min-height: 52px;
+    min-height: 56px;
     flex-direction: column;
     align-items: center;
     white-space: nowrap;
@@ -176,6 +170,11 @@
     width: 20px;
     height: 20px;
   }
+
+  @include breakpoint(mobile) {
+    width: 24px;
+    height: 24px;
+  }
 }
 
 .tabLabel {
@@ -194,19 +193,15 @@
 }
 
 .tabShortLabel {
-  display: none; // Hidden on desktop since we use tooltips
-
-  @include breakpoint(tablet) {
-    display: none; // Hidden on tablet since we show full labels
-  }
+  display: none;
 
   @include breakpoint(mobile) {
     display: block;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     color: inherit;
     text-align: center;
-    margin-top: 3px;
+    margin-top: 4px;
     line-height: 1;
     white-space: nowrap;
   }
@@ -249,6 +244,14 @@
     transform: translateX(-50%) translateY(1px);
     border: 5px solid transparent;
     border-bottom-color: $color-background;
+  }
+
+  @include breakpoint(tablet) {
+    display: none; // Hide tooltips on tablet since we show full labels
+  }
+
+  @include breakpoint(mobile) {
+    display: none; // Hide tooltips on mobile since we show short labels
   }
 }
 

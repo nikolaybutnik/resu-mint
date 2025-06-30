@@ -652,6 +652,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
                   <IconComponent className={styles.tabIcon} />
                   <span className={styles.tabLabel}>{tab.label}</span>
                   <span className={styles.tabShortLabel}>{tab.shortLabel}</span>
+                  <div className={styles.tabTooltip}>{tab.label}</div>
                 </button>
               )
             })}

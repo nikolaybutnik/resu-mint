@@ -102,7 +102,8 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         transform: CSS.Translate.toString(transform),
         transition: isDropping || isDragging ? 'none' : 'transform 0.2s ease',
         zIndex: isDragging ? 10 : 1,
-        opacity: isDragging ? 0 : 1,
+        opacity: isDragging ? 0.5 : 1,
+        touchAction: isDragging ? 'none' : 'manipulation',
       }
 
   const handleToggleInclude = () => {
