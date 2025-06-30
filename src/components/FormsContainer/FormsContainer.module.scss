@@ -286,9 +286,22 @@
   pointer-events: auto;
   z-index: 101;
   cursor: pointer;
+  border: none;
+  outline: none;
+  background: transparent;
+  transition: opacity 0.2s ease;
 
   @include breakpoint(mobile) {
     display: flex;
+  }
+
+  &:hover {
+    opacity: 0.8;
+  }
+
+  &:active {
+    opacity: 0.6;
+    transform: scale(0.95);
   }
 
   &.rightIndicator {

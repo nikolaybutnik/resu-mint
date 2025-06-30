@@ -567,6 +567,28 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     }
   }
 
+  const handleScrollLeft = () => {
+    const tabNav = tabNavRef.current
+    if (!tabNav) return
+
+    const scrollAmount = tabNav.clientWidth * 0.6 // Scroll by 60% of visible width
+    tabNav.scrollBy({
+      left: -scrollAmount,
+      behavior: 'smooth',
+    })
+  }
+
+  const handleScrollRight = () => {
+    const tabNav = tabNavRef.current
+    if (!tabNav) return
+
+    const scrollAmount = tabNav.clientWidth * 0.6 // Scroll by 60% of visible width
+    tabNav.scrollBy({
+      left: scrollAmount,
+      behavior: 'smooth',
+    })
+  }
+
   const checkScrollIndicators = () => {
     const tabNav = tabNavRef.current
     if (!tabNav) return
@@ -658,18 +680,22 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
             })}
           </div>
           {showLeftScroll && (
-            <div
+            <button
               className={`${styles.scrollIndicator} ${styles.leftIndicator}`}
+              onClick={handleScrollLeft}
+              aria-label='Scroll tabs left'
             >
               <FiChevronLeft className={styles.scrollArrow} />
-            </div>
+            </button>
           )}
           {showRightScroll && (
-            <div
+            <button
               className={`${styles.scrollIndicator} ${styles.rightIndicator}`}
+              onClick={handleScrollRight}
+              aria-label='Scroll tabs right'
             >
               <FiChevronRight className={styles.scrollArrow} />
-            </div>
+            </button>
           )}
         </div>
         <div className={styles.tabContent}>
