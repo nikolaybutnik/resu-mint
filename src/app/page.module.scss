@@ -15,6 +15,22 @@
   color: $color-background;
   padding: 16px;
   text-align: center;
+
+  @include breakpoint(tablet) {
+    padding: 12px;
+
+    h1 {
+      font-size: 28px !important;
+    }
+  }
+
+  @include breakpoint(mobile) {
+    padding: 8px;
+
+    h1 {
+      font-size: 24px !important;
+    }
+  }
 }
 
 .container {

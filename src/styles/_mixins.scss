@@ -40,10 +40,20 @@
 
 // Section title styling
 @mixin section-title {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 600;
   margin-bottom: 24px;
   color: $color-text;
+
+  @include breakpoint(tablet) {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 20px;
+    margin-bottom: 16px;
+  }
 }
 
 // Subsection title styling (Skills subsections, etc.)
