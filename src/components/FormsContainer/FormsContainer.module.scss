@@ -7,6 +7,14 @@
   height: calc(var(--vh) - 80px);
   width: 100%;
   position: relative;
+
+  @include breakpoint(tablet) {
+    height: calc(var(--vh) - 66px);
+  }
+
+  @include breakpoint(mobile) {
+    height: calc(var(--vh) - 52px);
+  }
 }
 
 .sidebar {
@@ -33,12 +41,17 @@
 
 .preview {
   flex: 1;
-  padding-bottom: 20px;
   overflow-y: auto;
   background-color: $color-action-item-background;
 
   @include breakpoint(tablet) {
-    padding-bottom: 80px;
+    padding-bottom: 72px;
+  }
+
+  @include breakpoint(mobile) {
+    &.active {
+      padding-bottom: 56px;
+    }
   }
 }
 
@@ -148,7 +161,7 @@
 
   @include breakpoint(mobile) {
     justify-content: center;
-    padding: 10px 12px;
+    padding: 8px 10px !important;
     flex: 0 0 auto;
     gap: 0;
     min-height: 56px;
@@ -335,8 +348,8 @@
   background: linear-gradient(
     to right,
     $color-background 0%,
-    $color-background 50%,
-    rgba($color-background, 0.8) 70%,
+    $color-background 60%,
+    rgba($color-background, 0.8) 80%,
     rgba($color-background, 0) 100%
   );
   border-top-left-radius: 8px;
@@ -349,8 +362,8 @@
   background: linear-gradient(
     to left,
     $color-background 0%,
-    $color-background 50%,
-    rgba($color-background, 0.8) 70%,
+    $color-background 60%,
+    rgba($color-background, 0.8) 80%,
     rgba($color-background, 0) 100%
   );
   border-top-right-radius: 8px;
