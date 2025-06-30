@@ -156,9 +156,33 @@
     align-items: center;
     white-space: nowrap;
     width: auto;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 
-    &:hover .tabTooltip {
-      opacity: 0;
+    &:hover {
+      background-color: transparent !important;
+      border-color: transparent !important;
+
+      .tabTooltip {
+        opacity: 0;
+      }
+
+      &.activeTab {
+        background-color: rgba($color-primary, 0.12) !important;
+        border-color: rgba($color-primary, 0.2) !important;
+      }
+    }
+
+    &:active {
+      background-color: transparent !important;
+      border-color: transparent !important;
+    }
+
+    &.activeTab:active {
+      background-color: rgba($color-primary, 0.12) !important;
+      border-color: rgba($color-primary, 0.2) !important;
     }
   }
 }
