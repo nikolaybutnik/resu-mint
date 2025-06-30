@@ -130,29 +130,27 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
         <div className={styles.skills}>
           <h2 className={styles.formTitle}>Skills</h2>
 
-          <div className={styles.skillSection}>
-            <div className={styles.formFieldsContainer}>
-              <div>
-                <h3 className={styles.sectionTitle}>Technical Skills</h3>
-                <div className={styles.chipInputContainer}>
-                  <input
-                    ref={hardSkillInputRef}
-                    type='text'
-                    className={styles.formInput}
-                    placeholder='E.g., React, Python, AWS...'
-                    value={hardSkillInput}
-                    onChange={(e) => setHardSkillInput(e.target.value)}
-                    onKeyDown={(e) => handleKeyPress(e, 'hard')}
-                  />
-                  <button
-                    type='button'
-                    className={styles.chipAddButton}
-                    onClick={() => handleAddSkill('hard', hardSkillInput)}
-                    disabled={!hardSkillInput.trim() || isHardSkillDuplicate}
-                  >
-                    <FaPlus size={12} />
-                  </button>
-                </div>
+          <div className={styles.formFieldsContainer}>
+            <div className={styles.skillSection}>
+              <h3 className={styles.sectionTitle}>Technical Skills</h3>
+              <div className={styles.chipInputContainer}>
+                <input
+                  ref={hardSkillInputRef}
+                  type='text'
+                  className={styles.formInput}
+                  placeholder='E.g., React, Python, AWS...'
+                  value={hardSkillInput}
+                  onChange={(e) => setHardSkillInput(e.target.value)}
+                  onKeyDown={(e) => handleKeyPress(e, 'hard')}
+                />
+                <button
+                  type='button'
+                  className={styles.chipAddButton}
+                  onClick={() => handleAddSkill('hard', hardSkillInput)}
+                  disabled={!hardSkillInput.trim() || isHardSkillDuplicate}
+                >
+                  <FaPlus size={12} />
+                </button>
               </div>
 
               <div className={styles.chipsContainer}>
@@ -185,58 +183,58 @@ const Skills: React.FC<SkillsProps> = ({ data, loading, onSave }) => {
                   ))
                 )}
               </div>
+            </div>
 
-              <div className={styles.skillSection}>
-                <h3 className={styles.sectionTitle}>Soft Skills</h3>
-                <div className={styles.chipInputContainer}>
-                  <input
-                    ref={softSkillInputRef}
-                    type='text'
-                    className={styles.formInput}
-                    placeholder='E.g., Leadership, Communication...'
-                    value={softSkillInput}
-                    onChange={(e) => setSoftSkillInput(e.target.value)}
-                    onKeyDown={(e) => handleKeyPress(e, 'soft')}
-                  />
-                  <button
-                    type='button'
-                    className={styles.chipAddButton}
-                    onClick={() => handleAddSkill('soft', softSkillInput)}
-                    disabled={!softSkillInput.trim() || isSoftSkillDuplicate}
-                  >
-                    <FaPlus size={12} />
-                  </button>
-                </div>
-                <div className={styles.chipsContainer}>
-                  {localData.softSkills.length === 0 ? (
-                    <div className={styles.emptyState}>
-                      <p className={styles.emptyMessage}>
-                        Soft skills will be auto-populated when you add work
-                        experience or projects, or you can add them manually
-                        above.
-                      </p>
-                    </div>
-                  ) : (
-                    localData.softSkills.map((skill, index) => (
-                      <div
-                        key={index}
-                        className={`${styles.chip} ${
-                          duplicateSoftSkill === skill ? styles.duplicate : ''
-                        }`}
+            <div className={styles.skillSection}>
+              <h3 className={styles.sectionTitle}>Soft Skills</h3>
+              <div className={styles.chipInputContainer}>
+                <input
+                  ref={softSkillInputRef}
+                  type='text'
+                  className={styles.formInput}
+                  placeholder='E.g., Leadership, Communication...'
+                  value={softSkillInput}
+                  onChange={(e) => setSoftSkillInput(e.target.value)}
+                  onKeyDown={(e) => handleKeyPress(e, 'soft')}
+                />
+                <button
+                  type='button'
+                  className={styles.chipAddButton}
+                  onClick={() => handleAddSkill('soft', softSkillInput)}
+                  disabled={!softSkillInput.trim() || isSoftSkillDuplicate}
+                >
+                  <FaPlus size={12} />
+                </button>
+              </div>
+              <div className={styles.chipsContainer}>
+                {localData.softSkills.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyMessage}>
+                      Soft skills will be auto-populated when you add work
+                      experience or projects, or you can add them manually
+                      above.
+                    </p>
+                  </div>
+                ) : (
+                  localData.softSkills.map((skill, index) => (
+                    <div
+                      key={index}
+                      className={`${styles.chip} ${
+                        duplicateSoftSkill === skill ? styles.duplicate : ''
+                      }`}
+                    >
+                      <span className={styles.skillText}>{skill}</span>
+                      <button
+                        type='button'
+                        className={styles.removeChip}
+                        onClick={() => handleRemoveSkill('soft', skill)}
+                        title='Remove skill'
                       >
-                        <span className={styles.skillText}>{skill}</span>
-                        <button
-                          type='button'
-                          className={styles.removeChip}
-                          onClick={() => handleRemoveSkill('soft', skill)}
-                          title='Remove skill'
-                        >
-                          <FaTimes size={10} />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
+                        <FaTimes size={10} />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

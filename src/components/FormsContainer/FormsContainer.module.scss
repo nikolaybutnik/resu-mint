@@ -36,6 +36,10 @@
   padding-bottom: 20px;
   overflow-y: auto;
   background-color: $color-action-item-background;
+
+  @include breakpoint(tablet) {
+    padding-bottom: 80px;
+  }
 }
 
 .tabNavContainer {
@@ -133,14 +137,14 @@
 
   @include breakpoint(tablet) {
     justify-content: flex-start;
-    padding: 14px 20px;
+    padding: 12px 16px;
     flex: none;
     width: 100%;
     gap: 14px;
     min-height: 48px;
 
     &:hover .tabTooltip {
-      opacity: 0; // Hide tooltips on tablet
+      opacity: 0;
     }
   }
 
@@ -178,17 +182,17 @@
 }
 
 .tabLabel {
-  display: none; // Hidden since we're using tooltips instead
+  display: none;
 
   @include breakpoint(tablet) {
     display: block;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
   }
 
   @include breakpoint(mobile) {
-    display: none; // Hide labels on mobile to save space
+    display: none;
   }
 }
 
@@ -247,11 +251,11 @@
   }
 
   @include breakpoint(tablet) {
-    display: none; // Hide tooltips on tablet since we show full labels
+    display: none;
   }
 
   @include breakpoint(mobile) {
-    display: none; // Hide tooltips on mobile since we show short labels
+    display: none;
   }
 }
 
@@ -353,7 +357,6 @@
   .preview {
     width: 100%;
     display: none;
-    padding-bottom: 80px;
   }
 
   .active {
@@ -361,12 +364,12 @@
   }
 
   .sidebar.active {
-    display: flex; // Only sidebar needs flex for row layout
+    display: flex;
   }
 }
 
 @include breakpoint(mobile) {
   .sidebar.active {
-    display: block; // Override tablet's flex for mobile
+    display: block;
   }
 }

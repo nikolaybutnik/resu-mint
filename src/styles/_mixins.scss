@@ -31,7 +31,11 @@
 @mixin section-container {
   background: $color-background;
   width: 100%;
-  padding-bottom: 48px;
+  padding-bottom: 80px;
+
+  @include breakpoint(tablet) {
+    padding-bottom: 160px;
+  }
 }
 
 // Section title styling
@@ -48,11 +52,6 @@
   font-weight: 600;
   margin-bottom: 16px;
   color: $color-primary;
-}
-
-// Skill section spacing (for Skills component subsections)
-@mixin skill-section {
-  margin-bottom: 32px;
 }
 
 // Empty state styling (for empty chips containers, etc.)
@@ -77,8 +76,6 @@
 @mixin card-container {
   background: $color-background;
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
   border: 1px solid rgba($color-primary, 0.2);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -327,8 +324,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 600px;
-  margin: 0 auto;
 }
 
 // Full-width add button (used in Projects, Education, WorkExperience)
