@@ -96,3 +96,15 @@ export const PROJECT_FORM_DATA_KEYS = {
   END_DATE_YEAR: 'endDate.year',
   BULLET_POINTS: 'bulletPoints',
 } as const
+
+export const EDUCATION_FORM_DATA_KEYS = {
+  INSTITUTION: 'institution',
+  DEGREE: 'degree',
+  DEGREE_STATUS: 'degreeStatus',
+  LOCATION: 'location',
+  START_DATE_MONTH: 'startDate.month',
+  START_DATE_YEAR: 'startDate.year',
+  END_DATE_MONTH: 'endDate.month',
+  END_DATE_YEAR: 'endDate.year',
+  DESCRIPTION: 'description',
+} as const

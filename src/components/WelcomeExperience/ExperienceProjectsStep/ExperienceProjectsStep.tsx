@@ -24,17 +24,15 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   >(null)
   const [isEditingExisting, setIsEditingExisting] = useState(false)
 
-  const [formState, formAction] = useActionState(
+  const [state, formAction] = useActionState(
     submitExperienceProject,
     experienceProjectInitialState
   )
 
   const [isCurrent, setIsCurrent] = useState(
-    formState.data?.endDate?.isPresent || false
+    state.data?.endDate?.isPresent || false
   )
-  const [description, setDescription] = useState(
-    formState.data?.description || ''
-  )
+  const [description, setDescription] = useState(state.data?.description || '')
 
   const {
     textareaRef,
@@ -43,9 +41,9 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   } = useAutoResizeTextarea(description)
 
   useEffect(() => {
-    setIsCurrent(formState.data?.endDate?.isPresent || false)
-    setDescription(formState.data?.description || '')
-  }, [formState.data?.endDate?.isPresent, formState.data?.description])
+    setIsCurrent(state.data?.endDate?.isPresent || false)
+    setDescription(state.data?.description || '')
+  }, [state.data?.endDate?.isPresent, state.data?.description])
 
   useEffect(() => {
     const resetFormData = new FormData()
@@ -99,10 +97,10 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   }
 
   useEffect(() => {
-    if (formState.success) {
+    if (state.success) {
       onContinue()
     }
-  }, [formState.success, onContinue])
+  }, [state.success, onContinue])
 
   const renderSelectionPhase = () => {
     const experienceData = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
@@ -247,17 +245,17 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
               name={EXPERIENCE_FORM_DATA_KEYS.TITLE}
               key={`title-${selectedOption}`}
               className={`${styles.formInput} ${
-                formState.errors.title ? styles.error : ''
+                state.errors.title ? styles.error : ''
               }`}
-              defaultValue={formState.data?.title || ''}
+              defaultValue={state.data?.title || ''}
               placeholder={
                 selectedOption === FormSelectionState.experience
                   ? 'e.g., Software Engineer'
                   : 'e.g., Personal Website'
               }
             />
-            {formState.errors.title && (
-              <span className={styles.formError}>{formState.errors.title}</span>
+            {state.errors.title && (
+              <span className={styles.formError}>{state.errors.title}</span>
             )}
           </div>
 
@@ -270,14 +268,14 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                   name={EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME}
                   key={`companyName-${selectedOption}`}
                   className={`${styles.formInput} ${
-                    formState.errors.companyName ? styles.error : ''
+                    state.errors.companyName ? styles.error : ''
                   }`}
-                  defaultValue={formState.data?.companyName || ''}
+                  defaultValue={state.data?.companyName || ''}
                   placeholder='e.g., Google'
                 />
-                {formState.errors.companyName && (
+                {state.errors.companyName && (
                   <span className={styles.formError}>
-                    {formState.errors.companyName}
+                    {state.errors.companyName}
                   </span>
                 )}
               </div>
@@ -289,14 +287,14 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                   name={EXPERIENCE_FORM_DATA_KEYS.LOCATION}
                   key={`location-${selectedOption}`}
                   className={`${styles.formInput} ${
-                    formState.errors.location ? styles.error : ''
+                    state.errors.location ? styles.error : ''
                   }`}
-                  defaultValue={formState.data?.location || ''}
+                  defaultValue={state.data?.location || ''}
                   placeholder='e.g., San Francisco, CA'
                 />
-                {formState.errors.location && (
+                {state.errors.location && (
                   <span className={styles.formError}>
-                    {formState.errors.location}
+                    {state.errors.location}
                   </span>
                 )}
               </div>
@@ -308,10 +306,10 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
               <label className={styles.formLabel}>Start Date</label>
               <div className={styles.dateInputs}>
                 <select
-                  key={formState.data?.startDate?.month}
+                  key={state.data?.startDate?.month}
                   name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH}
                   className={[styles.formInput, styles.monthInput].join(' ')}
-                  defaultValue={formState.data?.startDate?.month || ''}
+                  defaultValue={state.data?.startDate?.month || ''}
                 >
                   <option value=''>Month</option>
                   {MONTHS.map((month) => (
@@ -325,7 +323,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                   name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR}
                   placeholder='YYYY'
                   className={[styles.formInput, styles.yearInput].join(' ')}
-                  defaultValue={formState.data?.startDate?.year || ''}
+                  defaultValue={state.data?.startDate?.year || ''}
                   maxLength={4}
                   onInput={(e) => {
                     const value = e.currentTarget.value
@@ -337,9 +335,9 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                   }}
                 />
               </div>
-              {formState.errors?.startDate && (
+              {state.errors?.startDate && (
                 <span className={styles.formError}>
-                  {formState.errors.startDate}
+                  {state.errors.startDate}
                 </span>
               )}
             </div>
@@ -348,10 +346,10 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
               <label className={styles.formLabel}>End Date</label>
               <div className={styles.dateInputs}>
                 <select
-                  key={formState.data?.endDate?.month}
+                  key={state.data?.endDate?.month}
                   name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH}
                   className={[styles.formInput, styles.monthInput].join(' ')}
-                  defaultValue={formState.data?.endDate?.month || ''}
+                  defaultValue={state.data?.endDate?.month || ''}
                   disabled={isCurrent}
                 >
                   <option value=''>Month</option>
@@ -366,7 +364,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                   name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR}
                   placeholder='YYYY'
                   className={[styles.formInput, styles.yearInput].join(' ')}
-                  defaultValue={formState.data?.endDate?.year || ''}
+                  defaultValue={state.data?.endDate?.year || ''}
                   disabled={isCurrent}
                   maxLength={4}
                   onInput={(e) => {
@@ -384,8 +382,8 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                   type='checkbox'
                   name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT}
                   value='true'
-                  defaultChecked={formState.data?.endDate?.isPresent || false}
-                  key={`checkbox-${formState.data?.endDate?.isPresent}`}
+                  defaultChecked={state.data?.endDate?.isPresent || false}
+                  key={`checkbox-${state.data?.endDate?.isPresent}`}
                   onChange={(e) => {
                     setIsCurrent(e.target.checked)
                   }}
@@ -396,10 +394,8 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
                     : 'Currently working on this'}
                 </label>
               </div>
-              {formState.errors?.endDate && (
-                <span className={styles.formError}>
-                  {formState.errors.endDate}
-                </span>
+              {state.errors?.endDate && (
+                <span className={styles.formError}>{state.errors.endDate}</span>
               )}
             </div>
           </div>
@@ -423,9 +419,9 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
               }}
               onInput={handleInput}
             />
-            {formState.errors?.description && (
+            {state.errors?.description && (
               <span className={styles.formError}>
-                {formState.errors.description}
+                {state.errors.description}
               </span>
             )}
           </div>

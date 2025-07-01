@@ -288,10 +288,10 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
             : 'Tell us about your education'
         content.content = hasExperience
           ? `Great work on adding your ${
-              hasProjects ? 'experience and projects' : 'work experience'
+              hasProjects ? 'experience and project' : 'work experience'
             }! Education details help round out your profile. This step is optional - feel free to proceed to the next step if you'd like to skip it.`
           : hasProjects
-          ? "Nice work on your projects! Adding education details will strengthen your profile. This step is optional - feel free to proceed to the next step if you'd like to skip it."
+          ? "Nice work on your project! Adding education details will strengthen your profile. This step is optional - feel free to proceed to the next step if you'd like to skip it."
           : "Add your educational background if you'd like to include it on your resume. This step is optional - feel free to proceed to the next step if you'd like to skip it."
         break
 
@@ -457,6 +457,17 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       : undefined
   }
 
+  const getEducation = (): EducationBlockData | undefined => {
+    const education = localStorage.getItem(STORAGE_KEYS.EDUCATION)
+    if (education) {
+      const parsedEducation = JSON.parse(education) as EducationBlockData[]
+      if (Array.isArray(parsedEducation) && parsedEducation.length > 0) {
+        return parsedEducation[0] // Return the first (most recent) education entry
+      }
+    }
+    return undefined
+  }
+
   const handlePersonalDetailsSubmit = (
     personalDetailsData: PersonalDetailsType
   ): void => {
@@ -465,6 +476,21 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       JSON.stringify(personalDetailsData)
     )
 
+    const newWelcomeState = shouldShowWelcomeExperience()
+    setCurrentWelcomeState(newWelcomeState)
+
+    const nextStep = getNextIncompleteStep(currentStep + 1, newWelcomeState)
+    if (
+      nextStep < WELCOME_STEPS.length &&
+      isStepAccessible(nextStep, newWelcomeState)
+    ) {
+      setCurrentStep(nextStep)
+    } else {
+      onComplete()
+    }
+  }
+
+  const handleEducationSubmit = (): void => {
     const newWelcomeState = shouldShowWelcomeExperience()
     setCurrentWelcomeState(newWelcomeState)
 
@@ -503,7 +529,13 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         return <ExperienceProjectsStep onContinue={handleNext} />
 
       case 3:
-        return <EducationStep onContinue={handleNext} onSkip={handleNext} />
+        return (
+          <EducationStep
+            onContinue={handleEducationSubmit}
+            onSkip={handleNext}
+            initialData={getEducation()}
+          />
+        )
 
       case 4:
         return (

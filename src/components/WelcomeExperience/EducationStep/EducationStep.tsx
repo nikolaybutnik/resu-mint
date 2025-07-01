@@ -1,168 +1,100 @@
 import styles from './EducationStep.module.scss'
-import { useState, useEffect } from 'react'
-import { MONTHS, STORAGE_KEYS } from '@/lib/constants'
-import { v4 as uuidv4 } from 'uuid'
-import { educationBlockSchema } from '@/lib/validationSchemas'
+import { useState, useEffect, useActionState } from 'react'
+import { MONTHS, STORAGE_KEYS, EDUCATION_FORM_DATA_KEYS } from '@/lib/constants'
+import { submitEducation } from '@/lib/actions/educationActions'
 import {
   EducationBlockData,
   DegreeStatus,
-  StartDate,
-  EndDate,
-  Month,
+  EducationFormState,
 } from '@/lib/types/education'
+import { useAutoResizeTextarea } from '@/lib/hooks/useAutoResizeTextarea'
+import { v4 as uuidv4 } from 'uuid'
 
 interface EducationStepProps {
   onContinue: () => void
   onSkip: () => void
+  initialData?: EducationBlockData
 }
-
-// Form data type for education
-type EducationFormData = Partial<EducationBlockData>
-
-// Type for form field values
-type FormFieldValue =
-  | string
-  | boolean
-  | StartDate
-  | EndDate
-  | DegreeStatus
-  | undefined
-  | Partial<StartDate>
-  | Partial<EndDate>
 
 export const EducationStep: React.FC<EducationStepProps> = ({
   onContinue,
   onSkip,
+  initialData,
 }) => {
+  const [state, formAction] = useActionState(
+    (prevState: EducationFormState, formData: FormData) =>
+      submitEducation(prevState, formData, onContinue),
+    {
+      errors: {},
+      data: initialData,
+    } as EducationFormState
+  )
+
   const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState<EducationFormData>({})
-  const [errors, setErrors] = useState<Record<string, string>>({})
-  const [hasExistingData, setHasExistingData] = useState(false)
+  const [isEditingExisting, setIsEditingExisting] = useState(false)
+  const [description, setDescription] = useState(state.data?.description || '')
 
-  // Check for existing data when component mounts
+  const {
+    textareaRef,
+    handleChange: handleTextareaChange,
+    handleInput,
+  } = useAutoResizeTextarea(description)
+
   useEffect(() => {
-    const educationData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
-    const hasEducation = educationData
-      ? JSON.parse(educationData).length > 0
-      : false
-
-    setHasExistingData(hasEducation)
-    setShowForm(false)
-    setFormData({})
-    setErrors({})
-  }, [])
-
-  // Form field handlers
-  const handleFieldChange = (field: string, value: FormFieldValue) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
-    // Clear error when user starts typing
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: '' }))
-    }
-  }
-
-  const handleAddEducation = () => {
-    setShowForm(true)
-    setFormData({})
-    setErrors({})
-  }
+    setDescription(state.data?.description || '')
+  }, [state.data?.description])
 
   const handleEditEducation = () => {
-    setShowForm(true)
-    setErrors({})
-
-    // Load existing data
     const existingData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
     if (existingData) {
       const parsedData = JSON.parse(existingData) as EducationBlockData[]
       if (Array.isArray(parsedData) && parsedData.length > 0) {
-        // Load the most recent entry for editing
-        setFormData(parsedData[parsedData.length - 1])
-        return
+        const latestEntry = parsedData[parsedData.length - 1]
+
+        const loadFormData = new FormData()
+        loadFormData.set('load', 'true')
+        loadFormData.set('existingData', JSON.stringify(latestEntry))
+        formAction(loadFormData)
+        setIsEditingExisting(true)
       }
     }
-
-    // No existing data, start fresh
-    setFormData({})
+    setShowForm(true)
   }
 
-  const handleBackToChoice = () => {
-    setShowForm(false)
-    setFormData({})
-    setErrors({})
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-
-    // Prepare form data with required fields
-    const educationData: EducationBlockData = {
-      id: formData.id || uuidv4(),
-      institution: formData.institution || '',
-      degree: formData.degree || '',
-      degreeStatus: formData.degreeStatus || undefined,
-      startDate: formData.startDate || undefined,
-      endDate: formData.endDate || undefined,
-      location: formData.location || '',
-      description: formData.description || '',
+  const handleAddEducation = () => {
+    const newEducationData = {
+      id: uuidv4(),
       isIncluded: true,
-    }
+      institution: '',
+      degree: '',
+      location: '',
+      description: '',
+    } as EducationBlockData
 
-    const validationResult = educationBlockSchema.safeParse(educationData)
-
-    if (!validationResult.success) {
-      const newErrors: Record<string, string> = {}
-      validationResult.error.issues.forEach((issue) => {
-        const path = issue.path.join('.')
-        newErrors[path] = issue.message
-      })
-      setErrors(newErrors)
-      return
-    }
-
-    // Save to localStorage
-    const existingData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
-    const dataArray: EducationBlockData[] = existingData
-      ? JSON.parse(existingData)
-      : []
-
-    const isEditing =
-      formData.id && dataArray.some((item) => item.id === formData.id)
-
-    if (isEditing) {
-      // Update existing entry
-      const index = dataArray.findIndex((item) => item.id === formData.id)
-      if (index !== -1) {
-        dataArray[index] = validationResult.data as EducationBlockData
-      }
-    } else {
-      // Add new entry
-      dataArray.push(validationResult.data as EducationBlockData)
-    }
-
-    localStorage.setItem(STORAGE_KEYS.EDUCATION, JSON.stringify(dataArray))
-
-    // Continue to next step
-    onContinue()
+    const loadFormData = new FormData()
+    loadFormData.set('load', 'true')
+    loadFormData.set('existingData', JSON.stringify(newEducationData))
+    formAction(loadFormData)
+    setIsEditingExisting(false)
+    setShowForm(true)
   }
 
   const renderSelectionPhase = () => {
+    const educationData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
+    const hasExistingData = educationData
+      ? JSON.parse(educationData).length > 0
+      : false
+
     if (hasExistingData) {
       return (
         <>
-          <p>You&apos;ve added education details. You can edit or continue:</p>
+          <p>Great! You&apos;ve added your education details.</p>
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
               onClick={handleEditEducation}
             >
               Edit Education
-            </button>
-            <button
-              className={styles.choiceButton}
-              onClick={handleAddEducation}
-            >
-              Add Another Education
             </button>
           </div>
           <button
@@ -203,18 +135,19 @@ export const EducationStep: React.FC<EducationStepProps> = ({
   return (
     <div className={styles.educationForm}>
       {!showForm ? (
-        // Selection phase
         <div className={styles.placeholderContent}>
           {renderSelectionPhase()}
         </div>
       ) : (
-        // Form phase
-        <form onSubmit={handleSubmit}>
+        <form action={formAction}>
           <div className={styles.formField}>
             <button
               type='button'
               className={styles.backToChoiceButton}
-              onClick={handleBackToChoice}
+              onClick={() => {
+                setShowForm(false)
+                setIsEditingExisting(false)
+              }}
             >
               ← Back to selection
             </button>
@@ -224,15 +157,17 @@ export const EducationStep: React.FC<EducationStepProps> = ({
             <label className={styles.formLabel}>Institution</label>
             <input
               type='text'
+              name={EDUCATION_FORM_DATA_KEYS.INSTITUTION}
               className={`${styles.formInput} ${
-                errors.institution ? styles.error : ''
+                state?.errors?.institution ? styles.error : ''
               }`}
-              value={formData.institution || ''}
-              onChange={(e) => handleFieldChange('institution', e.target.value)}
+              defaultValue={state.data?.institution}
               placeholder='e.g., University of Toronto'
             />
-            {errors.institution && (
-              <span className={styles.formError}>{errors.institution}</span>
+            {state?.errors?.institution && (
+              <span className={styles.formError}>
+                {state.errors.institution}
+              </span>
             )}
           </div>
 
@@ -240,31 +175,41 @@ export const EducationStep: React.FC<EducationStepProps> = ({
             <label className={styles.formLabel}>Degree</label>
             <input
               type='text'
+              name={EDUCATION_FORM_DATA_KEYS.DEGREE}
               className={`${styles.formInput} ${
-                errors.degree ? styles.error : ''
+                state?.errors?.degree ? styles.error : ''
               }`}
-              value={formData.degree || ''}
-              onChange={(e) => handleFieldChange('degree', e.target.value)}
+              defaultValue={state.data?.degree}
               placeholder='e.g., Bachelor of Science in Computer Science'
             />
-            {errors.degree && (
-              <span className={styles.formError}>{errors.degree}</span>
+            {state?.errors?.degree && (
+              <span className={styles.formError}>{state.errors.degree}</span>
             )}
           </div>
 
           <div className={styles.formField}>
-            <label className={styles.formLabel}>Status</label>
+            <label className={styles.formLabel}>Location (Optional)</label>
+            <input
+              type='text'
+              name={EDUCATION_FORM_DATA_KEYS.LOCATION}
+              className={`${styles.formInput} ${
+                state?.errors?.location ? styles.error : ''
+              }`}
+              defaultValue={state.data?.location || ''}
+              placeholder='e.g., Toronto, ON'
+            />
+            {state?.errors?.location && (
+              <span className={styles.formError}>{state.errors.location}</span>
+            )}
+          </div>
+
+          <div className={styles.formField}>
+            <label className={styles.formLabel}>Status (Optional)</label>
             <select
+              key={state.data?.degreeStatus}
+              name={EDUCATION_FORM_DATA_KEYS.DEGREE_STATUS}
               className={styles.formInput}
-              value={formData.degreeStatus || ''}
-              onChange={(e) =>
-                handleFieldChange(
-                  'degreeStatus',
-                  e.target.value === ''
-                    ? undefined
-                    : (e.target.value as DegreeStatus)
-                )
-              }
+              defaultValue={state.data?.degreeStatus || ''}
             >
               <option value=''>Select status</option>
               <option value={DegreeStatus.COMPLETED}>Completed</option>
@@ -272,35 +217,15 @@ export const EducationStep: React.FC<EducationStepProps> = ({
             </select>
           </div>
 
-          <div className={styles.formField}>
-            <label className={styles.formLabel}>Location</label>
-            <input
-              type='text'
-              className={`${styles.formInput} ${
-                errors.location ? styles.error : ''
-              }`}
-              value={formData.location || ''}
-              onChange={(e) => handleFieldChange('location', e.target.value)}
-              placeholder='e.g., Toronto, ON'
-            />
-            {errors.location && (
-              <span className={styles.formError}>{errors.location}</span>
-            )}
-          </div>
-
           <div className={styles.dateRow}>
             <div className={styles.formField}>
-              <label className={styles.formLabel}>Start Date</label>
+              <label className={styles.formLabel}>Start Date (Optional)</label>
               <div className={styles.dateInputs}>
                 <select
+                  key={state.data?.startDate?.month}
+                  name={EDUCATION_FORM_DATA_KEYS.START_DATE_MONTH}
                   className={[styles.formInput, styles.monthInput].join(' ')}
-                  value={formData.startDate?.month || ''}
-                  onChange={(e) =>
-                    handleFieldChange('startDate', {
-                      ...formData.startDate,
-                      month: e.target.value as Month | '',
-                    })
-                  }
+                  defaultValue={state.data?.startDate?.month || ''}
                 >
                   <option value=''>Month</option>
                   {MONTHS.map((month) => (
@@ -311,15 +236,10 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                 </select>
                 <input
                   type='text'
-                  className={[styles.formInput, styles.yearInput].join(' ')}
-                  value={formData.startDate?.year || ''}
-                  onChange={(e) =>
-                    handleFieldChange('startDate', {
-                      ...formData.startDate,
-                      year: e.target.value,
-                    })
-                  }
+                  name={EDUCATION_FORM_DATA_KEYS.START_DATE_YEAR}
                   placeholder='YYYY'
+                  className={[styles.formInput, styles.yearInput].join(' ')}
+                  defaultValue={state.data?.startDate?.year || ''}
                   maxLength={4}
                   onInput={(e) => {
                     const value = e.currentTarget.value
@@ -331,25 +251,21 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                   }}
                 />
               </div>
-              {(errors['startDate.month'] || errors['startDate.year']) && (
+              {state?.errors?.startDate && (
                 <span className={styles.formError}>
-                  {errors['startDate.month'] || errors['startDate.year']}
+                  {state.errors.startDate}
                 </span>
               )}
             </div>
 
             <div className={styles.formField}>
-              <label className={styles.formLabel}>End Date</label>
+              <label className={styles.formLabel}>End Date (Optional)</label>
               <div className={styles.dateInputs}>
                 <select
+                  key={state.data?.endDate?.month}
+                  name={EDUCATION_FORM_DATA_KEYS.END_DATE_MONTH}
                   className={[styles.formInput, styles.monthInput].join(' ')}
-                  value={formData.endDate?.month || ''}
-                  onChange={(e) =>
-                    handleFieldChange('endDate', {
-                      ...formData.endDate,
-                      month: e.target.value as Month | '',
-                    })
-                  }
+                  defaultValue={state.data?.endDate?.month || ''}
                 >
                   <option value=''>Month</option>
                   {MONTHS.map((month) => (
@@ -360,15 +276,10 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                 </select>
                 <input
                   type='text'
-                  className={[styles.formInput, styles.yearInput].join(' ')}
-                  value={formData.endDate?.year || ''}
-                  onChange={(e) =>
-                    handleFieldChange('endDate', {
-                      ...formData.endDate,
-                      year: e.target.value,
-                    })
-                  }
+                  name={EDUCATION_FORM_DATA_KEYS.END_DATE_YEAR}
                   placeholder='YYYY'
+                  className={[styles.formInput, styles.yearInput].join(' ')}
+                  defaultValue={state.data?.endDate?.year || ''}
                   maxLength={4}
                   onInput={(e) => {
                     const value = e.currentTarget.value
@@ -380,10 +291,8 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                   }}
                 />
               </div>
-              {(errors['endDate.month'] || errors['endDate.year']) && (
-                <span className={styles.formError}>
-                  {errors['endDate.month'] || errors['endDate.year']}
-                </span>
+              {state?.errors?.endDate && (
+                <span className={styles.formError}>{state.errors.endDate}</span>
               )}
             </div>
           </div>
@@ -391,21 +300,29 @@ export const EducationStep: React.FC<EducationStepProps> = ({
           <div className={styles.formField}>
             <label className={styles.formLabel}>Description (Optional)</label>
             <textarea
-              className={`${styles.formTextarea} ${
-                errors.description ? styles.error : ''
-              }`}
-              value={formData.description || ''}
-              onChange={(e) => handleFieldChange('description', e.target.value)}
-              placeholder='Add any relevant details about your education, achievements, coursework, etc.'
-              rows={3}
+              ref={textareaRef}
+              name={EDUCATION_FORM_DATA_KEYS.DESCRIPTION}
+              className={styles.formTextarea}
+              value={description}
+              rows={4}
+              placeholder={
+                'Describe your curriculum, projects, achievements, etc. This is optional but if entered, the AI will be able to more effectively optimize and tailor the resume content.'
+              }
+              onChange={(e) => {
+                const newValue = handleTextareaChange(e)
+                setDescription(newValue)
+              }}
+              onInput={handleInput}
             />
-            {errors.description && (
-              <span className={styles.formError}>{errors.description}</span>
+            {state?.errors?.description && (
+              <span className={styles.formError}>
+                {state.errors.description}
+              </span>
             )}
           </div>
 
           <button type='submit' className={styles.submitButton}>
-            {hasExistingData ? 'Update & Continue' : 'Continue'}
+            {isEditingExisting ? 'Update & Continue' : 'Continue'}
           </button>
         </form>
       )}

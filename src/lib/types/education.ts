@@ -40,3 +40,8 @@ export interface EducationBlockData {
   description?: string
   isIncluded?: boolean
 }
+
+export interface EducationFormState {
+  errors: Record<string, string>
+  data?: Partial<EducationBlockData>
+}
