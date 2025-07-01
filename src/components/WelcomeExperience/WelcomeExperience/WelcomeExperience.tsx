@@ -421,8 +421,8 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       return
     }
 
-    // Update welcome state to mark current step as completed
     const newWelcomeState = shouldShowWelcomeExperience()
+
     setCurrentWelcomeState(newWelcomeState)
 
     const nextStep = getNextIncompleteStep(currentStep + 1, newWelcomeState)
@@ -479,6 +479,11 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     }
   }
 
+  const handleStepComplete = () => {
+    const newWelcomeState = shouldShowWelcomeExperience()
+    setCurrentWelcomeState(newWelcomeState)
+  }
+
   const renderStepContent = () => {
     if (!isClient) return null
 
@@ -501,7 +506,12 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         return <EducationStep onContinue={handleNext} onSkip={handleNext} />
 
       case 4:
-        return <JobDescriptionStep onContinue={handleNext} />
+        return (
+          <JobDescriptionStep
+            onContinue={handleNext}
+            onStepComplete={handleStepComplete}
+          />
+        )
 
       default:
         return null

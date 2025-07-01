@@ -24,48 +24,46 @@ export const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
   )
 
   return (
-    <div className={styles.stepContent}>
-      <form action={formAction} className={styles.form}>
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Full Name</label>
-          <input
-            type='text'
-            name={PERSONAL_DETAILS_FORM_DATA_KEYS.NAME}
-            className={`${styles.formInput} ${
-              state?.errors?.name ? styles.error : ''
-            }`}
-            defaultValue={state.data?.name}
-            placeholder='Enter your full name'
-          />
-          {state?.errors?.name && (
-            <span className={styles.formError}>{state.errors.name}</span>
-          )}
-        </div>
+    <form action={formAction} className={styles.form}>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Full Name</label>
+        <input
+          type='text'
+          name={PERSONAL_DETAILS_FORM_DATA_KEYS.NAME}
+          className={`${styles.formInput} ${
+            state?.errors?.name ? styles.error : ''
+          }`}
+          defaultValue={state.data?.name}
+          placeholder='Enter your full name'
+        />
+        {state?.errors?.name && (
+          <span className={styles.formError}>{state.errors.name}</span>
+        )}
+      </div>
 
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Email Address</label>
-          <input
-            type='text'
-            name={PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL}
-            className={`${styles.formInput} ${
-              state?.errors?.email ? styles.error : ''
-            }`}
-            defaultValue={state.data?.email}
-            placeholder='Enter your email address'
-          />
-          {state?.errors?.email && (
-            <span className={styles.formError}>{state.errors.email}</span>
-          )}
-        </div>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Email Address</label>
+        <input
+          type='text'
+          name={PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL}
+          className={`${styles.formInput} ${
+            state?.errors?.email ? styles.error : ''
+          }`}
+          defaultValue={state.data?.email}
+          placeholder='Enter your email address'
+        />
+        {state?.errors?.email && (
+          <span className={styles.formError}>{state.errors.email}</span>
+        )}
+      </div>
 
-        <button
-          type='submit'
-          className={styles.submitButton}
-          disabled={isPending}
-        >
-          Continue
-        </button>
-      </form>
-    </div>
+      <button
+        type='submit'
+        className={styles.submitButton}
+        disabled={isPending}
+      >
+        Continue
+      </button>
+    </form>
   )
 }

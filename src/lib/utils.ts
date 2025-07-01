@@ -460,9 +460,10 @@ export const shouldShowWelcomeExperience = (): WelcomeExperienceState => {
     if (jobDescription?.trim() && jobAnalysis) {
       try {
         const parsedAnalysis = JSON.parse(jobAnalysis)
-        // Handle both direct format and wrapped format with data property
         const analysisData = parsedAnalysis.data || parsedAnalysis
-        if (analysisData && analysisData.jobTitle) {
+        // Step is complete if analysis exists and is valid JSON structure, regardless of content\
+        // TODO: check for valid analysis data
+        if (analysisData && typeof analysisData === 'object') {
           hasJobDetails = true
           completedSteps.push(4)
         }
@@ -477,7 +478,7 @@ export const shouldShowWelcomeExperience = (): WelcomeExperienceState => {
     } else if (!hasExperienceOrProjects) {
       startStep = 2
     } else if (!hasEducation) {
-      startStep = 3 // Optional step - user can choose to skip
+      startStep = 3 // Optional step
     } else if (!hasJobDetails) {
       startStep = 4
     }

@@ -2,15 +2,8 @@
 @import '../../../styles/variables';
 @import '../../../styles/mixins';
 
-.stepContent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
 .form {
-  width: 100%;
-  max-width: 400px;
+  @include welcome-form-container;
 }
 
 .formField {
@@ -29,32 +22,6 @@
   @include form-error;
 }
 
-// TODO: make mixin when styling direction is decided on
 .submitButton {
-  @include button-base;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 0.875rem 2rem;
-  font-weight: 500;
-  width: 100%;
-  margin-top: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-  }
+  @include welcome-action-button('primary');
 }

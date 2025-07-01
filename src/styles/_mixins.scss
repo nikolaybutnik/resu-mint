@@ -886,6 +886,245 @@
 }
 
 // ========================================
+// WELCOME EXPERIENCE MIXINS
+// ========================================
+
+// Welcome experience action button (used in WelcomeExperience and related components)
+// Variants: 'primary', 'secondary', 'text', 'skip'
+@mixin welcome-action-button($variant: 'primary') {
+  @include button-base;
+  font-weight: 500;
+  border-radius: 12px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
+    box-shadow 0.2s ease, border-color 0.2s ease;
+
+  @if $variant == 'primary' {
+    // Primary submit button (gradient background)
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: 2px solid transparent;
+    padding: 14px 32px;
+    min-height: 48px;
+    width: 100%;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    }
+  } @else if $variant == 'secondary' {
+    // Secondary button (transparent with border)
+    background: transparent;
+    color: $color-primary;
+    border: 2px solid $color-primary;
+    padding: 14px 32px;
+    min-height: 48px;
+    font-weight: 400;
+
+    &:hover {
+      background: color.adjust($color-primary, $lightness: 45%);
+      border-color: $color-primary;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  } @else if $variant == 'text' {
+    // Text button (minimal style for navigation)
+    background: transparent;
+    color: $color-disabled;
+    border: none;
+    padding: 12px 16px;
+    min-height: 36px;
+    font-weight: 400;
+    font-size: 14px;
+    text-align: left;
+    margin-bottom: 16px;
+    border-radius: 8px;
+
+    &:hover {
+      color: $color-text;
+      transform: translateX(-2px);
+    }
+
+    &:active {
+      transform: translateX(0);
+    }
+  } @else if $variant == 'skip' {
+    // Skip button (optional action with underline)
+    background: transparent;
+    color: $color-disabled;
+    border: none;
+    padding: 12px 24px;
+    font-weight: 400;
+    text-decoration: underline;
+    border-radius: 8px;
+
+    &:hover {
+      background: color.adjust($color-border, $lightness: 8%);
+      text-decoration: none;
+      transform: translateY(-1px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+}
+
+// Welcome experience form container (standard width-constrained form)
+@mixin welcome-form-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+// Welcome experience choice buttons container
+@mixin welcome-choice-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+// Welcome experience placeholder/instructional content
+@mixin welcome-placeholder-content {
+  text-align: center;
+
+  p {
+    font-size: 16px;
+    color: $color-text;
+    margin-bottom: 24px;
+  }
+}
+
+// Welcome screen container (wider than form container for feature content)
+@mixin welcome-screen-container {
+  text-align: center;
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+// Welcome features grid container
+@mixin welcome-features-container {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  margin-bottom: 48px;
+
+  @include breakpoint(tablet) {
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+}
+
+// Individual welcome feature styling
+@mixin welcome-feature {
+  text-align: center;
+
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: $color-text;
+    margin: 12px 0 8px 0;
+
+    @include breakpoint(tablet) {
+      font-size: 18px;
+    }
+  }
+
+  p {
+    font-size: 16px;
+    color: $color-disabled;
+    line-height: 1.5;
+    margin: 0;
+
+    @include breakpoint(tablet) {
+      font-size: 15px;
+    }
+  }
+}
+
+// Welcome feature icon styling
+@mixin welcome-feature-icon {
+  font-size: 40px;
+  margin-bottom: 8px;
+  display: block;
+
+  @include breakpoint(tablet) {
+    font-size: 32px;
+  }
+}
+
+// Welcome skip section (optional step skip area)
+@mixin welcome-skip-section {
+  margin-top: 32px;
+  padding-top: 32px;
+  border-top: 1px solid $color-border;
+  text-align: center;
+}
+
+// Welcome skip text styling
+@mixin welcome-skip-text {
+  font-size: 14px;
+  color: $color-disabled;
+  margin-bottom: 16px;
+}
+
+// Welcome required fields note
+@mixin welcome-required-note {
+  font-size: 14px;
+  color: $color-disabled;
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+// Welcome analyzing/loading container
+@mixin welcome-analyzing-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 0;
+  background: $color-action-item-background;
+  border-radius: 8px;
+  border: 1px solid $color-border;
+}
+
+// Welcome analysis success message
+@mixin welcome-analysis-success {
+  padding: 16px;
+  background: rgba($color-transformative, 0.1);
+  border: 1px solid rgba($color-transformative, 0.3);
+  border-radius: 8px;
+  color: $color-transformative;
+  font-weight: 500;
+  text-align: center;
+  font-size: 15px;
+}
+
+// Welcome action buttons container
+@mixin welcome-action-buttons {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+
+// ========================================
 // FORM ELEMENT MIXINS
 // ========================================
 

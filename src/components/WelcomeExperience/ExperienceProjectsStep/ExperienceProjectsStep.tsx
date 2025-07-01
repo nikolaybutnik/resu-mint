@@ -219,226 +219,222 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   }
 
   return (
-    <div className={styles.stepContent}>
-      <div className={styles.welcomeForm}>
-        {!selectedOption ? (
-          <div className={styles.placeholderContent}>
-            {renderSelectionPhase()}
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} key={`form-${selectedOption}`}>
-            <div className={styles.formField}>
-              <button
-                type='button'
-                className={styles.backToChoiceButton}
-                onClick={handleDiscardAndReplace}
-              >
-                ← Back to selection
-              </button>
-            </div>
-
-            <div className={styles.formField}>
-              <label className={styles.formLabel}>
-                {selectedOption === FormSelectionState.experience
-                  ? 'Job Title'
-                  : 'Project Title'}
-              </label>
-              <input
-                type='text'
-                name={EXPERIENCE_FORM_DATA_KEYS.TITLE}
-                key={`title-${selectedOption}`}
-                className={`${styles.formInput} ${
-                  formState.errors.title ? styles.error : ''
-                }`}
-                defaultValue={formState.data?.title || ''}
-                placeholder={
-                  selectedOption === FormSelectionState.experience
-                    ? 'e.g., Software Engineer'
-                    : 'e.g., Personal Website'
-                }
-              />
-              {formState.errors.title && (
-                <span className={styles.formError}>
-                  {formState.errors.title}
-                </span>
-              )}
-            </div>
-
-            {selectedOption === FormSelectionState.experience && (
-              <>
-                <div className={styles.formField}>
-                  <label className={styles.formLabel}>Company</label>
-                  <input
-                    type='text'
-                    name={EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME}
-                    key={`companyName-${selectedOption}`}
-                    className={`${styles.formInput} ${
-                      formState.errors.companyName ? styles.error : ''
-                    }`}
-                    defaultValue={formState.data?.companyName || ''}
-                    placeholder='e.g., Google'
-                  />
-                  {formState.errors.companyName && (
-                    <span className={styles.formError}>
-                      {formState.errors.companyName}
-                    </span>
-                  )}
-                </div>
-
-                <div className={styles.formField}>
-                  <label className={styles.formLabel}>Location</label>
-                  <input
-                    type='text'
-                    name={EXPERIENCE_FORM_DATA_KEYS.LOCATION}
-                    key={`location-${selectedOption}`}
-                    className={`${styles.formInput} ${
-                      formState.errors.location ? styles.error : ''
-                    }`}
-                    defaultValue={formState.data?.location || ''}
-                    placeholder='e.g., San Francisco, CA'
-                  />
-                  {formState.errors.location && (
-                    <span className={styles.formError}>
-                      {formState.errors.location}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-
-            <div className={styles.dateRow}>
-              <div className={styles.formField}>
-                <label className={styles.formLabel}>Start Date</label>
-                <div className={styles.dateInputs}>
-                  <select
-                    key={formState.data?.startDate?.month}
-                    name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH}
-                    className={[styles.formInput, styles.monthInput].join(' ')}
-                    defaultValue={formState.data?.startDate?.month || ''}
-                  >
-                    <option value=''>Month</option>
-                    {MONTHS.map((month) => (
-                      <option key={month.label} value={month.label}>
-                        {month.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type='text'
-                    name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR}
-                    placeholder='YYYY'
-                    className={[styles.formInput, styles.yearInput].join(' ')}
-                    defaultValue={formState.data?.startDate?.year || ''}
-                    maxLength={4}
-                    onInput={(e) => {
-                      const value = e.currentTarget.value
-                      if (!/^\d{0,4}$/.test(value)) {
-                        e.currentTarget.value = value
-                          .replace(/[^0-9]/g, '')
-                          .slice(0, 4)
-                      }
-                    }}
-                  />
-                </div>
-                {formState.errors?.startDate && (
-                  <span className={styles.formError}>
-                    {formState.errors.startDate}
-                  </span>
-                )}
-              </div>
-
-              <div className={styles.formField}>
-                <label className={styles.formLabel}>End Date</label>
-                <div className={styles.dateInputs}>
-                  <select
-                    key={formState.data?.endDate?.month}
-                    name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH}
-                    className={[styles.formInput, styles.monthInput].join(' ')}
-                    defaultValue={formState.data?.endDate?.month || ''}
-                    disabled={isCurrent}
-                  >
-                    <option value=''>Month</option>
-                    {MONTHS.map((month) => (
-                      <option key={month.label} value={month.label}>
-                        {month.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type='text'
-                    name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR}
-                    placeholder='YYYY'
-                    className={[styles.formInput, styles.yearInput].join(' ')}
-                    defaultValue={formState.data?.endDate?.year || ''}
-                    disabled={isCurrent}
-                    maxLength={4}
-                    onInput={(e) => {
-                      const value = e.currentTarget.value
-                      if (!/^\d{0,4}$/.test(value)) {
-                        e.currentTarget.value = value
-                          .replace(/[^0-9]/g, '')
-                          .slice(0, 4)
-                      }
-                    }}
-                  />
-                </div>
-                <div className={styles.presentCheckbox}>
-                  <input
-                    type='checkbox'
-                    name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT}
-                    value='true'
-                    defaultChecked={formState.data?.endDate?.isPresent || false}
-                    key={`checkbox-${formState.data?.endDate?.isPresent}`}
-                    onChange={(e) => {
-                      setIsCurrent(e.target.checked)
-                    }}
-                  />
-                  <label htmlFor='isPresent' className={styles.checkboxLabel}>
-                    {selectedOption === FormSelectionState.experience
-                      ? 'Currently working here'
-                      : 'Currently working on this'}
-                  </label>
-                </div>
-                {formState.errors?.endDate && (
-                  <span className={styles.formError}>
-                    {formState.errors.endDate}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.formField}>
-              <label className={styles.formLabel}>Description (Optional)</label>
-              <textarea
-                ref={textareaRef}
-                name={EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION}
-                className={styles.formTextarea}
-                value={description}
-                rows={4}
-                placeholder={
-                  selectedOption === FormSelectionState.experience
-                    ? 'Describe your role and responsibilities, what you did, what technologies you used, etc. This is optional but if entered, the AI will be able to more effectively optimize and tailor the resume content.'
-                    : 'Describe your project, what you did, what technologies you used, etc. This is optional but if entered, the AI will be able to more effectively optimize and tailor the resume content.'
-                }
-                onChange={(e) => {
-                  const newValue = handleTextareaChange(e)
-                  setDescription(newValue)
-                }}
-                onInput={handleInput}
-              />
-              {formState.errors?.description && (
-                <span className={styles.formError}>
-                  {formState.errors.description}
-                </span>
-              )}
-            </div>
-
-            <button type='submit' className={styles.submitButton}>
-              {isEditingExisting ? 'Update & Continue' : 'Continue'}
+    <div className={styles.experienceProjectsForm}>
+      {!selectedOption ? (
+        <div className={styles.placeholderContent}>
+          {renderSelectionPhase()}
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} key={`form-${selectedOption}`}>
+          <div className={styles.formField}>
+            <button
+              type='button'
+              className={styles.backToChoiceButton}
+              onClick={handleDiscardAndReplace}
+            >
+              ← Back to selection
             </button>
-          </form>
-        )}
-      </div>
+          </div>
+
+          <div className={styles.formField}>
+            <label className={styles.formLabel}>
+              {selectedOption === FormSelectionState.experience
+                ? 'Job Title'
+                : 'Project Title'}
+            </label>
+            <input
+              type='text'
+              name={EXPERIENCE_FORM_DATA_KEYS.TITLE}
+              key={`title-${selectedOption}`}
+              className={`${styles.formInput} ${
+                formState.errors.title ? styles.error : ''
+              }`}
+              defaultValue={formState.data?.title || ''}
+              placeholder={
+                selectedOption === FormSelectionState.experience
+                  ? 'e.g., Software Engineer'
+                  : 'e.g., Personal Website'
+              }
+            />
+            {formState.errors.title && (
+              <span className={styles.formError}>{formState.errors.title}</span>
+            )}
+          </div>
+
+          {selectedOption === FormSelectionState.experience && (
+            <>
+              <div className={styles.formField}>
+                <label className={styles.formLabel}>Company</label>
+                <input
+                  type='text'
+                  name={EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME}
+                  key={`companyName-${selectedOption}`}
+                  className={`${styles.formInput} ${
+                    formState.errors.companyName ? styles.error : ''
+                  }`}
+                  defaultValue={formState.data?.companyName || ''}
+                  placeholder='e.g., Google'
+                />
+                {formState.errors.companyName && (
+                  <span className={styles.formError}>
+                    {formState.errors.companyName}
+                  </span>
+                )}
+              </div>
+
+              <div className={styles.formField}>
+                <label className={styles.formLabel}>Location</label>
+                <input
+                  type='text'
+                  name={EXPERIENCE_FORM_DATA_KEYS.LOCATION}
+                  key={`location-${selectedOption}`}
+                  className={`${styles.formInput} ${
+                    formState.errors.location ? styles.error : ''
+                  }`}
+                  defaultValue={formState.data?.location || ''}
+                  placeholder='e.g., San Francisco, CA'
+                />
+                {formState.errors.location && (
+                  <span className={styles.formError}>
+                    {formState.errors.location}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+
+          <div className={styles.dateRow}>
+            <div className={styles.formField}>
+              <label className={styles.formLabel}>Start Date</label>
+              <div className={styles.dateInputs}>
+                <select
+                  key={formState.data?.startDate?.month}
+                  name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH}
+                  className={[styles.formInput, styles.monthInput].join(' ')}
+                  defaultValue={formState.data?.startDate?.month || ''}
+                >
+                  <option value=''>Month</option>
+                  {MONTHS.map((month) => (
+                    <option key={month.label} value={month.label}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type='text'
+                  name={EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR}
+                  placeholder='YYYY'
+                  className={[styles.formInput, styles.yearInput].join(' ')}
+                  defaultValue={formState.data?.startDate?.year || ''}
+                  maxLength={4}
+                  onInput={(e) => {
+                    const value = e.currentTarget.value
+                    if (!/^\d{0,4}$/.test(value)) {
+                      e.currentTarget.value = value
+                        .replace(/[^0-9]/g, '')
+                        .slice(0, 4)
+                    }
+                  }}
+                />
+              </div>
+              {formState.errors?.startDate && (
+                <span className={styles.formError}>
+                  {formState.errors.startDate}
+                </span>
+              )}
+            </div>
+
+            <div className={styles.formField}>
+              <label className={styles.formLabel}>End Date</label>
+              <div className={styles.dateInputs}>
+                <select
+                  key={formState.data?.endDate?.month}
+                  name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH}
+                  className={[styles.formInput, styles.monthInput].join(' ')}
+                  defaultValue={formState.data?.endDate?.month || ''}
+                  disabled={isCurrent}
+                >
+                  <option value=''>Month</option>
+                  {MONTHS.map((month) => (
+                    <option key={month.label} value={month.label}>
+                      {month.label}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type='text'
+                  name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR}
+                  placeholder='YYYY'
+                  className={[styles.formInput, styles.yearInput].join(' ')}
+                  defaultValue={formState.data?.endDate?.year || ''}
+                  disabled={isCurrent}
+                  maxLength={4}
+                  onInput={(e) => {
+                    const value = e.currentTarget.value
+                    if (!/^\d{0,4}$/.test(value)) {
+                      e.currentTarget.value = value
+                        .replace(/[^0-9]/g, '')
+                        .slice(0, 4)
+                    }
+                  }}
+                />
+              </div>
+              <div className={styles.presentCheckbox}>
+                <input
+                  type='checkbox'
+                  name={EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT}
+                  value='true'
+                  defaultChecked={formState.data?.endDate?.isPresent || false}
+                  key={`checkbox-${formState.data?.endDate?.isPresent}`}
+                  onChange={(e) => {
+                    setIsCurrent(e.target.checked)
+                  }}
+                />
+                <label htmlFor='isPresent' className={styles.checkboxLabel}>
+                  {selectedOption === FormSelectionState.experience
+                    ? 'Currently working here'
+                    : 'Currently working on this'}
+                </label>
+              </div>
+              {formState.errors?.endDate && (
+                <span className={styles.formError}>
+                  {formState.errors.endDate}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.formField}>
+            <label className={styles.formLabel}>Description (Optional)</label>
+            <textarea
+              ref={textareaRef}
+              name={EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION}
+              className={styles.formTextarea}
+              value={description}
+              rows={4}
+              placeholder={
+                selectedOption === FormSelectionState.experience
+                  ? 'Describe your role and responsibilities, what you did, what technologies you used, etc. This is optional but if entered, the AI will be able to more effectively optimize and tailor the resume content.'
+                  : 'Describe your project, what you did, what technologies you used, etc. This is optional but if entered, the AI will be able to more effectively optimize and tailor the resume content.'
+              }
+              onChange={(e) => {
+                const newValue = handleTextareaChange(e)
+                setDescription(newValue)
+              }}
+              onInput={handleInput}
+            />
+            {formState.errors?.description && (
+              <span className={styles.formError}>
+                {formState.errors.description}
+              </span>
+            )}
+          </div>
+
+          <button type='submit' className={styles.submitButton}>
+            {isEditingExisting ? 'Update & Continue' : 'Continue'}
+          </button>
+        </form>
+      )}
     </div>
   )
 }

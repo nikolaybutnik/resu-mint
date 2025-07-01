@@ -2,52 +2,20 @@
 @import '../../../styles/variables';
 @import '../../../styles/mixins';
 
-.stepContent {
-  margin-top: 2rem;
-}
-
-.welcomeForm {
-  max-width: 400px;
-  margin: 0 auto;
-  text-align: left;
+.experienceProjectsForm {
+  @include welcome-form-container;
 }
 
 .placeholderContent {
-  text-align: center;
-
-  p {
-    font-size: 1rem;
-    color: $color-text;
-    margin-bottom: 1.5rem;
-  }
+  @include welcome-placeholder-content;
 }
 
 .choiceButtons {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 400px;
-  margin: 0 auto;
+  @include welcome-choice-container;
 }
 
 .choiceButton {
-  @include button-base;
-  background: transparent;
-  color: $color-primary;
-  border: 2px solid $color-primary;
-  padding: 1rem 1.5rem;
-  font-weight: 400;
-  border-radius: 12px;
-
-  &:hover {
-    background: color.adjust($color-primary, $lightness: 45%);
-    border-color: $color-primary;
-    transform: translateY(-1px);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
+  @include welcome-action-button('secondary');
 }
 
 .formField {
@@ -71,53 +39,11 @@
 }
 
 .submitButton {
-  @include button-base;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 0.875rem 2rem;
-  font-weight: 500;
-  width: 100%;
-  margin-top: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-  }
+  @include welcome-action-button('primary');
 }
 
 .backToChoiceButton {
-  @include button-base;
-  background: transparent;
-  color: $color-disabled;
-  border: none;
-  padding: 0.5rem 0;
-  font-weight: 400;
-  font-size: 0.9rem;
-  text-align: left;
-  margin-bottom: 1rem;
-
-  &:hover {
-    color: $color-text;
-    transform: translateX(-2px);
-  }
-
-  &:active {
-    transform: translateX(0);
-  }
+  @include welcome-action-button('text');
 }
 
 .dateInputs {
@@ -125,22 +51,5 @@
 }
 
 .presentCheckbox {
-  margin-top: 0.5rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  cursor: pointer;
-
-  input[type='checkbox'] {
-    width: 16px;
-    height: 16px;
-    accent-color: $color-primary;
-  }
-}
-
-.checkboxLabel {
-  font-size: 0.9rem;
-  color: $color-text;
-  margin: 0;
-  cursor: pointer;
+  @include custom-checkbox;
 }

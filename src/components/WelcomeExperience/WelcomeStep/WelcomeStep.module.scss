@@ -2,93 +2,31 @@
 @import '../../../styles/variables';
 @import '../../../styles/mixins';
 
-.stepContent {
-  margin-top: 2rem;
-}
-
 .welcomeScreen {
-  text-align: center;
-  max-width: 500px;
-  margin: 0 auto;
+  @include welcome-screen-container;
 }
 
 .welcomeFeatures {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  margin-bottom: 3rem;
+  @include welcome-features-container;
 }
 
 .feature {
-  text-align: center;
-
-  h3 {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: $color-text;
-    margin: 0.75rem 0 0.5rem 0;
-  }
-
-  p {
-    font-size: 1rem;
-    color: $color-disabled;
-    line-height: 1.5;
-    margin: 0;
-  }
+  @include welcome-feature;
 }
 
 .featureIcon {
-  font-size: 2.5rem;
-  margin-bottom: 0.5rem;
-  display: block;
+  @include welcome-feature-icon;
 }
 
 .getStartedButton {
-  @include button-base;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 1rem 3rem;
-  font-weight: 500;
-  font-size: 1.1rem;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  @include welcome-action-button('primary');
+  font-size: 18px;
   margin: 0 auto;
   display: block;
-
-  &:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
 }
 
-// Mobile responsiveness
-@media (max-width: 768px) {
-  .welcomeFeatures {
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-  }
-
-  .feature {
-    h3 {
-      font-size: 1.1rem;
-    }
-
-    p {
-      font-size: 0.95rem;
-    }
-  }
-
-  .featureIcon {
-    font-size: 2rem;
-  }
-
+@include breakpoint(tablet) {
   .getStartedButton {
-    padding: 0.875rem 2rem;
-    font-size: 1rem;
+    font-size: 16px;
   }
 }

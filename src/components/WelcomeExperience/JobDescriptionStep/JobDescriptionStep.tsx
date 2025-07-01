@@ -3,10 +3,12 @@ import { z } from 'zod'
 import styles from './JobDescriptionStep.module.scss'
 import { STORAGE_KEYS } from '@/lib/constants'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { shouldShowWelcomeExperience } from '@/lib/utils'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 
 interface JobDescriptionStepProps {
   onContinue: () => void
+  onStepComplete?: () => void
 }
 
 const jobDescriptionSchema = z.object({
@@ -17,6 +19,7 @@ type JobDescriptionFormData = z.infer<typeof jobDescriptionSchema>
 
 export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   onContinue,
+  onStepComplete,
 }) => {
   const [formData, setFormData] = useState<JobDescriptionFormData>({
     jobDescription: '',
@@ -66,12 +69,10 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       const value = e.target.value
       setFormData((prev) => ({ ...prev, [field]: value }))
 
-      // Clear errors when user starts typing
       if (errors[field]) {
         setErrors((prev) => ({ ...prev, [field]: '' }))
       }
 
-      // Reset analysis state when job description changes
       if (field === 'jobDescription' && hasAnalysis) {
         setHasAnalysis(false)
         localStorage.removeItem(STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS)
@@ -109,12 +110,14 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
 
       const analysis: JobDescriptionAnalysis = responseData.data || responseData
 
-      // Save analysis to localStorage
       localStorage.setItem(
         STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS,
         JSON.stringify(analysis)
       )
       setHasAnalysis(true)
+
+      // Notify parent that step is now complete
+      onStepComplete?.()
     } catch (error) {
       console.error('Error analyzing job description:', error)
       setErrors({
@@ -127,6 +130,15 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // If analysis is already complete, just continue to next step
+    if (hasAnalysis) {
+      console.log('Analysis complete, calling onContinue...')
+      const welcomeState = shouldShowWelcomeExperience()
+      console.log('Current welcome state:', welcomeState)
+      onContinue()
+      return
+    }
 
     // Validate form data
     const validation = jobDescriptionSchema.safeParse(formData)
@@ -148,40 +160,14 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
         formData.jobDescription
       )
 
-      // Analyze job description if not already analyzed
-      if (!hasAnalysis) {
-        await analyzeJobDescription(formData.jobDescription)
-      }
-
-      // Continue to next step
-      onContinue()
+      // Analyze job description
+      await analyzeJobDescription(formData.jobDescription)
     } catch (error) {
-      console.error('Error submitting job description:', error)
+      console.error('Error analyzing job description:', error)
       setErrors({
-        jobDescription: 'Failed to save job description. Please try again.',
+        jobDescription: 'Failed to analyze job description. Please try again.',
       })
     }
-  }
-
-  const handleAnalyzeOnly = async () => {
-    // Validate form data first
-    const validation = jobDescriptionSchema.safeParse(formData)
-    if (!validation.success) {
-      const newErrors: Record<string, string> = {}
-      validation.error.errors.forEach((error) => {
-        if (error.path.length > 0) {
-          newErrors[error.path[0] as string] = error.message
-        }
-      })
-      setErrors(newErrors)
-      return
-    }
-
-    // Save job description to localStorage
-    localStorage.setItem(STORAGE_KEYS.JOB_DESCRIPTION, formData.jobDescription)
-
-    // Analyze the job description
-    await analyzeJobDescription(formData.jobDescription)
   }
 
   if (!isClient) {
@@ -189,58 +175,46 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   }
 
   return (
-    <div className={styles.stepContent}>
-      <form onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.formField}>
-          <label className={styles.formLabel}>Job Description</label>
-          <textarea
-            className={`${styles.formTextarea} ${
-              errors.jobDescription ? styles.error : ''
-            }`}
-            placeholder='Paste the complete job description here. Our AI will analyze it to optimize your resume for this specific role, identifying key skills, requirements, and company information to help you stand out.'
-            value={formData.jobDescription}
-            onChange={handleInputChange('jobDescription')}
-            disabled={isAnalyzing}
-            rows={8}
-          />
-          {errors.jobDescription && (
-            <div className={styles.errorMessage}>{errors.jobDescription}</div>
-          )}
-        </div>
-
-        {isAnalyzing && (
-          <div className={styles.analyzingContainer}>
-            <LoadingSpinner text='Analyzing job description...' size='md' />
-          </div>
+    <form onSubmit={handleSubmit} className={styles.form}>
+      <div className={styles.formField}>
+        <label className={styles.formLabel}>Job Description</label>
+        <textarea
+          className={`${styles.formTextarea} ${
+            errors.jobDescription ? styles.error : ''
+          }`}
+          placeholder='Paste the complete job description here. Our AI will analyze it to optimize your resume for this specific role, identifying key skills, requirements, and company information to help you stand out.'
+          value={formData.jobDescription}
+          onChange={handleInputChange('jobDescription')}
+          disabled={isAnalyzing}
+          rows={8}
+        />
+        {errors.jobDescription && (
+          <div className={styles.errorMessage}>{errors.jobDescription}</div>
         )}
+      </div>
 
-        {hasAnalysis && !isAnalyzing && (
-          <div className={styles.analysisSuccess}>
-            ✅ Job description analyzed successfully! Your resume will be
-            optimized for this role.
-          </div>
-        )}
-
-        <div className={styles.actionButtons}>
-          {!hasAnalysis && formData.jobDescription.trim() && !isAnalyzing && (
-            <button
-              type='button'
-              className={styles.analyzeButton}
-              onClick={handleAnalyzeOnly}
-            >
-              Analyze Job Description
-            </button>
-          )}
-
-          <button
-            type='submit'
-            className={styles.continueButton}
-            disabled={isAnalyzing}
-          >
-            {hasAnalysis ? 'Continue' : 'Analyze & Continue'}
-          </button>
+      {isAnalyzing && (
+        <div className={styles.analyzingContainer}>
+          <LoadingSpinner text='Analyzing job description...' size='md' />
         </div>
-      </form>
-    </div>
+      )}
+
+      {hasAnalysis && !isAnalyzing && (
+        <div className={styles.analysisSuccess}>
+          ✅ Job description analyzed successfully! Your resume will be
+          optimized for this role.
+        </div>
+      )}
+
+      <div className={styles.actionButtons}>
+        <button
+          type='submit'
+          className={styles.continueButton}
+          disabled={isAnalyzing}
+        >
+          {hasAnalysis ? 'Continue' : 'Analyze'}
+        </button>
+      </div>
+    </form>
   )
 }
