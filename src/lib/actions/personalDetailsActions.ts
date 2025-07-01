@@ -51,6 +51,8 @@ export const submitPersonalDetails = async (
         data: validatedData.data,
       }
     } catch (error) {
+      console.error('Error saving personal details', error)
+
       return {
         errors: { submit: 'Failed to save personal details' },
         data: personalDetailsData,

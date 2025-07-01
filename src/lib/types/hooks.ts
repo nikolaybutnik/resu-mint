@@ -7,11 +7,10 @@ export interface DataHookResult<T, SaveType = T> {
 }
 
 // Specific hook result types
-export interface PersonalDetailsHookResult
-  extends DataHookResult<
-    import('./personalDetails').PersonalDetails | null,
-    import('./personalDetails').PersonalDetails
-  > {}
+export type PersonalDetailsHookResult = DataHookResult<
+  import('./personalDetails').PersonalDetails | null,
+  import('./personalDetails').PersonalDetails
+>
 
 // Future hook types (ready to uncomment when needed):
 // export interface EducationHookResult extends DataHookResult<

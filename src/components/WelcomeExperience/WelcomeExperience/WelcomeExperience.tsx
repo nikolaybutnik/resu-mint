@@ -450,13 +450,6 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     }
   }
 
-  const getPersonalDetails = (): PersonalDetailsType | undefined => {
-    const personalDetails = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS)
-    return personalDetails
-      ? (JSON.parse(personalDetails) as PersonalDetailsType)
-      : undefined
-  }
-
   const getEducation = (): EducationBlockData | undefined => {
     const education = localStorage.getItem(STORAGE_KEYS.EDUCATION)
     if (education) {
