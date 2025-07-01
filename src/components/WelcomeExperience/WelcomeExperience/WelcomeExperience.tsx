@@ -468,14 +468,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     return undefined
   }
 
-  const handlePersonalDetailsSubmit = (
-    personalDetailsData: PersonalDetailsType
-  ): void => {
-    localStorage.setItem(
-      STORAGE_KEYS.PERSONAL_DETAILS,
-      JSON.stringify(personalDetailsData)
-    )
-
+  const handlePersonalDetailsSubmit = (): void => {
     const newWelcomeState = shouldShowWelcomeExperience()
     setCurrentWelcomeState(newWelcomeState)
 
@@ -518,12 +511,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         return <WelcomeStep onGetStarted={handleGetStarted} />
 
       case 1:
-        return (
-          <PersonalDetailsStep
-            onSubmit={handlePersonalDetailsSubmit}
-            initialData={getPersonalDetails()}
-          />
-        )
+        return <PersonalDetailsStep onSubmit={handlePersonalDetailsSubmit} />
 
       case 2:
         return <ExperienceProjectsStep onContinue={handleNext} />

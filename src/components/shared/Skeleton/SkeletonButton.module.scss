@@ -1,0 +1,29 @@
+@import '../../../styles/mixins';
+
+.skeletonButton {
+  &.primary {
+    @include welcome-action-button('primary');
+    @include skeleton-shimmer;
+  }
+
+  &.secondary {
+    @include welcome-action-button('secondary');
+    @include skeleton-shimmer;
+  }
+
+  &.text {
+    @include welcome-action-button('text');
+    @include skeleton-shimmer;
+  }
+
+  &.skip {
+    @include welcome-action-button('skip');
+    @include skeleton-shimmer;
+  }
+
+  box-shadow: none !important;
+}
+
+.skeletonButtonText {
+  color: transparent;
+}

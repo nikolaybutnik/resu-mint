@@ -1,0 +1,28 @@
+@import '../../../styles/mixins';
+
+.skeletonFormField {
+  @include form-field;
+}
+
+.skeletonFormLabel {
+  @include form-label;
+  @include skeleton-shimmer;
+  border-radius: 4px;
+}
+
+.skeletonFormInput {
+  @include form-input-base;
+  @include skeleton-shimmer;
+
+  border: none;
+
+  // Remove focus states for skeleton
+  &:focus {
+    border-color: rgba($color-primary, 0.4);
+    box-shadow: none;
+  }
+}
+
+.skeletonPlaceholder {
+  color: transparent;
+}
