@@ -8,7 +8,7 @@ export const usePersonalDetails = (): PersonalDetailsHookResult => {
 
   return {
     data,
-    hasData: !!data?.name?.trim(),
+    hasData: !!data?.name?.trim() && !!data?.email?.trim(),
     save: (details: PersonalDetails) =>
       dataManager.savePersonalDetails(details),
     refresh: () => dataManager.invalidatePersonalDetails(),

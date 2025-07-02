@@ -46,6 +46,7 @@ import {
 import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
 import { STORAGE_KEYS } from '@/lib/constants'
+import { usePersonalDetails } from '@/lib/hooks/usePersonalDetails'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -106,15 +107,6 @@ const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
   return sorted1.every((item, index) => item === sorted2[index])
 }
 
-const initialPersonalDetails: PersonalDetailsType = {
-  name: '',
-  email: '',
-  phone: '',
-  location: '',
-  linkedin: '',
-  github: '',
-  website: '',
-}
 const initialWorkExperience: ExperienceBlockData[] = []
 const initialSettings: AppSettings = {
   bulletsPerExperienceBlock: 4,
@@ -250,6 +242,9 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const tabNavRef = useRef<HTMLDivElement>(null)
 
+  // Data Hooks
+  const personalDetailsHook = usePersonalDetails()
+
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
 
@@ -269,9 +264,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   )
   const [jobDescriptionAnalysis, setJobDescriptionAnalysis] =
     useState<JobDescriptionAnalysis>(initialJobDescriptionAnalysis)
-  const [personalDetails, setPersonalDetails] = useState<PersonalDetailsType>(
-    initialPersonalDetails
-  )
   const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
     initialWorkExperience
   )
@@ -427,7 +419,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     const stored = {
       jobDescription: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION),
       analysis: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS),
-      personalDetails: localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS),
       workExperience: localStorage.getItem(STORAGE_KEYS.EXPERIENCE),
       projects: localStorage.getItem(STORAGE_KEYS.PROJECTS),
       education: localStorage.getItem(STORAGE_KEYS.EDUCATION),
@@ -436,8 +427,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     }
     if (stored.jobDescription) setJobDescription(stored.jobDescription)
     if (stored.analysis) setJobDescriptionAnalysis(JSON.parse(stored.analysis))
-    if (stored.personalDetails)
-      setPersonalDetails(JSON.parse(stored.personalDetails))
     if (stored.workExperience)
       setWorkExperience(JSON.parse(stored.workExperience))
     if (stored.projects) setProjects(JSON.parse(stored.projects))
@@ -519,11 +508,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     } finally {
       setAnalyzingJob(false)
     }
-  }
-
-  const handlePersonalDetailsSave = (data: PersonalDetailsType) => {
-    setPersonalDetails(data)
-    localStorage.setItem(STORAGE_KEYS.PERSONAL_DETAILS, JSON.stringify(data))
   }
 
   const handleWorkExperienceSave = (data: ExperienceBlockData[]) => {
@@ -626,14 +610,19 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const resumeData = useMemo(() => {
     if (loading) return null
 
-    return buildResumeData(personalDetails, workExperience, projects, education)
-  }, [personalDetails, workExperience, projects, education, loading])
+    return buildResumeData(
+      personalDetailsHook.data,
+      workExperience,
+      projects,
+      education
+    )
+  }, [personalDetailsHook.data, workExperience, projects, education, loading])
 
   const isDataValid = useMemo(() => {
     if (loading || !resumeData) return false
 
     return isResumeDataValid(
-      personalDetails,
+      personalDetailsHook.data,
       workExperience,
       projects,
       education,
@@ -641,7 +630,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       jobDescriptionAnalysis
     )
   }, [
-    personalDetails,
+    personalDetailsHook.data,
     workExperience,
     projects,
     education,
@@ -708,13 +697,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
               onSave={handleJobDescriptionSave}
             />
           )}
-          {activeTab === Tabs.PERSONAL_DETAILS && (
-            <PersonalDetails
-              data={personalDetails}
-              loading={loading}
-              onSave={handlePersonalDetailsSave}
-            />
-          )}
+          {activeTab === Tabs.PERSONAL_DETAILS && <PersonalDetails />}
           {activeTab === Tabs.EXPERIENCE && (
             <WorkExperience
               data={workExperience}

@@ -1,29 +1,29 @@
-// Generic interface for all data hooks
-export interface DataHookResult<T, SaveType = T> {
+import { PersonalDetails } from './personalDetails'
+// import { EducationBlockData } from './education'
+// import { ExperienceBlockData } from './experience'
+// import { ProjectBlockData } from './projects'
+
+export interface DataHookResult<T> {
   data: T
   hasData: boolean
-  save: (data: SaveType) => Promise<void>
+  save: (data: T) => Promise<void>
   refresh: () => void
 }
 
-// Specific hook result types
-export type PersonalDetailsHookResult = DataHookResult<
-  import('./personalDetails').PersonalDetails | null,
-  import('./personalDetails').PersonalDetails
->
+export type PersonalDetailsHookResult = DataHookResult<PersonalDetails>
 
 // Future hook types (ready to uncomment when needed):
-// export interface EducationHookResult extends DataHookResult<
-//   import('./education').EducationBlockData[] | null,
-//   import('./education').EducationBlockData[]
-// > {}
+// export type EducationHookResult = DataHookResult<
+//   EducationBlockData[] | null,
+//   EducationBlockData[]
+// >
 
-// export interface ExperienceHookResult extends DataHookResult<
-//   import('./experience').ExperienceBlockData[] | null,
-//   import('./experience').ExperienceBlockData[]
-// > {}
+// export type ExperienceHookResult = DataHookResult<
+//   ExperienceBlockData[] | null,
+//   ExperienceBlockData[]
+// >
 
-// export interface ProjectsHookResult extends DataHookResult<
-//   import('./projects').ProjectBlockData[] | null,
-//   import('./projects').ProjectBlockData[]
-// > {}
+// export type ProjectsHookResult = DataHookResult<
+//   ProjectBlockData[] | null,
+//   ProjectBlockData[]
+// >
