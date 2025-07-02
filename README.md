@@ -28,19 +28,22 @@ This project is public, with a custom license allowing personal use and forks fo
 - **Skills Management**: Automatic skill extraction from descriptions with manual curation
 
 ### Smart User Experience
+- **Welcome Experience**: Guided 4-step onboarding flow with personalized content and smart progress tracking
 - **Drag-and-Drop Interface**: Easily arrange sections with dnd-kit, or hide sections entirely
 - **Mobile-Responsive**: Optimized input and preview modes for all devices (work in progress)
 - **Intelligent Messaging**: Context-aware status updates and requirement guidance
-- **Data Persistence**: Hybrid approach between memory caching and browser storage, with planned database integration
+- **Skeleton Loading**: Consistent loading states using design system mixins for seamless UX
+- **Data Persistence**: React 19 promise-based data management with multi-tier caching system
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript, SASS
 - **AI Integration**: OpenAI API (GPT-4o mini, GPT-4) with tiktoken for token management
-- **PDF Generation**: LaTeX with Tectonic for professional resume output
+- **PDF Generation**: LaTeX with Tectonic for professional resume output  
 - **UI Components**: dnd-kit for drag-and-drop, react-pdf for preview, react-icons
 - **Validation**: Zod schemas for type-safe form validation
-- **State Management**: React hooks with localStorage persistence
+- **State Management**: React 19 `use()` hook with promise-based data layer and localStorage persistence
+- **Loading States**: Mixin-based skeleton system integrated with design tokens
 
 ## Getting Started
 
@@ -86,9 +89,17 @@ This project is public, with a custom license allowing personal use and forks fo
 
 ## How to Use
 
-### Getting Started
+### Welcome Experience (First-Time Users)
+New users are guided through a 4-step onboarding process with personalized content:
+1. **Welcome Screen**: Introduction to ResuMint's AI-powered features
+2. **Personal Details**: Name, email, and contact information
+3. **Experience & Projects**: Add initial work experience or project
+4. **Education** (Optional): Academic background
+5. **Job Description**: Paste target job posting for AI optimization
+
+### Building Your Resume
 1. **Enter Job Description**: Paste a job posting for AI analysis and keyword extraction
-2. **Input Personal Details**: Add contact information and professional profiles
+2. **Input Personal Details**: Add contact information and professional profiles  
 3. **Build Your Resume**: Add work experience, projects, and education with drag-and-drop organization
 
 ### AI-Powered Features
@@ -109,7 +120,12 @@ ResuMint uses a modern, scalable Next.js architecture with intelligent caching a
 - **App Router**: Handles routing and API endpoints with TypeScript
 - **Component Architecture**: Feature-based organization with shared utilities
 - **Type Safety**: Comprehensive TypeScript with Zod validation schemas
-- **Styling**: SASS modules for component-based styling
+- **Styling**: SASS modules with comprehensive mixin system for consistency
+
+### User Experience Layer
+- **Welcome Experience**: Progressive onboarding with smart step navigation and completion tracking
+- **Loading States**: Skeleton components using design system mixins for consistent shimmer effects
+- **Data Management**: React 19 `use()` hook with promise-based caching for seamless data fetching
 
 ### AI & Processing Pipeline
 - **Job Analysis**: Extracts keywords, skills, and requirements from job descriptions
@@ -167,6 +183,8 @@ ResuMint implements a multi-tier caching system to minimize PDF generation laten
 - **Cache Warming**: Automated package download during build with fresh cache creation
 - **Environment Adaptation**: Cache size varies by environment (local vs production) for optimal resource usage
 - **Deployment Integration**: Cache included in deployment via Next.js `outputFileTracingIncludes`
+- **Skeleton Loading**: Mixin-based loading states automatically sync with design system changes
+- **React 19 Data Layer**: Promise-based caching eliminates loading flicker and improves perceived performance
 
 ## Project Structure
 
@@ -176,17 +194,25 @@ resu-mint/
 ├── scripts/             # Build scripts (Tectonic download)
 ├── src/
 │   ├── app/             # App Router pages and API routes
-│   │   ├── api/         # AI and PDF generation endpoints
+│   │   ├── admin/           # Admin dashboard for system monitoring
+│   │   ├── api/             # AI and PDF generation endpoints
 │   │   │   ├── analyze-job-description/    # Job analysis
 │   │   │   ├── generate-bullets/           # AI bullet generation
 │   │   │   ├── create-pdf/                 # PDF generation
-│   │   │   └── parse-section-skills/       # Skill extraction
+│   │   │   ├── parse-section-skills/       # Skill extraction
+│   │   │   └── tectonic-health/            # System health monitoring
 │   │   ├── globals.scss     # Global styles
 │   │   ├── layout.tsx       # Root layout
 │   │   └── page.tsx         # Main application page
 │   ├── components/      # React components
 │   │   ├── FormsContainer/  # Main application container
 │   │   ├── ResumePreview/   # Live PDF preview
+│   │   ├── WelcomeExperience/ # 5-step onboarding flow
+│   │   │   ├── WelcomeStep/       # Feature introduction
+│   │   │   ├── PersonalDetailsStep/ # Contact details collection
+│   │   │   ├── ExperienceProjectsStep/ # Initial content creation
+│   │   │   ├── EducationStep/     # Academic background (optional)
+│   │   │   └── JobDescriptionStep/ # Job targeting
 │   │   ├── JobDescription/  # Job analysis interface
 │   │   ├── PersonalDetails/ # Contact information
 │   │   ├── Experience/      # Work history with drag-and-drop
@@ -194,20 +220,32 @@ resu-mint/
 │   │   ├── Education/       # Academic background
 │   │   ├── Skills/          # Skill management
 │   │   ├── Settings/        # Application preferences
-│   │   ├── LoadingSpinner/  # Reusable loading component
 │   │   └── shared/          # Shared UI components
+│   │       ├── LoadingSpinner/  # Configurable loading indicators
+│   │       ├── Skeleton/        # Loading state components
+│   │       ├── BulletPoint/     # Interactive bullet point management
+│   │       └── LongPressHandler/ # Mobile interaction handler
 │   ├── lib/             # Core utilities and services
+│   │   ├── actions/         # Server actions for form handling
+│   │   │   ├── personalDetailsActions.ts # Personal details submission
+│   │   │   ├── experienceActions.ts      # Experience form handling
+│   │   │   └── educationActions.ts       # Education form handling
 │   │   ├── ai/              # AI prompts and tools
+│   │   ├── data/            # React 19 data management layer
+│   │   │   └── dataManager.ts            # Promise-based data caching
 │   │   ├── services/        # API and business logic
 │   │   │   ├── livePreviewService.ts  # PDF preview management
 │   │   │   ├── api.ts               # HTTP client
 │   │   │   ├── bulletService.ts     # Bullet generation
 │   │   │   └── pdfService.ts        # PDF creation
 │   │   ├── hooks/           # Custom React hooks
-│   │   │   └── useKeywordAnalysis.ts # Keyword tracking
+│   │   │   ├── useKeywordAnalysis.ts # Keyword tracking
+│   │   │   └── usePersonalDetails.ts # React 19 data hook
 │   │   ├── types/           # TypeScript definitions
 │   │   │   ├── api.ts       # API request/response types
 │   │   │   ├── keywords.ts  # Keyword analysis types
+│   │   │   ├── hooks.ts     # Hook return type interfaces
+│   │   │   ├── admin.ts     # Admin dashboard types
 │   │   │   ├── experience.ts, projects.ts, education.ts
 │   │   │   └── settings.ts, personalDetails.ts, errors.ts
 │   │   ├── template/        # LaTeX resume templates
@@ -229,6 +267,14 @@ resu-mint/
 - **POST /api/generate-bullets** - Creates AI-powered bullet points for experiences/projects
 - **POST /api/create-pdf** - Generates LaTeX-based PDF resumes
 - **POST /api/parse-section-skills** - Extracts skills from user descriptions
+- **GET/POST /api/tectonic-health** - System health monitoring and cache management
+
+## Admin Dashboard
+
+Access `/admin/dashboard` for system monitoring including:
+- **Tectonic Binary Status**: Verify PDF generation capabilities
+- **Cache Management**: Monitor build cache (persistent) and runtime cache performance
+- **Performance Metrics**: Track PDF generation speeds and cache effectiveness
 
 ## Future Enhancements
 
