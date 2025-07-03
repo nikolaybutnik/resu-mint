@@ -5,12 +5,10 @@ import {
   PersonalDetails as PersonalDetailsType,
   PersonalDetailsFormState,
 } from '@/lib/types/personalDetails'
-import { dataManager } from '../data/dataManager'
 
 export const submitPersonalDetails = async (
   _previousState: PersonalDetailsFormState,
-  formData: FormData,
-  onSubmit: (data: PersonalDetailsType) => void
+  formData: FormData
 ): Promise<PersonalDetailsFormState> => {
   const personalDetailsData: PersonalDetailsType = {
     name:
@@ -43,20 +41,9 @@ export const submitPersonalDetails = async (
   const validatedData = personalDetailsSchema.safeParse(personalDetailsData)
 
   if (validatedData.success) {
-    try {
-      await dataManager.savePersonalDetails(validatedData.data)
-      onSubmit(validatedData.data)
-      return {
-        errors: {},
-        data: validatedData.data,
-      }
-    } catch (error) {
-      console.error('Error saving personal details', error)
-
-      return {
-        errors: { submit: 'Failed to save personal details' },
-        data: personalDetailsData,
-      }
+    return {
+      errors: {},
+      data: validatedData.data,
     }
   } else {
     return {

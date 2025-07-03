@@ -46,7 +46,7 @@ import {
 import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
 import { STORAGE_KEYS } from '@/lib/constants'
-import { usePersonalDetails } from '@/lib/hooks/usePersonalDetails'
+import { usePersonalDetailsStore } from '@/stores'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -242,8 +242,8 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const tabNavRef = useRef<HTMLDivElement>(null)
 
-  // Data Hooks
-  const personalDetailsHook = usePersonalDetails()
+  // Stores
+  const { data: personalDetails } = usePersonalDetailsStore()
 
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
@@ -610,19 +610,14 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const resumeData = useMemo(() => {
     if (loading) return null
 
-    return buildResumeData(
-      personalDetailsHook.data,
-      workExperience,
-      projects,
-      education
-    )
-  }, [personalDetailsHook.data, workExperience, projects, education, loading])
+    return buildResumeData(personalDetails, workExperience, projects, education)
+  }, [personalDetails, workExperience, projects, education, loading])
 
   const isDataValid = useMemo(() => {
     if (loading || !resumeData) return false
 
     return isResumeDataValid(
-      personalDetailsHook.data,
+      personalDetails,
       workExperience,
       projects,
       education,
@@ -630,7 +625,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       jobDescriptionAnalysis
     )
   }, [
-    personalDetailsHook.data,
+    personalDetails,
     workExperience,
     projects,
     education,

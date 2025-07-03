@@ -33,7 +33,7 @@ This project is public, with a custom license allowing personal use and forks fo
 - **Mobile-Responsive**: Optimized input and preview modes for all devices (work in progress)
 - **Intelligent Messaging**: Context-aware status updates and requirement guidance
 - **Skeleton Loading**: Consistent loading states using design system mixins for seamless UX
-- **Data Persistence**: React 19 promise-based data management with multi-tier caching system
+- **Data Persistence**: Zustand-based global state management with intelligent localStorage caching
 
 ## Tech Stack
 
@@ -42,7 +42,7 @@ This project is public, with a custom license allowing personal use and forks fo
 - **PDF Generation**: LaTeX with Tectonic for professional resume output  
 - **UI Components**: dnd-kit for drag-and-drop, react-pdf for preview, react-icons
 - **Validation**: Zod schemas for type-safe form validation
-- **State Management**: React 19 `use()` hook with promise-based data layer and localStorage persistence
+- **State Management**: Zustand for global state with localStorage persistence via custom dataManager
 - **Loading States**: Mixin-based skeleton system integrated with design tokens
 
 ## Getting Started
@@ -122,10 +122,17 @@ ResuMint uses a modern, scalable Next.js architecture with intelligent caching a
 - **Type Safety**: Comprehensive TypeScript with Zod validation schemas
 - **Styling**: SASS modules with comprehensive mixin system for consistency
 
+### State Management Architecture
+- **Global Stores**: Zustand stores provide single source of truth for all application data
+- **Store Provider**: Centralized initialization in root layout for all stores
+- **Smart Loading States**: Separate `initializing` (skeleton) vs `loading` (operations) states
+- **Data Flow**: Component → Action (validation) → Store (state management) → DataManager (persistence)
+- **No Prop Drilling**: Direct store access from any component via hooks
+
 ### User Experience Layer
 - **Welcome Experience**: Progressive onboarding with smart step navigation and completion tracking
 - **Loading States**: Skeleton components using design system mixins for consistent shimmer effects
-- **Data Management**: React 19 `use()` hook with promise-based caching for seamless data fetching
+- **Data Management**: Zustand stores with intelligent loading states for seamless UX
 
 ### AI & Processing Pipeline
 - **Job Analysis**: Extracts keywords, skills, and requirements from job descriptions
@@ -184,7 +191,7 @@ ResuMint implements a multi-tier caching system to minimize PDF generation laten
 - **Environment Adaptation**: Cache size varies by environment (local vs production) for optimal resource usage
 - **Deployment Integration**: Cache included in deployment via Next.js `outputFileTracingIncludes`
 - **Skeleton Loading**: Mixin-based loading states automatically sync with design system changes
-- **React 19 Data Layer**: Promise-based caching eliminates loading flicker and improves perceived performance
+- **Zustand State Management**: Global stores eliminate prop drilling
 
 ## Project Structure
 
@@ -193,6 +200,10 @@ resu-mint/
 ├── public/              # Static assets and icons
 ├── scripts/             # Build scripts (Tectonic download)
 ├── src/
+│   ├── stores/          # Zustand global state stores
+│   │   ├── index.ts                 # Store exports
+│   │   ├── StoreProvider.tsx        # Store initialization
+│   │   └── personalDetailsStore.ts  # Personal details state
 │   ├── app/             # App Router pages and API routes
 │   │   ├── admin/           # Admin dashboard for system monitoring
 │   │   ├── api/             # AI and PDF generation endpoints
@@ -227,24 +238,23 @@ resu-mint/
 │   │       └── LongPressHandler/ # Mobile interaction handler
 │   ├── lib/             # Core utilities and services
 │   │   ├── actions/         # Server actions for form handling
-│   │   │   ├── personalDetailsActions.ts # Personal details submission
-│   │   │   ├── experienceActions.ts      # Experience form handling
-│   │   │   └── educationActions.ts       # Education form handling
+│   │   │   ├── personalDetailsActions.ts # Personal details validation
+│   │   │   ├── experienceActions.ts      # Experience form validation
+│   │   │   └── educationActions.ts       # Education form validation
 │   │   ├── ai/              # AI prompts and tools
-│   │   ├── data/            # React 19 data management layer
-│   │   │   └── dataManager.ts            # Promise-based data caching
+│   │   ├── data/            # Data persistence layer
+│   │   │   └── dataManager.ts            # localStorage operations with caching
 │   │   ├── services/        # API and business logic
 │   │   │   ├── livePreviewService.ts  # PDF preview management
 │   │   │   ├── api.ts               # HTTP client
 │   │   │   ├── bulletService.ts     # Bullet generation
 │   │   │   └── pdfService.ts        # PDF creation
 │   │   ├── hooks/           # Custom React hooks
-│   │   │   ├── useKeywordAnalysis.ts # Keyword tracking
-│   │   │   └── usePersonalDetails.ts # React 19 data hook
+│   │   │   ├── useKeywordAnalysis.ts # Keyword tracking and analysis
+│   │   │   └── useMobile.ts         # Mobile device detection
 │   │   ├── types/           # TypeScript definitions
 │   │   │   ├── api.ts       # API request/response types
 │   │   │   ├── keywords.ts  # Keyword analysis types
-│   │   │   ├── hooks.ts     # Hook return type interfaces
 │   │   │   ├── admin.ts     # Admin dashboard types
 │   │   │   ├── experience.ts, projects.ts, education.ts
 │   │   │   └── settings.ts, personalDetails.ts, errors.ts
@@ -344,6 +354,7 @@ I may introduce commercial licenses or premium features requiring authentication
 - [Jake Gutierrez](https://github.com/jakegut) for LaTeX resume template inspiration
 - [Tectonic](https://tectonic-typesetting.github.io) for reliable PDF generation
 - [dnd-kit](https://dndkit.com/) for fluid drag-and-drop functionality
+- [Zustand](https://zustand-demo.pmnd.rs/) for lightweight and intuitive state management
 
 ## Contact
 

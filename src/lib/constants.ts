@@ -1,4 +1,8 @@
-import { Month } from './types/projects'
+import { Month, ProjectBlockData } from './types/projects'
+import { PersonalDetails } from './types/personalDetails'
+import { ExperienceBlockData } from './types/experience'
+import { EducationBlockData } from './types/education'
+import { AppSettings } from './types/settings'
 
 // API
 export const API_BASE_URL = '/api'
@@ -107,4 +111,27 @@ export const EDUCATION_FORM_DATA_KEYS = {
   END_DATE_MONTH: 'endDate.month',
   END_DATE_YEAR: 'endDate.year',
   DESCRIPTION: 'description',
+} as const
+
+// Default State Values
+// TODO: skills
+export const DEFAULT_STATE_VALUES = {
+  PERSONAL_DETAILS: {
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    linkedin: '',
+    github: '',
+    website: '',
+  } as PersonalDetails,
+  EXPERIENCE: [] as ExperienceBlockData[],
+  PROJECTS: [] as ProjectBlockData[],
+  EDUCATION: [] as EducationBlockData[],
+  SETTINGS: {
+    bulletsPerExperienceBlock: 4,
+    bulletsPerProjectBlock: 3,
+    languageModel: 'gpt-4o-mini',
+    maxCharsPerBullet: 180,
+  } as AppSettings,
 } as const

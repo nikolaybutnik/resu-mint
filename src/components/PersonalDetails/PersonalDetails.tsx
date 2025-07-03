@@ -1,10 +1,10 @@
 import styles from './PersonalDetails.module.scss'
-import { useActionState, Suspense } from 'react'
+import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { PersonalDetailsFormState } from '@/lib/types/personalDetails'
 import { submitPersonalDetails } from '@/lib/actions/personalDetailsActions'
 import { PERSONAL_DETAILS_FORM_DATA_KEYS } from '@/lib/constants'
-import { usePersonalDetails } from '@/lib/hooks/usePersonalDetails'
+import { usePersonalDetailsStore } from '@/stores'
 import { SkeletonInputField } from '@/components/shared/Skeleton/SkeletonInputField'
 import { SkeletonButton } from '@/components/shared/Skeleton/SkeletonButton'
 
@@ -71,17 +71,43 @@ const SubmitButton: React.FC = () => {
   )
 }
 
-const PersonalDetailsContent: React.FC = () => {
-  const { data: personalDetails, save } = usePersonalDetails()
+const PersonalDetails: React.FC = () => {
+  const {
+    data: personalDetails,
+    save,
+    initializing,
+  } = usePersonalDetailsStore()
 
   const [state, formAction] = useActionState(
-    (prevState: PersonalDetailsFormState, formData: FormData) =>
-      submitPersonalDetails(prevState, formData, save),
+    async (prevState: PersonalDetailsFormState, formData: FormData) => {
+      const result = await submitPersonalDetails(prevState, formData)
+
+      if (Object.keys(result.errors).length === 0 && result.data) {
+        try {
+          await save(result.data)
+        } catch (error) {
+          console.error(
+            'PersonalDetails: error saving personal details:',
+            error
+          )
+          return {
+            errors: { submit: 'Failed to save personal details' },
+            data: result.data,
+          }
+        }
+      }
+
+      return result
+    },
     {
       errors: {},
       data: personalDetails,
     } as PersonalDetailsFormState
   )
+
+  if (initializing) {
+    return <LoadingState />
+  }
 
   return (
     <form className={styles.formSection} action={formAction}>
@@ -141,13 +167,5 @@ const LoadingState = () => (
     </div>
   </div>
 )
-
-const PersonalDetails: React.FC = () => {
-  return (
-    <Suspense fallback={<LoadingState />}>
-      <PersonalDetailsContent />
-    </Suspense>
-  )
-}
 
 export default PersonalDetails

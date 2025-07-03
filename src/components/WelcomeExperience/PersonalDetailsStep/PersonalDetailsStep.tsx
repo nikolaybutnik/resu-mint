@@ -1,29 +1,56 @@
 import styles from './PersonalDetailsStep.module.scss'
-import { useActionState, Suspense } from 'react'
+import { useActionState } from 'react'
 import { PERSONAL_DETAILS_FORM_DATA_KEYS } from '@/lib/constants'
 import { submitPersonalDetails } from '@/lib/actions/personalDetailsActions'
 import { PersonalDetailsFormState } from '@/lib/types/personalDetails'
-import { usePersonalDetails } from '@/lib/hooks/usePersonalDetails'
 import { SkeletonInputField } from '@/components/shared/Skeleton/SkeletonInputField'
 import { SkeletonButton } from '@/components/shared/Skeleton/SkeletonButton'
+import { usePersonalDetailsStore } from '@/stores'
 
 interface PersonalDetailsStepProps {
-  onSubmit: () => void
+  onSubmitSuccess: () => void
 }
 
-const PersonalDetailsStepContent: React.FC<PersonalDetailsStepProps> = ({
-  onSubmit,
+const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
+  onSubmitSuccess: onSubmit,
 }) => {
-  const { data: personalDetails } = usePersonalDetails()
+  const {
+    data: personalDetails,
+    initializing,
+    save,
+  } = usePersonalDetailsStore()
 
   const [state, formAction, isPending] = useActionState(
-    (prevState: PersonalDetailsFormState, formData: FormData) =>
-      submitPersonalDetails(prevState, formData, onSubmit),
+    async (prevState: PersonalDetailsFormState, formData: FormData) => {
+      const result = await submitPersonalDetails(prevState, formData)
+
+      if (Object.keys(result.errors).length === 0 && result.data) {
+        try {
+          await save(result.data)
+          onSubmit()
+        } catch (error) {
+          console.error(
+            'PersonalDetailsStep: error saving personal details:',
+            error
+          )
+          return {
+            errors: { submit: 'Failed to save personal details' },
+            data: result.data,
+          }
+        }
+      }
+
+      return result
+    },
     {
       errors: {},
       data: personalDetails,
     } as PersonalDetailsFormState
   )
+
+  if (initializing) {
+    return <LoadingState />
+  }
 
   return (
     <form action={formAction} className={styles.form}>
@@ -78,12 +105,4 @@ const LoadingState = () => (
   </div>
 )
 
-export const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = (
-  props
-) => {
-  return (
-    <Suspense fallback={<LoadingState />}>
-      <PersonalDetailsStepContent {...props} />
-    </Suspense>
-  )
-}
+export default PersonalDetailsStep

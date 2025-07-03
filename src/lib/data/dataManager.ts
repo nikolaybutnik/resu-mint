@@ -5,18 +5,7 @@ import {
   experienceBlockSchema,
   personalDetailsSchema,
 } from '../validationSchemas'
-
-const DEFAULT_PERSONAL_DETAILS: PersonalDetails = {
-  name: '',
-  email: '',
-  phone: '',
-  location: '',
-  linkedin: '',
-  github: '',
-  website: '',
-}
-
-const DEFAULT_EXPERIENCE: ExperienceBlockData[] = []
+import { DEFAULT_STATE_VALUES } from '../constants'
 
 const CACHE_KEYS = {
   PERSONAL_DETAILS_LOCAL: 'personalDetails-local',
@@ -75,17 +64,17 @@ class DataManager {
                 'Invalid personal details in Local Storage, using defaults:',
                 validation.error
               )
-              resolve(DEFAULT_PERSONAL_DETAILS)
+              resolve(DEFAULT_STATE_VALUES.PERSONAL_DETAILS)
             }
           } else {
-            resolve(DEFAULT_PERSONAL_DETAILS)
+            resolve(DEFAULT_STATE_VALUES.PERSONAL_DETAILS)
           }
         } catch (error) {
           console.error(
             'Error loading personal details, using defaults:',
             error
           )
-          resolve(DEFAULT_PERSONAL_DETAILS)
+          resolve(DEFAULT_STATE_VALUES.PERSONAL_DETAILS)
         }
       })
       this.cache.set(cacheKey, promise)
@@ -149,14 +138,14 @@ class DataManager {
                 'Invalid work experience in Local Storage, using defaults:',
                 validation.error
               )
-              resolve(DEFAULT_EXPERIENCE)
+              resolve(DEFAULT_STATE_VALUES.EXPERIENCE)
             }
           } else {
-            resolve(DEFAULT_EXPERIENCE)
+            resolve(DEFAULT_STATE_VALUES.EXPERIENCE)
           }
         } catch (error) {
           console.error('Error loading work experience, using defaults:', error)
-          resolve(DEFAULT_EXPERIENCE)
+          resolve(DEFAULT_STATE_VALUES.EXPERIENCE)
         }
       })
       this.cache.set(cacheKey, promise)

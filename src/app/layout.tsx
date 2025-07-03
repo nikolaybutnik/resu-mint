@@ -1,6 +1,7 @@
 import './globals.scss'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
+import { StoreProvider } from '@/stores'
 
 export default function RootLayout({
   children,
@@ -10,7 +11,7 @@ export default function RootLayout({
   return (
     <html lang='en'>
       <body>
-        {children}
+        <StoreProvider>{children}</StoreProvider>
         <SpeedInsights />
         <Analytics />
       </body>

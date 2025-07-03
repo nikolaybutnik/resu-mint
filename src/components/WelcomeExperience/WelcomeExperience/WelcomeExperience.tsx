@@ -12,7 +12,7 @@ import { ProjectBlockData } from '@/lib/types/projects'
 import { EducationBlockData } from '@/lib/types/education'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { STORAGE_KEYS } from '@/lib/constants'
-import { PersonalDetailsStep } from '../PersonalDetailsStep/PersonalDetailsStep'
+import PersonalDetailsStep from '../PersonalDetailsStep/PersonalDetailsStep'
 import { WelcomeStep } from '../WelcomeStep/WelcomeStep'
 import { ExperienceProjectsStep } from '../ExperienceProjectsStep/ExperienceProjectsStep'
 import { EducationStep } from '../EducationStep/EducationStep'
@@ -461,7 +461,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     return undefined
   }
 
-  const handlePersonalDetailsSubmit = (): void => {
+  const handlePersonalDetailsSubmitSuccess = (): void => {
     const newWelcomeState = shouldShowWelcomeExperience()
     setCurrentWelcomeState(newWelcomeState)
 
@@ -504,7 +504,11 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         return <WelcomeStep onGetStarted={handleGetStarted} />
 
       case 1:
-        return <PersonalDetailsStep onSubmit={handlePersonalDetailsSubmit} />
+        return (
+          <PersonalDetailsStep
+            onSubmitSuccess={handlePersonalDetailsSubmitSuccess}
+          />
+        )
 
       case 2:
         return <ExperienceProjectsStep onContinue={handleNext} />
