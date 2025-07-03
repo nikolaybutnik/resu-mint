@@ -1,7 +1,14 @@
 import { useState, useEffect } from 'react'
 import { dataManager } from '../data/dataManager'
 import { ExperienceBlockData } from '../types/experience'
-import { ExperienceHookResult } from '../types/hooks'
+
+interface ExperienceHookResult {
+  data: ExperienceBlockData[]
+  hasData: boolean
+  save: (experience: ExperienceBlockData[]) => Promise<void>
+  refresh: () => Promise<void>
+  loading: boolean
+}
 
 export const useExperience = (): ExperienceHookResult => {
   const [data, setData] = useState<ExperienceBlockData[]>([])
