@@ -1,20 +1,27 @@
 import styles from './Settings.module.scss'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useActionState } from 'react'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import {
   AppSettings,
   LanguageModel,
   SettingsFields,
 } from '@/lib/types/settings'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 interface SettingsProps {
   data: AppSettings
   loading: boolean
-  onSave: (data: AppSettings) => void
 }
 
-const Settings: React.FC<SettingsProps> = ({ data, loading, onSave }) => {
+// TODO: transition to useActionState
+
+const Settings: React.FC<SettingsProps> = ({ data, loading }) => {
   const [formValues, setFormValues] = useState<AppSettings>(data)
+  const {
+    data: settings,
+    loading: settingsLoading,
+    save: saveSettings,
+  } = useSettingsStore()
 
   useEffect(() => {
     setFormValues(data)
@@ -33,7 +40,7 @@ const Settings: React.FC<SettingsProps> = ({ data, loading, onSave }) => {
       [field]: value,
     }
     setFormValues(newValues)
-    onSave(newValues)
+    saveSettings(newValues)
   }
 
   return (

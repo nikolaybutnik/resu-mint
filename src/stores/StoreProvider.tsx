@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePersonalDetailsStore } from './personalDetailsStore'
+import { useSettingsStore } from './settingsStore'
 
 /**
  * StoreProvider - Initializes all Zustand stores when the app starts
@@ -13,10 +14,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const initPersonalDetails = usePersonalDetailsStore(
     (state) => state.initialize
   )
+  const initSettings = useSettingsStore((state) => state.initialize)
 
   useEffect(() => {
     initPersonalDetails()
-  }, [initPersonalDetails])
+    initSettings()
+  }, [initPersonalDetails, initSettings])
 
   return <>{children}</>
 }

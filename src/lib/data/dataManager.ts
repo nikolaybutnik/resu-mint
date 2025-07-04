@@ -4,14 +4,18 @@ import { PersonalDetails } from '../types/personalDetails'
 import {
   experienceBlockSchema,
   personalDetailsSchema,
+  settingsSchema,
 } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
+import { AppSettings } from '../types/settings'
 
 const CACHE_KEYS = {
   PERSONAL_DETAILS_LOCAL: 'personalDetails-local',
   PERSONAL_DETAILS_API: 'personalDetails-api',
   EXPERIENCE_LOCAL: 'experience-local',
   EXPERIENCE_API: 'experience-api',
+  SETTINGS_LOCAL: 'settings-local',
+  SETTINGS_API: 'settings-api',
 } as const
 
 type CacheKey = (typeof CACHE_KEYS)[keyof typeof CACHE_KEYS]
@@ -230,6 +234,76 @@ class DataManager {
       // Invalidate cache after saving to ensure fresh data on next read
       this.invalidateExperience()
       console.log('dataManager: bullet saved and cache invalidated')
+    } catch (error) {
+      if (this.isQuotaExceededError(error)) {
+        console.warn('Local Storage quota exceeded')
+        throw new Error('Storage quota exceeded. Please clear browser data.')
+      }
+      throw error
+    }
+  }
+
+  async getSettings(): Promise<AppSettings> {
+    const cacheKey = this.isAuthenticated()
+      ? CACHE_KEYS.SETTINGS_API
+      : CACHE_KEYS.SETTINGS_LOCAL
+
+    if (!this.cache.has(cacheKey)) {
+      const promise = new Promise<AppSettings>((resolve) => {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS)
+
+          if (stored) {
+            const parsed = JSON.parse(stored)
+            const validation = settingsSchema.safeParse(parsed)
+
+            if (validation.success) {
+              resolve(validation.data)
+            } else {
+              console.warn(
+                'Invalid settings in Local Storage, using defaults:',
+                validation.error
+              )
+              resolve(DEFAULT_STATE_VALUES.SETTINGS)
+            }
+          } else {
+            this.saveSettings(DEFAULT_STATE_VALUES.SETTINGS)
+            resolve(DEFAULT_STATE_VALUES.SETTINGS)
+          }
+        } catch (error) {
+          console.error('Error loading settings, using defaults:', error)
+          resolve(DEFAULT_STATE_VALUES.SETTINGS)
+        }
+      })
+      this.cache.set(cacheKey, promise)
+    }
+
+    return this.cache.get(cacheKey)! as Promise<AppSettings>
+  }
+
+  invalidateSettings() {
+    this.cache.delete(CACHE_KEYS.SETTINGS_LOCAL)
+    this.cache.delete(CACHE_KEYS.SETTINGS_API)
+  }
+
+  async saveSettings(data: AppSettings): Promise<void> {
+    this.invalidateSettings()
+
+    if (!this.isLocalStorageAvailable()) {
+      console.warn(
+        'Local Storage not available, data will not persist across sessions'
+      )
+
+      const cacheKey = this.isAuthenticated()
+        ? CACHE_KEYS.SETTINGS_API
+        : CACHE_KEYS.SETTINGS_LOCAL
+
+      this.cache.set(cacheKey, Promise.resolve(data))
+      return
+    }
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data))
     } catch (error) {
       if (this.isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')

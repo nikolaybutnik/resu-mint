@@ -2,7 +2,7 @@ import { Month, ProjectBlockData } from './types/projects'
 import { PersonalDetails } from './types/personalDetails'
 import { ExperienceBlockData } from './types/experience'
 import { EducationBlockData } from './types/education'
-import { AppSettings } from './types/settings'
+import { AppSettings, LanguageModel } from './types/settings'
 
 // API
 export const API_BASE_URL = '/api'
@@ -131,7 +131,7 @@ export const DEFAULT_STATE_VALUES = {
   SETTINGS: {
     bulletsPerExperienceBlock: 4,
     bulletsPerProjectBlock: 3,
-    languageModel: 'gpt-4o-mini',
+    languageModel: LanguageModel.GPT_4O_MINI,
     maxCharsPerBullet: 180,
   } as AppSettings,
 } as const

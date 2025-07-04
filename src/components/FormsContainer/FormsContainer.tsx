@@ -27,7 +27,6 @@ import {
   ParseSectionSkillsResponse,
 } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
-import { AppSettings, LanguageModel } from '@/lib/types/settings'
 import { EducationBlockData } from '@/lib/types/education'
 import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
@@ -47,6 +46,9 @@ import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
 import { STORAGE_KEYS } from '@/lib/constants'
 import { usePersonalDetailsStore } from '@/stores'
+import { useSettingsStore } from '@/stores/settingsStore'
+
+// TODO: As sections are being transitioned to Zustand stores, we'll gradually reduce prop drilling.
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -108,12 +110,6 @@ const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
 }
 
 const initialWorkExperience: ExperienceBlockData[] = []
-const initialSettings: AppSettings = {
-  bulletsPerExperienceBlock: 4,
-  bulletsPerProjectBlock: 3,
-  maxCharsPerBullet: 125,
-  languageModel: LanguageModel.GPT_4O_MINI,
-}
 const initialJobDescription: string = ''
 const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
   skillsRequired: { hard: [], soft: [] },
@@ -244,6 +240,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
   // Stores
   const { data: personalDetails } = usePersonalDetailsStore()
+  const { data: settings } = useSettingsStore()
 
   // Application States
   const [sessionId, setSessionId] = useState<string>('')
@@ -268,7 +265,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     initialWorkExperience
   )
   const [projects, setProjects] = useState<ProjectBlockData[]>(initialProjects)
-  const [settings, setSettings] = useState<AppSettings>(initialSettings)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
   const [skills, setSkills] = useState<{
@@ -422,7 +418,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       workExperience: localStorage.getItem(STORAGE_KEYS.EXPERIENCE),
       projects: localStorage.getItem(STORAGE_KEYS.PROJECTS),
       education: localStorage.getItem(STORAGE_KEYS.EDUCATION),
-      settings: localStorage.getItem(STORAGE_KEYS.SETTINGS),
       skills: localStorage.getItem(STORAGE_KEYS.SKILLS),
     }
     if (stored.jobDescription) setJobDescription(stored.jobDescription)
@@ -431,15 +426,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       setWorkExperience(JSON.parse(stored.workExperience))
     if (stored.projects) setProjects(JSON.parse(stored.projects))
     if (stored.education) setEducation(JSON.parse(stored.education))
-    if (stored.settings) {
-      setSettings(JSON.parse(stored.settings))
-    } else {
-      localStorage.setItem(
-        STORAGE_KEYS.SETTINGS,
-        JSON.stringify(initialSettings)
-      )
-      setSettings(initialSettings)
-    }
     if (stored.skills) {
       const parsedSkills = JSON.parse(stored.skills) as {
         hardSkills: string[]
@@ -530,11 +516,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       localStorage.setItem(STORAGE_KEYS.EDUCATION, JSON.stringify(data))
     }
   }, [])
-
-  const handleSettingsSave = (data: AppSettings) => {
-    setSettings(data)
-    localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data))
-  }
 
   const handleSkillsSave = useCallback(
     (data: { hardSkills: string[]; softSkills: string[] }) => {
@@ -724,11 +705,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
             <Skills data={skills} loading={loading} onSave={handleSkillsSave} />
           )}
           {activeTab === Tabs.SETTINGS && (
-            <Settings
-              data={settings}
-              loading={loading}
-              onSave={handleSettingsSave}
-            />
+            <Settings data={settings} loading={loading} />
           )}
         </div>
       </div>
