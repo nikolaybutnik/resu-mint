@@ -6,7 +6,6 @@ import EditableExperienceBlock from '@/components/Experience/EditableExperienceB
 import DraggableExperienceBlock from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
-import { AppSettings } from '@/lib/types/settings'
 import { BulletPointErrors } from '@/lib/types/errors'
 import {
   closestCenter,
@@ -35,12 +34,12 @@ import { bulletService } from '@/lib/services/bulletService'
 import isEqual from 'lodash/isEqual'
 import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
 import { KeywordData } from '@/lib/types/keywords'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 interface WorkExperienceProps {
   data: ExperienceBlockData[]
   keywordData: KeywordData
   jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: AppSettings
   loading: boolean
   onSave: (data: ExperienceBlockData[]) => void
 }
@@ -49,10 +48,11 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   data,
   keywordData,
   jobDescriptionAnalysis,
-  settings,
   loading,
   onSave,
 }) => {
+  const { data: settings } = useSettingsStore()
+
   const [localData, setLocalData] = useState<ExperienceBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)

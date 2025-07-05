@@ -113,6 +113,13 @@ export const EDUCATION_FORM_DATA_KEYS = {
   DESCRIPTION: 'description',
 } as const
 
+export const SETTINGS_FORM_DATA_KEYS = {
+  BULLETS_PER_EXPERIENCE_BLOCK: 'bulletsPerExperienceBlock',
+  BULLETS_PER_PROJECT_BLOCK: 'bulletsPerProjectBlock',
+  LANGUAGE_MODEL: 'languageModel',
+  MAX_CHARS_PER_BULLET: 'maxCharsPerBullet',
+} as const
+
 // Default State Values
 // TODO: skills
 export const DEFAULT_STATE_VALUES = {

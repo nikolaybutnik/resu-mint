@@ -27,7 +27,6 @@ import {
 } from '@dnd-kit/modifiers'
 import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import { BulletPoint, Month, ProjectBlockData } from '@/lib/types/projects'
-import { AppSettings } from '@/lib/types/settings'
 import { bulletService } from '@/lib/services'
 import { sanitizeResumeBullet } from '@/lib/utils'
 import { BulletPointErrors } from '@/lib/types/errors'
@@ -35,12 +34,12 @@ import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
 import isEqual from 'lodash/isEqual'
 import { FaPlus } from 'react-icons/fa'
 import { KeywordData } from '@/lib/types/keywords'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 interface ProjectsProps {
   data: ProjectBlockData[]
   keywordData: KeywordData
   jobDescriptionAnalysis: JobDescriptionAnalysis
-  settings: AppSettings
   loading: boolean
   onSave: (data: ProjectBlockData[]) => void
 }
@@ -49,10 +48,11 @@ const Projects = ({
   data,
   keywordData,
   jobDescriptionAnalysis,
-  settings,
   loading,
   onSave,
 }: ProjectsProps) => {
+  const { data: settings } = useSettingsStore()
+
   const [localData, setLocalData] = useState<ProjectBlockData[]>(data)
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
@@ -530,6 +530,7 @@ const Projects = ({
     [findProject, localData, onSave, updateProject]
   )
 
+  // TODO: bullets will become self contained and self validating to avoid prop drilling complexity
   const validateBulletText = useCallback(
     (text: string) => {
       if (!editingBullet) return

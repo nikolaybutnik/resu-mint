@@ -20,3 +20,8 @@ export const SettingsFields = {
   MAX_CHARS_PER_BULLET: 'maxCharsPerBullet',
   LANGUAGE_MODEL: 'languageModel',
 }
+
+export interface SettingsFormState {
+  errors: Record<string, string>
+  data?: AppSettings
+}

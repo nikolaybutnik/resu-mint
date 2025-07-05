@@ -123,11 +123,77 @@ ResuMint uses a modern, scalable Next.js architecture with intelligent caching a
 - **Styling**: SASS modules with comprehensive mixin system for consistency
 
 ### State Management Architecture
-- **Global Stores**: Zustand stores provide single source of truth for all application data
-- **Store Provider**: Centralized initialization in root layout for all stores
-- **Smart Loading States**: Separate `initializing` (skeleton) vs `loading` (operations) states
-- **Data Flow**: Component → Action (validation) → Store (state management) → DataManager (persistence)
-- **No Prop Drilling**: Direct store access from any component via hooks
+
+ResuMint uses a modern Zustand-based architecture that eliminates prop drilling and provides clean separation of concerns:
+
+#### **Clean Data Flow Pattern**
+```
+UI Layer → Action Layer → Store Layer → Persistence Layer
+```
+
+- **UI Layer**: Components handle user interaction and presentation
+- **Action Layer**: Pure validation functions with no side effects
+- **Store Layer**: Global state management with smart loading states
+- **Persistence Layer**: Data caching and localStorage operations
+
+#### **Zustand Store Features**
+- **Single Source of Truth**: Each data type has one global store (personalDetails, settings, etc.)
+- **Smart Loading States**: 
+  - `initializing: boolean` - Shows skeleton during first load only
+  - `loading: boolean` - Shows subtle feedback during operations
+- **Error Recovery**: Automatic state restoration on save failures
+- **Cache Integration**: Seamless integration with dataManager for persistence
+- **Direct Access**: No prop drilling - any component can access stores directly
+
+#### **Store Provider Pattern**
+- **Centralized Initialization**: All stores initialized in root layout via `StoreProvider`
+- **Automatic Setup**: Stores auto-initialize on app start
+- **Performance Optimized**: Stores only load data when first accessed
+- **Type Safety**: Full TypeScript support with proper type inference
+
+#### **Migration Pattern for New Data Types**
+Adding new data types follows a consistent pattern:
+
+1. **Create Store**: `src/stores/newDataStore.ts` with standard interface
+2. **Add to Provider**: Include in `StoreProvider.tsx` initialization
+3. **Create Actions**: Pure validation functions in `src/lib/actions/`
+4. **Update Components**: Use store hooks directly, no prop drilling
+5. **Extend DataManager**: Add persistence methods if needed
+
+This pattern ensures consistency and maintainability as the application scales.
+
+#### **Architecture Benefits**
+- **Eliminated Dual State Issues**: No more duplicate hook instances
+- **Scalable**: Easy to add new data types with consistent patterns
+- **Maintainable**: Clear separation of concerns across all layers
+- **Performant**: Smart caching and minimal re-renders
+- **Robust**: Multiple error handling layers with state recovery
+
+### Data Flow Example: Personal Details
+
+Here's how data flows through the architecture when a user submits personal details:
+
+1. **UI Layer**: `PersonalDetails.tsx` handles form submission
+2. **Action Layer**: `personalDetailsActions.ts` validates form data (pure function)
+3. **Store Layer**: `personalDetailsStore.ts` manages state and calls persistence
+4. **Persistence Layer**: `dataManager.ts` handles caching and localStorage operations
+
+```typescript
+// Component orchestrates the flow
+const [state, formAction] = useActionState(async (prevState, formData) => {
+  const result = await submitPersonalDetails(prevState, formData)
+  if (result.success) {
+    await store.save(result.data)  // Store handles state + persistence
+  }
+  return result
+})
+```
+
+This pattern ensures:
+- **Predictable data flow**: Always UI → Action → Store → Persistence
+- **Single responsibility**: Each layer has one clear purpose
+- **Error isolation**: Failures are contained and handled at appropriate layers
+- **Testability**: Pure functions and clear interfaces
 
 ### User Experience Layer
 - **Welcome Experience**: Progressive onboarding with smart step navigation and completion tracking
@@ -201,9 +267,10 @@ resu-mint/
 ├── scripts/             # Build scripts (Tectonic download)
 ├── src/
 │   ├── stores/          # Zustand global state stores
-│   │   ├── index.ts                 # Store exports
-│   │   ├── StoreProvider.tsx        # Store initialization
-│   │   └── personalDetailsStore.ts  # Personal details state
+│   │   ├── index.ts                 # Store exports and hooks
+│   │   ├── StoreProvider.tsx        # Centralized store initialization
+│   │   ├── personalDetailsStore.ts  # Personal details state management
+│   │   └── settingsStore.ts         # Application settings state
 │   ├── app/             # App Router pages and API routes
 │   │   ├── admin/           # Admin dashboard for system monitoring
 │   │   ├── api/             # AI and PDF generation endpoints
@@ -237,13 +304,15 @@ resu-mint/
 │   │       ├── BulletPoint/     # Interactive bullet point management
 │   │       └── LongPressHandler/ # Mobile interaction handler
 │   ├── lib/             # Core utilities and services
-│   │   ├── actions/         # Server actions for form handling
+│   │   ├── actions/         # Pure validation functions (no side effects)
 │   │   │   ├── personalDetailsActions.ts # Personal details validation
 │   │   │   ├── experienceActions.ts      # Experience form validation
-│   │   │   └── educationActions.ts       # Education form validation
+│   │   │   ├── projectActions.ts         # Project form validation
+│   │   │   ├── educationActions.ts       # Education form validation
+│   │   │   └── settingsActions.ts        # Settings form validation
 │   │   ├── ai/              # AI prompts and tools
 │   │   ├── data/            # Data persistence layer
-│   │   │   └── dataManager.ts            # localStorage operations with caching
+│   │   │   └── dataManager.ts            # Intelligent caching + localStorage operations
 │   │   ├── services/        # API and business logic
 │   │   │   ├── livePreviewService.ts  # PDF preview management
 │   │   │   ├── api.ts               # HTTP client
@@ -251,7 +320,9 @@ resu-mint/
 │   │   │   └── pdfService.ts        # PDF creation
 │   │   ├── hooks/           # Custom React hooks
 │   │   │   ├── useKeywordAnalysis.ts # Keyword tracking and analysis
-│   │   │   └── useMobile.ts         # Mobile device detection
+│   │   │   ├── useExperience.ts      # Experience data hook (legacy)
+│   │   │   ├── useMobile.ts         # Mobile device detection
+│   │   │   └── useAutoResizeTextarea.ts # Auto-resizing textarea utility
 │   │   ├── types/           # TypeScript definitions
 │   │   │   ├── api.ts       # API request/response types
 │   │   │   ├── keywords.ts  # Keyword analysis types

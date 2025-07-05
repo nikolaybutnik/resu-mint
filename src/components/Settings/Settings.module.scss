@@ -14,38 +14,18 @@
   @include list-container;
 }
 
-.formGroup {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 16px;
+.formField {
+  @include form-field;
+}
 
-  label {
-    font-size: 16px;
-    font-weight: 500;
-    color: $color-text;
-    margin-bottom: 8px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-
-    span {
-      font-size: 14px;
-      font-weight: 400;
-      color: $color-disabled;
-      background: $color-background;
-      border: 1px solid $color-border;
-      padding: 2px 8px;
-      border-radius: 10px;
-      line-height: 1.4;
-      transition: border-color 0.2s ease;
-    }
-  }
+.label {
+  @include form-label;
 }
 
 .rangeInput {
   @include range-slider;
 }
 
-.select {
-  @include custom-select;
+.formInput {
+  @include form-input-base;
 }

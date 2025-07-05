@@ -136,6 +136,7 @@ const normalizeForComparison = (skill: string): string => {
   return skill.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
+// TODO: move to hook
 const buildResumeData = (
   personalDetails: PersonalDetailsType,
   workExperience: ExperienceBlockData[],
@@ -459,6 +460,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     setLoading(false)
   }, [])
 
+  // TODO: handle in job description component
   const handleJobDescriptionSave = async (data: string) => {
     setJobDescription(data)
     localStorage.setItem(STORAGE_KEYS.JOB_DESCRIPTION, data)
@@ -581,8 +583,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     }
   }, [checkScrollIndicators])
 
-  // Memoize fairly stable states. States like projects and experience are updated too often.
-  const memoizedSettings = useMemo(() => settings, [settings])
   const memoizedJobDescriptionAnalysis = useMemo(
     () => jobDescriptionAnalysis,
     [jobDescriptionAnalysis]
@@ -680,7 +680,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
               keywordData={keywordData}
               loading={loading}
               jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
-              settings={memoizedSettings}
               onSave={handleWorkExperienceSave}
             />
           )}
@@ -690,7 +689,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
               keywordData={keywordData}
               loading={loading}
               jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
-              settings={memoizedSettings}
               onSave={handleProjectsSave}
             />
           )}
@@ -704,9 +702,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           {activeTab === Tabs.SKILLS && (
             <Skills data={skills} loading={loading} onSave={handleSkillsSave} />
           )}
-          {activeTab === Tabs.SETTINGS && (
-            <Settings data={settings} loading={loading} />
-          )}
+          {activeTab === Tabs.SETTINGS && <Settings />}
         </div>
       </div>
 
