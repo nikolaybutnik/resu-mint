@@ -13,50 +13,32 @@ import Portal from '@/components/shared/Portal/Portal'
 import { KeywordUtils } from '@/lib/keywordUtils'
 import { KeywordData } from '@/lib/types/keywords'
 import { useSettingsStore } from '@/stores'
+import { BulletPoint as BulletPointType } from '@/lib/types/experience'
+import { sanitizeResumeBullet } from '@/lib/utils'
+import { VALIDATION_DELAY } from '@/lib/constants'
+import { bulletTextValidationSchema } from '@/lib/validationSchemas'
+import { zodErrorsToFormErrors } from '@/lib/types/errors'
 
 interface BulletPointProps {
   sectionId: string
-  text: string
-  editingText: string
-  index: number
   isRegenerating: boolean
-  isEditing: boolean
   disableAllControls: boolean
-  errors: {
-    bulletEmpty?: string[]
-    bulletTooLong?: string[]
-  }
   isLocked: boolean
   isDangerousAction?: boolean
   keywordData: KeywordData | null
-  onCancelEdit: () => void
-  onBulletDelete: (index: number) => void
-  onBulletSave: () => void
-  onBulletEdit: (index: number) => void
-  onBulletRegenerate: (sectionId: string, index: number) => void
-  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  onLockToggle: (sectionId: string, index: number) => void
+
+  bulletData: BulletPointType
+  onBulletCancel: () => void
 }
 
 const BulletPoint: React.FC<BulletPointProps> = ({
   sectionId,
-  text,
-  editingText,
-  index,
   isRegenerating,
-  isEditing,
   disableAllControls,
-  errors,
-  isLocked,
   isDangerousAction = false,
   keywordData,
-  onCancelEdit,
-  onBulletDelete,
-  onBulletSave,
-  onBulletEdit,
-  onBulletRegenerate,
-  onTextareaChange,
-  onLockToggle,
+  bulletData,
+  onBulletCancel,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
   const bulletContainerRef = useRef<HTMLDivElement>(null)
@@ -71,8 +53,20 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   } | null>(null)
   const [isFadingIn, setIsFadingIn] = useState(false)
   const [isFadingOut, setIsFadingOut] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editModeText, setEditModeText] = useState('')
+  const [errors, setErrors] = useState<{
+    emptyBullet?: string
+    bulletTooLong?: string
+  }>({})
 
   const { data: settings } = useSettingsStore()
+
+  useEffect(() => {
+    if (bulletData.isTemporary) {
+      setEditMode(true)
+    }
+  }, [bulletData.isTemporary])
 
   useEffect(() => {
     if (isRegenerating) {
@@ -86,16 +80,10 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   }, [isRegenerating])
 
   useEffect(() => {
-    if (isEditing && editInputRef.current) {
+    if (editMode && editInputRef.current) {
       editInputRef.current.focus()
     }
-  }, [isEditing])
-
-  useEffect(() => {
-    if (isLocked && isEditing) {
-      onCancelEdit()
-    }
-  }, [isLocked, isEditing, onCancelEdit])
+  }, [editMode])
 
   useEffect(() => {
     if (!activePopup || !bulletContainerRef.current) {
@@ -145,7 +133,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       e.stopPropagation()
-      onBulletSave()
+      handleBulletSave()
     } else if (e.key === 'Enter' && e.shiftKey) {
       e.stopPropagation()
     } else if (e.key === ' ' || e.code === 'Space') {
@@ -153,7 +141,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     } else if (e.key === 'Escape') {
       e.preventDefault()
       e.stopPropagation()
-      onCancelEdit()
+      handleBulletEditCancel()
     }
   }
 
@@ -165,7 +153,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           : 'Changes will not take effect until the form is saved.'
       }`,
       onConfirm: () => {
-        onBulletDelete(index)
+        handleBulletDelete()
         setActivePopup(null)
       },
     },
@@ -176,10 +164,65 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           : 'Changes will not take effect until the form is saved.'
       }`,
       onConfirm: () => {
-        onBulletRegenerate(sectionId, index)
+        // onBulletRegenerate(sectionId, index)
         setActivePopup(null)
       },
     },
+  }
+
+  const validateBulletText = (text: string) => {
+    if (!editMode) return {}
+
+    const result = bulletTextValidationSchema.safeParse({
+      text,
+      maxCharsPerBullet: settings.maxCharsPerBullet,
+    })
+
+    if (result.success) {
+      setErrors({})
+      return
+    }
+
+    setErrors(zodErrorsToFormErrors(result.error))
+  }
+
+  const handleBulletEdit = (): void => {
+    setEditMode(true)
+    setEditModeText(bulletData.text)
+  }
+
+  const handleBulletEditCancel = (): void => {
+    setEditMode(false)
+    setEditModeText('')
+    setErrors({})
+    onBulletCancel()
+  }
+
+  // useEffect(() => {
+  //   if (isLocked && editMode) {
+  //     handleBulletEditCancel()
+  //   }
+  // }, [isLocked, editMode, handleBulletEditCancel])
+
+  const handleTextareaChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ): void => {
+    if (!editMode) return
+
+    const sanitized = sanitizeResumeBullet(e.target.value, false)
+    setEditModeText(sanitized)
+
+    setTimeout(() => validateBulletText(sanitized), VALIDATION_DELAY)
+  }
+
+  const handleBulletSave = (): void => {
+    console.log('save')
+    // save bullet to store
+    // if temporary bullet, remove it by calling onBulletCancel
+  }
+
+  const handleBulletDelete = (): void => {
+    console.log('delete')
   }
 
   return (
@@ -196,7 +239,10 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             className={styles.deleteButton}
             onClick={() => setActivePopup('delete')}
             disabled={
-              isEditing || isRegenerating || disableAllControls || isLocked
+              editMode ||
+              isRegenerating ||
+              disableAllControls ||
+              bulletData.isLocked
             }
             title='Delete bullet'
             data-no-dnd='true'
@@ -205,13 +251,13 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           </button>
         </div>
         <div className={styles.toolbarRight}>
-          {isEditing ? (
+          {editMode ? (
             <>
               <button
                 className={styles.saveButton}
-                onClick={onBulletSave}
+                onClick={handleBulletSave}
                 disabled={
-                  editingText.trim() === '' ||
+                  editModeText.trim() === '' ||
                   isRegenerating ||
                   disableAllControls
                 }
@@ -222,7 +268,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
               </button>
               <button
                 className={styles.cancelButton}
-                onClick={onCancelEdit}
+                onClick={handleBulletEditCancel}
                 disabled={isRegenerating || disableAllControls}
                 title='Cancel (Esc)'
                 data-no-dnd='true'
@@ -234,8 +280,10 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             <>
               <button
                 className={styles.editButton}
-                onClick={() => onBulletEdit(index)}
-                disabled={isRegenerating || disableAllControls || isLocked}
+                onClick={handleBulletEdit}
+                disabled={
+                  isRegenerating || disableAllControls || bulletData.isLocked
+                }
                 title='Edit bullet'
                 data-no-dnd='true'
               >
@@ -246,23 +294,29 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           <button
             className={[
               styles.lockButton,
-              isLocked ? styles.locked : styles.unlocked,
+              bulletData.isLocked ? styles.locked : styles.unlocked,
             ].join(' ')}
-            onClick={() => onLockToggle(sectionId, index)}
+            // onClick={() => onLockToggle(sectionId, index)}
             disabled={isRegenerating || disableAllControls}
             title='Lock bullet'
             data-no-dnd='true'
           >
-            {isLocked ? <FaLock size={12} /> : <FaUnlock size={12} />}
+            {bulletData.isLocked ? (
+              <FaLock size={12} />
+            ) : (
+              <FaUnlock size={12} />
+            )}
           </button>
           <button
             className={styles.regenerateButton}
-            onClick={
-              isEditing
-                ? () => onBulletRegenerate(sectionId, index)
-                : () => setActivePopup('regenerate')
+            // onClick={
+            //   editMode
+            //     ? () => onBulletRegenerate(sectionId, index)
+            //     : () => setActivePopup('regenerate')
+            // }
+            disabled={
+              isRegenerating || disableAllControls || bulletData.isLocked
             }
-            disabled={isRegenerating || disableAllControls || isLocked}
             title='Regenerate bullet'
             data-no-dnd='true'
           >
@@ -315,14 +369,14 @@ const BulletPoint: React.FC<BulletPointProps> = ({
         </Portal>
       )}
 
-      {isEditing ? (
+      {editMode ? (
         <div className={styles.bulletInputAreaWrapper}>
           <textarea
             ref={editInputRef}
             className={styles.bulletInputArea}
-            value={editingText}
+            value={editModeText}
             disabled={isRegenerating}
-            onChange={onTextareaChange}
+            onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             data-no-dnd='true'
             rows={4}
@@ -333,23 +387,21 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             <span
               className={[
                 styles.characterCount,
-                editingText.length > settings.maxCharsPerBullet * 0.9
-                  ? editingText.length > settings.maxCharsPerBullet
+                editModeText.length > settings.maxCharsPerBullet * 0.9
+                  ? editModeText.length > settings.maxCharsPerBullet
                     ? styles.characterCountExceeded
                     : styles.characterCountWarning
                   : '',
               ].join(' ')}
             >
-              {`${editingText.length}/${settings.maxCharsPerBullet} (max 500)`}
+              {`${editModeText.length}/${settings.maxCharsPerBullet} (max 500)`}
             </span>
-            {(errors.bulletEmpty || errors.bulletTooLong) && (
-              <p
-                className={[
-                  styles.formError,
-                  errors.bulletTooLong ? styles.flashWarning : '',
-                ].join(' ')}
-              >
-                {errors.bulletEmpty || errors.bulletTooLong}
+            {errors.emptyBullet && (
+              <p className={styles.formError}>{errors.emptyBullet}</p>
+            )}
+            {errors.bulletTooLong && (
+              <p className={[styles.formError, styles.flashWarning].join(' ')}>
+                {errors.bulletTooLong}
               </p>
             )}
           </div>
@@ -366,11 +418,11 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             <p>
               {keywordData && keywordData.usageStats.length > 0
                 ? KeywordUtils.highlightKeywords(
-                    text,
+                    bulletData.text,
                     keywordData.usageStats.map((stat) => stat.keyword),
                     styles.keywordHighlight
                   )
-                : text}
+                : bulletData.text}
             </p>
           </div>
         </div>

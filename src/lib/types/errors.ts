@@ -63,8 +63,3 @@ export const zodErrorsToFormErrors = (
     return acc
   }, {} as Record<string, string>)
 }
-
-export type BulletPointErrors = {
-  bulletEmpty?: string[]
-  bulletTooLong?: string[]
-}

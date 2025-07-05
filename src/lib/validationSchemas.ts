@@ -89,6 +89,29 @@ const bulletPointSchema = z.object({
     .max(500, 'Bullet point must be 500 characters or less'),
 })
 
+export const bulletTextValidationSchema = z
+  .object({
+    text: z.string().transform((val) => val.trim()),
+    maxCharsPerBullet: z.number().min(1),
+  })
+  .superRefine((data, ctx) => {
+    if (data.text === '') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Bullet text cannot be empty',
+        path: ['emptyBullet'],
+      })
+    }
+
+    if (data.text.length > data.maxCharsPerBullet) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Your character target is ${data.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+        path: ['bulletTooLong'],
+      })
+    }
+  })
+
 const monthLabels = [
   'Jan',
   'Feb',

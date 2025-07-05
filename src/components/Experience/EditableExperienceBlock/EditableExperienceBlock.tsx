@@ -7,7 +7,6 @@ import {
   ExperienceBlockData,
   ExperienceFormState,
 } from '@/lib/types/experience'
-import { BulletPointErrors } from '@/lib/types/errors'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
@@ -19,7 +18,6 @@ interface EditableExperienceBlockProps {
   isNew: boolean
   editingBulletIndex: number | null
   editingBulletText: string
-  bulletErrors: BulletPointErrors
   isRegenerating: boolean
   regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
@@ -37,7 +35,6 @@ interface EditableExperienceBlockProps {
   onBulletSave: () => void
   onBulletCancel: () => void
   onBulletDelete: (sectionId: string, index: number) => void
-  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   onLockToggle: (sectionId: string, index: number) => void
 }
 
@@ -46,21 +43,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   isNew,
   isRegenerating,
   editingBulletIndex,
-  editingBulletText,
-  bulletErrors,
-  regeneratingBullet,
-  keywordData,
   onDelete,
   onClose,
   onSave,
   onRegenerateBullet,
   onAddBullet,
-  onEditBullet,
-  onBulletSave,
-  onBulletCancel,
-  onBulletDelete,
-  onTextareaChange,
-  onLockToggle,
 }) => {
   const [state, formAction] = useActionState(
     (prevState: ExperienceFormState, formData: FormData): ExperienceFormState =>
@@ -99,15 +86,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       onDelete(data.id)
     }
   }
-
-  const handleRegenerateBullet = useCallback(
-    (sectionId: string, index: number) => {
-      if (sectionId === data.id) {
-        onRegenerateBullet(sectionId, index, data, true)
-      }
-    },
-    [data.id, data, onRegenerateBullet]
-  )
 
   // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
   const SubmitButton: React.FC = () => {
@@ -348,36 +326,39 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             const isEditingThisBullet = editingBulletIndex === index
 
             return (
-              <BulletPoint
-                key={bullet.id}
-                sectionId={data.id}
-                index={index}
-                text={bullet.text}
-                keywordData={keywordData}
-                editingText={isEditingThisBullet ? editingBulletText : ''}
-                isRegenerating={
-                  isRegenerating &&
-                  regeneratingBullet?.section === data.id &&
-                  regeneratingBullet?.index === index
-                }
-                isEditing={isEditingThisBullet}
-                disableAllControls={
-                  isRegenerating ||
-                  (editingBulletIndex !== null && !isEditingThisBullet)
-                }
-                errors={editingBulletIndex === index ? bulletErrors : {}}
-                isLocked={bullet.isLocked || false}
-                isDangerousAction={true}
-                onCancelEdit={onBulletCancel}
-                onBulletDelete={(index) => onBulletDelete(data.id, index)}
-                onBulletSave={onBulletSave}
-                onBulletEdit={(index) => onEditBullet(data.id, index)}
-                onBulletRegenerate={handleRegenerateBullet}
-                onTextareaChange={onTextareaChange}
-                onLockToggle={(sectionId, index) => {
-                  onLockToggle(sectionId, index)
-                }}
-              />
+              <div key={bullet.id}>
+                <p>{bullet.text}</p>
+              </div>
+              // <BulletPoint
+              //   key={bullet.id}
+              //   sectionId={data.id}
+              //   index={index}
+              //   text={bullet.text}
+              //   keywordData={keywordData}
+              //   editingText={isEditingThisBullet ? editingBulletText : ''}
+              //   isRegenerating={
+              //     isRegenerating &&
+              //     regeneratingBullet?.section === data.id &&
+              //     regeneratingBullet?.index === index
+              //   }
+              //   isEditing={isEditingThisBullet}
+              //   disableAllControls={
+              //     isRegenerating ||
+              //     (editingBulletIndex !== null && !isEditingThisBullet)
+              //   }
+              //   errors={editingBulletIndex === index ? bulletErrors : {}}
+              //   isLocked={bullet.isLocked || false}
+              //   isDangerousAction={true}
+              //   onCancelEdit={onBulletCancel}
+              //   onBulletDelete={(index) => onBulletDelete(data.id, index)}
+              //   onBulletSave={onBulletSave}
+              //   onBulletEdit={(index) => onEditBullet(data.id, index)}
+              //   onBulletRegenerate={handleRegenerateBullet}
+              //   onTextareaChange={onTextareaChange}
+              //   onLockToggle={(sectionId, index) => {
+              //     onLockToggle(sectionId, index)
+              //   }}
+              // />
             )
           })}
         </div>

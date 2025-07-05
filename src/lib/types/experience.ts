@@ -16,6 +16,7 @@ export interface BulletPoint {
   id: string
   text: string
   isLocked?: boolean
+  isTemporary?: boolean
 }
 
 export type StartDate = {

@@ -6,7 +6,6 @@ import EditableExperienceBlock from '@/components/Experience/EditableExperienceB
 import DraggableExperienceBlock from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
-import { BulletPointErrors } from '@/lib/types/errors'
 import {
   closestCenter,
   DndContext,
@@ -66,7 +65,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     section: string
     index: number
     text: string
-    errors?: BulletPointErrors
   } | null>(null)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
@@ -345,7 +343,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             }
           }
 
-          validateBulletText(generatedBullet.text)
+          // validateBulletText(generatedBullet.text)
         }
       } catch (error) {
         console.error('Error regenerating bullet', error)
@@ -534,48 +532,43 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [findExperience, localData, onSave, updateExperience]
   )
 
-  const validateBulletText = useCallback(
-    (text: string) => {
-      if (!editingBullet) return
+  // const validateBulletText = useCallback(
+  //   (text: string) => {
+  //     if (!editingBullet) return
 
-      const errors: {
-        bulletEmpty?: string[]
-        bulletTooLong?: string[]
-      } = {}
+  //     if (text.trim() === '') {
+  //       errors.bulletEmpty = ['Bullet text cannot be empty']
+  //     }
 
-      if (text.trim() === '') {
-        errors.bulletEmpty = ['Bullet text cannot be empty']
-      }
+  //     if (text.length > settings.maxCharsPerBullet) {
+  //       errors.bulletTooLong = [
+  //         `Your character target is ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
+  //       ]
+  //     }
 
-      if (text.length > settings.maxCharsPerBullet) {
-        errors.bulletTooLong = [
-          `Your character target is ${settings.maxCharsPerBullet}. For best results, keep each bullet consistent in length.`,
-        ]
-      }
+  //     setEditingBullet((prev) => {
+  //       if (!prev) return null
+  //       if (isEqual(prev.errors, errors)) return prev
+  //       return { ...prev, errors }
+  //     })
+  //   },
+  //   [editingBullet, settings.maxCharsPerBullet]
+  // )
 
-      setEditingBullet((prev) => {
-        if (!prev) return null
-        if (isEqual(prev.errors, errors)) return prev
-        return { ...prev, errors }
-      })
-    },
-    [editingBullet, settings.maxCharsPerBullet]
-  )
+  // const handleBulletTextUpdate = useCallback(
+  //   (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  //     if (!editingBullet) return
 
-  const handleBulletTextUpdate = useCallback(
-    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-      if (!editingBullet) return
+  //     const sanitized = sanitizeResumeBullet(e.target.value, false)
+  //     setEditingBullet((prev) => {
+  //       if (!prev) return null
+  //       return { ...prev, text: sanitized }
+  //     })
 
-      const sanitized = sanitizeResumeBullet(e.target.value, false)
-      setEditingBullet((prev) => {
-        if (!prev) return null
-        return { ...prev, text: sanitized }
-      })
-
-      setTimeout(() => validateBulletText(sanitized), VALIDATION_DELAY)
-    },
-    [validateBulletText]
-  )
+  //     setTimeout(() => validateBulletText(sanitized), VALIDATION_DELAY)
+  //   },
+  //   [validateBulletText]
+  // )
 
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
@@ -625,8 +618,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       isRegenerating: regeneratingBullet?.section === experience.id,
       regeneratingBullet,
       editingBulletText: isEditingBullet ? editingBullet.text : '',
-      bulletErrors: isEditingBullet ? editingBullet.errors || {} : {},
-      onTextareaChange: handleBulletTextUpdate,
       onEditBullet: handleBulletEdit,
       onBulletCancel: handleCancelEdit,
       onAddBullet: (sectionId: string) => handleAddBullet(sectionId, false),
@@ -677,7 +668,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
           isRegenerating={false}
           regeneratingBullet={null}
           editingBulletText=''
-          bulletErrors={{}}
           isOverlay={true}
           isExpanded={false}
           isDropping={false}
