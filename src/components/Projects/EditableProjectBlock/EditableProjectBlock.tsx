@@ -10,7 +10,6 @@ import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { MONTHS, PROJECT_FORM_DATA_KEYS } from '@/lib/constants'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { ProjectBlockData, ProjectFormState } from '@/lib/types/projects'
-import { AppSettings } from '@/lib/types/settings'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
@@ -23,7 +22,6 @@ interface EditableProjectBlockProps {
   editingBulletIndex: number | null
   editingBulletText: string
   bulletErrors: BulletPointErrors
-  settings: AppSettings
   isRegenerating: boolean
   regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
@@ -48,7 +46,6 @@ interface EditableProjectBlockProps {
 const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   data,
   isNew,
-  settings,
   isRegenerating,
   editingBulletIndex,
   editingBulletText,
@@ -451,7 +448,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                   (editingBulletIndex !== null && !isEditingThisBullet)
                 }
                 errors={editingBulletIndex === index ? bulletErrors : {}}
-                settings={settings}
                 isLocked={bullet.isLocked || false}
                 isDangerousAction={true}
                 onCancelEdit={onBulletCancel}

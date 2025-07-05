@@ -9,10 +9,10 @@ import {
   FaUnlock,
 } from 'react-icons/fa'
 import { memo, useEffect, useRef, useState } from 'react'
-import { AppSettings } from '@/lib/types/settings'
 import Portal from '@/components/shared/Portal/Portal'
 import { KeywordUtils } from '@/lib/keywordUtils'
 import { KeywordData } from '@/lib/types/keywords'
+import { useSettingsStore } from '@/stores'
 
 interface BulletPointProps {
   sectionId: string
@@ -26,7 +26,6 @@ interface BulletPointProps {
     bulletEmpty?: string[]
     bulletTooLong?: string[]
   }
-  settings: AppSettings
   isLocked: boolean
   isDangerousAction?: boolean
   keywordData: KeywordData | null
@@ -48,7 +47,6 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   isEditing,
   disableAllControls,
   errors,
-  settings,
   isLocked,
   isDangerousAction = false,
   keywordData,
@@ -73,6 +71,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   } | null>(null)
   const [isFadingIn, setIsFadingIn] = useState(false)
   const [isFadingOut, setIsFadingOut] = useState(false)
+
+  const { data: settings } = useSettingsStore()
 
   useEffect(() => {
     if (isRegenerating) {

@@ -51,7 +51,6 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
         const currentState = get()
         set({
           loading: false,
-          // Use existing data to avoid corrupting it
           data: currentState.data,
         })
       }

@@ -618,7 +618,6 @@ const Projects = ({
       data: project,
       keywordData,
       editingBulletIndex,
-      settings,
       isRegenerating: regeneratingBullet?.section === project.id,
       regeneratingBullet,
       editingBulletText: isEditingBullet ? editingBullet.text : '',

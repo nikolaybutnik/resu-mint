@@ -14,7 +14,6 @@ import {
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ProjectBlockData } from '@/lib/types/projects'
-import { AppSettings } from '@/lib/types/settings'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPointErrors } from '@/lib/types/errors'
 import { KeywordData } from '@/lib/types/keywords'
@@ -26,7 +25,6 @@ interface DraggableProjectBlockProps {
   editingBulletIndex: number | null
   editingBulletText: string
   bulletErrors: BulletPointErrors
-  settings: AppSettings
   isRegenerating: boolean
   isAnyBulletBeingEdited: boolean
   isAnyBulletRegenerating: boolean
@@ -59,7 +57,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   editingBulletIndex,
   editingBulletText,
   bulletErrors,
-  settings,
   isRegenerating,
   regeneratingBullet,
   isAnyBulletBeingEdited,
@@ -324,7 +321,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
               }
               errors={isEditingThisBullet ? bulletErrors : emptyErrors}
               isLocked={bullet.isLocked ?? false}
-              settings={settings}
               isDangerousAction={true}
               onCancelEdit={onBulletCancel}
               onBulletDelete={handleBulletDelete}
