@@ -6,9 +6,10 @@ import {
   SettingsFields,
   SettingsFormState,
 } from '@/lib/types/settings'
-import { useSettingsStore } from '@/stores/settingsStore'
+import { useSettingsStore } from '@/stores'
 import { submitSettings } from '@/lib/actions/settingsActions'
 import { useDebouncedCallback } from '@/lib/clientUtils'
+import { SkeletonInputField, SkeletonRangeInput } from '../shared/Skeleton'
 
 const Settings: React.FC = () => {
   const formRef = useRef<HTMLFormElement>(null)
@@ -61,13 +62,12 @@ const Settings: React.FC = () => {
     } as SettingsFormState
   )
 
-  // TODO: build skeleton loader
   if (initializing) {
-    return <div>Initializing...</div>
+    return <LoadingState />
   }
 
   return (
-    <form ref={formRef} className={styles.settings} action={formAction}>
+    <form ref={formRef} className={styles.formSection} action={formAction}>
       <h2 className={styles.formTitle}>Settings</h2>
 
       {loading && (
@@ -189,5 +189,17 @@ const Settings: React.FC = () => {
     </form>
   )
 }
+
+const LoadingState = () => (
+  <div className={styles.formSection}>
+    <h2 className={styles.formTitle}>Settings</h2>
+    <div className={styles.formFieldsContainer}>
+      <SkeletonRangeInput hasLabel />
+      <SkeletonRangeInput hasLabel />
+      <SkeletonRangeInput hasLabel />
+      <SkeletonInputField hasLabel />
+    </div>
+  </div>
+)
 
 export default Settings

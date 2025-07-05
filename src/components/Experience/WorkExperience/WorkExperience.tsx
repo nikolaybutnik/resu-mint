@@ -34,7 +34,7 @@ import { bulletService } from '@/lib/services/bulletService'
 import isEqual from 'lodash/isEqual'
 import { DROPPING_ANIMATION_DURATION, VALIDATION_DELAY } from '@/lib/constants'
 import { KeywordData } from '@/lib/types/keywords'
-import { useSettingsStore } from '@/stores/settingsStore'
+import { useSettingsStore } from '@/stores'
 
 interface WorkExperienceProps {
   data: ExperienceBlockData[]

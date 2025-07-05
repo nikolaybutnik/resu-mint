@@ -1,0 +1,40 @@
+@import '../../../styles/mixins';
+
+.skeletonFormField {
+  @include form-field;
+}
+
+.skeletonFormLabel {
+  @include form-label;
+  @include skeleton-shimmer;
+  border-radius: 4px;
+}
+
+.skeletonRangeInput {
+  position: relative;
+  width: 100%;
+  height: 20px;
+  margin-top: 8px;
+}
+
+.skeletonRangeTrack {
+  @include skeleton-shimmer;
+  width: 100%;
+  height: 4px;
+  background-color: #e0e0e0;
+  border-radius: 2px;
+  position: relative;
+  top: 8px;
+}
+
+.skeletonRangeThumb {
+  @include skeleton-shimmer;
+  width: 16px;
+  height: 16px;
+  background-color: #c0c0c0;
+  border-radius: 50%;
+  position: absolute;
+  top: -6px;
+  left: 35%;
+  transition: none;
+}
