@@ -23,7 +23,7 @@ export const useExperienceStore = create<ExpereinceStore>((set, get) => ({
   initialize: async () => {
     set({ loading: true })
     try {
-      const data = await dataManager.getExperience()
+      const data = (await dataManager.getExperience()) as ExperienceBlockData[]
       set({
         data,
         loading: false,
@@ -59,7 +59,7 @@ export const useExperienceStore = create<ExpereinceStore>((set, get) => ({
     try {
       set({ loading: true })
       dataManager.invalidateExperience()
-      const data = await dataManager.getExperience()
+      const data = (await dataManager.getExperience()) as ExperienceBlockData[]
       set({
         data,
         loading: false,
