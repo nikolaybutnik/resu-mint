@@ -45,7 +45,7 @@ import {
 import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
 import { STORAGE_KEYS } from '@/lib/constants'
-import { usePersonalDetailsStore } from '@/stores'
+import { useExperienceStore, usePersonalDetailsStore } from '@/stores'
 import { useSettingsStore } from '@/stores/settingsStore'
 
 // TODO: As sections are being transitioned to Zustand stores, we'll gradually reduce prop drilling.
@@ -241,6 +241,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
   // Stores
   const { data: personalDetails } = usePersonalDetailsStore()
+  const { data: workExperience } = useExperienceStore()
   const { data: settings } = useSettingsStore()
 
   // Application States
@@ -262,9 +263,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   )
   const [jobDescriptionAnalysis, setJobDescriptionAnalysis] =
     useState<JobDescriptionAnalysis>(initialJobDescriptionAnalysis)
-  const [workExperience, setWorkExperience] = useState<ExperienceBlockData[]>(
-    initialWorkExperience
-  )
   const [projects, setProjects] = useState<ProjectBlockData[]>(initialProjects)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
@@ -416,15 +414,12 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     const stored = {
       jobDescription: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION),
       analysis: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS),
-      workExperience: localStorage.getItem(STORAGE_KEYS.EXPERIENCE),
       projects: localStorage.getItem(STORAGE_KEYS.PROJECTS),
       education: localStorage.getItem(STORAGE_KEYS.EDUCATION),
       skills: localStorage.getItem(STORAGE_KEYS.SKILLS),
     }
     if (stored.jobDescription) setJobDescription(stored.jobDescription)
     if (stored.analysis) setJobDescriptionAnalysis(JSON.parse(stored.analysis))
-    if (stored.workExperience)
-      setWorkExperience(JSON.parse(stored.workExperience))
     if (stored.projects) setProjects(JSON.parse(stored.projects))
     if (stored.education) setEducation(JSON.parse(stored.education))
     if (stored.skills) {
@@ -495,13 +490,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       console.error('Job analysis error:', error)
     } finally {
       setAnalyzingJob(false)
-    }
-  }
-
-  const handleWorkExperienceSave = (data: ExperienceBlockData[]) => {
-    setWorkExperience(data)
-    if (data.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.EXPERIENCE, JSON.stringify(data))
     }
   }
 
@@ -680,7 +668,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
               keywordData={keywordData}
               loading={loading}
               jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
-              onSave={handleWorkExperienceSave}
             />
           )}
           {activeTab === Tabs.PROJECTS && (

@@ -56,12 +56,10 @@ class ExperienceManager {
       ExperienceBlockData[]
     >)
 
-    // If sectionId provided, return specific section
     if (sectionId) {
       return allExperience.find((block) => block.id === sectionId)
     }
 
-    // Otherwise return all sections
     return allExperience
   }
 
@@ -97,21 +95,29 @@ class ExperienceManager {
     const experienceBlockToUpdate = existingExperience.find(
       (block) => block.id === sectionId
     )
-    const bulletAlreadyExists = !!experienceBlockToUpdate?.bulletPoints.find(
-      (bullet) => bullet.id === data.id
-    )
 
     let updatedBulletPoints = experienceBlockToUpdate?.bulletPoints || []
 
-    if (bulletAlreadyExists && experienceBlockToUpdate) {
-      updatedBulletPoints = experienceBlockToUpdate?.bulletPoints.map(
-        (bullet) => (bullet.id === data.id ? data : bullet)
-      )
+    const bulletExists = experienceBlockToUpdate?.bulletPoints.some(
+      (bullet) => bullet.id === data.id
+    )
+
+    if (bulletExists) {
+      updatedBulletPoints =
+        experienceBlockToUpdate?.bulletPoints.map((bullet) =>
+          bullet.id === data.id
+            ? {
+                id: data.id,
+                text: data.text,
+                isLocked: data.isLocked ?? false,
+              }
+            : bullet
+        ) || []
     } else {
       updatedBulletPoints.push({
         id: data.id,
         text: data.text,
-        isLocked: data.isLocked,
+        isLocked: data.isLocked ?? false,
       })
     }
 

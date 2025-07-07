@@ -10,7 +10,6 @@ import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { MONTHS, PROJECT_FORM_DATA_KEYS } from '@/lib/constants'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { ProjectBlockData, ProjectFormState } from '@/lib/types/projects'
-import { BulletPointErrors } from '@/lib/types/errors'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
 import { submitProject } from '@/lib/actions/projectActions'
@@ -21,7 +20,6 @@ interface EditableProjectBlockProps {
   isNew: boolean
   editingBulletIndex: number | null
   editingBulletText: string
-  bulletErrors: BulletPointErrors
   isRegenerating: boolean
   regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
@@ -39,8 +37,6 @@ interface EditableProjectBlockProps {
   onBulletSave: () => void
   onBulletCancel: () => void
   onBulletDelete: (sectionId: string, index: number) => void
-  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
-  onLockToggle: (sectionId: string, index: number) => void
 }
 
 const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
@@ -48,8 +44,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   isNew,
   isRegenerating,
   editingBulletIndex,
-  editingBulletText,
-  bulletErrors,
   regeneratingBullet,
   keywordData,
   onDelete,
@@ -57,12 +51,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   onSave,
   onRegenerateBullet,
   onAddBullet,
-  onEditBullet,
-  onBulletSave,
   onBulletCancel,
-  onBulletDelete,
-  onTextareaChange,
-  onLockToggle,
 }) => {
   const [state, formAction] = useActionState(
     (prevState: ProjectFormState, formData: FormData): ProjectFormState =>
@@ -433,32 +422,21 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               <BulletPoint
                 key={bullet.id}
                 sectionId={data.id}
-                index={index}
-                text={bullet.text}
+                sectionType='project'
                 keywordData={keywordData}
-                editingText={isEditingThisBullet ? editingBulletText : ''}
                 isRegenerating={
                   isRegenerating &&
                   regeneratingBullet?.section === data.id &&
                   regeneratingBullet?.index === index
                 }
-                isEditing={isEditingThisBullet}
                 disableAllControls={
                   isRegenerating ||
                   (editingBulletIndex !== null && !isEditingThisBullet)
                 }
-                errors={editingBulletIndex === index ? bulletErrors : {}}
                 isLocked={bullet.isLocked || false}
                 isDangerousAction={true}
-                onCancelEdit={onBulletCancel}
-                onBulletDelete={(index) => onBulletDelete(data.id, index)}
-                onBulletSave={onBulletSave}
-                onBulletEdit={(index) => onEditBullet(data.id, index)}
-                onBulletRegenerate={handleRegenerateBullet}
-                onTextareaChange={onTextareaChange}
-                onLockToggle={(sectionId, index) => {
-                  onLockToggle(sectionId, index)
-                }}
+                bulletData={bullet}
+                onBulletCancel={onBulletCancel}
               />
             )
           })}

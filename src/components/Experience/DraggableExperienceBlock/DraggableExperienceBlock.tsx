@@ -272,6 +272,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             <BulletPoint
               key={bullet.id}
               sectionId={data.id}
+              sectionType='experience'
               keywordData={keywordData}
               isRegenerating={isRegeneratingThisBullet}
               disableAllControls={
@@ -289,6 +290,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           <BulletPoint
             key={temporaryBullet.id}
             sectionId={data.id}
+            sectionType='experience'
             keywordData={keywordData}
             isRegenerating={false}
             disableAllControls={false}

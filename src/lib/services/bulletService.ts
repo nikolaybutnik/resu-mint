@@ -5,6 +5,30 @@ import {
   GenerateBulletsResponse,
 } from '@/lib/types/api'
 import { sanitizeResumeBullet } from '@/lib/utils'
+import { BulletPoint } from '../types/experience'
+import { dataManager } from '@/lib/data/dataManager'
+import { useExperienceStore } from '@/stores'
+import { bulletTextValidationSchema } from '../validationSchemas'
+
+const updateSectionWithBullet = <
+  T extends { id: string; bulletPoints: BulletPoint[] }
+>(
+  sections: T[],
+  sectionId: string,
+  bullet: BulletPoint
+): T[] => {
+  return sections.map((section) =>
+    section.id === sectionId
+      ? {
+          ...section,
+          bulletPoints: [
+            ...section.bulletPoints.filter((b) => b.id !== bullet.id),
+            bullet,
+          ],
+        }
+      : section
+  )
+}
 
 export const bulletService = {
   generateBullets: async (
@@ -28,4 +52,63 @@ export const bulletService = {
       throw new Error('Failed to generate bullets')
     }
   },
+
+  saveBullet: async (
+    bullet: BulletPoint,
+    sectionId: string,
+    sectionType: 'experience' | 'project',
+    maxCharsPerBullet: number
+  ) => {
+    const validation = bulletTextValidationSchema.safeParse({
+      text: bullet.text,
+      maxCharsPerBullet,
+    })
+
+    if (!validation.success) {
+      throw new Error(validation.error.message)
+    }
+
+    try {
+      if (sectionType === 'experience') {
+        await dataManager.saveExperienceBullet(bullet, sectionId)
+      } else if (sectionType === 'project') {
+        await dataManager.saveProjectBullet(bullet, sectionId)
+      }
+
+      const cleanBullet = {
+        id: bullet.id,
+        text: bullet.text,
+        isLocked: bullet.isLocked ?? false,
+      }
+
+      if (sectionType === 'experience') {
+        const experienceStore = useExperienceStore.getState()
+        const updatedData = updateSectionWithBullet(
+          experienceStore.data,
+          sectionId,
+          cleanBullet
+        )
+
+        await experienceStore.save(updatedData)
+      } else if (sectionType === 'project') {
+        // TODO: handle project bullet saving when Zustand store is implemented
+        // const projectStore = useProjectStore.getState()
+        // const updatedData = updateSectionWithBullet(
+        //   projectStore.data,
+        //   sectionId,
+        //   cleanBullet
+        // )
+        // await projectStore.save(updatedData)
+      }
+    } catch (error) {
+      console.error('Error saving bullet:', error)
+      throw new Error('Failed to save bullet')
+    }
+  },
+
+  deleteBullet: async (
+    bulletId: string,
+    sectionId: string,
+    sectionType: 'experience' | 'project'
+  ) => {},
 }

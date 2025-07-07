@@ -15,7 +15,6 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { ProjectBlockData } from '@/lib/types/projects'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
-import { BulletPointErrors } from '@/lib/types/errors'
 import { KeywordData } from '@/lib/types/keywords'
 import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHandler'
 
@@ -24,7 +23,6 @@ interface DraggableProjectBlockProps {
   keywordData: KeywordData | null
   editingBulletIndex: number | null
   editingBulletText: string
-  bulletErrors: BulletPointErrors
   isRegenerating: boolean
   isAnyBulletBeingEdited: boolean
   isAnyBulletRegenerating: boolean
@@ -56,7 +54,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   keywordData,
   editingBulletIndex,
   editingBulletText,
-  bulletErrors,
   isRegenerating,
   regeneratingBullet,
   isAnyBulletBeingEdited,
@@ -72,9 +69,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   onBulletSave,
   onBulletCancel,
   onBulletDelete,
-  onTextareaChange,
   onDrawerToggle,
-  onLockToggle,
   onLockToggleAll,
   onToggleInclude,
 }) => {
@@ -113,34 +108,12 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
     () => localData.bulletPoints,
     [localData.bulletPoints]
   )
-  const emptyErrors = useMemo(() => ({}), [])
 
   const isEditingThisSection =
     editingBulletIndex !== null &&
     data.id === (editingBulletText ? data.id : null)
   const isDrawerDisabled =
     (isAnyBulletBeingEdited && !isEditingThisSection) || isAnyBulletRegenerating
-
-  const handleBulletDelete = useCallback(
-    (index: number) => onBulletDelete(data.id, index),
-    [data.id, onBulletDelete]
-  )
-
-  const handleBulletEdit = useCallback(
-    (index: number) => onEditBullet(data.id, index),
-    [data.id, onEditBullet]
-  )
-
-  const handleBulletRegenerate = useCallback(
-    (sectionId: string, index: number) =>
-      onRegenerateBullet(sectionId, index, false),
-    [onRegenerateBullet]
-  )
-
-  const handleBulletLockToggle = useCallback(
-    (sectionId: string, index: number) => onLockToggle(sectionId, index),
-    [onLockToggle]
-  )
 
   // TODO: implemennt
   const handleAllBulletsRegenerate = useCallback(
@@ -309,26 +282,17 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             <BulletPoint
               key={bullet.id}
               sectionId={data.id}
-              index={index}
-              text={bullet.text}
+              sectionType='project'
+              bulletData={bullet}
               keywordData={keywordData}
-              editingText={isEditingThisBullet ? editingBulletText : ''}
               isRegenerating={isRegeneratingThisBullet}
-              isEditing={isEditingThisBullet}
               disableAllControls={
                 isAnyBulletRegenerating ||
                 (isAnyBulletBeingEdited && !isEditingThisBullet)
               }
-              errors={isEditingThisBullet ? bulletErrors : emptyErrors}
               isLocked={bullet.isLocked ?? false}
               isDangerousAction={true}
-              onCancelEdit={onBulletCancel}
-              onBulletDelete={handleBulletDelete}
-              onBulletSave={onBulletSave}
-              onBulletEdit={handleBulletEdit}
-              onBulletRegenerate={handleBulletRegenerate}
-              onTextareaChange={onTextareaChange}
-              onLockToggle={handleBulletLockToggle}
+              onBulletCancel={onBulletCancel}
             />
           )
         })}

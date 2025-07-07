@@ -46,8 +46,6 @@ export const submitProject = (
       '',
   }
 
-  console.log('projectData', projectData)
-
   const validatedData = projectBlockSchema.safeParse(projectData)
 
   if (validatedData.success) {

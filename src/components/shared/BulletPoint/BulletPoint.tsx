@@ -18,26 +18,28 @@ import { sanitizeResumeBullet } from '@/lib/utils'
 import { VALIDATION_DELAY } from '@/lib/constants'
 import { bulletTextValidationSchema } from '@/lib/validationSchemas'
 import { zodErrorsToFormErrors } from '@/lib/types/errors'
+import { bulletService } from '@/lib/services/bulletService'
 
 interface BulletPointProps {
   sectionId: string
+  sectionType: 'experience' | 'project'
+  bulletData: BulletPointType
   isRegenerating: boolean
   disableAllControls: boolean
   isLocked: boolean
   isDangerousAction?: boolean
   keywordData: KeywordData | null
-
-  bulletData: BulletPointType
   onBulletCancel: () => void
 }
 
 const BulletPoint: React.FC<BulletPointProps> = ({
   sectionId,
+  sectionType,
+  bulletData,
   isRegenerating,
   disableAllControls,
   isDangerousAction = false,
-  keywordData,
-  bulletData,
+  keywordData, // TODO: work into Zustand store
   onBulletCancel,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
@@ -82,6 +84,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   useEffect(() => {
     if (editMode && editInputRef.current) {
       editInputRef.current.focus()
+      const textLength = editInputRef.current.value.length
+      editInputRef.current.setSelectionRange(textLength, textLength)
     }
   }, [editMode])
 
@@ -133,7 +137,9 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
       e.stopPropagation()
-      handleBulletSave()
+      if (editModeText.trim() !== '') {
+        handleBulletSave()
+      }
     } else if (e.key === 'Enter' && e.shiftKey) {
       e.stopPropagation()
     } else if (e.key === ' ' || e.code === 'Space') {
@@ -215,10 +221,27 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     setTimeout(() => validateBulletText(sanitized), VALIDATION_DELAY)
   }
 
-  const handleBulletSave = (): void => {
-    console.log('save')
-    // save bullet to store
-    // if temporary bullet, remove it by calling onBulletCancel
+  const handleBulletSave = async (): Promise<void> => {
+    const updatedBulletData = {
+      ...bulletData,
+      text: editModeText,
+      isLocked: bulletData.isLocked ?? false,
+    }
+
+    await bulletService.saveBullet(
+      updatedBulletData,
+      sectionId,
+      sectionType,
+      settings.maxCharsPerBullet
+    )
+
+    if (bulletData.isTemporary) {
+      onBulletCancel()
+    }
+
+    setEditMode(false)
+    setEditModeText('')
+    setErrors({})
   }
 
   const handleBulletDelete = (): void => {
