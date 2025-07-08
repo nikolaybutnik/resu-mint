@@ -1,271 +1,269 @@
 import styles from './JobDescription.module.scss'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { useDebouncedCallback } from '@/lib/clientUtils'
-import { useEffect, useState } from 'react'
-import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { useEffect, useRef, useState } from 'react'
 import { useMobile } from '@/lib/hooks'
 import { FiChevronUp, FiChevronDown } from 'react-icons/fi'
 import { useJobDetailsStore } from '@/stores'
+import { jobDetailsService } from '@/lib/services/jobDetailsService'
 
-interface JobDescriptionProps {
-  data: string
-  loading: boolean
-  analyzing: boolean
-  onSave: (data: string) => void
-  jobDescriptionAnalysis: JobDescriptionAnalysis
-}
-
-export const JobDescription: React.FC<JobDescriptionProps> = ({
-  data,
-  loading,
-  analyzing,
-  onSave,
-  jobDescriptionAnalysis,
-}) => {
+export const JobDetails: React.FC = () => {
   const { data: jobDetails } = useJobDetailsStore()
+  const isMobile = useMobile()
 
-  useEffect(() => {
-    console.log('jobDetails', jobDetails)
-  }, [jobDetails])
+  const prevJobDescription = useRef(jobDetails.originalJobDescription)
 
-  const [localData, setLocalData] = useState(data)
   const [expandedSummary, setExpandedSummary] = useState(false)
   const [expandedCompanyDesc, setExpandedCompanyDesc] = useState(false)
   const [isTextareaExpanded, setIsTextareaExpanded] = useState(false)
-
-  const isMobile = useMobile()
-  const debouncedOnSave = useDebouncedCallback(onSave, 2000)
+  const [jobDescriptionInput, setJobDescriptionInput] = useState(
+    jobDetails.originalJobDescription
+  )
+  const [analyzing, setAnalyzing] = useState(false)
 
   useEffect(() => {
-    setLocalData(data)
-  }, [data])
+    if (prevJobDescription.current === jobDetails.originalJobDescription) {
+      return
+    }
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setLocalData(e.target.value)
-    debouncedOnSave(e.target.value)
+    const analyzeJobDescription = async (jobDescription: string) => {
+      try {
+        setAnalyzing(true)
+        await jobDetailsService.analyzeJobDescription(jobDescription)
+      } catch (error) {
+        console.error('Analysis failed:', error)
+      } finally {
+        setAnalyzing(false)
+      }
+    }
+
+    analyzeJobDescription(jobDetails.originalJobDescription)
+  }, [jobDetails.originalJobDescription])
+
+  const saveJobDescription = async (data: string) => {
+    await jobDetailsService.saveJobDescription(data)
+  }
+
+  const debouncedSave = useDebouncedCallback(saveJobDescription, 2000)
+
+  const handleJobDescriptionChange = (
+    e: React.ChangeEvent<HTMLTextAreaElement>
+  ) => {
+    setJobDescriptionInput(e.target.value)
+    debouncedSave(e.target.value)
   }
 
   return (
-    <>
-      {loading ? (
-        <LoadingSpinner text='Loading the job details...' size='lg' />
-      ) : (
-        <div className={styles.jobDescription}>
-          <h2 className={styles.formTitle}>Job Details</h2>
-          {analyzing ? (
-            <LoadingSpinner text='Analyzing the job description...' size='lg' />
-          ) : (
-            <div className={styles.jobDescriptionContainer}>
-              <div className={styles.textareaWrapper}>
-                <textarea
-                  className={`${styles.formTextarea} ${
-                    isMobile && isTextareaExpanded ? styles.expanded : ''
-                  }`}
-                  placeholder='Paste the entire job description here and wait for analysis to complete. When you start building your resume, it will be aligned with the job description.'
-                  value={localData}
-                  onChange={handleChange}
-                  disabled={analyzing}
-                  onFocus={(e) => e.target.select()}
-                  onClick={(e) => e.currentTarget.select()}
-                />
-                {isMobile && (
-                  <button
-                    className={styles.expandButton}
-                    onClick={() => setIsTextareaExpanded(!isTextareaExpanded)}
-                    type='button'
-                  >
-                    {isTextareaExpanded ? <FiChevronUp /> : <FiChevronDown />}
-                  </button>
-                )}
-              </div>
+    <div className={styles.jobDescription}>
+      <h2 className={styles.formTitle}>Job Details</h2>
 
-              <div className={styles.jobDescriptionAnalysis}>
-                <h3 className={styles.analysisTitle}>Job Analysis</h3>
+      <div className={styles.jobDescriptionContainer}>
+        <div className={styles.textareaWrapper}>
+          <textarea
+            className={`${styles.formTextarea} ${
+              isMobile && isTextareaExpanded ? styles.expanded : ''
+            }`}
+            placeholder='Paste the entire job description here and wait for analysis to complete. When you start building your resume, it will be aligned with the job description.'
+            value={jobDescriptionInput}
+            onChange={handleJobDescriptionChange}
+            disabled={analyzing}
+            onFocus={(e) => e.target.select()}
+            onClick={(e) => e.currentTarget.select()}
+          />
+          {isMobile && (
+            <button
+              className={styles.expandButton}
+              onClick={() => setIsTextareaExpanded(!isTextareaExpanded)}
+              type='button'
+            >
+              {isTextareaExpanded ? <FiChevronUp /> : <FiChevronDown />}
+            </button>
+          )}
+        </div>
 
-                {jobDescriptionAnalysis.jobTitle && (
-                  <div className={styles.jobTitleSection}>
-                    <h4 className={styles.jobTitleHeading}>
-                      {jobDescriptionAnalysis.jobTitle}
-                    </h4>
-                    <div className={styles.workType}>
-                      {jobDescriptionAnalysis.location?.type && (
-                        <span
-                          className={`${styles.workTypeBadge} ${
-                            styles[jobDescriptionAnalysis.location.type]
-                          }`}
-                        >
-                          {jobDescriptionAnalysis.location.type}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )}
+        {analyzing ? (
+          <LoadingSpinner text='Analyzing the job description...' size='lg' />
+        ) : (
+          <>
+            <div className={styles.jobDescriptionAnalysis}>
+              <h3 className={styles.analysisTitle}>Job Analysis</h3>
 
-                {jobDescriptionAnalysis.specialInstructions && (
-                  <div className={styles.specialInstructionsSection}>
-                    <div className={styles.specialInstructionsLabel}>
-                      Important Application Instructions
-                    </div>
-                    <p className={styles.specialInstructionsText}>
-                      {jobDescriptionAnalysis.specialInstructions}
-                    </p>
-                  </div>
-                )}
-
-                <div className={styles.analysisGrid}>
-                  <div className={styles.analysisItem}>
-                    <h4 className={styles.analysisLabel}>Job Summary</h4>
-                    <div
-                      className={`${styles.summaryContainer} ${
-                        expandedSummary ? styles.expanded : ''
-                      }`}
-                    >
-                      <p className={styles.analysisText}>
-                        {jobDescriptionAnalysis.jobSummary ||
-                          'No summary available'}
-                      </p>
-                      {!expandedSummary &&
-                        jobDescriptionAnalysis.jobSummary && (
-                          <div className={styles.fadeOverlay}></div>
-                        )}
-                    </div>
-                    {jobDescriptionAnalysis.jobSummary && (
-                      <div className={styles.expandButtonContainer}>
-                        <button
-                          className={styles.contentExpandButton}
-                          onClick={() => setExpandedSummary(!expandedSummary)}
-                        >
-                          {expandedSummary ? 'Show less' : 'Show more'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className={styles.analysisItem}>
-                    <h4 className={styles.analysisLabel}>Hard Skills</h4>
-                    <div className={styles.skillsList}>
-                      {jobDescriptionAnalysis.skillsRequired?.hard?.length ? (
-                        jobDescriptionAnalysis.skillsRequired.hard.map(
-                          (skill, index) => (
-                            <span key={index} className={styles.skillTag}>
-                              {skill}
-                            </span>
-                          )
-                        )
-                      ) : (
-                        <p className={styles.emptyState}>
-                          No hard skills identified
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.analysisItem}>
-                    <h4 className={styles.analysisLabel}>Soft Skills</h4>
-                    <div className={styles.skillsList}>
-                      {jobDescriptionAnalysis.skillsRequired?.soft?.length ? (
-                        jobDescriptionAnalysis.skillsRequired.soft.map(
-                          (skill, index) => (
-                            <span key={index} className={styles.skillTag}>
-                              {skill}
-                            </span>
-                          )
-                        )
-                      ) : (
-                        <p className={styles.emptyState}>
-                          No soft skills identified
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.analysisItem}>
-                    <h4 className={styles.analysisLabel}>
-                      Contextual Technologies
-                    </h4>
-                    <div className={styles.skillsList}>
-                      {jobDescriptionAnalysis.contextualTechnologies?.length ? (
-                        jobDescriptionAnalysis.contextualTechnologies.map(
-                          (tech, index) => (
-                            <span key={index} className={styles.skillTag}>
-                              {tech}
-                            </span>
-                          )
-                        )
-                      ) : (
-                        <p className={styles.emptyState}>
-                          No technologies identified
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.analysisItem}>
-                    <h4 className={styles.analysisLabel}>
-                      Company Information
-                    </h4>
-                    <div className={styles.companyInfo}>
-                      <p>
-                        <strong>Name: </strong>
-                        {jobDescriptionAnalysis.companyName || 'Unknown'}
-                      </p>
-                      <p>
-                        <strong>Location: </strong>
-                        {jobDescriptionAnalysis.location?.listedLocation ||
-                          'Not specified'}
-                        {jobDescriptionAnalysis.location?.details && (
-                          <span className={styles.locationDetails}>
-                            <br />
-                            <small>
-                              {jobDescriptionAnalysis.location.details}
-                            </small>
-                          </span>
-                        )}
-                      </p>
-                      <p>
-                        <strong>Salary Range:</strong>{' '}
-                        {jobDescriptionAnalysis.salaryRange ? (
-                          jobDescriptionAnalysis.salaryRange
-                        ) : (
-                          <span className={styles.emptyState}>
-                            Not specified
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                    <div
-                      className={`${styles.summaryContainer} ${
-                        expandedCompanyDesc ? styles.expanded : ''
-                      }`}
-                    >
-                      <p className={styles.analysisText}>
-                        {jobDescriptionAnalysis.companyDescription ||
-                          'No company description available'}
-                      </p>
-                      {!expandedCompanyDesc &&
-                        jobDescriptionAnalysis.companyDescription && (
-                          <div className={styles.fadeOverlay}></div>
-                        )}
-                    </div>
-                    {jobDescriptionAnalysis.companyDescription && (
-                      <div className={styles.expandButtonContainer}>
-                        <button
-                          className={styles.contentExpandButton}
-                          onClick={() =>
-                            setExpandedCompanyDesc(!expandedCompanyDesc)
-                          }
-                        >
-                          {expandedCompanyDesc ? 'Show less' : 'Show more'}
-                        </button>
-                      </div>
+              {jobDetails.analysis?.jobTitle && (
+                <div className={styles.jobTitleSection}>
+                  <h4 className={styles.jobTitleHeading}>
+                    {jobDetails.analysis?.jobTitle}
+                  </h4>
+                  <div className={styles.workType}>
+                    {jobDetails.analysis?.location?.type && (
+                      <span
+                        className={`${styles.workTypeBadge} ${
+                          styles[jobDetails.analysis?.location.type]
+                        }`}
+                      >
+                        {jobDetails.analysis?.location.type}
+                      </span>
                     )}
                   </div>
                 </div>
+              )}
+
+              {jobDetails.analysis?.specialInstructions && (
+                <div className={styles.specialInstructionsSection}>
+                  <div className={styles.specialInstructionsLabel}>
+                    Important Application Instructions
+                  </div>
+                  <p className={styles.specialInstructionsText}>
+                    {jobDetails.analysis?.specialInstructions}
+                  </p>
+                </div>
+              )}
+
+              <div className={styles.analysisGrid}>
+                <div className={styles.analysisItem}>
+                  <h4 className={styles.analysisLabel}>Job Summary</h4>
+                  <div
+                    className={`${styles.summaryContainer} ${
+                      expandedSummary ? styles.expanded : ''
+                    }`}
+                  >
+                    <p className={styles.analysisText}>
+                      {jobDetails.analysis?.jobSummary ||
+                        'No summary available'}
+                    </p>
+                    {!expandedSummary && jobDetails.analysis?.jobSummary && (
+                      <div className={styles.fadeOverlay}></div>
+                    )}
+                  </div>
+                  {jobDetails.analysis?.jobSummary && (
+                    <div className={styles.expandButtonContainer}>
+                      <button
+                        className={styles.contentExpandButton}
+                        onClick={() => setExpandedSummary(!expandedSummary)}
+                      >
+                        {expandedSummary ? 'Show less' : 'Show more'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.analysisItem}>
+                  <h4 className={styles.analysisLabel}>Hard Skills</h4>
+                  <div className={styles.skillsList}>
+                    {jobDetails.analysis?.skillsRequired?.hard?.length ? (
+                      jobDetails.analysis?.skillsRequired.hard.map(
+                        (skill, index) => (
+                          <span key={index} className={styles.skillTag}>
+                            {skill}
+                          </span>
+                        )
+                      )
+                    ) : (
+                      <p className={styles.emptyState}>
+                        No hard skills identified
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.analysisItem}>
+                  <h4 className={styles.analysisLabel}>Soft Skills</h4>
+                  <div className={styles.skillsList}>
+                    {jobDetails.analysis?.skillsRequired?.soft?.length ? (
+                      jobDetails.analysis?.skillsRequired.soft.map(
+                        (skill, index) => (
+                          <span key={index} className={styles.skillTag}>
+                            {skill}
+                          </span>
+                        )
+                      )
+                    ) : (
+                      <p className={styles.emptyState}>
+                        No soft skills identified
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.analysisItem}>
+                  <h4 className={styles.analysisLabel}>
+                    Contextual Technologies
+                  </h4>
+                  <div className={styles.skillsList}>
+                    {jobDetails.analysis?.contextualTechnologies?.length ? (
+                      jobDetails.analysis?.contextualTechnologies.map(
+                        (tech, index) => (
+                          <span key={index} className={styles.skillTag}>
+                            {tech}
+                          </span>
+                        )
+                      )
+                    ) : (
+                      <p className={styles.emptyState}>
+                        No technologies identified
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.analysisItem}>
+                  <h4 className={styles.analysisLabel}>Company Information</h4>
+                  <div className={styles.companyInfo}>
+                    <p>
+                      <strong>Name: </strong>
+                      {jobDetails.analysis?.companyName || 'Unknown'}
+                    </p>
+                    <p>
+                      <strong>Location: </strong>
+                      {jobDetails.analysis?.location?.listedLocation ||
+                        'Not specified'}
+                      {jobDetails.analysis?.location?.details && (
+                        <span className={styles.locationDetails}>
+                          <br />
+                          <small>{jobDetails.analysis?.location.details}</small>
+                        </span>
+                      )}
+                    </p>
+                    <p>
+                      <strong>Salary Range:</strong>{' '}
+                      {jobDetails.analysis?.salaryRange ? (
+                        jobDetails.analysis?.salaryRange
+                      ) : (
+                        <span className={styles.emptyState}>Not specified</span>
+                      )}
+                    </p>
+                  </div>
+                  <div
+                    className={`${styles.summaryContainer} ${
+                      expandedCompanyDesc ? styles.expanded : ''
+                    }`}
+                  >
+                    <p className={styles.analysisText}>
+                      {jobDetails.analysis?.companyDescription ||
+                        'No company description available'}
+                    </p>
+                    {!expandedCompanyDesc &&
+                      jobDetails.analysis?.companyDescription && (
+                        <div className={styles.fadeOverlay}></div>
+                      )}
+                  </div>
+                  {jobDetails.analysis?.companyDescription && (
+                    <div className={styles.expandButtonContainer}>
+                      <button
+                        className={styles.contentExpandButton}
+                        onClick={() =>
+                          setExpandedCompanyDesc(!expandedCompanyDesc)
+                        }
+                      >
+                        {expandedCompanyDesc ? 'Show less' : 'Show more'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
-          )}
-        </div>
-      )}
-    </>
+          </>
+        )}
+      </div>
+    </div>
   )
 }

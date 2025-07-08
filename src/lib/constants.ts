@@ -48,9 +48,6 @@ export const LIVE_PREVIEW = {
 } as const
 
 export const STORAGE_KEYS = {
-  SESSION_ID: 'resumint_sessionId',
-  JOB_DESCRIPTION: 'resumint_jobDescription', // TODO: RETIRE
-  JOB_DESCRIPTION_ANALYSIS: 'resumint_jobDescriptionAnalysis', // TODO: RETIRE
   JOB_DETAILS: 'resumint_jobDetails',
   PERSONAL_DETAILS: 'resumint_personalDetails',
   EXPERIENCE: 'resumint_experience',

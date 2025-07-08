@@ -368,7 +368,6 @@ export const settingsSchema = z.object({
 })
 
 export const analyzeJobDescriptionRequestSchema = z.object({
-  sessionId: z.string().uuid('Invalid session ID'),
   jobDescription: z.string().min(1, 'Job description is required'),
   settings: settingsSchema,
 })
@@ -426,13 +425,16 @@ export const jobDescriptionAnalysisSchema = z.object({
     .default(''),
 })
 
+export const jobDescriptionSchema = z
+  .string()
+  .min(1, 'Job description is required')
+
 export const jobDetailsSchema = z.object({
-  originalJobDescription: z.string().min(1, 'Job description is required'),
+  originalJobDescription: jobDescriptionSchema,
   analysis: jobDescriptionAnalysisSchema,
 })
 
 export const resumeMintRequestSchema = z.object({
-  sessionId: z.string(),
   personalDetails: personalDetailsSchema,
   workExperience: z.array(experienceBlockSchema),
   projects: z.array(projectBlockSchema),

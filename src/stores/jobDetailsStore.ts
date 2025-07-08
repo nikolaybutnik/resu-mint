@@ -44,7 +44,11 @@ export const useJobDetailsStore = create<JobDetailsStore>((set, get) => ({
     try {
       set({ loading: true })
       await dataManager.saveJobDescription(data)
-      set({ loading: false })
+      set({
+        loading: false,
+        data: { ...get().data, originalJobDescription: data },
+        hasJobDescription: !!data,
+      })
     } catch (error) {
       console.error('JobDetailsStore: saveJobDescription error:', error)
       const currentState = get()
@@ -59,7 +63,11 @@ export const useJobDetailsStore = create<JobDetailsStore>((set, get) => ({
     try {
       set({ loading: true })
       await dataManager.saveAnalysis(data)
-      set({ loading: false })
+      set({
+        loading: false,
+        data: { ...get().data, analysis: data },
+        hasAnalysis: !!data.jobSummary,
+      })
     } catch (error) {
       console.error('JobDetailsStore: saveAnalysis error:', error)
       const currentState = get()

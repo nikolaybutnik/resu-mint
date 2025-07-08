@@ -5,7 +5,6 @@ import { AppSettings } from './settings'
 import { EducationBlockData } from './education'
 
 export interface MintResumeRequestData {
-  sessionId: string
   personalDetails: PersonalDetails
   workExperience: ExperienceBlockData[]
   projects: ProjectBlockData[]
@@ -39,7 +38,6 @@ export interface GeneratedBulletsResponseModel {
 }
 
 export interface AnalyzeJobDescriptionRequest {
-  sessionId: string
   jobDescription: string
   settings: AppSettings
 }

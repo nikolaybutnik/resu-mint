@@ -3,24 +3,19 @@
 import styles from './FormsContainer.module.scss'
 import resumePreviewStyles from '@/components/ResumePreview/ResumePreview.module.scss'
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import ResumePreview from '@/components/ResumePreview/ResumePreview'
 import PersonalDetails from '@/components/PersonalDetails/PersonalDetails'
 import WorkExperience from '../Experience/WorkExperience/WorkExperience'
 import Education from '../Education/Education/Education'
 import Settings from '../Settings/Settings'
-import { JobDescription } from '../JobDescription/JobDescription'
+import { JobDetails } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
 import Skills from '../Skills/Skills'
 import { MOBILE_VIEW, ROUTES } from '@/lib/constants'
-import {
-  jobDescriptionAnalysisSchema,
-  parseSectionSkillsResponseSchema,
-} from '@/lib/validationSchemas'
+import { parseSectionSkillsResponseSchema } from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
 import {
-  AnalyzeJobDescriptionRequest,
   CreatePdfRequest,
   JobDescriptionAnalysis,
   ParseSectionSkillsRequest,
@@ -45,7 +40,11 @@ import {
 import saveAs from 'file-saver'
 import LoadingSpinner from '../shared/LoadingSpinner/LoadingSpinner'
 import { STORAGE_KEYS } from '@/lib/constants'
-import { useExperienceStore, usePersonalDetailsStore } from '@/stores'
+import {
+  useExperienceStore,
+  useJobDetailsStore,
+  usePersonalDetailsStore,
+} from '@/stores'
 import { useSettingsStore } from '@/stores/settingsStore'
 
 // TODO: As sections are being transitioned to Zustand stores, we'll gradually reduce prop drilling.
@@ -109,18 +108,6 @@ const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
   return sorted1.every((item, index) => item === sorted2[index])
 }
 
-const initialJobDescription: string = ''
-const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
-  skillsRequired: { hard: [], soft: [] },
-  jobTitle: '',
-  jobSummary: '',
-  specialInstructions: '',
-  location: { type: 'remote', details: '', listedLocation: '' },
-  companyName: '',
-  companyDescription: '',
-  contextualTechnologies: [],
-  salaryRange: '',
-}
 const initialProjects: ProjectBlockData[] = []
 const initialEducation: EducationBlockData[] = []
 const initialSkills: {
@@ -242,14 +229,11 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const { data: personalDetails } = usePersonalDetailsStore()
   const { data: workExperience } = useExperienceStore()
   const { data: settings } = useSettingsStore()
-
-  // Application States
-  const [sessionId, setSessionId] = useState<string>('')
+  const { data: jobDetails } = useJobDetailsStore()
 
   // UI States
   const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
   const [loading, setLoading] = useState(true)
-  const [analyzingJob, setAnalyzingJob] = useState(false)
   const [parsingSkills, setParsingSkills] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const [safariUnsupported, setSafariUnsupported] = useState(false)
@@ -257,11 +241,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const [showRightScroll, setShowRightScroll] = useState(false)
 
   // Form States
-  const [jobDescription, setJobDescription] = useState<string>(
-    initialJobDescription
-  )
-  const [jobDescriptionAnalysis, setJobDescriptionAnalysis] =
-    useState<JobDescriptionAnalysis>(initialJobDescriptionAnalysis)
   const [projects, setProjects] = useState<ProjectBlockData[]>(initialProjects)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
@@ -275,24 +254,12 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     setSafariUnsupported(isUnsupportedSafari())
   }, [])
 
-  // Placeholder until user authentication is implemented
-  useEffect(() => {
-    const storedId = window.localStorage.getItem(STORAGE_KEYS.SESSION_ID)
-    if (storedId) {
-      setSessionId(storedId)
-    } else {
-      const newId = uuidv4()
-      window.localStorage.setItem(STORAGE_KEYS.SESSION_ID, newId)
-      setSessionId(newId)
-    }
-  }, [])
-
   // TODO: now that we have access to the skills which maytch the user's experience,
   // these skills will need to be prioritized.
   const keywordData = useKeywordAnalysis(
     workExperience,
     projects,
-    jobDescriptionAnalysis
+    jobDetails.analysis
   )
 
   useEffect(() => {
@@ -411,14 +378,10 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   useEffect(() => {
     setLoading(true)
     const stored = {
-      jobDescription: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION),
-      analysis: localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS),
       projects: localStorage.getItem(STORAGE_KEYS.PROJECTS),
       education: localStorage.getItem(STORAGE_KEYS.EDUCATION),
       skills: localStorage.getItem(STORAGE_KEYS.SKILLS),
     }
-    if (stored.jobDescription) setJobDescription(stored.jobDescription)
-    if (stored.analysis) setJobDescriptionAnalysis(JSON.parse(stored.analysis))
     if (stored.projects) setProjects(JSON.parse(stored.projects))
     if (stored.education) setEducation(JSON.parse(stored.education))
     if (stored.skills) {
@@ -453,44 +416,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     }
     setLoading(false)
   }, [])
-
-  // TODO: handle in job description component
-  const handleJobDescriptionSave = async (data: string) => {
-    setJobDescription(data)
-    localStorage.setItem(STORAGE_KEYS.JOB_DESCRIPTION, data)
-
-    try {
-      setAnalyzingJob(true)
-
-      const payload: AnalyzeJobDescriptionRequest = {
-        sessionId,
-        jobDescription: data,
-        settings,
-      }
-
-      const response = await api.post<
-        AnalyzeJobDescriptionRequest,
-        JobDescriptionAnalysis
-      >(ROUTES.ANALYZE_JOB_DESCRIPTION, payload)
-
-      const validationResult = jobDescriptionAnalysisSchema.safeParse(response)
-      if (!validationResult.success) {
-        console.error('Validation errors:', validationResult.error.flatten())
-        return
-      }
-
-      const analysis = validationResult.data as JobDescriptionAnalysis
-      setJobDescriptionAnalysis(analysis)
-      localStorage.setItem(
-        STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS,
-        JSON.stringify(analysis)
-      )
-    } catch (error) {
-      console.error('Job analysis error:', error)
-    } finally {
-      setAnalyzingJob(false)
-    }
-  }
 
   const handleProjectsSave = useCallback((data: ProjectBlockData[]) => {
     setProjects(data)
@@ -570,11 +495,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     }
   }, [checkScrollIndicators])
 
-  const memoizedJobDescriptionAnalysis = useMemo(
-    () => jobDescriptionAnalysis,
-    [jobDescriptionAnalysis]
-  )
-
   const resumeData = useMemo(() => {
     if (loading) return null
 
@@ -589,8 +509,8 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       workExperience,
       projects,
       education,
-      jobDescription,
-      jobDescriptionAnalysis
+      jobDetails.originalJobDescription,
+      jobDetails.analysis
     )
   }, [
     personalDetails,
@@ -599,8 +519,8 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     education,
     loading,
     resumeData,
-    jobDescription,
-    jobDescriptionAnalysis,
+    jobDetails.originalJobDescription,
+    jobDetails.analysis,
   ])
 
   return (
@@ -651,22 +571,14 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           )}
         </div>
         <div className={styles.tabContent}>
-          {activeTab === Tabs.JOB_DETAILS && (
-            <JobDescription
-              data={jobDescription}
-              loading={loading}
-              analyzing={analyzingJob}
-              jobDescriptionAnalysis={jobDescriptionAnalysis}
-              onSave={handleJobDescriptionSave}
-            />
-          )}
+          {activeTab === Tabs.JOB_DETAILS && <JobDetails />}
           {activeTab === Tabs.PERSONAL_DETAILS && <PersonalDetails />}
           {activeTab === Tabs.EXPERIENCE && (
             <WorkExperience
               data={workExperience}
               keywordData={keywordData}
               loading={loading}
-              jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
+              jobDescriptionAnalysis={jobDetails.analysis}
             />
           )}
           {activeTab === Tabs.PROJECTS && (
@@ -674,7 +586,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
               data={projects}
               keywordData={keywordData}
               loading={loading}
-              jobDescriptionAnalysis={memoizedJobDescriptionAnalysis}
+              jobDescriptionAnalysis={jobDetails.analysis}
               onSave={handleProjectsSave}
             />
           )}

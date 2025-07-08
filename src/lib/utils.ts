@@ -451,24 +451,24 @@ export const shouldShowWelcomeExperience = (): WelcomeExperienceState => {
     }
 
     // Step 4: Check for job description and analysis
-    const jobDescription = localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION)
-    const jobAnalysis = localStorage.getItem(
-      STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS
-    )
+    const jobDetails = localStorage.getItem(STORAGE_KEYS.JOB_DETAILS)
     let hasJobDetails = false
 
-    if (jobDescription?.trim() && jobAnalysis) {
+    if (jobDetails) {
       try {
-        const parsedAnalysis = JSON.parse(jobAnalysis)
-        const analysisData = parsedAnalysis.data || parsedAnalysis
-        // Step is complete if analysis exists and is valid JSON structure, regardless of content\
-        // TODO: check for valid analysis data
-        if (analysisData && typeof analysisData === 'object') {
-          hasJobDetails = true
-          completedSteps.push(4)
+        const parsedJobDetails = JSON.parse(jobDetails)
+        if (
+          parsedJobDetails.originalJobDescription?.trim() &&
+          parsedJobDetails.analysis
+        ) {
+          const { analysis } = parsedJobDetails
+          if (analysis && typeof analysis === 'object' && analysis.jobSummary) {
+            hasJobDetails = true
+            completedSteps.push(4)
+          }
         }
       } catch {
-        // Invalid analysis, treat as not completed
+        // Invalid job details, treat as not completed
       }
     }
 
