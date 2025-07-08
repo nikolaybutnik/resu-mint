@@ -170,7 +170,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           : 'Changes will not take effect until the form is saved.'
       }`,
       onConfirm: () => {
-        // onBulletRegenerate(sectionId, index)
+        handleBulletRegenerate()
         setActivePopup(null)
       },
     },
@@ -252,6 +252,23 @@ const BulletPoint: React.FC<BulletPointProps> = ({
 
   const handleBulletLockToggle = async (): Promise<void> => {
     await bulletService.toggleBulletLock(sectionId, sectionType, bulletData.id)
+  }
+
+  const handleBulletRegenerate = async (): Promise<void> => {
+    const bulletToGenerate = editMode
+      ? { ...bulletData, text: editModeText }
+      : bulletData
+
+    // TODO: finish implementing after job description analysis is moved to Zustand store
+    // The component will orchestrate where the generated content is inserted
+
+    // const result = await bulletService.generateBulletsForSection(
+    //   sectionId,
+    //   sectionType,
+    //   [bulletToGenerate],
+    //   jobDescriptionAnalysis,
+    //   settings
+    // )
   }
 
   return (
@@ -338,11 +355,11 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           </button>
           <button
             className={styles.regenerateButton}
-            // onClick={
-            //   editMode
-            //     ? () => onBulletRegenerate(sectionId, index)
-            //     : () => setActivePopup('regenerate')
-            // }
+            onClick={
+              editMode
+                ? () => handleBulletRegenerate()
+                : () => setActivePopup('regenerate')
+            }
             disabled={
               isRegenerating || disableAllControls || bulletData.isLocked
             }
