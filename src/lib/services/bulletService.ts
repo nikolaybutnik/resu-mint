@@ -58,7 +58,7 @@ export const bulletService = {
     sectionId: string,
     sectionType: 'experience' | 'project',
     maxCharsPerBullet: number
-  ) => {
+  ): Promise<void> => {
     const validation = bulletTextValidationSchema.safeParse({
       text: bullet.text,
       maxCharsPerBullet,
@@ -110,5 +110,45 @@ export const bulletService = {
     bulletId: string,
     sectionId: string,
     sectionType: 'experience' | 'project'
-  ) => {},
+  ): Promise<void> => {
+    try {
+      if (sectionType === 'experience') {
+        await dataManager.deleteExperienceBullet(sectionId, bulletId)
+
+        const experienceStore = useExperienceStore.getState()
+        const updatedData = experienceStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.filter(
+                  (bullet) => bullet.id !== bulletId
+                ),
+              }
+            : section
+        )
+
+        await experienceStore.save(updatedData)
+      } else if (sectionType === 'project') {
+        await dataManager.deleteProjectBullet(sectionId, bulletId)
+        // TODO: handle project bullet deletion when Zustand store is implemented
+
+        // const projectStore = useProjectStore.getState()
+        // const updatedData = projectStore.data.map((section) =>
+        //   section.id === sectionId
+        //     ? {
+        //         ...section,
+        //         bulletPoints: section.bulletPoints.filter(
+        //           (bullet) => bullet.id !== bulletId
+        //         ),
+        //       }
+        //     : section
+        // )
+
+        // await projectStore.save(updatedData)
+      }
+    } catch (error) {
+      console.error('Error deleting bullet:', error)
+      throw new Error('Failed to delete bullet')
+    }
+  },
 }

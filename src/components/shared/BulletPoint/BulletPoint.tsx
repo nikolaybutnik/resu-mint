@@ -244,8 +244,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     setErrors({})
   }
 
-  const handleBulletDelete = (): void => {
-    console.log('delete')
+  const handleBulletDelete = async (): Promise<void> => {
+    await bulletService.deleteBullet(bulletData.id, sectionId, sectionType)
   }
 
   return (
