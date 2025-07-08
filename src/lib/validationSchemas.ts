@@ -426,6 +426,11 @@ export const jobDescriptionAnalysisSchema = z.object({
     .default(''),
 })
 
+export const jobDetailsSchema = z.object({
+  originalJobDescription: z.string().min(1, 'Job description is required'),
+  analysis: jobDescriptionAnalysisSchema,
+})
+
 export const resumeMintRequestSchema = z.object({
   sessionId: z.string(),
   personalDetails: personalDetailsSchema,

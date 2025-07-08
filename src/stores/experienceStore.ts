@@ -3,7 +3,7 @@ import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 
-interface ExpereinceStore {
+interface ExperienceStore {
   data: ExperienceBlockData[]
   loading: boolean
   initializing: boolean
@@ -14,7 +14,7 @@ interface ExpereinceStore {
   hasChanges: (newData: ExperienceBlockData[]) => boolean
 }
 
-export const useExperienceStore = create<ExpereinceStore>((set, get) => ({
+export const useExperienceStore = create<ExperienceStore>((set, get) => ({
   data: DEFAULT_STATE_VALUES.EXPERIENCE,
   loading: false,
   initializing: true,

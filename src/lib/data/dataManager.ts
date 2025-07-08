@@ -13,6 +13,9 @@ import type {
   BulletPoint as ProjectBulletPoint,
 } from '../types/projects'
 import type { AppSettings } from '../types/settings'
+import { JobDetails } from '../types/jobDetails'
+import { jobDetailsManager } from './jobDetailsManager'
+import { JobDescriptionAnalysis } from '../types/api'
 
 class DataManager {
   // Personal Details
@@ -26,6 +29,23 @@ class DataManager {
 
   invalidatePersonalDetails() {
     personalDetailsManager.invalidate()
+  }
+
+  // Job Details
+  async getJobDetails(): Promise<JobDetails> {
+    return jobDetailsManager.get()
+  }
+
+  async saveJobDescription(data: string): Promise<void> {
+    return jobDetailsManager.saveJobDescription(data)
+  }
+
+  async saveAnalysis(data: JobDescriptionAnalysis): Promise<void> {
+    return jobDetailsManager.saveAnalysis(data)
+  }
+
+  invalidateJobDetails() {
+    jobDetailsManager.invalidate()
   }
 
   // Experience

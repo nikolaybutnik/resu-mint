@@ -1,4 +1,5 @@
 export { usePersonalDetailsStore } from './personalDetailsStore'
 export { useSettingsStore } from './settingsStore'
 export { useExperienceStore } from './experienceStore'
+export { useJobDetailsStore } from './jobDetailsStore'
 export { StoreProvider } from './StoreProvider'

@@ -3,6 +3,8 @@ import { PersonalDetails } from './types/personalDetails'
 import { ExperienceBlockData } from './types/experience'
 import { EducationBlockData } from './types/education'
 import { AppSettings, LanguageModel } from './types/settings'
+import { JobDescriptionAnalysis } from './types/api'
+import { JobDetails } from './types/jobDetails'
 
 // API
 export const API_BASE_URL = '/api'
@@ -47,8 +49,9 @@ export const LIVE_PREVIEW = {
 
 export const STORAGE_KEYS = {
   SESSION_ID: 'resumint_sessionId',
-  JOB_DESCRIPTION: 'resumint_jobDescription',
-  JOB_DESCRIPTION_ANALYSIS: 'resumint_jobDescriptionAnalysis',
+  JOB_DESCRIPTION: 'resumint_jobDescription', // TODO: RETIRE
+  JOB_DESCRIPTION_ANALYSIS: 'resumint_jobDescriptionAnalysis', // TODO: RETIRE
+  JOB_DETAILS: 'resumint_jobDetails',
   PERSONAL_DETAILS: 'resumint_personalDetails',
   EXPERIENCE: 'resumint_experience',
   PROJECTS: 'resumint_projects',
@@ -141,4 +144,18 @@ export const DEFAULT_STATE_VALUES = {
     languageModel: LanguageModel.GPT_4O_MINI,
     maxCharsPerBullet: 180,
   } as AppSettings,
+  JOB_DETAILS: {
+    originalJobDescription: '',
+    analysis: {
+      skillsRequired: { hard: [], soft: [] },
+      jobTitle: '',
+      jobSummary: '',
+      specialInstructions: '',
+      location: { type: 'remote', details: '', listedLocation: '' },
+      companyName: '',
+      companyDescription: '',
+      contextualTechnologies: [],
+      salaryRange: '',
+    } as JobDescriptionAnalysis,
+  } as JobDetails,
 } as const

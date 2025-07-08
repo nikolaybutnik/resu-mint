@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { JobDescriptionAnalysis } from '@/lib/types/api'
 import { useMobile } from '@/lib/hooks'
 import { FiChevronUp, FiChevronDown } from 'react-icons/fi'
+import { useJobDetailsStore } from '@/stores'
 
 interface JobDescriptionProps {
   data: string
@@ -21,6 +22,12 @@ export const JobDescription: React.FC<JobDescriptionProps> = ({
   onSave,
   jobDescriptionAnalysis,
 }) => {
+  const { data: jobDetails } = useJobDetailsStore()
+
+  useEffect(() => {
+    console.log('jobDetails', jobDetails)
+  }, [jobDetails])
+
   const [localData, setLocalData] = useState(data)
   const [expandedSummary, setExpandedSummary] = useState(false)
   const [expandedCompanyDesc, setExpandedCompanyDesc] = useState(false)
