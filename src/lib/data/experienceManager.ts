@@ -202,6 +202,67 @@ class ExperienceManager {
     }
   }
 
+  async toggleBulletLock(sectionId: string, bulletId: string) {
+    const existingExperience = (await this.get()) as ExperienceBlockData[]
+    const experienceBlockToUpdate = existingExperience.find(
+      (block) => block.id === sectionId
+    )
+    const updatedBulletPoints = experienceBlockToUpdate?.bulletPoints.map(
+      (bullet) =>
+        bullet.id === bulletId
+          ? { ...bullet, isLocked: !bullet.isLocked }
+          : bullet
+    )
+    const updatedExperience = existingExperience.map((block) =>
+      block.id === sectionId
+        ? { ...block, bulletPoints: updatedBulletPoints }
+        : block
+    )
+
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.EXPERIENCE,
+        JSON.stringify(updatedExperience)
+      )
+      this.invalidate()
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        console.warn('Local Storage quota exceeded')
+        throw new Error('Storage quota exceeded. Please clear browser data.')
+      }
+      throw error
+    }
+  }
+
+  async toggleBulletLockAll(sectionId: string, shouldLock: boolean) {
+    const existingExperience = (await this.get()) as ExperienceBlockData[]
+    const experienceBlockToUpdate = existingExperience.find(
+      (block) => block.id === sectionId
+    )
+    const updatedBulletPoints = experienceBlockToUpdate?.bulletPoints.map(
+      (bullet) => ({ ...bullet, isLocked: shouldLock })
+    )
+    const updatedExperience = existingExperience.map((block) =>
+      block.id === sectionId
+        ? { ...block, bulletPoints: updatedBulletPoints }
+        : block
+    )
+
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.EXPERIENCE,
+        JSON.stringify(updatedExperience)
+      )
+      this.invalidate()
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        console.warn('Local Storage quota exceeded')
+        throw new Error('Storage quota exceeded. Please clear browser data.')
+      }
+      throw error
+    }
+  }
+
   invalidate() {
     this.cache.delete(CACHE_KEYS.EXPERIENCE_LOCAL)
     this.cache.delete(CACHE_KEYS.EXPERIENCE_API)

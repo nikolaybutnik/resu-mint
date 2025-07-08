@@ -19,6 +19,7 @@ import { KeywordData } from '@/lib/types/keywords'
 import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHandler'
 import { BulletPoint as BulletPointType } from '@/lib/types/experience'
 import { v4 as uuidv4 } from 'uuid'
+import { bulletService } from '@/lib/services/bulletService'
 
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
@@ -33,18 +34,8 @@ interface DraggableExperienceBlockProps {
   regeneratingBullet?: { section: string; index: number } | null
   keywordData: KeywordData | null
   onBlockSelect: (id: string) => void
-  onRegenerateBullet: (
-    sectionId: string,
-    index: number,
-    isExperienceEditForm: boolean
-  ) => void
   onRegenerateAllBullets: () => void
-  onAddBullet: (sectionId: string) => void
-  onEditBullet: (sectionId: string, index: number) => void
-  onBulletDelete: (sectionId: string, index: number) => void
   onDrawerToggle: () => void
-  onLockToggle: (sectionId: string, index: number) => void
-  onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
   onToggleInclude: (sectionId: string, isIncluded: boolean) => void
 }
 
@@ -62,9 +53,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   isDropping = false,
   onBlockSelect,
   onRegenerateAllBullets,
-  onAddBullet,
   onDrawerToggle,
-  onLockToggleAll,
   onToggleInclude,
 }) => {
   const isFirstRender = useRef(true)
@@ -126,6 +115,14 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
 
   const handleBulletCancel = () => {
     setTemporaryBullet(null)
+  }
+
+  const handleLockAllToggle = async (
+    sectionId: string,
+    sectionType: 'experience' | 'project',
+    shouldLock: boolean
+  ): Promise<void> => {
+    await bulletService.toggleBulletLockAll(sectionId, sectionType, shouldLock)
   }
 
   return (
@@ -242,7 +239,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           <div className={styles.lockAllButtons}>
             <button
               className={styles.lockAllButton}
-              onClick={() => onLockToggleAll(data.id, true)}
+              onClick={() => handleLockAllToggle(data.id, 'experience', true)}
               disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
               data-no-dnd='true'
             >
@@ -251,7 +248,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             </button>
             <button
               className={styles.unlockAllButton}
-              onClick={() => onLockToggleAll(data.id, false)}
+              onClick={() => handleLockAllToggle(data.id, 'experience', false)}
               disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
               data-no-dnd='true'
             >
@@ -314,7 +311,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
       {data.bulletPoints.length === 0 && !isExpanded && (
         <button
           className={styles.addBulletButton}
-          onClick={() => onAddBullet(data.id)}
+          onClick={handleBulletAdd}
           disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
           data-no-dnd='true'
         >

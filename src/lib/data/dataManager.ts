@@ -52,6 +52,14 @@ class DataManager {
     return experienceManager.deleteBullet(sectionId, bulletId)
   }
 
+  async toggleExperienceBulletLock(sectionId: string, bulletId: string) {
+    return experienceManager.toggleBulletLock(sectionId, bulletId)
+  }
+
+  async toggleExperienceBulletLockAll(sectionId: string, shouldLock: boolean) {
+    return experienceManager.toggleBulletLockAll(sectionId, shouldLock)
+  }
+
   invalidateExperience() {
     experienceManager.invalidate()
   }

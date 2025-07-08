@@ -87,6 +87,7 @@ const bulletPointSchema = z.object({
     .string()
     .min(1, 'Bullet point cannot be empty')
     .max(500, 'Bullet point must be 500 characters or less'),
+  isLocked: z.boolean().optional().default(false),
 })
 
 export const bulletTextValidationSchema = z

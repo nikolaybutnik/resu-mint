@@ -204,11 +204,13 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     onBulletCancel()
   }
 
-  // useEffect(() => {
-  //   if (isLocked && editMode) {
-  //     handleBulletEditCancel()
-  //   }
-  // }, [isLocked, editMode, handleBulletEditCancel])
+  useEffect(() => {
+    if (bulletData.isLocked && editMode) {
+      setEditMode(false)
+      setEditModeText('')
+      setErrors({})
+    }
+  }, [bulletData.isLocked, editMode])
 
   const handleTextareaChange = (
     e: React.ChangeEvent<HTMLTextAreaElement>
@@ -245,7 +247,11 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   }
 
   const handleBulletDelete = async (): Promise<void> => {
-    await bulletService.deleteBullet(bulletData.id, sectionId, sectionType)
+    await bulletService.deleteBullet(sectionId, sectionType, bulletData.id)
+  }
+
+  const handleBulletLockToggle = async (): Promise<void> => {
+    await bulletService.toggleBulletLock(sectionId, sectionType, bulletData.id)
   }
 
   return (
@@ -319,7 +325,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
               styles.lockButton,
               bulletData.isLocked ? styles.locked : styles.unlocked,
             ].join(' ')}
-            // onClick={() => onLockToggle(sectionId, index)}
+            onClick={handleBulletLockToggle}
             disabled={isRegenerating || disableAllControls}
             title='Lock bullet'
             data-no-dnd='true'

@@ -107,9 +107,9 @@ export const bulletService = {
   },
 
   deleteBullet: async (
-    bulletId: string,
     sectionId: string,
-    sectionType: 'experience' | 'project'
+    sectionType: 'experience' | 'project',
+    bulletId: string
   ): Promise<void> => {
     try {
       if (sectionType === 'experience') {
@@ -149,6 +149,90 @@ export const bulletService = {
     } catch (error) {
       console.error('Error deleting bullet:', error)
       throw new Error('Failed to delete bullet')
+    }
+  },
+
+  toggleBulletLock: async (
+    sectionId: string,
+    sectionType: 'experience' | 'project',
+    bulletId: string
+  ): Promise<void> => {
+    try {
+      if (sectionType === 'experience') {
+        await dataManager.toggleExperienceBulletLock(sectionId, bulletId)
+        const experienceStore = useExperienceStore.getState()
+        const updatedData = experienceStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.map((bullet) =>
+                  bullet.id === bulletId
+                    ? { ...bullet, isLocked: !bullet.isLocked }
+                    : bullet
+                ),
+              }
+            : section
+        )
+
+        await experienceStore.save(updatedData)
+      } else if (sectionType === 'project') {
+        // await dataManager.toggleProjectBulletLock(bulletId, sectionId)
+        // TODO: handle project bullet lock toggling when Zustand store is implemented
+        // const projectStore = useProjectStore.getState()
+        // const updatedData = projectStore.data.map((section) =>
+        //   section.id === sectionId
+        //     ? { ...section, bulletPoints: section.bulletPoints.map((bullet) =>
+        //         bullet.id === bulletId ? { ...bullet, isLocked: !bullet.isLocked } : bullet
+        //       ),
+        //     }
+        //     : section
+        // )
+        // await projectStore.save(updatedData)
+      }
+    } catch (error) {
+      console.error('Error toggling bullet lock:', error)
+      throw new Error('Failed to toggle bullet lock')
+    }
+  },
+
+  toggleBulletLockAll: async (
+    sectionId: string,
+    sectionType: 'experience' | 'project',
+    shouldLock: boolean
+  ): Promise<void> => {
+    try {
+      if (sectionType === 'experience') {
+        await dataManager.toggleExperienceBulletLockAll(sectionId, shouldLock)
+
+        const experienceStore = useExperienceStore.getState()
+        const updatedData = experienceStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.map((bullet) => ({
+                  ...bullet,
+                  isLocked: shouldLock,
+                })),
+              }
+            : section
+        )
+
+        await experienceStore.save(updatedData)
+      } else if (sectionType === 'project') {
+        // await dataManager.toggleProjectBulletLockAll(sectionId, shouldLock)
+        // TODO: handle project bullet lock all toggling when Zustand store is implemented
+        // const projectStore = useProjectStore.getState()
+        // const updatedData = projectStore.data.map((section) =>
+        //   section.id === sectionId
+        //     ? { ...section, bulletPoints: section.bulletPoints.map((bullet) => ({ ...bullet, isLocked: shouldLock })),
+        //     }
+        //     : section
+        // )
+        // await projectStore.save(updatedData)
+      }
+    } catch (error) {
+      console.error('Error toggling bullet lock all:', error)
+      throw new Error('Failed to toggle bullet lock all')
     }
   },
 }

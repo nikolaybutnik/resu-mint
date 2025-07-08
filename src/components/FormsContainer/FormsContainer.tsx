@@ -109,7 +109,6 @@ const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
   return sorted1.every((item, index) => item === sorted2[index])
 }
 
-const initialWorkExperience: ExperienceBlockData[] = []
 const initialJobDescription: string = ''
 const initialJobDescriptionAnalysis: JobDescriptionAnalysis = {
   skillsRequired: { hard: [], soft: [] },
