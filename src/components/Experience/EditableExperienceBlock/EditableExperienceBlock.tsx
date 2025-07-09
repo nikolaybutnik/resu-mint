@@ -1,5 +1,5 @@
 import styles from './EditableExperienceBlock.module.scss'
-import React, { useCallback, useState, useEffect, useActionState } from 'react'
+import React, { useState, useEffect, useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { MONTHS } from '@/lib/constants'
@@ -7,7 +7,6 @@ import {
   ExperienceBlockData,
   ExperienceFormState,
 } from '@/lib/types/experience'
-import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
 import { submitExperience } from '@/lib/actions/experienceActions'
@@ -16,20 +15,10 @@ import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
   isNew: boolean
-  editingBulletIndex: number | null
-  editingBulletText: string
-  isRegenerating: boolean
-  regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
   onDelete: (id: string) => void
   onClose: (() => void) | undefined
   onSave: (data: ExperienceBlockData) => void
-  onRegenerateBullet: (
-    sectionId: string,
-    index: number,
-    formData?: ExperienceBlockData,
-    shouldSave?: boolean
-  ) => void
   onAddBullet: (sectionId: string) => void
   onEditBullet: (sectionId: string, index: number) => void
   onBulletSave: () => void
@@ -41,12 +30,9 @@ interface EditableExperienceBlockProps {
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
   isNew,
-  isRegenerating,
-  editingBulletIndex,
   onDelete,
   onClose,
   onSave,
-  onRegenerateBullet,
   onAddBullet,
 }) => {
   const [state, formAction] = useActionState(
@@ -106,7 +92,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='button'
             className={styles.deleteButton}
             onClick={handleDelete}
-            disabled={isRegenerating}
+            // disabled={isRegenerating}
           >
             Delete
           </button>
@@ -316,15 +302,13 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='button'
             className={styles.addButton}
             onClick={() => onAddBullet(data.id)}
-            disabled={isRegenerating}
+            // disabled={isRegenerating}
           >
             <FaPlus /> Add
           </button>
         </div>
         <div className={styles.bulletPointsContainer}>
           {data.bulletPoints.map((bullet, index) => {
-            const isEditingThisBullet = editingBulletIndex === index
-
             return (
               <div key={bullet.id}>
                 <p>{bullet.text}</p>

@@ -36,7 +36,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
     }
   },
 
-  save: async (data) => {
+  save: async (data: ExperienceBlockData[]) => {
     try {
       set({ loading: true })
       await dataManager.saveExperience(data)
@@ -71,7 +71,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
     }
   },
 
-  hasChanges: (newData) => {
+  hasChanges: (newData: ExperienceBlockData[]) => {
     const currentData = get().data
     return JSON.stringify(currentData) !== JSON.stringify(newData)
   },

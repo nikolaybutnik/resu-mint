@@ -49,10 +49,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
-  const [regeneratingBullet, setRegeneratingBullet] = useState<{
-    section: string
-    index: number
-  } | null>(null)
   const [editingBullet, setEditingBullet] = useState<{
     section: string
     index: number
@@ -139,16 +135,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setEditingBullet(null)
   }, [data])
 
-  // TODO: update
-  const handleSectionInclusion = useCallback(
-    (sectionId: string, isIncluded: boolean) => {
-      const updatedData = workExperience.map((experience) =>
-        experience.id === sectionId ? { ...experience, isIncluded } : experience
-      )
-    },
-    [workExperience]
-  )
-
   const toggleSectionExpanded = useCallback((sectionId: string) => {
     setExpandedSections((prev) => {
       const newSet = new Set(prev)
@@ -230,9 +216,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
   }, [])
 
-  // TODO: implement via bulletService
-  const handleAllBulletsRegenerate = () => {}
-
   const activeItem = useMemo(
     () => workExperience.find((item) => item.id === activeId),
     [workExperience, activeId]
@@ -247,9 +230,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       keywordData,
       editingBulletIndex,
       settings,
-      isRegenerating: regeneratingBullet?.section === experience.id,
-      regeneratingBullet,
-      editingBulletText: isEditingBullet ? editingBullet.text : '',
       onEditBullet: handleBulletEdit,
       onBulletCancel: handleCancelEdit,
       onAddBullet: () => {},
@@ -273,7 +253,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
         onSave={() => {}}
-        onRegenerateBullet={() => {}}
         onLockToggle={() => {}}
         onBulletDelete={() => {}}
       />
@@ -296,9 +275,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
           isExpanded={false}
           isDropping={false}
           onDrawerToggle={() => {}}
-          onBlockSelect={() => {}}
-          onRegenerateAllBullets={() => {}}
-          onToggleInclude={() => {}}
+          onSectionEdit={() => {}}
         />
       )
     }
@@ -310,16 +287,12 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         isDropping={isDropping}
         isExpanded={expandedSections.has(experience.id)}
         onDrawerToggle={() => toggleSectionExpanded(experience.id)}
-        onBlockSelect={handleSectionSelect}
-        onRegenerateAllBullets={handleAllBulletsRegenerate}
-        onToggleInclude={(sectionId, isIncluded) =>
-          handleSectionInclusion(sectionId, isIncluded)
-        }
+        onSectionEdit={handleSectionSelect}
       />
     )
   }
 
-  // TODO: deal with the lag on dragging, and fix items not being saved on drop
+  // TODO: fix items not being saved on drop
   return (
     <>
       {loading ? (

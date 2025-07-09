@@ -20,6 +20,7 @@ import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHand
 import { BulletPoint as BulletPointType } from '@/lib/types/experience'
 import { v4 as uuidv4 } from 'uuid'
 import { bulletService } from '@/lib/services/bulletService'
+import { useExperienceStore } from '@/stores'
 
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
@@ -27,10 +28,8 @@ interface DraggableExperienceBlockProps {
   isExpanded: boolean
   isOverlay?: boolean
   isDropping?: boolean
-  onBlockSelect: (id: string) => void
-  onRegenerateAllBullets: () => void
+  onSectionEdit: (id: string) => void
   onDrawerToggle: () => void
-  onToggleInclude: (sectionId: string, isIncluded: boolean) => void
 }
 
 const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
@@ -39,10 +38,8 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   isExpanded,
   isOverlay = false,
   isDropping = false,
-  onBlockSelect,
-  onRegenerateAllBullets,
+  onSectionEdit,
   onDrawerToggle,
-  onToggleInclude, // TODO: re-implement
 }) => {
   const isFirstRender = useRef(true)
 
@@ -50,6 +47,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   const [temporaryBullet, setTemporaryBullet] =
     useState<BulletPointType | null>(null)
 
+  const { data: experienceData, save } = useExperienceStore()
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id: data.id,
@@ -66,19 +64,18 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         touchAction: isDragging ? 'none' : 'manipulation',
       }
 
-  // const handleToggleInclude = () => {
-  // const updatedData = { ...localData, isIncluded: !localData.isIncluded }
-  // setLocalData(updatedData)
-  // onToggleInclude(data.id, updatedData.isIncluded)
-  // }
+  const handleSectionInclusionToggle = (): void => {
+    const updatedSection = { ...data, isIncluded: !data.isIncluded }
+    const updatedData: ExperienceBlockData[] = experienceData.map((section) =>
+      section.id === data.id ? updatedSection : section
+    )
+    save(updatedData)
+  }
 
-  const bulletPoints = useMemo(() => data.bulletPoints, [data.bulletPoints])
-
-  // const isEditingThisSection =
-  //   editingBulletIndex !== null &&
-  //   data.id === (editingBulletText ? data.id : null)
-  // const isDrawerDisabled =
-  //   (isAnyBulletBeingEdited && !isEditingThisSection) || isAnyBulletRegenerating
+  const memoizedBulletPoints = useMemo(
+    () => data.bulletPoints,
+    [data.bulletPoints]
+  )
 
   // TODO: implement
   const handleAllBulletsRegenerate = useCallback(
@@ -86,9 +83,8 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
       e.stopPropagation()
       isFirstRender.current = false
       setAnimationKey((prev) => prev + 1)
-      onRegenerateAllBullets()
     },
-    [data, onRegenerateAllBullets]
+    [data]
   )
 
   const handleBulletAdd = () => {
@@ -99,6 +95,10 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
       isTemporary: true,
     }
     setTemporaryBullet(newBullet)
+
+    if (!isExpanded) {
+      onDrawerToggle()
+    }
   }
 
   const handleBulletCancel = () => {
@@ -149,6 +149,9 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
 
         <div className={styles.experienceBlockActions}>
           <button
+            style={{
+              display: 'none', // TODO: temporary
+            }}
             type='button'
             data-no-dnd='true'
             className={styles.generateAllButton}
@@ -164,7 +167,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             type='button'
             data-no-dnd='true'
             className={styles.editButton}
-            onClick={() => onBlockSelect(data.id)}
+            onClick={() => onSectionEdit(data.id)}
             disabled={isDragging || isOverlay}
           >
             <FaPen size={14} />
@@ -176,7 +179,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
               styles.toggleIncludeButton,
               data.isIncluded ? styles.included : styles.excluded,
             ].join(' ')}
-            // onClick={handleToggleInclude}
+            onClick={handleSectionInclusionToggle}
             disabled={isDragging || isOverlay}
             title={
               data.isIncluded ? 'Exclude from resume' : 'Include in resume'
@@ -187,7 +190,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         </div>
       </LongPressHandler>
 
-      {data.bulletPoints.length > 0 && (
+      {memoizedBulletPoints.length > 0 && (
         <button
           className={`${styles.draggableExperienceBlockContainer} ${
             styles.drawerToggleButton
@@ -208,7 +211,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           isExpanded ? styles.expanded : ''
         }`}
       >
-        {data.bulletPoints.length > 1 && (
+        {memoizedBulletPoints.length > 1 && (
           <div className={styles.lockAllButtons}>
             <button
               className={styles.lockAllButton}
@@ -231,7 +234,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           </div>
         )}
 
-        {bulletPoints.map((bullet) => {
+        {memoizedBulletPoints.map((bullet) => {
           return (
             <BulletPoint
               key={bullet.id}
@@ -266,7 +269,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         </button>
       </div>
 
-      {data.bulletPoints.length === 0 && !isExpanded && (
+      {memoizedBulletPoints.length === 0 && !isExpanded && (
         <button
           className={styles.addBulletButton}
           onClick={handleBulletAdd}
