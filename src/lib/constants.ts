@@ -120,8 +120,6 @@ export const SETTINGS_FORM_DATA_KEYS = {
   MAX_CHARS_PER_BULLET: 'maxCharsPerBullet',
 } as const
 
-// Default State Values
-// TODO: skills
 export const DEFAULT_STATE_VALUES = {
   PERSONAL_DETAILS: {
     name: '',

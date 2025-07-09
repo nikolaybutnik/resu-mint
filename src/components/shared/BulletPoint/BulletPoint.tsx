@@ -19,14 +19,13 @@ import { VALIDATION_DELAY } from '@/lib/constants'
 import { bulletTextValidationSchema } from '@/lib/validationSchemas'
 import { zodErrorsToFormErrors } from '@/lib/types/errors'
 import { bulletService } from '@/lib/services/bulletService'
+import { useJobDetailsStore } from '@/stores'
+import { useAiStateStore } from '@/stores/aiStateStore'
 
 interface BulletPointProps {
   sectionId: string
   sectionType: 'experience' | 'project'
   bulletData: BulletPointType
-  isRegenerating: boolean
-  disableAllControls: boolean
-  isLocked: boolean
   isDangerousAction?: boolean
   keywordData: KeywordData | null
   onBulletCancel: () => void
@@ -36,8 +35,6 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   sectionId,
   sectionType,
   bulletData,
-  isRegenerating,
-  disableAllControls,
   isDangerousAction = false,
   keywordData, // TODO: work into Zustand store
   onBulletCancel,
@@ -63,6 +60,13 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   }>({})
 
   const { data: settings } = useSettingsStore()
+  const { data: jobDetails } = useJobDetailsStore()
+  const { bulletIdsGenerating, setBulletIdsGenerating } = useAiStateStore()
+
+  const isCurrentBulletRegenerating = bulletIdsGenerating.includes(
+    bulletData.id
+  )
+  const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
 
   useEffect(() => {
     if (bulletData.isTemporary) {
@@ -71,7 +75,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   }, [bulletData.isTemporary])
 
   useEffect(() => {
-    if (isRegenerating) {
+    if (isCurrentBulletRegenerating) {
       setIsFadingOut(true)
     } else {
       setIsFadingOut(false)
@@ -79,7 +83,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
       const timeout = setTimeout(() => setIsFadingIn(false), 1000)
       return () => clearTimeout(timeout)
     }
-  }, [isRegenerating])
+  }, [isCurrentBulletRegenerating])
 
   useEffect(() => {
     if (editMode && editInputRef.current) {
@@ -255,27 +259,51 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   }
 
   const handleBulletRegenerate = async (): Promise<void> => {
-    const bulletToGenerate = editMode
-      ? { ...bulletData, text: editModeText }
-      : bulletData
+    try {
+      const bulletToGenerate = editMode
+        ? { ...bulletData, text: editModeText }
+        : bulletData
 
-    // TODO: finish implementing after job description analysis is moved to Zustand store
-    // The component will orchestrate where the generated content is inserted
+      setBulletIdsGenerating([bulletToGenerate.id])
 
-    // const result = await bulletService.generateBulletsForSection(
-    //   sectionId,
-    //   sectionType,
-    //   [bulletToGenerate],
-    //   jobDescriptionAnalysis,
-    //   settings
-    // )
+      const result: {
+        sectionId: string
+        bullets: BulletPointType[]
+      } | null = await bulletService.generateBulletsForSection(
+        sectionId,
+        sectionType,
+        [bulletToGenerate],
+        jobDetails.analysis,
+        settings
+      )
+
+      if (result && result.bullets.length > 0) {
+        const generatedBullet = result.bullets.find(
+          (bullet) => bullet.id === bulletToGenerate.id
+        )
+        if (editMode && generatedBullet) {
+          setEditModeText(generatedBullet.text)
+        } else if (!editMode && generatedBullet) {
+          await bulletService.saveBullet(
+            generatedBullet,
+            sectionId,
+            sectionType,
+            settings.maxCharsPerBullet
+          )
+        }
+      }
+    } catch (error) {
+      console.error('Error regenerating bullet:', error)
+    } finally {
+      setBulletIdsGenerating([])
+    }
   }
 
   return (
     <div
       className={[
         styles.bulletContainer,
-        isRegenerating ? styles.regenerating : '',
+        isCurrentBulletRegenerating ? styles.regenerating : '',
       ].join(' ')}
       ref={bulletContainerRef}
     >
@@ -286,8 +314,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             onClick={() => setActivePopup('delete')}
             disabled={
               editMode ||
-              isRegenerating ||
-              disableAllControls ||
+              isCurrentBulletRegenerating ||
+              isAnyBulletRegenerating ||
               bulletData.isLocked
             }
             title='Delete bullet'
@@ -304,8 +332,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
                 onClick={handleBulletSave}
                 disabled={
                   editModeText.trim() === '' ||
-                  isRegenerating ||
-                  disableAllControls
+                  isCurrentBulletRegenerating ||
+                  isAnyBulletRegenerating
                 }
                 title='Save (Enter)'
                 data-no-dnd='true'
@@ -315,7 +343,9 @@ const BulletPoint: React.FC<BulletPointProps> = ({
               <button
                 className={styles.cancelButton}
                 onClick={handleBulletEditCancel}
-                disabled={isRegenerating || disableAllControls}
+                disabled={
+                  isCurrentBulletRegenerating || isAnyBulletRegenerating
+                }
                 title='Cancel (Esc)'
                 data-no-dnd='true'
               >
@@ -328,7 +358,9 @@ const BulletPoint: React.FC<BulletPointProps> = ({
                 className={styles.editButton}
                 onClick={handleBulletEdit}
                 disabled={
-                  isRegenerating || disableAllControls || bulletData.isLocked
+                  isCurrentBulletRegenerating ||
+                  isAnyBulletRegenerating ||
+                  bulletData.isLocked
                 }
                 title='Edit bullet'
                 data-no-dnd='true'
@@ -343,7 +375,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
               bulletData.isLocked ? styles.locked : styles.unlocked,
             ].join(' ')}
             onClick={handleBulletLockToggle}
-            disabled={isRegenerating || disableAllControls}
+            disabled={isCurrentBulletRegenerating || isAnyBulletRegenerating}
             title='Lock bullet'
             data-no-dnd='true'
           >
@@ -361,7 +393,9 @@ const BulletPoint: React.FC<BulletPointProps> = ({
                 : () => setActivePopup('regenerate')
             }
             disabled={
-              isRegenerating || disableAllControls || bulletData.isLocked
+              isCurrentBulletRegenerating ||
+              isAnyBulletRegenerating ||
+              bulletData.isLocked
             }
             title='Regenerate bullet'
             data-no-dnd='true'
@@ -421,7 +455,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
             ref={editInputRef}
             className={styles.bulletInputArea}
             value={editModeText}
-            disabled={isRegenerating}
+            disabled={isCurrentBulletRegenerating}
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             data-no-dnd='true'

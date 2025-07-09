@@ -28,8 +28,6 @@ export const submitSettings = async (
     ) as LanguageModel,
   }
 
-  console.log('settingsData', settingsData)
-
   const validatedData = settingsSchema.safeParse(settingsData)
 
   if (validatedData.success) {

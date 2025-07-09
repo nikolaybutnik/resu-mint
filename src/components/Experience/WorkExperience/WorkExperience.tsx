@@ -1,11 +1,10 @@
 import styles from './WorkExperience.module.scss'
 import React, { useCallback, useState, useEffect, useMemo } from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import { BulletPoint, ExperienceBlockData, Month } from '@/lib/types/experience'
+import { ExperienceBlockData, Month } from '@/lib/types/experience'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import DraggableExperienceBlock from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
-import { GenerateBulletsRequest, JobDescriptionAnalysis } from '@/lib/types/api'
 import {
   closestCenter,
   DndContext,
@@ -22,14 +21,12 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { sanitizeResumeBullet } from '@/lib/utils'
 import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import {
   restrictToParentElement,
   restrictToVerticalAxis,
 } from '@dnd-kit/modifiers'
 import { FaPlus } from 'react-icons/fa'
-import { bulletService } from '@/lib/services/bulletService'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { KeywordData } from '@/lib/types/keywords'
 import { useExperienceStore, useSettingsStore } from '@/stores'
@@ -37,22 +34,16 @@ import { useExperienceStore, useSettingsStore } from '@/stores'
 interface WorkExperienceProps {
   data: ExperienceBlockData[]
   keywordData: KeywordData
-  jobDescriptionAnalysis: JobDescriptionAnalysis
   loading: boolean
 }
 
 const WorkExperience: React.FC<WorkExperienceProps> = ({
   data,
   keywordData,
-  jobDescriptionAnalysis,
   loading,
 }) => {
   const { data: settings } = useSettingsStore()
   const { data: workExperience } = useExperienceStore()
-
-  useEffect(() => {
-    console.log('workExperience', workExperience)
-  }, [workExperience])
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [newBlockId, setNewBlockId] = useState<string | null>(null)
@@ -111,28 +102,13 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const findExperience = (id: string) =>
     workExperience.find((experience) => experience.id === id)
 
-  const updateExperience = useCallback(
-    (updatedExperience: ExperienceBlockData) => {
-      // setLocalData((prev) =>
-      //   prev.map((experience) =>
-      //     experience.id === updatedExperience.id
-      //       ? updatedExperience
-      //       : experience
-      //   )
-      // )
-    },
-    []
-  )
-
   const handleSectionDelete = useCallback(
     (id: string) => {
       const updatedData = workExperience.filter(
         (experience) => experience.id !== id
       )
-      // setLocalData(updatedData)
       setSelectedBlockId(null)
       setNewBlockId(null)
-      // onSave(updatedData)
     },
     [workExperience]
   )
@@ -163,42 +139,12 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setEditingBullet(null)
   }, [data])
 
+  // TODO: update
   const handleSectionInclusion = useCallback(
     (sectionId: string, isIncluded: boolean) => {
       const updatedData = workExperience.map((experience) =>
         experience.id === sectionId ? { ...experience, isIncluded } : experience
       )
-    },
-    [workExperience]
-  )
-
-  const handleExperienceSave = useCallback(
-    (updatedBlock: ExperienceBlockData) => {
-      const updatedData = workExperience.map((block) =>
-        block.id === updatedBlock.id ? updatedBlock : block
-      )
-      // setLocalData(updatedData)
-      // onSave(updatedData)
-    },
-    [workExperience]
-  )
-
-  const handleLockToggleAll = useCallback(
-    (sectionId: string, shouldLock: boolean) => {
-      const updatedData = workExperience.map((block) =>
-        block.id === sectionId
-          ? {
-              ...block,
-              bulletPoints: block.bulletPoints.map((bullet) => ({
-                ...bullet,
-                isLocked: shouldLock,
-              })),
-            }
-          : block
-      )
-
-      // setLocalData(updatedData)
-      // onSave(updatedData)
     },
     [workExperience]
   )
@@ -215,6 +161,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     })
   }, [])
 
+  // TODO: will be triggered differently
   const expandSection = useCallback((sectionId: string) => {
     setExpandedSections((prev) => {
       const newSet = new Set(prev)
@@ -222,35 +169,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       return newSet
     })
   }, [])
-
-  const handleAddBullet = useCallback(
-    (sectionId: string, shouldSave = false) => {
-      const experience = findExperience(sectionId)
-      if (!experience) return
-
-      const newBullet = {
-        id: uuidv4(),
-        text: '',
-        isLocked: false,
-      }
-
-      const updatedExperience = {
-        ...experience,
-        bulletPoints: [...experience.bulletPoints, newBullet],
-      }
-
-      updateExperience(updatedExperience)
-
-      expandSection(sectionId)
-
-      setEditingBullet({
-        section: sectionId,
-        index: updatedExperience.bulletPoints.length - 1,
-        text: '',
-      })
-    },
-    [findExperience, updateExperience, expandSection, workExperience]
-  )
 
   const handleBulletEdit = useCallback(
     (sectionId: string, index: number) => {
@@ -284,11 +202,11 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         ...experience,
         bulletPoints: experience.bulletPoints.slice(0, -1),
       }
-      updateExperience(updatedExperience)
+      // updateExperience(updatedExperience)
     }
 
     setEditingBullet(null)
-  }, [editingBullet, findExperience, updateExperience])
+  }, [editingBullet, findExperience])
 
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
@@ -320,9 +238,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [workExperience, activeId]
   )
 
-  const isAnyBulletBeingEdited = !!editingBullet
-  const isAnyBulletRegenerating = !!regeneratingBullet
-
   const getExperienceBlockProps = (experience: ExperienceBlockData) => {
     const isEditingBullet = editingBullet?.section === experience.id
     const editingBulletIndex = isEditingBullet ? editingBullet.index : null
@@ -337,7 +252,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       editingBulletText: isEditingBullet ? editingBullet.text : '',
       onEditBullet: handleBulletEdit,
       onBulletCancel: handleCancelEdit,
-      onAddBullet: (sectionId: string) => handleAddBullet(sectionId, false),
+      onAddBullet: () => {},
       onBulletSave: () => {},
     }
   }
@@ -357,7 +272,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         isNew={isNew}
         onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
-        onSave={handleExperienceSave}
+        onSave={() => {}}
         onRegenerateBullet={() => {}}
         onLockToggle={() => {}}
         onBulletDelete={() => {}}
@@ -377,15 +292,9 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
           {...sharedProps}
           key={experience.id}
           keywordData={null}
-          editingBulletIndex={null}
-          isRegenerating={false}
-          regeneratingBullet={null}
-          editingBulletText=''
           isOverlay={true}
           isExpanded={false}
           isDropping={false}
-          isAnyBulletBeingEdited={false}
-          isAnyBulletRegenerating={false}
           onDrawerToggle={() => {}}
           onBlockSelect={() => {}}
           onRegenerateAllBullets={() => {}}
@@ -400,8 +309,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         key={experience.id}
         isDropping={isDropping}
         isExpanded={expandedSections.has(experience.id)}
-        isAnyBulletBeingEdited={isAnyBulletBeingEdited}
-        isAnyBulletRegenerating={isAnyBulletRegenerating}
         onDrawerToggle={() => toggleSectionExpanded(experience.id)}
         onBlockSelect={handleSectionSelect}
         onRegenerateAllBullets={handleAllBulletsRegenerate}
@@ -412,6 +319,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     )
   }
 
+  // TODO: deal with the lag on dragging, and fix items not being saved on drop
   return (
     <>
       {loading ? (
@@ -423,7 +331,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             <button
               type='button'
               className={styles.addButton}
-              disabled={!!selectedBlockId || isAnyBulletRegenerating}
+              disabled={!!selectedBlockId}
               onClick={handleSectionAdd}
             >
               <FaPlus size={12} />

@@ -23,16 +23,10 @@ import { bulletService } from '@/lib/services/bulletService'
 
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
-  editingBulletIndex: number | null
-  editingBulletText: string
-  isRegenerating: boolean
-  isAnyBulletBeingEdited: boolean
-  isAnyBulletRegenerating: boolean
+  keywordData: KeywordData | null
   isExpanded: boolean
   isOverlay?: boolean
   isDropping?: boolean
-  regeneratingBullet?: { section: string; index: number } | null
-  keywordData: KeywordData | null
   onBlockSelect: (id: string) => void
   onRegenerateAllBullets: () => void
   onDrawerToggle: () => void
@@ -42,19 +36,13 @@ interface DraggableExperienceBlockProps {
 const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   data,
   keywordData,
-  editingBulletIndex,
-  editingBulletText,
-  isRegenerating,
-  regeneratingBullet,
-  isAnyBulletBeingEdited,
-  isAnyBulletRegenerating,
   isExpanded,
   isOverlay = false,
   isDropping = false,
   onBlockSelect,
   onRegenerateAllBullets,
   onDrawerToggle,
-  onToggleInclude,
+  onToggleInclude, // TODO: re-implement
 }) => {
   const isFirstRender = useRef(true)
 
@@ -65,7 +53,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id: data.id,
-      disabled: isOverlay || isAnyBulletBeingEdited || isAnyBulletRegenerating,
+      disabled: isOverlay,
     })
 
   const style = isOverlay
@@ -86,11 +74,11 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
 
   const bulletPoints = useMemo(() => data.bulletPoints, [data.bulletPoints])
 
-  const isEditingThisSection =
-    editingBulletIndex !== null &&
-    data.id === (editingBulletText ? data.id : null)
-  const isDrawerDisabled =
-    (isAnyBulletBeingEdited && !isEditingThisSection) || isAnyBulletRegenerating
+  // const isEditingThisSection =
+  //   editingBulletIndex !== null &&
+  //   data.id === (editingBulletText ? data.id : null)
+  // const isDrawerDisabled =
+  //   (isAnyBulletBeingEdited && !isEditingThisSection) || isAnyBulletRegenerating
 
   // TODO: implement
   const handleAllBulletsRegenerate = useCallback(
@@ -139,7 +127,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
     >
       <LongPressHandler
         className={styles.draggableExperienceBlock}
-        disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+        disabled={isOverlay}
         title='Long press to drag and reorder'
       >
         <div className={styles.experienceBlockContent}>
@@ -165,12 +153,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             data-no-dnd='true'
             className={styles.generateAllButton}
             onClick={handleAllBulletsRegenerate}
-            disabled={
-              isDragging ||
-              isOverlay ||
-              isAnyBulletRegenerating ||
-              isAnyBulletBeingEdited
-            }
+            disabled={isDragging || isOverlay}
           >
             <FaMagic size={14} />
             {animationKey > 0 && (
@@ -182,12 +165,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             data-no-dnd='true'
             className={styles.editButton}
             onClick={() => onBlockSelect(data.id)}
-            disabled={
-              isDragging ||
-              isOverlay ||
-              isAnyBulletRegenerating ||
-              isAnyBulletBeingEdited
-            }
+            disabled={isDragging || isOverlay}
           >
             <FaPen size={14} />
           </button>
@@ -199,12 +177,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
               data.isIncluded ? styles.included : styles.excluded,
             ].join(' ')}
             // onClick={handleToggleInclude}
-            disabled={
-              isDragging ||
-              isOverlay ||
-              isAnyBulletRegenerating ||
-              isAnyBulletBeingEdited
-            }
+            disabled={isDragging || isOverlay}
             title={
               data.isIncluded ? 'Exclude from resume' : 'Include in resume'
             }
@@ -219,10 +192,10 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           className={`${styles.draggableExperienceBlockContainer} ${
             styles.drawerToggleButton
           } ${isExpanded ? [styles.noRadius, styles.expanded].join(' ') : ''} ${
-            isDrawerDisabled ? styles.disabled : ''
+            isOverlay ? styles.disabled : ''
           }`}
           onClick={onDrawerToggle}
-          disabled={isDrawerDisabled}
+          disabled={isOverlay}
           data-no-dnd='true'
         >
           {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
@@ -240,7 +213,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             <button
               className={styles.lockAllButton}
               onClick={() => handleLockAllToggle(data.id, 'experience', true)}
-              disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+              disabled={isOverlay}
               data-no-dnd='true'
             >
               <FaLock size={10} />
@@ -249,7 +222,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             <button
               className={styles.unlockAllButton}
               onClick={() => handleLockAllToggle(data.id, 'experience', false)}
-              disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+              disabled={isOverlay}
               data-no-dnd='true'
             >
               <FaUnlockAlt size={10} />
@@ -258,25 +231,13 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
           </div>
         )}
 
-        {bulletPoints.map((bullet, index) => {
-          const isEditingThisBullet = editingBulletIndex === index
-          const isRegeneratingThisBullet =
-            isRegenerating &&
-            regeneratingBullet?.section === data.id &&
-            regeneratingBullet?.index === index
-
+        {bulletPoints.map((bullet) => {
           return (
             <BulletPoint
               key={bullet.id}
               sectionId={data.id}
               sectionType='experience'
               keywordData={keywordData}
-              isRegenerating={isRegeneratingThisBullet}
-              disableAllControls={
-                isAnyBulletRegenerating ||
-                (isAnyBulletBeingEdited && !isEditingThisBullet)
-              }
-              isLocked={bullet.isLocked ?? false}
               isDangerousAction={true}
               bulletData={bullet}
               onBulletCancel={handleBulletCancel}
@@ -289,9 +250,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
             sectionId={data.id}
             sectionType='experience'
             keywordData={keywordData}
-            isRegenerating={false}
-            disableAllControls={false}
-            isLocked={false}
             isDangerousAction={false}
             bulletData={temporaryBullet}
             onBulletCancel={handleBulletCancel}
@@ -301,7 +259,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         <button
           className={styles.addBulletButtonNested}
           onClick={handleBulletAdd}
-          disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+          disabled={isOverlay}
           data-no-dnd='true'
         >
           <FaPlus size={12} />
@@ -312,7 +270,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> = ({
         <button
           className={styles.addBulletButton}
           onClick={handleBulletAdd}
-          disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+          disabled={isOverlay}
           data-no-dnd='true'
         >
           <FaPlus size={12} />
