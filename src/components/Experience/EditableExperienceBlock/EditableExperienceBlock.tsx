@@ -12,21 +12,27 @@ import { useAutoResizeTextarea } from '@/lib/hooks'
 import { submitExperience } from '@/lib/actions/experienceActions'
 import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
 import { useExperienceStore } from '@/stores'
+import { useAiStateStore } from '@/stores'
+import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
+import { BulletPoint as BulletPointType } from '@/lib/types/experience'
+import { v4 as uuidv4 } from 'uuid'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
   isNew: boolean
   keywordData: KeywordData | null
-  onDelete: (id: string) => void
   onClose: (() => void) | undefined
 }
 
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
   isNew,
+  keywordData,
   onClose,
 }) => {
   const { data: experienceData, save } = useExperienceStore()
+  const { bulletIdsGenerating } = useAiStateStore()
+
   const [state, formAction] = useActionState(
     (prevState: ExperienceFormState, formData: FormData): ExperienceFormState =>
       submitExperience(
@@ -46,6 +52,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     state.data?.endDate?.isPresent || false
   )
   const [description, setDescription] = useState(state.data?.description || '')
+  const [temporaryBullet, setTemporaryBullet] =
+    useState<BulletPointType | null>(null)
 
   useEffect(() => {
     setIsCurrentlyWorking(state.data?.endDate?.isPresent || false)
@@ -67,7 +75,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         'Are you sure you want to delete this work experience? This action cannot be undone.'
       )
     ) {
-      // onDelete(data.id)
+      const updatedSections = experienceData.filter(
+        (section) => section.id !== data.id
+      )
+      save(updatedSections)
+      onClose?.()
     }
   }
 
@@ -82,6 +94,22 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     )
   }
 
+  const handleBulletAdd = () => {
+    const newBullet: BulletPointType = {
+      id: uuidv4(),
+      text: '',
+      isLocked: false,
+      isTemporary: true,
+    }
+    setTemporaryBullet(newBullet)
+  }
+
+  const handleBulletCancel = () => {
+    setTemporaryBullet(null)
+  }
+
+  const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
+
   return (
     <section className={styles.editableExperienceBlock}>
       <div className={styles.header}>
@@ -90,7 +118,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='button'
             className={styles.deleteButton}
             onClick={handleDelete}
-            // disabled={isRegenerating}
+            disabled={isAnyBulletRegenerating}
           >
             Delete
           </button>
@@ -299,8 +327,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <button
             type='button'
             className={styles.addButton}
-            onClick={() => {}}
-            // disabled={isRegenerating}
+            disabled={isAnyBulletRegenerating}
+            onClick={handleBulletAdd}
           >
             <FaPlus /> Add
           </button>
@@ -308,41 +336,27 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         <div className={styles.bulletPointsContainer}>
           {data.bulletPoints.map((bullet, index) => {
             return (
-              <div key={bullet.id}>
-                <p>{bullet.text}</p>
-              </div>
-              // <BulletPoint
-              //   key={bullet.id}
-              //   sectionId={data.id}
-              //   index={index}
-              //   text={bullet.text}
-              //   keywordData={keywordData}
-              //   editingText={isEditingThisBullet ? editingBulletText : ''}
-              //   isRegenerating={
-              //     isRegenerating &&
-              //     regeneratingBullet?.section === data.id &&
-              //     regeneratingBullet?.index === index
-              //   }
-              //   isEditing={isEditingThisBullet}
-              //   disableAllControls={
-              //     isRegenerating ||
-              //     (editingBulletIndex !== null && !isEditingThisBullet)
-              //   }
-              //   errors={editingBulletIndex === index ? bulletErrors : {}}
-              //   isLocked={bullet.isLocked || false}
-              //   isDangerousAction={true}
-              //   onCancelEdit={onBulletCancel}
-              //   onBulletDelete={(index) => onBulletDelete(data.id, index)}
-              //   onBulletSave={onBulletSave}
-              //   onBulletEdit={(index) => onEditBullet(data.id, index)}
-              //   onBulletRegenerate={handleRegenerateBullet}
-              //   onTextareaChange={onTextareaChange}
-              //   onLockToggle={(sectionId, index) => {
-              //     onLockToggle(sectionId, index)
-              //   }}
-              // />
+              <BulletPoint
+                key={bullet.id}
+                sectionId={data.id}
+                sectionType='experience'
+                bulletData={bullet}
+                keywordData={keywordData}
+                onBulletCancel={handleBulletCancel}
+              />
             )
           })}
+          {temporaryBullet && (
+            <BulletPoint
+              key={temporaryBullet.id}
+              sectionId={data.id}
+              sectionType='experience'
+              keywordData={keywordData}
+              isDangerousAction={false}
+              bulletData={temporaryBullet}
+              onBulletCancel={handleBulletCancel}
+            />
+          )}
         </div>
       </div>
     </section>

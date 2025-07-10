@@ -369,22 +369,24 @@ const BulletPoint: React.FC<BulletPointProps> = ({
               </button>
             </>
           )}
-          <button
-            className={[
-              styles.lockButton,
-              bulletData.isLocked ? styles.locked : styles.unlocked,
-            ].join(' ')}
-            onClick={handleBulletLockToggle}
-            disabled={isCurrentBulletRegenerating || isAnyBulletRegenerating}
-            title='Lock bullet'
-            data-no-dnd='true'
-          >
-            {bulletData.isLocked ? (
-              <FaLock size={12} />
-            ) : (
-              <FaUnlock size={12} />
-            )}
-          </button>
+          {!bulletData.isTemporary && (
+            <button
+              className={[
+                styles.lockButton,
+                bulletData.isLocked ? styles.locked : styles.unlocked,
+              ].join(' ')}
+              onClick={handleBulletLockToggle}
+              disabled={isCurrentBulletRegenerating || isAnyBulletRegenerating}
+              title='Lock bullet'
+              data-no-dnd='true'
+            >
+              {bulletData.isLocked ? (
+                <FaLock size={12} />
+              ) : (
+                <FaUnlock size={12} />
+              )}
+            </button>
+          )}
           <button
             className={styles.regenerateButton}
             onClick={

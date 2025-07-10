@@ -88,18 +88,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     }
   }, [selectedBlockId, expandedSections])
 
-  const handleSectionDelete = useCallback(
-    (id: string) => {
-      const updatedData = workExperience.filter(
-        (experience) => experience.id !== id
-      )
-      save(updatedData)
-      setSelectedBlockId(null)
-      setIsCreatingNew(false)
-    },
-    [workExperience, save]
-  )
-
   const createNewExperienceBlock = (id: string): ExperienceBlockData => ({
     id,
     title: '',
@@ -196,7 +184,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         keywordData={keywordData}
         key={experience.id}
         isNew={isNew}
-        onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
       />
     )
