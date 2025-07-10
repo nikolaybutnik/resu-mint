@@ -11,6 +11,7 @@ import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
 import { submitExperience } from '@/lib/actions/experienceActions'
 import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
+import { useExperienceStore } from '@/stores'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -18,19 +19,23 @@ interface EditableExperienceBlockProps {
   keywordData: KeywordData | null
   onDelete: (id: string) => void
   onClose: (() => void) | undefined
-  onSave: (data: ExperienceBlockData) => void
 }
 
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
   isNew,
-  onDelete,
   onClose,
-  onSave,
 }) => {
+  const { data: experienceData, save } = useExperienceStore()
   const [state, formAction] = useActionState(
     (prevState: ExperienceFormState, formData: FormData): ExperienceFormState =>
-      submitExperience(prevState, formData, onSave, data.bulletPoints),
+      submitExperience(
+        prevState,
+        formData,
+        experienceData,
+        data.bulletPoints,
+        save
+      ),
     {
       errors: {},
       data,
@@ -62,7 +67,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         'Are you sure you want to delete this work experience? This action cannot be undone.'
       )
     ) {
-      onDelete(data.id)
+      // onDelete(data.id)
     }
   }
 

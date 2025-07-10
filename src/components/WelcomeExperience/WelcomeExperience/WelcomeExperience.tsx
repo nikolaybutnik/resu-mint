@@ -6,17 +6,16 @@ import {
   WelcomeExperienceState,
   shouldShowWelcomeExperience,
 } from '@/lib/utils'
-import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
-import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { EducationBlockData } from '@/lib/types/education'
-import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { JobDetails } from '@/lib/types/jobDetails'
 import { STORAGE_KEYS } from '@/lib/constants'
 import PersonalDetailsStep from '../PersonalDetailsStep/PersonalDetailsStep'
 import { WelcomeStep } from '../WelcomeStep/WelcomeStep'
 import { ExperienceProjectsStep } from '../ExperienceProjectsStep/ExperienceProjectsStep'
 import { EducationStep } from '../EducationStep/EducationStep'
 import { JobDescriptionStep } from '../JobDescriptionStep/JobDescriptionStep'
+import { usePersonalDetailsStore, useExperienceStore } from '@/stores'
 
 interface WelcomeExperienceProps {
   welcomeState: WelcomeExperienceState
@@ -50,7 +49,6 @@ interface PersonalizationData {
   targetJobTitle: string
 }
 
-// Type for skills stored in localStorage
 interface StoredSkills {
   hardSkills: string[]
   softSkills: string[]
@@ -100,16 +98,13 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
   welcomeState,
   onComplete,
 }) => {
+  const { data: personalDetails } = usePersonalDetailsStore()
+  const { data: workExperience } = useExperienceStore()
+  // TODO: add the rest of the data from the stores when implemented
+
   const [currentStep, setCurrentStep] = useState(welcomeState.startStep)
   const [isClient, setIsClient] = useState(false)
   const [currentWelcomeState, setCurrentWelcomeState] = useState(welcomeState)
-
-  // Check for existing step 2 data when component mounts or step changes
-  useEffect(() => {
-    if (isClient) {
-      // Any component-level initialization can go here
-    }
-  }, [currentStep, isClient])
 
   // Personalization functions
   const getPersonalizationData = (): PersonalizationData => {
@@ -135,39 +130,26 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     if (typeof window === 'undefined') return defaultData
 
     try {
-      // Personal Details (get from localStorage)
-      const personalDetails = localStorage.getItem(
-        STORAGE_KEYS.PERSONAL_DETAILS
-      )
-      if (personalDetails) {
-        const parsed = JSON.parse(personalDetails) as PersonalDetailsType
-        if (parsed.name?.trim()) {
-          defaultData.fullName = parsed.name.trim()
-          defaultData.firstName = parsed.name.trim().split(' ')[0]
-        }
-        if (parsed.email?.trim()) {
-          defaultData.email = parsed.email.trim()
+      if (personalDetails.name?.trim()) {
+        defaultData.fullName = personalDetails.name.trim()
+        defaultData.firstName = personalDetails.name.trim().split(' ')[0]
+      }
+      if (personalDetails.email?.trim()) {
+        defaultData.email = personalDetails.email.trim()
+      }
+
+      if (Array.isArray(workExperience) && workExperience.length > 0) {
+        defaultData.hasExperience = true
+        defaultData.experienceCount = workExperience.length
+
+        const recentJob = workExperience[0]
+        if (recentJob) {
+          defaultData.recentJobTitle = recentJob.title || ''
+          defaultData.recentCompany = recentJob.companyName || ''
         }
       }
 
-      // Experience Data
-      const experience = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
-      if (experience) {
-        const parsedExp = JSON.parse(experience) as ExperienceBlockData[]
-        if (Array.isArray(parsedExp) && parsedExp.length > 0) {
-          defaultData.hasExperience = true
-          defaultData.experienceCount = parsedExp.length
-
-          // Get most recent job info
-          const recentJob = parsedExp[0] // Assuming first is most recent
-          if (recentJob) {
-            defaultData.recentJobTitle = recentJob.title || ''
-            defaultData.recentCompany = recentJob.companyName || ''
-          }
-        }
-      }
-
-      // Projects Data
+      // Projects Data (still from localStorage for now)
       const projects = localStorage.getItem(STORAGE_KEYS.PROJECTS)
       if (projects) {
         const parsedProjects = JSON.parse(projects) as ProjectBlockData[]
@@ -177,7 +159,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         }
       }
 
-      // Education Data
+      // Education Data (still from localStorage for now)
       const education = localStorage.getItem(STORAGE_KEYS.EDUCATION)
       if (education) {
         const parsedEducation = JSON.parse(education) as EducationBlockData[]
@@ -194,7 +176,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         }
       }
 
-      // Skills Data
+      // Skills Data (still from localStorage for now)
       const skills = localStorage.getItem(STORAGE_KEYS.SKILLS)
       if (skills) {
         const parsedSkills = JSON.parse(skills) as StoredSkills
@@ -210,25 +192,19 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         }
       }
 
-      // Job Description Data
-      const jobDescription = localStorage.getItem(STORAGE_KEYS.JOB_DESCRIPTION)
-      const jobAnalysis = localStorage.getItem(
-        STORAGE_KEYS.JOB_DESCRIPTION_ANALYSIS
-      )
-      if (jobDescription?.trim()) {
-        defaultData.hasJobDescription = true
+      const jobDetailsData = localStorage.getItem(STORAGE_KEYS.JOB_DETAILS)
+      if (jobDetailsData) {
+        try {
+          const parsedJobDetails = JSON.parse(jobDetailsData) as JobDetails
+          if (parsedJobDetails.originalJobDescription?.trim()) {
+            defaultData.hasJobDescription = true
 
-        if (jobAnalysis) {
-          try {
-            const parsedAnalysis = JSON.parse(
-              jobAnalysis
-            ) as JobDescriptionAnalysis
-            if (parsedAnalysis?.jobTitle) {
-              defaultData.targetJobTitle = parsedAnalysis.jobTitle
+            if (parsedJobDetails.analysis?.jobTitle) {
+              defaultData.targetJobTitle = parsedJobDetails.analysis.jobTitle
             }
-          } catch {
-            // Invalid analysis, ignore
           }
+        } catch {
+          // Invalid job details, ignore
         }
       }
 

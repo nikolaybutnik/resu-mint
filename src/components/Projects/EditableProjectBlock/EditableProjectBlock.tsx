@@ -424,16 +424,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                 sectionId={data.id}
                 sectionType='project'
                 keywordData={keywordData}
-                isRegenerating={
-                  isRegenerating &&
-                  regeneratingBullet?.section === data.id &&
-                  regeneratingBullet?.index === index
-                }
-                disableAllControls={
-                  isRegenerating ||
-                  (editingBulletIndex !== null && !isEditingThisBullet)
-                }
-                isLocked={bullet.isLocked || false}
                 isDangerousAction={true}
                 bulletData={bullet}
                 onBulletCancel={onBulletCancel}

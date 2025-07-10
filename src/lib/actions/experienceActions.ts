@@ -11,8 +11,9 @@ import { zodErrorsToFormErrors } from '../types/errors'
 export const submitExperience = (
   prevState: ExperienceFormState,
   formData: FormData,
-  onSave: (data: ExperienceBlockData) => void,
-  currentBulletPoints: BulletPoint[] = []
+  workExperience: ExperienceBlockData[],
+  currentBulletPoints: BulletPoint[] = [],
+  onSave: (data: ExperienceBlockData[]) => void
 ) => {
   const experienceData: ExperienceBlockData = {
     id: prevState.data?.id || '',
@@ -53,7 +54,21 @@ export const submitExperience = (
   const validatedData = experienceBlockSchema.safeParse(experienceData)
 
   if (validatedData.success) {
-    onSave(validatedData.data as ExperienceBlockData)
+    const existingItemIndex = workExperience.findIndex(
+      (item) => item.id === validatedData.data.id
+    )
+
+    let updatedWorkExperience: ExperienceBlockData[]
+
+    if (existingItemIndex !== -1) {
+      updatedWorkExperience = workExperience.map((item) =>
+        item.id === validatedData.data.id ? validatedData.data : item
+      )
+    } else {
+      updatedWorkExperience = [...workExperience, validatedData.data]
+    }
+
+    onSave(updatedWorkExperience)
   }
 
   return {

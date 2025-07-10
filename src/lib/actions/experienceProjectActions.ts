@@ -47,7 +47,9 @@ const initialState: ExperienceProjectFormState = {
 
 export const submitExperienceProject = (
   prevState: ExperienceProjectFormState,
-  formData: FormData
+  formData: FormData,
+  experienceData: ExperienceBlockData[],
+  saveExperience: (data: ExperienceBlockData[]) => void
 ): ExperienceProjectFormState => {
   const type = formData.get('type') as keyof typeof FormSelectionState
   const isLoad = formData.get('load') === 'true'
@@ -148,6 +150,7 @@ export const submitExperienceProject = (
       '',
   }
 
+  // TODO: remove this function when project store is implemented
   const handleSave = (savedData: ExperienceBlockData | ProjectBlockData) => {
     const storageKey =
       type === FormSelectionState.experience
@@ -228,8 +231,9 @@ export const submitExperienceProject = (
         },
       },
       experienceFormData,
-      handleSave,
-      []
+      experienceData,
+      [],
+      saveExperience
     )
 
     return {

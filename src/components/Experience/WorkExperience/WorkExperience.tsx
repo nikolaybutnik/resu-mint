@@ -1,5 +1,5 @@
 import styles from './WorkExperience.module.scss'
-import React, { useCallback, useState, useEffect, useMemo } from 'react'
+import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData, Month } from '@/lib/types/experience'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
@@ -40,6 +40,8 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   keywordData,
   loading,
 }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+
   const { data: workExperience, save } = useExperienceStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
@@ -80,6 +82,12 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     }
   }, [activeId])
 
+  useEffect(() => {
+    if (selectedBlockId && expandedSections.size > 0) {
+      setExpandedSections(new Set())
+    }
+  }, [selectedBlockId, expandedSections])
+
   const handleSectionDelete = useCallback(
     (id: string) => {
       const updatedData = workExperience.filter(
@@ -104,20 +112,35 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     isIncluded: true,
   })
 
+  const scrollToTop = () => {
+    if (containerRef.current) {
+      const sidebar = containerRef.current.closest('div[class*="sidebar"]')
+      if (sidebar) {
+        sidebar.scrollTop = 0
+      }
+    }
+  }
+
   const handleSectionAdd = (): void => {
     const newBlockId = uuidv4()
     setSelectedBlockId(newBlockId)
     setIsCreatingNew(true)
+    scrollToTop()
   }
 
-  const handleSectionSelect = useCallback((id: string) => {
-    setSelectedBlockId(id)
-  }, [])
+  const handleSectionSelect = useCallback(
+    (id: string) => {
+      setSelectedBlockId(id)
+      scrollToTop()
+    },
+    [scrollToTop]
+  )
 
   const handleSectionClose = useCallback(() => {
     setSelectedBlockId(null)
     setIsCreatingNew(false)
-  }, [])
+    scrollToTop()
+  }, [scrollToTop])
 
   const toggleSectionDrawer = useCallback((sectionId: string) => {
     setExpandedSections((prev) => {
@@ -175,7 +198,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
         isNew={isNew}
         onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
-        onSave={() => {}}
       />
     )
   }
@@ -217,7 +239,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       {loading ? (
         <LoadingSpinner text='Loading your work experience...' size='lg' />
       ) : (
-        <div className={styles.experience}>
+        <div ref={containerRef} className={styles.experience}>
           <h2 className={styles.formTitle}>Work Experience</h2>
           {!selectedBlockId && workExperience.length > 0 && (
             <button

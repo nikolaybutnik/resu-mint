@@ -11,6 +11,7 @@ import {
   FormSelectionState,
   StoredDataItem,
 } from '@/lib/actions/experienceProjectActions'
+import { useExperienceStore } from '@/stores'
 
 interface ExperienceProjectsStepProps {
   onContinue: () => void
@@ -19,13 +20,27 @@ interface ExperienceProjectsStepProps {
 export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   onContinue,
 }) => {
+  const { data: experienceData, save: saveExperience } = useExperienceStore()
+
   const [selectedOption, setSelectedOption] = useState<
     keyof typeof FormSelectionState | null
   >(null)
   const [isEditingExisting, setIsEditingExisting] = useState(false)
 
+  const submitExperienceProjectWrapper = (
+    prevState: typeof experienceProjectInitialState,
+    formData: FormData
+  ) => {
+    return submitExperienceProject(
+      prevState,
+      formData,
+      experienceData,
+      saveExperience
+    )
+  }
+
   const [state, formAction] = useActionState(
-    submitExperienceProject,
+    submitExperienceProjectWrapper,
     experienceProjectInitialState
   )
 
