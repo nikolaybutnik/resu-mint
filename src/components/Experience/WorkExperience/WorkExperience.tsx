@@ -29,31 +29,23 @@ import {
 import { FaPlus } from 'react-icons/fa'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { KeywordData } from '@/lib/types/keywords'
-import { useExperienceStore, useSettingsStore } from '@/stores'
+import { useExperienceStore } from '@/stores'
 
 interface WorkExperienceProps {
-  data: ExperienceBlockData[]
   keywordData: KeywordData
   loading: boolean
 }
 
 const WorkExperience: React.FC<WorkExperienceProps> = ({
-  data,
   keywordData,
   loading,
 }) => {
-  const { data: settings } = useSettingsStore()
-  const { data: workExperience } = useExperienceStore()
+  const { data: workExperience, save } = useExperienceStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
-  const [newBlockId, setNewBlockId] = useState<string | null>(null)
+  const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
-  const [editingBullet, setEditingBullet] = useState<{
-    section: string
-    index: number
-    text: string
-  } | null>(null)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
     new Set()
   )
@@ -88,41 +80,34 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     }
   }, [activeId])
 
-  // TODO: auto add new section mechanism
-  // useEffect(() => {
-  //   if (workExperience.length === 0 && !selectedBlockId && !newBlockId && !loading) {
-  //     handleSectionAdd()
-  //   }
-  // }, [workExperience.length, selectedBlockId, newBlockId, loading])
-
-  const findExperience = (id: string) =>
-    workExperience.find((experience) => experience.id === id)
-
   const handleSectionDelete = useCallback(
     (id: string) => {
       const updatedData = workExperience.filter(
         (experience) => experience.id !== id
       )
+      save(updatedData)
       setSelectedBlockId(null)
-      setNewBlockId(null)
+      setIsCreatingNew(false)
     },
     [workExperience]
   )
 
-  const handleSectionAdd = () => {
-    const newBlock: ExperienceBlockData = {
-      id: uuidv4(),
-      title: '',
-      description: '',
-      startDate: { month: '' as Month, year: '' },
-      endDate: { month: '' as Month, year: '', isPresent: false },
-      companyName: '',
-      location: '',
-      bulletPoints: [],
-      isIncluded: true,
-    }
-    setSelectedBlockId(newBlock.id)
-    setNewBlockId(newBlock.id)
+  const createNewExperienceBlock = (id: string): ExperienceBlockData => ({
+    id,
+    title: '',
+    description: '',
+    startDate: { month: '' as Month, year: '' },
+    endDate: { month: '' as Month, year: '', isPresent: false },
+    companyName: '',
+    location: '',
+    bulletPoints: [],
+    isIncluded: true,
+  })
+
+  const handleSectionAdd = (): void => {
+    const newBlockId = uuidv4()
+    setSelectedBlockId(newBlockId)
+    setIsCreatingNew(true)
   }
 
   const handleSectionSelect = useCallback((id: string) => {
@@ -131,11 +116,10 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
 
   const handleSectionClose = useCallback(() => {
     setSelectedBlockId(null)
-    setNewBlockId(null)
-    setEditingBullet(null)
-  }, [data])
+    setIsCreatingNew(false)
+  }, [])
 
-  const toggleSectionExpanded = useCallback((sectionId: string) => {
+  const toggleSectionDrawer = useCallback((sectionId: string) => {
     setExpandedSections((prev) => {
       const newSet = new Set(prev)
       if (newSet.has(sectionId)) {
@@ -147,58 +131,12 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     })
   }, [])
 
-  // TODO: will be triggered differently
-  const expandSection = useCallback((sectionId: string) => {
-    setExpandedSections((prev) => {
-      const newSet = new Set(prev)
-      newSet.add(sectionId)
-      return newSet
-    })
-  }, [])
-
-  const handleBulletEdit = useCallback(
-    (sectionId: string, index: number) => {
-      const experience = findExperience(sectionId)
-      if (!experience) return
-
-      setEditingBullet({
-        section: sectionId,
-        index,
-        text: experience.bulletPoints[index].text,
-      })
-    },
-    [findExperience]
-  )
-
-  const handleCancelEdit = useCallback(() => {
-    if (!editingBullet) return
-
-    const { section: sectionId, index } = editingBullet
-    const experience = findExperience(sectionId)
-    if (!experience) return
-
-    // Check if this is a new bullet that doesn't exist in main state
-    const isNewBullet =
-      index >= experience.bulletPoints.length ||
-      (index === experience.bulletPoints.length - 1 &&
-        experience.bulletPoints[index].text === '')
-
-    if (isNewBullet) {
-      const updatedExperience = {
-        ...experience,
-        bulletPoints: experience.bulletPoints.slice(0, -1),
-      }
-      // updateExperience(updatedExperience)
-    }
-
-    setEditingBullet(null)
-  }, [editingBullet, findExperience])
-
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
     setExpandedSections(new Set())
   }, [])
 
+  // TODO: fix items not being saved on drop
   const handleDragEnd = useCallback((event: DragEndEvent): void => {
     const { active, over } = event
 
@@ -221,40 +159,22 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     [workExperience, activeId]
   )
 
-  const getExperienceBlockProps = (experience: ExperienceBlockData) => {
-    const isEditingBullet = editingBullet?.section === experience.id
-    const editingBulletIndex = isEditingBullet ? editingBullet.index : null
-
-    return {
-      data: experience,
-      keywordData,
-      editingBulletIndex,
-      settings,
-      onEditBullet: handleBulletEdit,
-      onBulletCancel: handleCancelEdit,
-      onAddBullet: () => {},
-      onBulletSave: () => {},
-    }
-  }
-
   const renderEditableBlock = (
     experience: ExperienceBlockData,
-    existingBlocks: ExperienceBlockData[]
-  ) => {
-    const sharedProps = getExperienceBlockProps(experience)
-    const isNew = experience.id === newBlockId
+    existingBlocks: ExperienceBlockData[],
+    isNew: boolean = false
+  ): React.ReactNode => {
     const showCloseButton = existingBlocks.length > 1 || !isNew
 
     return (
       <EditableExperienceBlock
-        {...sharedProps}
+        data={experience}
+        keywordData={keywordData}
         key={experience.id}
         isNew={isNew}
         onDelete={handleSectionDelete}
         onClose={showCloseButton ? handleSectionClose : undefined}
         onSave={() => {}}
-        onLockToggle={() => {}}
-        onBulletDelete={() => {}}
       />
     )
   }
@@ -262,13 +182,11 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const renderDraggableBlock = (
     experience: ExperienceBlockData,
     isOverlay = false
-  ) => {
-    const sharedProps = getExperienceBlockProps(experience)
-
+  ): React.ReactNode => {
     if (isOverlay) {
       return (
         <DraggableExperienceBlock
-          {...sharedProps}
+          data={experience}
           key={experience.id}
           keywordData={null}
           isOverlay={true}
@@ -282,17 +200,17 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
 
     return (
       <DraggableExperienceBlock
-        {...sharedProps}
+        data={experience}
+        keywordData={keywordData}
         key={experience.id}
         isDropping={isDropping}
         isExpanded={expandedSections.has(experience.id)}
-        onDrawerToggle={() => toggleSectionExpanded(experience.id)}
+        onDrawerToggle={() => toggleSectionDrawer(experience.id)}
         onSectionEdit={handleSectionSelect}
       />
     )
   }
 
-  // TODO: fix items not being saved on drop
   return (
     <>
       {loading ? (
@@ -312,11 +230,17 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             </button>
           )}
           <div className={styles.experienceContainer}>
-            {selectedBlockId ? (
+            {isCreatingNew && selectedBlockId ? (
+              renderEditableBlock(
+                createNewExperienceBlock(selectedBlockId),
+                workExperience,
+                true
+              )
+            ) : selectedBlockId ? (
               workExperience
                 .filter((experience) => experience.id === selectedBlockId)
                 .map((experience) =>
-                  renderEditableBlock(experience, workExperience)
+                  renderEditableBlock(experience, workExperience, false)
                 )
             ) : (
               <DndContext

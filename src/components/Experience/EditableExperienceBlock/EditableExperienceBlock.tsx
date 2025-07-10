@@ -19,12 +19,6 @@ interface EditableExperienceBlockProps {
   onDelete: (id: string) => void
   onClose: (() => void) | undefined
   onSave: (data: ExperienceBlockData) => void
-  onAddBullet: (sectionId: string) => void
-  onEditBullet: (sectionId: string, index: number) => void
-  onBulletSave: () => void
-  onBulletCancel: () => void
-  onBulletDelete: (sectionId: string, index: number) => void
-  onLockToggle: (sectionId: string, index: number) => void
 }
 
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
@@ -33,7 +27,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   onDelete,
   onClose,
   onSave,
-  onAddBullet,
 }) => {
   const [state, formAction] = useActionState(
     (prevState: ExperienceFormState, formData: FormData): ExperienceFormState =>
@@ -301,7 +294,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <button
             type='button'
             className={styles.addButton}
-            onClick={() => onAddBullet(data.id)}
+            onClick={() => {}}
             // disabled={isRegenerating}
           >
             <FaPlus /> Add

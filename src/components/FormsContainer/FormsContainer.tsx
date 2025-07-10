@@ -574,11 +574,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           {activeTab === Tabs.JOB_DETAILS && <JobDetails />}
           {activeTab === Tabs.PERSONAL_DETAILS && <PersonalDetails />}
           {activeTab === Tabs.EXPERIENCE && (
-            <WorkExperience
-              data={workExperience}
-              keywordData={keywordData}
-              loading={loading}
-            />
+            <WorkExperience keywordData={keywordData} loading={loading} />
           )}
           {activeTab === Tabs.PROJECTS && (
             <Projects
