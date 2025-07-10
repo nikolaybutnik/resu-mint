@@ -89,7 +89,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
       setSelectedBlockId(null)
       setIsCreatingNew(false)
     },
-    [workExperience]
+    [workExperience, save]
   )
 
   const createNewExperienceBlock = (id: string): ExperienceBlockData => ({
@@ -136,23 +136,24 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     setExpandedSections(new Set())
   }, [])
 
-  // TODO: fix items not being saved on drop
-  const handleDragEnd = useCallback((event: DragEndEvent): void => {
-    const { active, over } = event
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent): void => {
+      const { active, over } = event
 
-    if (over && active.id !== over.id) {
-      //   setLocalData((items) => {
-      //     const oldIndex = items.findIndex((item) => item.id === active.id)
-      //     const newIndex = items.findIndex((item) => item.id === over.id)
-      //     const newOrder = arrayMove(items, oldIndex, newIndex)
-      //     setTimeout(() => onSave(newOrder), 0)
-      //     return newOrder
-      //   })
-    }
-    setActiveId(null)
-    setIsDropping(true)
-    setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
-  }, [])
+      if (over && active.id !== over.id) {
+        const oldIndex = workExperience.findIndex(
+          (item) => item.id === active.id
+        )
+        const newIndex = workExperience.findIndex((item) => item.id === over.id)
+        const newOrder = arrayMove(workExperience, oldIndex, newIndex)
+        save(newOrder)
+      }
+      setActiveId(null)
+      setIsDropping(true)
+      setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
+    },
+    [workExperience, save]
+  )
 
   const activeItem = useMemo(
     () => workExperience.find((item) => item.id === activeId),

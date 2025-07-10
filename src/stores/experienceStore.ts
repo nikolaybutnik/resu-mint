@@ -37,21 +37,16 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
   },
 
   save: async (data: ExperienceBlockData[]) => {
+    const previousData = get().data
+
+    set({ data, hasData: !!data?.length })
+
     try {
-      set({ loading: true })
       await dataManager.saveExperience(data)
-      set({
-        data,
-        loading: false,
-        hasData: !!data?.length,
-      })
     } catch (error) {
+      set({ data: previousData, hasData: !!previousData?.length })
       console.error('ExperienceStore: save error:', error)
-      const currentState = get()
-      set({
-        loading: false,
-        data: currentState.data,
-      })
+      throw error
     }
   },
 
