@@ -305,4 +305,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
     }
   )
 
+DraggableExperienceBlock.displayName = 'DraggableExperienceBlock'
+
 export default DraggableExperienceBlock

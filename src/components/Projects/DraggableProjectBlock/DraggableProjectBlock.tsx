@@ -310,4 +310,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
   }
 )
 
+DraggableProjectBlock.displayName = 'DraggableProjectBlock'
+
 export default DraggableProjectBlock
