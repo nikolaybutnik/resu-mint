@@ -19,19 +19,21 @@ import { v4 as uuidv4 } from 'uuid'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
-  isNew: boolean
   keywordData: KeywordData | null
   onClose: (() => void) | undefined
 }
 
 const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   data,
-  isNew,
   keywordData,
   onClose,
 }) => {
   const { data: experienceData, save } = useExperienceStore()
   const { bulletIdsGenerating } = useAiStateStore()
+
+  const isNew = !experienceData.some((block) => block.id === data.id)
+  const shouldShowCloseButton = experienceData.length > 1 || !isNew
+  const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
 
   const [state, formAction] = useActionState(
     (prevState: ExperienceFormState, formData: FormData): ExperienceFormState =>
@@ -108,8 +110,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     setTemporaryBullet(null)
   }
 
-  const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
-
   return (
     <section className={styles.editableExperienceBlock}>
       <div className={styles.header}>
@@ -123,7 +123,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             Delete
           </button>
         )}
-        {onClose && (
+        {shouldShowCloseButton && onClose && (
           <button
             type='button'
             className={styles.closeButton}
@@ -321,44 +321,46 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
       </form>
 
-      <div className={styles.bulletPoints}>
-        <div className={styles.bulletHeader}>
-          <h3>Bullet Points</h3>
-          <button
-            type='button'
-            className={styles.addButton}
-            disabled={isAnyBulletRegenerating}
-            onClick={handleBulletAdd}
-          >
-            <FaPlus /> Add
-          </button>
-        </div>
-        <div className={styles.bulletPointsContainer}>
-          {data.bulletPoints.map((bullet, index) => {
-            return (
+      {!isNew && (
+        <div className={styles.bulletPoints}>
+          <div className={styles.bulletHeader}>
+            <h3>Bullet Points</h3>
+            <button
+              type='button'
+              className={styles.addButton}
+              disabled={isAnyBulletRegenerating}
+              onClick={handleBulletAdd}
+            >
+              <FaPlus /> Add
+            </button>
+          </div>
+          <div className={styles.bulletPointsContainer}>
+            {data.bulletPoints.map((bullet) => {
+              return (
+                <BulletPoint
+                  key={bullet.id}
+                  sectionId={data.id}
+                  sectionType='experience'
+                  bulletData={bullet}
+                  keywordData={keywordData}
+                  onBulletCancel={handleBulletCancel}
+                />
+              )
+            })}
+            {temporaryBullet && (
               <BulletPoint
-                key={bullet.id}
+                key={temporaryBullet.id}
                 sectionId={data.id}
                 sectionType='experience'
-                bulletData={bullet}
                 keywordData={keywordData}
+                isDangerousAction={false}
+                bulletData={temporaryBullet}
                 onBulletCancel={handleBulletCancel}
               />
-            )
-          })}
-          {temporaryBullet && (
-            <BulletPoint
-              key={temporaryBullet.id}
-              sectionId={data.id}
-              sectionType='experience'
-              keywordData={keywordData}
-              isDangerousAction={false}
-              bulletData={temporaryBullet}
-              onBulletCancel={handleBulletCancel}
-            />
-          )}
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   )
 }

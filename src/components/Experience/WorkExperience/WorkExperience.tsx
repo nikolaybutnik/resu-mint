@@ -45,7 +45,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const { data: workExperience, save } = useExperienceStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
-  const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -112,7 +111,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   const handleSectionAdd = (): void => {
     const newBlockId = uuidv4()
     setSelectedBlockId(newBlockId)
-    setIsCreatingNew(true)
     scrollToTop()
   }
 
@@ -126,7 +124,6 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
 
   const handleSectionClose = useCallback(() => {
     setSelectedBlockId(null)
-    setIsCreatingNew(false)
     scrollToTop()
   }, [scrollToTop])
 
@@ -172,19 +169,14 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   )
 
   const renderEditableBlock = (
-    experience: ExperienceBlockData,
-    existingBlocks: ExperienceBlockData[],
-    isNew: boolean = false
+    experience: ExperienceBlockData
   ): React.ReactNode => {
-    const showCloseButton = existingBlocks.length > 1 || !isNew
-
     return (
       <EditableExperienceBlock
         data={experience}
         keywordData={keywordData}
         key={experience.id}
-        isNew={isNew}
-        onClose={showCloseButton ? handleSectionClose : undefined}
+        onClose={handleSectionClose}
       />
     )
   }
@@ -221,6 +213,48 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     )
   }
 
+  const renderMainContent = (): React.ReactNode => {
+    // Show currently selected block (existing or new)
+    if (selectedBlockId) {
+      const existingBlock = workExperience.find(
+        (experience) => experience.id === selectedBlockId
+      )
+      return existingBlock
+        ? renderEditableBlock(existingBlock)
+        : renderEditableBlock(createNewExperienceBlock(selectedBlockId))
+    }
+
+    // Show default form when no data exists
+    if (workExperience.length === 0) {
+      return renderEditableBlock(createNewExperienceBlock(uuidv4()))
+    }
+
+    // Show drag-and-drop view when there is existing data
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      >
+        <SortableContext
+          items={workExperience.map((item) => item.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className={styles.experiencesContainer}>
+            {workExperience.map((experience) =>
+              renderDraggableBlock(experience)
+            )}
+          </div>
+        </SortableContext>
+        <DragOverlay>
+          {activeItem && renderDraggableBlock(activeItem, true)}
+        </DragOverlay>
+      </DndContext>
+    )
+  }
+
   return (
     <>
       {loading ? (
@@ -240,41 +274,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
             </button>
           )}
           <div className={styles.experienceContainer}>
-            {isCreatingNew && selectedBlockId ? (
-              renderEditableBlock(
-                createNewExperienceBlock(selectedBlockId),
-                workExperience,
-                true
-              )
-            ) : selectedBlockId ? (
-              workExperience
-                .filter((experience) => experience.id === selectedBlockId)
-                .map((experience) =>
-                  renderEditableBlock(experience, workExperience, false)
-                )
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-              >
-                <SortableContext
-                  items={workExperience.map((item) => item.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className={styles.experiencesContainer}>
-                    {workExperience.map((experience) =>
-                      renderDraggableBlock(experience)
-                    )}
-                  </div>
-                </SortableContext>
-                <DragOverlay>
-                  {activeItem && renderDraggableBlock(activeItem, true)}
-                </DragOverlay>
-              </DndContext>
-            )}
+            {renderMainContent()}
           </div>
         </div>
       )}
