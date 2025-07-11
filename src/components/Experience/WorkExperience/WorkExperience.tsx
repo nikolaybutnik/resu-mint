@@ -181,37 +181,48 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
     )
   }
 
-  const renderDraggableBlock = (
-    experience: ExperienceBlockData,
-    isOverlay = false
-  ): React.ReactNode => {
-    if (isOverlay) {
+  const renderDraggableBlock = useCallback(
+    (experience: ExperienceBlockData, isOverlay = false): React.ReactNode => {
+      if (isOverlay) {
+        return (
+          <DraggableExperienceBlock
+            data={experience}
+            key={experience.id}
+            keywordData={null}
+            isOverlay={true}
+            isExpanded={false}
+            isDropping={false}
+            onDrawerToggle={() => {}}
+            onSectionEdit={() => {}}
+          />
+        )
+      }
+
       return (
         <DraggableExperienceBlock
           data={experience}
+          keywordData={keywordData}
           key={experience.id}
-          keywordData={null}
-          isOverlay={true}
-          isExpanded={false}
-          isDropping={false}
-          onDrawerToggle={() => {}}
-          onSectionEdit={() => {}}
+          isDropping={isDropping}
+          isExpanded={expandedSections.has(experience.id)}
+          onDrawerToggle={() => toggleSectionDrawer(experience.id)}
+          onSectionEdit={handleSectionSelect}
         />
       )
-    }
+    },
+    [
+      keywordData,
+      isDropping,
+      expandedSections,
+      toggleSectionDrawer,
+      handleSectionSelect,
+    ]
+  )
 
-    return (
-      <DraggableExperienceBlock
-        data={experience}
-        keywordData={keywordData}
-        key={experience.id}
-        isDropping={isDropping}
-        isExpanded={expandedSections.has(experience.id)}
-        onDrawerToggle={() => toggleSectionDrawer(experience.id)}
-        onSectionEdit={handleSectionSelect}
-      />
-    )
-  }
+  const draggableBlocks = useMemo(
+    () => workExperience.map((experience) => renderDraggableBlock(experience)),
+    [workExperience, renderDraggableBlock]
+  )
 
   const renderMainContent = (): React.ReactNode => {
     // Show currently selected block (existing or new)
@@ -242,11 +253,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
           items={workExperience.map((item) => item.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className={styles.experiencesContainer}>
-            {workExperience.map((experience) =>
-              renderDraggableBlock(experience)
-            )}
-          </div>
+          <div className={styles.experiencesContainer}>{draggableBlocks}</div>
         </SortableContext>
         <DragOverlay>
           {activeItem && renderDraggableBlock(activeItem, true)}

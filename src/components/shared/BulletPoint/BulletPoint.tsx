@@ -513,4 +513,15 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   )
 }
 
-export default memo(BulletPoint)
+export default memo(BulletPoint, (prevProps, nextProps) => {
+  return (
+    prevProps.sectionId === nextProps.sectionId &&
+    prevProps.sectionType === nextProps.sectionType &&
+    prevProps.isDangerousAction === nextProps.isDangerousAction &&
+    prevProps.bulletData.id === nextProps.bulletData.id &&
+    prevProps.bulletData.text === nextProps.bulletData.text &&
+    prevProps.bulletData.isLocked === nextProps.bulletData.isLocked &&
+    prevProps.bulletData.isTemporary === nextProps.bulletData.isTemporary &&
+    prevProps.keywordData === nextProps.keywordData
+  )
+})

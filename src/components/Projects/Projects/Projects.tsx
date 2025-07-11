@@ -174,37 +174,48 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData, loading }) => {
     )
   }
 
-  const renderDraggableBlock = (
-    project: ProjectBlockData,
-    isOverlay = false
-  ): React.ReactNode => {
-    if (isOverlay) {
+  const renderDraggableBlock = useCallback(
+    (project: ProjectBlockData, isOverlay = false): React.ReactNode => {
+      if (isOverlay) {
+        return (
+          <DraggableProjectBlock
+            data={project}
+            key={project.id}
+            keywordData={null}
+            isOverlay={true}
+            isExpanded={false}
+            isDropping={false}
+            onDrawerToggle={() => {}}
+            onSectionEdit={() => {}}
+          />
+        )
+      }
+
       return (
         <DraggableProjectBlock
           data={project}
+          keywordData={keywordData}
           key={project.id}
-          keywordData={null}
-          isOverlay={true}
-          isExpanded={false}
-          isDropping={false}
-          onDrawerToggle={() => {}}
-          onSectionEdit={() => {}}
+          isDropping={isDropping}
+          isExpanded={expandedSections.has(project.id)}
+          onDrawerToggle={() => toggleSectionDrawer(project.id)}
+          onSectionEdit={handleSectionSelect}
         />
       )
-    }
+    },
+    [
+      keywordData,
+      isDropping,
+      expandedSections,
+      toggleSectionDrawer,
+      handleSectionSelect,
+    ]
+  )
 
-    return (
-      <DraggableProjectBlock
-        data={project}
-        keywordData={keywordData}
-        key={project.id}
-        isDropping={isDropping}
-        isExpanded={expandedSections.has(project.id)}
-        onDrawerToggle={() => toggleSectionDrawer(project.id)}
-        onSectionEdit={handleSectionSelect}
-      />
-    )
-  }
+  const draggableBlocks = useMemo(
+    () => projects.map((project) => renderDraggableBlock(project)),
+    [projects, renderDraggableBlock]
+  )
 
   const renderMainContent = (): React.ReactNode => {
     // Show currently selected block (existing or new)
@@ -235,9 +246,7 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData, loading }) => {
           items={projects.map((item) => item.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className={styles.projectsContainer}>
-            {projects.map((project) => renderDraggableBlock(project))}
-          </div>
+          <div className={styles.projectsContainer}>{draggableBlocks}</div>
         </SortableContext>
         <DragOverlay>
           {activeItem && renderDraggableBlock(activeItem, true)}
