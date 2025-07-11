@@ -105,6 +105,14 @@ class DataManager {
     return projectsManager.deleteBullet(sectionId, bulletId)
   }
 
+  async toggleProjectBulletLock(sectionId: string, bulletId: string) {
+    return projectsManager.toggleBulletLock(sectionId, bulletId)
+  }
+
+  async toggleProjectBulletLockAll(sectionId: string, shouldLock: boolean) {
+    return projectsManager.toggleBulletLockAll(sectionId, shouldLock)
+  }
+
   invalidateProjects() {
     projectsManager.invalidate()
   }

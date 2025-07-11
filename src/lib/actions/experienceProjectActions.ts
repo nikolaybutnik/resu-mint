@@ -2,7 +2,6 @@ import { submitExperience } from './experienceActions'
 import { submitProject } from './projectActions'
 import { ExperienceBlockData } from '../types/experience'
 import { ProjectBlockData } from '../types/projects'
-import { STORAGE_KEYS } from '../constants'
 import { v4 as uuidv4 } from 'uuid'
 import { PROJECT_FORM_DATA_KEYS, EXPERIENCE_FORM_DATA_KEYS } from '../constants'
 
@@ -49,7 +48,9 @@ export const submitExperienceProject = (
   prevState: ExperienceProjectFormState,
   formData: FormData,
   experienceData: ExperienceBlockData[],
-  saveExperience: (data: ExperienceBlockData[]) => void
+  saveExperience: (data: ExperienceBlockData[]) => void,
+  projectData: ProjectBlockData[],
+  saveProject: (data: ProjectBlockData[]) => void
 ): ExperienceProjectFormState => {
   const type = formData.get('type') as keyof typeof FormSelectionState
   const isLoad = formData.get('load') === 'true'
@@ -148,33 +149,6 @@ export const submitExperienceProject = (
     description:
       (formData.get(EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
       '',
-  }
-
-  // TODO: remove this function when project store is implemented
-  const handleSave = (savedData: ExperienceBlockData | ProjectBlockData) => {
-    const storageKey =
-      type === FormSelectionState.experience
-        ? STORAGE_KEYS.EXPERIENCE
-        : STORAGE_KEYS.PROJECTS
-    const existingData = localStorage.getItem(storageKey)
-    const dataArray = existingData ? JSON.parse(existingData) : []
-
-    const isEditing =
-      savedData.id &&
-      dataArray.some((item: StoredDataItem) => item.id === savedData.id)
-
-    if (isEditing) {
-      const index = dataArray.findIndex(
-        (item: StoredDataItem) => item.id === savedData.id
-      )
-      if (index !== -1) {
-        dataArray[index] = savedData
-      }
-    } else {
-      dataArray.push(savedData)
-    }
-
-    localStorage.setItem(storageKey, JSON.stringify(dataArray))
   }
 
   if (type === FormSelectionState.experience) {
@@ -286,8 +260,9 @@ export const submitExperienceProject = (
         },
       },
       projectFormData,
-      handleSave,
-      []
+      projectData,
+      [],
+      saveProject
     )
 
     return {

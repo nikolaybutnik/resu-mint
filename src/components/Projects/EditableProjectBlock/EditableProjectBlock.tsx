@@ -1,61 +1,46 @@
 import styles from './EditableProjectBlock.module.scss'
 import {
   useActionState,
-  useCallback,
   useEffect,
   useMemo,
   useState,
+  useCallback,
 } from 'react'
+import React from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { MONTHS, PROJECT_FORM_DATA_KEYS } from '@/lib/constants'
-import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { ProjectBlockData, ProjectFormState } from '@/lib/types/projects'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
 import { submitProject } from '@/lib/actions/projectActions'
 import { useFormStatus } from 'react-dom'
+import { useProjectStore } from '@/stores'
+import { useAiStateStore } from '@/stores'
+import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
+import { BulletPoint as BulletPointType } from '@/lib/types/projects'
+import { v4 as uuidv4 } from 'uuid'
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
-  isNew: boolean
-  editingBulletIndex: number | null
-  editingBulletText: string
-  isRegenerating: boolean
-  regeneratingBullet: { section: string; index: number } | null
   keywordData: KeywordData | null
-  onDelete: (id: string) => void
   onClose: (() => void) | undefined
-  onSave: (data: ProjectBlockData) => void
-  onRegenerateBullet: (
-    sectionId: string,
-    index: number,
-    formData?: ProjectBlockData,
-    shouldSave?: boolean
-  ) => void
-  onAddBullet: (sectionId: string) => void
-  onEditBullet: (sectionId: string, index: number) => void
-  onBulletSave: () => void
-  onBulletCancel: () => void
-  onBulletDelete: (sectionId: string, index: number) => void
 }
 
 const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   data,
-  isNew,
-  isRegenerating,
-  editingBulletIndex,
-  regeneratingBullet,
   keywordData,
-  onDelete,
   onClose,
-  onSave,
-  onRegenerateBullet,
-  onAddBullet,
-  onBulletCancel,
 }) => {
+  const { data: projectData, save } = useProjectStore()
+  const { bulletIdsGenerating } = useAiStateStore()
+
+  const isNew = !projectData.some((block) => block.id === data.id)
+  const shouldShowCloseButton = projectData.length > 1 || !isNew
+  const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
+
   const [state, formAction] = useActionState(
     (prevState: ProjectFormState, formData: FormData): ProjectFormState =>
-      submitProject(prevState, formData, onSave, data.bulletPoints),
+      submitProject(prevState, formData, projectData, data.bulletPoints, save),
     {
       errors: {},
       data,
@@ -69,6 +54,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     state.data?.endDate?.isPresent || false
   )
   const [description, setDescription] = useState(state.data?.description || '')
+  const [temporaryBullet, setTemporaryBullet] =
+    useState<BulletPointType | null>(null)
 
   useEffect(() => {
     setIsCurrent(state.data?.endDate?.isPresent || false)
@@ -124,18 +111,27 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         'Are you sure you want to delete this project? This action cannot be undone.'
       )
     ) {
-      onDelete(data.id)
+      const updatedSections = projectData.filter(
+        (section) => section.id !== data.id
+      )
+      save(updatedSections)
+      onClose?.()
     }
   }
 
-  const handleRegenerateBullet = useCallback(
-    (sectionId: string, index: number) => {
-      if (sectionId === data.id) {
-        onRegenerateBullet(sectionId, index, data, true)
-      }
-    },
-    [data.id, data, onRegenerateBullet]
-  )
+  const handleBulletAdd = () => {
+    const newBullet: BulletPointType = {
+      id: uuidv4(),
+      text: '',
+      isLocked: false,
+      isTemporary: true,
+    }
+    setTemporaryBullet(newBullet)
+  }
+
+  const handleBulletCancel = () => {
+    setTemporaryBullet(null)
+  }
 
   // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
   const SubmitButton: React.FC = () => {
@@ -156,12 +152,12 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             type='button'
             className={styles.deleteButton}
             onClick={handleDelete}
-            disabled={isRegenerating}
+            disabled={isAnyBulletRegenerating}
           >
             Delete
           </button>
         )}
-        {onClose && (
+        {shouldShowCloseButton && onClose && (
           <button
             type='button'
             className={styles.closeButton}
@@ -341,7 +337,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             </select>
             <input
               type='text'
-              name='endDate.year'
+              name={PROJECT_FORM_DATA_KEYS.END_DATE_YEAR}
               placeholder='YYYY'
               className={[styles.formInput, styles.yearInput].join(' ')}
               defaultValue={state.data?.endDate?.year || ''}
@@ -402,38 +398,46 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         </div>
       </form>
 
-      <div className={styles.bulletPoints}>
-        <div className={styles.bulletHeader}>
-          <h3>Bullet Points</h3>
-          <button
-            type='button'
-            className={styles.addButton}
-            onClick={() => onAddBullet(data.id)}
-            disabled={isRegenerating}
-          >
-            <FaPlus /> Add
-          </button>
-        </div>
-        <div className={styles.bulletPointsContainer}>
-          {data.bulletPoints.map((bullet, index) => {
-            const isEditingThisBullet = editingBulletIndex === index
-
-            return (
+      {!isNew && (
+        <div className={styles.bulletPoints}>
+          <div className={styles.bulletHeader}>
+            <h3>Bullet Points</h3>
+            <button
+              type='button'
+              className={styles.addButton}
+              onClick={handleBulletAdd}
+              disabled={isAnyBulletRegenerating}
+            >
+              <FaPlus /> Add
+            </button>
+          </div>
+          <div className={styles.bulletPointsContainer}>
+            {data.bulletPoints.map((bullet) => (
               <BulletPoint
                 key={bullet.id}
                 sectionId={data.id}
                 sectionType='project'
                 keywordData={keywordData}
-                isDangerousAction={true}
                 bulletData={bullet}
-                onBulletCancel={onBulletCancel}
+                onBulletCancel={handleBulletCancel}
               />
-            )
-          })}
+            ))}
+            {temporaryBullet && (
+              <BulletPoint
+                key={temporaryBullet.id}
+                sectionId={data.id}
+                sectionType='project'
+                keywordData={keywordData}
+                isDangerousAction={false}
+                bulletData={temporaryBullet}
+                onBulletCancel={handleBulletCancel}
+              />
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </section>
   )
 }
 
-export default EditableProjectBlock
+export default React.memo(EditableProjectBlock)

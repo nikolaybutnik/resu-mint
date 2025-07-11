@@ -11,8 +11,9 @@ import { zodErrorsToFormErrors } from '../types/errors'
 export const submitProject = (
   prevState: ProjectFormState,
   formData: FormData,
-  onSave: (data: ProjectBlockData) => void,
-  currentBulletPoints: BulletPoint[] = []
+  projects: ProjectBlockData[],
+  currentBulletPoints: BulletPoint[] = [],
+  onSave: (updatedProjects: ProjectBlockData[]) => void
 ) => {
   const projectData: ProjectBlockData = {
     id: prevState.data?.id || '',
@@ -49,7 +50,21 @@ export const submitProject = (
   const validatedData = projectBlockSchema.safeParse(projectData)
 
   if (validatedData.success) {
-    onSave(validatedData.data as ProjectBlockData)
+    const existingItemIndex = projects.findIndex(
+      (item) => item.id === validatedData.data.id
+    )
+
+    let updatedProjects: ProjectBlockData[]
+
+    if (existingItemIndex !== -1) {
+      updatedProjects = projects.map((item) =>
+        item.id === validatedData.data.id ? validatedData.data : item
+      )
+    } else {
+      updatedProjects = [...projects, validatedData.data]
+    }
+
+    onSave(updatedProjects)
   }
 
   return {

@@ -7,31 +7,11 @@ import {
 } from '@/lib/types/api'
 import { sanitizeResumeBullet } from '@/lib/utils'
 import { BulletPoint } from '../types/experience'
-import { dataManager } from '@/lib/data/dataManager'
 import { useExperienceStore } from '@/stores'
+import { useProjectStore } from '@/stores'
 import { bulletTextValidationSchema } from '../validationSchemas'
 import { AppSettings } from '../types/settings'
 import { zodErrorsToFormErrors } from '../types/errors'
-
-const updateSectionWithBullet = <
-  T extends { id: string; bulletPoints: BulletPoint[] }
->(
-  sections: T[],
-  sectionId: string,
-  bullet: BulletPoint
-): T[] => {
-  return sections.map((section) =>
-    section.id === sectionId
-      ? {
-          ...section,
-          bulletPoints: [
-            ...section.bulletPoints.filter((b) => b.id !== bullet.id),
-            bullet,
-          ],
-        }
-      : section
-  )
-}
 
 const generateBulletsApi = async (
   params: GenerateBulletsRequest
@@ -75,33 +55,38 @@ export const bulletService = {
     }
 
     try {
-      if (sectionType === 'experience') {
-        await dataManager.saveExperienceBullet(bullet, sectionId)
-      } else if (sectionType === 'project') {
-        await dataManager.saveProjectBullet(bullet, sectionId)
-      }
-
       const cleanBullet = {
         id: bullet.id,
         text: bullet.text,
         isLocked: bullet.isLocked ?? false,
       }
-      let dataStore = null
-
       if (sectionType === 'experience') {
-        dataStore = useExperienceStore.getState()
+        const dataStore = useExperienceStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints
+                  .filter((b) => b.id !== cleanBullet.id)
+                  .concat(cleanBullet),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       } else if (sectionType === 'project') {
-        // TODO: uncomment after implementing project store
-        // dataStore = useProjectStore.getState()
+        const dataStore = useProjectStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints
+                  .filter((b) => b.id !== cleanBullet.id)
+                  .concat(cleanBullet),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       }
-
-      const updatedData = updateSectionWithBullet(
-        dataStore?.data || [],
-        sectionId,
-        cleanBullet
-      )
-
-      await dataStore?.save(updatedData)
     } catch (error) {
       console.error('Error saving bullet:', error)
       throw new Error('Failed to save bullet')
@@ -115,33 +100,31 @@ export const bulletService = {
   ): Promise<void> => {
     try {
       if (sectionType === 'experience') {
-        await dataManager.deleteExperienceBullet(sectionId, bulletId)
+        const dataStore = useExperienceStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.filter(
+                  (bullet) => bullet.id !== bulletId
+                ),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       } else if (sectionType === 'project') {
-        await dataManager.deleteProjectBullet(sectionId, bulletId)
-      }
-
-      let dataStore = null
-
-      if (sectionType === 'experience') {
-        dataStore = useExperienceStore.getState()
-      } else if (sectionType === 'project') {
-        // TODO: uncomment after implementing project store
-        // dataStore = useProjectStore.getState()
-      }
-
-      const updatedData = dataStore?.data.map((section) =>
-        section.id === sectionId
-          ? {
-              ...section,
-              bulletPoints: section.bulletPoints.filter(
-                (bullet) => bullet.id !== bulletId
-              ),
-            }
-          : section
-      )
-
-      if (updatedData) {
-        await dataStore?.save(updatedData)
+        const dataStore = useProjectStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.filter(
+                  (bullet) => bullet.id !== bulletId
+                ),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       }
     } catch (error) {
       console.error('Error deleting bullet:', error)
@@ -156,36 +139,35 @@ export const bulletService = {
   ): Promise<void> => {
     try {
       if (sectionType === 'experience') {
-        await dataManager.toggleExperienceBulletLock(sectionId, bulletId)
+        const dataStore = useExperienceStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.map((bullet) =>
+                  bullet.id === bulletId
+                    ? { ...bullet, isLocked: !bullet.isLocked }
+                    : bullet
+                ),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       } else if (sectionType === 'project') {
-        // TODO: uncomment after implementing project store
-        // await dataManager.toggleProjectBulletLock(bulletId, sectionId)
-      }
-
-      let dataStore = null
-
-      if (sectionType === 'experience') {
-        dataStore = useExperienceStore.getState()
-      } else if (sectionType === 'project') {
-        // TODO: uncomment after implementing project store
-        // dataStore = useProjectStore.getState()
-      }
-
-      const updatedData = dataStore?.data.map((section) =>
-        section.id === sectionId
-          ? {
-              ...section,
-              bulletPoints: section.bulletPoints.map((bullet) =>
-                bullet.id === bulletId
-                  ? { ...bullet, isLocked: !bullet.isLocked }
-                  : bullet
-              ),
-            }
-          : section
-      )
-
-      if (updatedData) {
-        await dataStore?.save(updatedData)
+        const dataStore = useProjectStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.map((bullet) =>
+                  bullet.id === bulletId
+                    ? { ...bullet, isLocked: !bullet.isLocked }
+                    : bullet
+                ),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       }
     } catch (error) {
       console.error('Error toggling bullet lock:', error)
@@ -200,35 +182,33 @@ export const bulletService = {
   ): Promise<void> => {
     try {
       if (sectionType === 'experience') {
-        await dataManager.toggleExperienceBulletLockAll(sectionId, shouldLock)
+        const dataStore = useExperienceStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.map((bullet) => ({
+                  ...bullet,
+                  isLocked: shouldLock,
+                })),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       } else if (sectionType === 'project') {
-        // TODO: uncomment after implementing project store
-        // await dataManager.toggleProjectBulletLockAll(sectionId, shouldLock)
-      }
-
-      let dataStore = null
-
-      if (sectionType === 'experience') {
-        dataStore = useExperienceStore.getState()
-      } else if (sectionType === 'project') {
-        // TODO: uncomment after implementing project store
-        // dataStore = useProjectStore.getState()
-      }
-
-      const updatedData = dataStore?.data.map((section) =>
-        section.id === sectionId
-          ? {
-              ...section,
-              bulletPoints: section.bulletPoints.map((bullet) => ({
-                ...bullet,
-                isLocked: shouldLock,
-              })),
-            }
-          : section
-      )
-
-      if (updatedData) {
-        await dataStore?.save(updatedData)
+        const dataStore = useProjectStore.getState()
+        const updatedData = dataStore.data.map((section) =>
+          section.id === sectionId
+            ? {
+                ...section,
+                bulletPoints: section.bulletPoints.map((bullet) => ({
+                  ...bullet,
+                  isLocked: shouldLock,
+                })),
+              }
+            : section
+        )
+        await dataStore.save(updatedData)
       }
     } catch (error) {
       console.error('Error toggling bullet lock all:', error)
@@ -247,15 +227,12 @@ export const bulletService = {
     bullets: BulletPoint[]
   } | null> => {
     try {
-      let storedState = null
-
+      let storedState
       if (sectionType === 'experience') {
         storedState = useExperienceStore.getState()
       } else if (sectionType === 'project') {
-        // TODO: uncomment after implementing project store
-        // storedState = useProjectStore.getState()
+        storedState = useProjectStore.getState()
       }
-
       const allExistingBullets = storedState?.data?.find(
         (section) => section.id === sectionId
       )?.bulletPoints

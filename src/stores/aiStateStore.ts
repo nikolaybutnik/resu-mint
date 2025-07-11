@@ -9,7 +9,7 @@ interface AiStateStore {
   setBulletIdsGenerating: (bulletIds: string[]) => void
 }
 
-export const useAiStateStore = create<AiStateStore>((set, get) => ({
+export const useAiStateStore = create<AiStateStore>((set) => ({
   loading: false,
   initializing: true,
   bulletIdsGenerating: [],

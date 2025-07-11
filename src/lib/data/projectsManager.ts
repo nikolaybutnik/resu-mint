@@ -196,6 +196,67 @@ class ProjectsManager {
     }
   }
 
+  async toggleBulletLock(sectionId: string, bulletId: string) {
+    const existingProjects = (await this.get()) as ProjectBlockData[]
+    const projectBlockToUpdate = existingProjects.find(
+      (block) => block.id === sectionId
+    )
+    const updatedBulletPoints = projectBlockToUpdate?.bulletPoints.map(
+      (bullet) =>
+        bullet.id === bulletId
+          ? { ...bullet, isLocked: !bullet.isLocked }
+          : bullet
+    )
+    const updatedProjects = existingProjects.map((block) =>
+      block.id === sectionId
+        ? { ...block, bulletPoints: updatedBulletPoints }
+        : block
+    )
+
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.PROJECTS,
+        JSON.stringify(updatedProjects)
+      )
+      this.invalidate()
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        console.warn('Local Storage quota exceeded')
+        throw new Error('Storage quota exceeded. Please clear browser data.')
+      }
+      throw error
+    }
+  }
+
+  async toggleBulletLockAll(sectionId: string, shouldLock: boolean) {
+    const existingProjects = (await this.get()) as ProjectBlockData[]
+    const projectBlockToUpdate = existingProjects.find(
+      (block) => block.id === sectionId
+    )
+    const updatedBulletPoints = projectBlockToUpdate?.bulletPoints.map(
+      (bullet) => ({ ...bullet, isLocked: shouldLock })
+    )
+    const updatedProjects = existingProjects.map((block) =>
+      block.id === sectionId
+        ? { ...block, bulletPoints: updatedBulletPoints }
+        : block
+    )
+
+    try {
+      localStorage.setItem(
+        STORAGE_KEYS.PROJECTS,
+        JSON.stringify(updatedProjects)
+      )
+      this.invalidate()
+    } catch (error) {
+      if (isQuotaExceededError(error)) {
+        console.warn('Local Storage quota exceeded')
+        throw new Error('Storage quota exceeded. Please clear browser data.')
+      }
+      throw error
+    }
+  }
+
   invalidate() {
     this.cache.delete(CACHE_KEYS.PROJECTS_LOCAL)
     this.cache.delete(CACHE_KEYS.PROJECTS_API)

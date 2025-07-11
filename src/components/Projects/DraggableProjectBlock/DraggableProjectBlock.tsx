@@ -1,91 +1,57 @@
 import styles from './DraggableProjectBlock.module.scss'
-import { useCallback, useEffect, useState, useRef, useMemo } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import {
-  FaPen,
   FaChevronDown,
   FaChevronUp,
-  FaMagic,
-  FaPlus,
-  FaLock,
-  FaUnlockAlt,
-  FaEye,
   FaEyeSlash,
+  FaEye,
+  FaLock,
+  FaPen,
+  FaPlus,
+  FaUnlockAlt,
+  FaMagic,
 } from 'react-icons/fa'
+import { ProjectBlockData } from '@/lib/types/projects'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ProjectBlockData } from '@/lib/types/projects'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { KeywordData } from '@/lib/types/keywords'
 import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHandler'
+import { BulletPoint as BulletPointType } from '@/lib/types/projects'
+import { v4 as uuidv4 } from 'uuid'
+import { bulletService } from '@/lib/services/bulletService'
+import { useProjectStore } from '@/stores'
 
 interface DraggableProjectBlockProps {
   data: ProjectBlockData
   keywordData: KeywordData | null
-  editingBulletIndex: number | null
-  editingBulletText: string
-  isRegenerating: boolean
-  isAnyBulletBeingEdited: boolean
-  isAnyBulletRegenerating: boolean
   isExpanded: boolean
   isOverlay?: boolean
   isDropping?: boolean
-  regeneratingBullet?: { section: string; index: number } | null
-  onBlockSelect: (id: string) => void
-  onRegenerateBullet: (
-    sectionId: string,
-    index: number,
-    isProjectEditForm: boolean
-  ) => void
-  onRegenerateAllBullets: () => void
-  onAddBullet: (sectionId: string) => void
-  onEditBullet: (sectionId: string, index: number) => void
-  onBulletSave: () => void
-  onBulletCancel: () => void
-  onBulletDelete: (sectionId: string, index: number) => void
-  onTextareaChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
+  onSectionEdit: (id: string) => void
   onDrawerToggle: () => void
-  onLockToggle: (sectionId: string, index: number) => void
-  onLockToggleAll: (sectionId: string, shouldLock: boolean) => void
-  onToggleInclude: (sectionId: string, isIncluded: boolean) => void
 }
 
 const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
   data,
   keywordData,
-  editingBulletIndex,
-  editingBulletText,
-  isRegenerating,
-  regeneratingBullet,
-  isAnyBulletBeingEdited,
-  isAnyBulletRegenerating,
   isExpanded,
   isOverlay = false,
   isDropping = false,
-  onBlockSelect,
-  onRegenerateBullet,
-  onRegenerateAllBullets,
-  onAddBullet,
-  onEditBullet,
-  onBulletSave,
-  onBulletCancel,
-  onBulletDelete,
+  onSectionEdit,
   onDrawerToggle,
-  onLockToggleAll,
-  onToggleInclude,
 }) => {
   const isFirstRender = useRef(true)
 
-  const [localData, setLocalData] = useState<ProjectBlockData>(data)
   const [animationKey, setAnimationKey] = useState(0)
+  const [temporaryBullet, setTemporaryBullet] =
+    useState<BulletPointType | null>(null)
 
-  useEffect(() => {
-    setLocalData(data)
-  }, [data])
-
+  const { data: projectData, save } = useProjectStore()
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id: data.id,
-      disabled: isOverlay || isAnyBulletBeingEdited || isAnyBulletRegenerating,
+      disabled: isOverlay,
     })
 
   const style = isOverlay
@@ -98,33 +64,51 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         touchAction: isDragging ? 'none' : 'manipulation',
       }
 
-  const handleToggleInclude = () => {
-    const updatedData = { ...localData, isIncluded: !localData.isIncluded }
-    setLocalData(updatedData)
-    onToggleInclude(data.id, updatedData.isIncluded)
+  const handleSectionInclusionToggle = (): void => {
+    const updatedSection = { ...data, isIncluded: !data.isIncluded }
+    const updatedData: ProjectBlockData[] = projectData.map((section) =>
+      section.id === data.id ? updatedSection : section
+    )
+    save(updatedData)
   }
 
-  const bulletPoints = useMemo(
-    () => localData.bulletPoints,
-    [localData.bulletPoints]
+  const memoizedBulletPoints = useMemo(
+    () => data.bulletPoints,
+    [data.bulletPoints]
   )
 
-  const isEditingThisSection =
-    editingBulletIndex !== null &&
-    data.id === (editingBulletText ? data.id : null)
-  const isDrawerDisabled =
-    (isAnyBulletBeingEdited && !isEditingThisSection) || isAnyBulletRegenerating
+  // TODO: implement
+  const handleAllBulletsRegenerate = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    isFirstRender.current = false
+    setAnimationKey((prev) => prev + 1)
+  }, [])
 
-  // TODO: implemennt
-  const handleAllBulletsRegenerate = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation()
-      isFirstRender.current = false
-      setAnimationKey((prev) => prev + 1)
-      onRegenerateAllBullets()
-    },
-    [data, onRegenerateAllBullets]
-  )
+  const handleBulletAdd = () => {
+    const newBullet: BulletPointType = {
+      id: uuidv4(),
+      text: '',
+      isLocked: false,
+      isTemporary: true,
+    }
+    setTemporaryBullet(newBullet)
+
+    if (!isExpanded) {
+      onDrawerToggle()
+    }
+  }
+
+  const handleBulletCancel = () => {
+    setTemporaryBullet(null)
+  }
+
+  const handleLockAllToggle = async (
+    sectionId: string,
+    sectionType: 'project',
+    shouldLock: boolean
+  ): Promise<void> => {
+    await bulletService.toggleBulletLockAll(sectionId, sectionType, shouldLock)
+  }
 
   return (
     <div
@@ -135,17 +119,17 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
         styles.draggableProjectBlockContainer,
         'prevent-select',
         isDragging || isOverlay ? styles.isDragging : '',
-        !localData.isIncluded ? styles.excluded : '',
+        !data.isIncluded ? styles.excluded : '',
       ].join(' ')}
     >
       <LongPressHandler
         className={styles.draggableProjectBlock}
-        disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+        disabled={isOverlay}
         title='Long press to drag and reorder'
       >
         <div className={styles.projectBlockContent}>
           <h3 className={styles.projectBlockHeader}>{data.title}</h3>
-          {!localData.isIncluded && (
+          {!data.isIncluded && (
             <p className={styles.projectBlockExcluded}>
               This project is not currently included in your resume
             </p>
@@ -170,16 +154,14 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
 
         <div className={styles.projectBlockActions}>
           <button
+            style={{
+              display: 'none', // TODO: temporary
+            }}
             type='button'
             data-no-dnd='true'
             className={styles.generateAllButton}
             onClick={handleAllBulletsRegenerate}
-            disabled={
-              isDragging ||
-              isOverlay ||
-              isAnyBulletRegenerating ||
-              isAnyBulletBeingEdited
-            }
+            disabled={isDragging || isOverlay}
           >
             <FaMagic size={14} />
             {animationKey > 0 && (
@@ -190,13 +172,8 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             type='button'
             data-no-dnd='true'
             className={styles.editButton}
-            onClick={() => onBlockSelect(data.id)}
-            disabled={
-              isDragging ||
-              isOverlay ||
-              isAnyBulletRegenerating ||
-              isAnyBulletBeingEdited
-            }
+            onClick={() => onSectionEdit(data.id)}
+            disabled={isDragging || isOverlay}
           >
             <FaPen size={14} />
           </button>
@@ -205,37 +182,28 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             data-no-dnd='true'
             className={[
               styles.toggleIncludeButton,
-              localData.isIncluded ? styles.included : styles.excluded,
+              data.isIncluded ? styles.included : styles.excluded,
             ].join(' ')}
-            onClick={handleToggleInclude}
-            disabled={
-              isDragging ||
-              isOverlay ||
-              isAnyBulletRegenerating ||
-              isAnyBulletBeingEdited
-            }
+            onClick={handleSectionInclusionToggle}
+            disabled={isDragging || isOverlay}
             title={
-              localData.isIncluded ? 'Exclude from resume' : 'Include in resume'
+              data.isIncluded ? 'Exclude from resume' : 'Include in resume'
             }
           >
-            {localData.isIncluded ? (
-              <FaEye size={14} />
-            ) : (
-              <FaEyeSlash size={14} />
-            )}
+            {data.isIncluded ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
           </button>
         </div>
       </LongPressHandler>
 
-      {localData.bulletPoints.length > 0 && (
+      {memoizedBulletPoints.length > 0 && (
         <button
           className={`${styles.draggableProjectBlockContainer} ${
             styles.drawerToggleButton
           } ${isExpanded ? [styles.noRadius, styles.expanded].join(' ') : ''} ${
-            isDrawerDisabled ? styles.disabled : ''
+            isOverlay ? styles.disabled : ''
           }`}
           onClick={onDrawerToggle}
-          disabled={isDrawerDisabled}
+          disabled={isOverlay}
           data-no-dnd='true'
         >
           {isExpanded ? <FaChevronUp size={12} /> : <FaChevronDown size={12} />}
@@ -248,12 +216,12 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           isExpanded ? styles.expanded : ''
         }`}
       >
-        {localData.bulletPoints.length > 1 && (
+        {memoizedBulletPoints.length > 1 && (
           <div className={styles.lockAllButtons}>
             <button
               className={styles.lockAllButton}
-              onClick={() => onLockToggleAll(data.id, true)}
-              disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+              onClick={() => handleLockAllToggle(data.id, 'project', true)}
+              disabled={isOverlay}
               data-no-dnd='true'
             >
               <FaLock size={10} />
@@ -261,8 +229,8 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
             </button>
             <button
               className={styles.unlockAllButton}
-              onClick={() => onLockToggleAll(data.id, false)}
-              disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+              onClick={() => handleLockAllToggle(data.id, 'project', false)}
+              disabled={isOverlay}
               data-no-dnd='true'
             >
               <FaUnlockAlt size={10} />
@@ -271,47 +239,46 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = ({
           </div>
         )}
 
-        {bulletPoints.map((bullet, index) => {
-          const isEditingThisBullet = editingBulletIndex === index
-          const isRegeneratingThisBullet =
-            isRegenerating &&
-            regeneratingBullet?.section === data.id &&
-            regeneratingBullet?.index === index
-
+        {memoizedBulletPoints.map((bullet) => {
           return (
             <BulletPoint
               key={bullet.id}
               sectionId={data.id}
               sectionType='project'
-              bulletData={bullet}
               keywordData={keywordData}
-              isRegenerating={isRegeneratingThisBullet}
-              disableAllControls={
-                isAnyBulletRegenerating ||
-                (isAnyBulletBeingEdited && !isEditingThisBullet)
-              }
-              isLocked={bullet.isLocked ?? false}
               isDangerousAction={true}
-              onBulletCancel={onBulletCancel}
+              bulletData={bullet}
+              onBulletCancel={handleBulletCancel}
             />
           )
         })}
+        {temporaryBullet && (
+          <BulletPoint
+            key={temporaryBullet.id}
+            sectionId={data.id}
+            sectionType='project'
+            keywordData={keywordData}
+            isDangerousAction={false}
+            bulletData={temporaryBullet}
+            onBulletCancel={handleBulletCancel}
+          />
+        )}
 
         <button
           className={styles.addBulletButtonNested}
-          onClick={() => onAddBullet(data.id)}
-          disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+          onClick={handleBulletAdd}
+          disabled={isOverlay}
           data-no-dnd='true'
         >
           <FaPlus size={12} />
         </button>
       </div>
 
-      {localData.bulletPoints.length === 0 && !isExpanded && (
+      {memoizedBulletPoints.length === 0 && !isExpanded && (
         <button
           className={styles.addBulletButton}
-          onClick={() => onAddBullet(data.id)}
-          disabled={isAnyBulletBeingEdited || isAnyBulletRegenerating}
+          onClick={handleBulletAdd}
+          disabled={isOverlay}
           data-no-dnd='true'
         >
           <FaPlus size={12} />

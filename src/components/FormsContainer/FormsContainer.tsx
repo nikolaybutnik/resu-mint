@@ -44,6 +44,7 @@ import {
   useExperienceStore,
   useJobDetailsStore,
   usePersonalDetailsStore,
+  useProjectStore,
 } from '@/stores'
 import { useSettingsStore } from '@/stores/settingsStore'
 
@@ -108,7 +109,6 @@ const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
   return sorted1.every((item, index) => item === sorted2[index])
 }
 
-const initialProjects: ProjectBlockData[] = []
 const initialEducation: EducationBlockData[] = []
 const initialSkills: {
   hardSkills: string[]
@@ -228,6 +228,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   // Stores
   const { data: personalDetails } = usePersonalDetailsStore()
   const { data: workExperience } = useExperienceStore()
+  const { data: projects } = useProjectStore()
   const { data: settings } = useSettingsStore()
   const { data: jobDetails } = useJobDetailsStore()
 
@@ -241,7 +242,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const [showRightScroll, setShowRightScroll] = useState(false)
 
   // Form States
-  const [projects, setProjects] = useState<ProjectBlockData[]>(initialProjects)
   const [education, setEducation] =
     useState<EducationBlockData[]>(initialEducation)
   const [skills, setSkills] = useState<{
@@ -378,11 +378,9 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   useEffect(() => {
     setLoading(true)
     const stored = {
-      projects: localStorage.getItem(STORAGE_KEYS.PROJECTS),
       education: localStorage.getItem(STORAGE_KEYS.EDUCATION),
       skills: localStorage.getItem(STORAGE_KEYS.SKILLS),
     }
-    if (stored.projects) setProjects(JSON.parse(stored.projects))
     if (stored.education) setEducation(JSON.parse(stored.education))
     if (stored.skills) {
       const parsedSkills = JSON.parse(stored.skills) as {
@@ -415,13 +413,6 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       setSkills(initialSkills)
     }
     setLoading(false)
-  }, [])
-
-  const handleProjectsSave = useCallback((data: ProjectBlockData[]) => {
-    setProjects(data)
-    if (data.length > 0) {
-      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(data))
-    }
   }, [])
 
   const handleEducationSave = useCallback((data: EducationBlockData[]) => {
@@ -577,13 +568,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
             <WorkExperience keywordData={keywordData} loading={loading} />
           )}
           {activeTab === Tabs.PROJECTS && (
-            <Projects
-              data={projects}
-              keywordData={keywordData}
-              loading={loading}
-              jobDescriptionAnalysis={jobDetails.analysis}
-              onSave={handleProjectsSave}
-            />
+            <Projects keywordData={keywordData} loading={loading} />
           )}
           {activeTab === Tabs.EDUCATION && (
             <Education

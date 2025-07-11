@@ -6,7 +6,6 @@ import {
   WelcomeExperienceState,
   shouldShowWelcomeExperience,
 } from '@/lib/utils'
-import { ProjectBlockData } from '@/lib/types/projects'
 import { EducationBlockData } from '@/lib/types/education'
 import { JobDetails } from '@/lib/types/jobDetails'
 import { STORAGE_KEYS } from '@/lib/constants'
@@ -15,7 +14,11 @@ import { WelcomeStep } from '../WelcomeStep/WelcomeStep'
 import { ExperienceProjectsStep } from '../ExperienceProjectsStep/ExperienceProjectsStep'
 import { EducationStep } from '../EducationStep/EducationStep'
 import { JobDescriptionStep } from '../JobDescriptionStep/JobDescriptionStep'
-import { usePersonalDetailsStore, useExperienceStore } from '@/stores'
+import {
+  usePersonalDetailsStore,
+  useExperienceStore,
+  useProjectStore,
+} from '@/stores'
 
 interface WelcomeExperienceProps {
   welcomeState: WelcomeExperienceState
@@ -41,12 +44,7 @@ interface PersonalizationData {
   projectCount: number
   educationCount: number
   topSkills: string[]
-  recentJobTitle: string
-  recentCompany: string
-  currentDegree: string
-  currentSchool: string
   hasJobDescription: boolean
-  targetJobTitle: string
 }
 
 interface StoredSkills {
@@ -100,14 +98,25 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
 }) => {
   const { data: personalDetails } = usePersonalDetailsStore()
   const { data: workExperience } = useExperienceStore()
+  const { data: projects } = useProjectStore()
   // TODO: add the rest of the data from the stores when implemented
 
   const [currentStep, setCurrentStep] = useState(welcomeState.startStep)
   const [isClient, setIsClient] = useState(false)
   const [currentWelcomeState, setCurrentWelcomeState] = useState(welcomeState)
 
-  // Personalization functions
-  const getPersonalizationData = (): PersonalizationData => {
+  type GetPersonalizationDataParams = {
+    personalDetails: typeof personalDetails
+    workExperience: typeof workExperience
+    projects: typeof projects
+    // Add params for education and skills when implemented
+  }
+
+  const getPersonalizationData = ({
+    personalDetails,
+    workExperience,
+    projects,
+  }: GetPersonalizationDataParams): PersonalizationData => {
     const defaultData: PersonalizationData = {
       firstName: '',
       fullName: '',
@@ -119,12 +128,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       projectCount: 0,
       educationCount: 0,
       topSkills: [],
-      recentJobTitle: '',
-      recentCompany: '',
-      currentDegree: '',
-      currentSchool: '',
       hasJobDescription: false,
-      targetJobTitle: '',
     }
 
     if (typeof window === 'undefined') return defaultData
@@ -141,22 +145,11 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
       if (Array.isArray(workExperience) && workExperience.length > 0) {
         defaultData.hasExperience = true
         defaultData.experienceCount = workExperience.length
-
-        const recentJob = workExperience[0]
-        if (recentJob) {
-          defaultData.recentJobTitle = recentJob.title || ''
-          defaultData.recentCompany = recentJob.companyName || ''
-        }
       }
 
-      // Projects Data (still from localStorage for now)
-      const projects = localStorage.getItem(STORAGE_KEYS.PROJECTS)
-      if (projects) {
-        const parsedProjects = JSON.parse(projects) as ProjectBlockData[]
-        if (Array.isArray(parsedProjects) && parsedProjects.length > 0) {
-          defaultData.hasProjects = true
-          defaultData.projectCount = parsedProjects.length
-        }
+      if (Array.isArray(projects) && projects.length > 0) {
+        defaultData.hasProjects = true
+        defaultData.projectCount = projects.length
       }
 
       // Education Data (still from localStorage for now)
@@ -166,13 +159,6 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         if (Array.isArray(parsedEducation) && parsedEducation.length > 0) {
           defaultData.hasEducation = true
           defaultData.educationCount = parsedEducation.length
-
-          // Get most recent education info
-          const recentEducation = parsedEducation[0] // Assuming first is most recent
-          if (recentEducation) {
-            defaultData.currentDegree = recentEducation.degree || ''
-            defaultData.currentSchool = recentEducation.institution || ''
-          }
         }
       }
 
@@ -198,10 +184,6 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
           const parsedJobDetails = JSON.parse(jobDetailsData) as JobDetails
           if (parsedJobDetails.originalJobDescription?.trim()) {
             defaultData.hasJobDescription = true
-
-            if (parsedJobDetails.analysis?.jobTitle) {
-              defaultData.targetJobTitle = parsedJobDetails.analysis.jobTitle
-            }
           }
         } catch {
           // Invalid job details, ignore
@@ -216,7 +198,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
   }
 
   const getPersonalizedContent = (step: number, data: PersonalizationData) => {
-    const { firstName, hasExperience, hasProjects, targetJobTitle } = data
+    const { firstName, hasExperience, hasProjects } = data
 
     const content = {
       title: '',
@@ -273,15 +255,12 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
 
       case 4: // Job Description
         content.title = 'Job Description'
-        content.subtitle = targetJobTitle
-          ? `Let's optimize for ${targetJobTitle} roles`
-          : firstName
+        content.subtitle = firstName
           ? `Almost there, ${firstName}! Let's optimize your resume`
           : 'What role are you targeting?'
-        content.content =
-          firstName && targetJobTitle
-            ? `Perfect ${firstName}! Paste a job description for ${targetJobTitle} positions and our AI will optimize your resume to match what employers are looking for.`
-            : `Paste a job description and our AI will optimize your resume to match what employers are looking for.`
+        content.content = firstName
+          ? `Perfect ${firstName}! Paste a job description and our AI will optimize your resume to match what employers are looking for.`
+          : `Paste a job description and our AI will optimize your resume to match what employers are looking for.`
         break
 
       default:
@@ -315,7 +294,11 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
   }, [currentStep, isClient, currentWelcomeState.completedSteps])
 
   const getPersonalizedStepData = (stepId: number): WelcomeStep => {
-    const personalizationData = getPersonalizationData()
+    const personalizationData = getPersonalizationData({
+      personalDetails,
+      workExperience,
+      projects,
+    })
     const personalizedContent = getPersonalizedContent(
       stepId,
       personalizationData
