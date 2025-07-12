@@ -21,10 +21,13 @@ export const submitProject = (
     bulletPoints: currentBulletPoints,
     title: (formData.get(PROJECT_FORM_DATA_KEYS.TITLE) as string)?.trim() || '',
     link: (formData.get(PROJECT_FORM_DATA_KEYS.LINK) as string)?.trim() || '',
-    technologies:
-      (formData.get(PROJECT_FORM_DATA_KEYS.TECHNOLOGIES) as string)?.split(
-        ','
-      ) || [],
+    technologies: (() => {
+      const techString =
+        (formData.get(PROJECT_FORM_DATA_KEYS.TECHNOLOGIES) as string) || ''
+      return techString
+        ? techString.split(',').filter((tech) => tech.trim() !== '')
+        : []
+    })(),
     startDate: {
       month:
         (formData.get(PROJECT_FORM_DATA_KEYS.START_DATE_MONTH) as Month) || '',

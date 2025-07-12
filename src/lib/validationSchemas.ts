@@ -165,26 +165,14 @@ const monthSchema = z.union([z.enum(monthLabels), z.literal('')]).optional()
 
 export const startDateSchema = z.object({
   month: monthSchema,
-  year: z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
+  year: z.string(),
 })
 
-export const endDateSchema = z
-  .object({
-    isPresent: z.boolean(),
-    month: monthSchema,
-    year: z.string(),
-  })
-  .refine(
-    (data) => {
-      if (data.isPresent) return true
-
-      return /^\d{4}$/.test(data.year)
-    },
-    {
-      message: 'Year must be four digits (e.g., 2020) when not Present',
-      path: ['year'],
-    }
-  )
+export const endDateSchema = z.object({
+  isPresent: z.boolean(),
+  month: monthSchema,
+  year: z.string(),
+})
 
 // Education allows the dates to be optional
 export const educationStartDateSchema = z.object({
@@ -227,35 +215,110 @@ export const experienceBlockSchema = z
     bulletPoints: z.array(bulletPointSchema).optional().default([]),
     isIncluded: z.boolean().optional().default(true),
   })
-  .refine(
-    (data) => {
-      if (data.endDate.isPresent || !data.endDate.year) {
-        return true
+  .superRefine((data, ctx) => {
+    if (data.endDate.isPresent) {
+      // Only validate start year format
+      if (!/^\d{4}$/.test(data.startDate.year)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Start year must be four digits (e.g., 2020)',
+          path: ['startDate'],
+        })
       }
-
-      if (!data.startDate.month && !data.endDate.month) {
-        const startYear = parseInt(data.startDate.year)
-        const endYear = parseInt(data.endDate.year)
-        return endYear >= startYear
-      }
-
-      const startDate = new Date(
-        parseInt(data.startDate.year),
-        MONTHS.find((m) => m.label === data.startDate.month)?.num || 0,
-        1
-      )
-      const endDate = new Date(
-        parseInt(data.endDate.year),
-        MONTHS.find((m) => m.label === data.endDate.month)?.num || 0,
-        1
-      )
-      return endDate >= startDate
-    },
-    {
-      message: 'End date must be on or after start date',
-      path: ['endDate'],
+      return
     }
-  )
+
+    // Priority 1: Format consistency
+    // Treat undefined or '' as not specified
+    const startMonthSpecified = data.startDate.month
+      ? data.startDate.month.length > 0
+      : false
+    const endMonthSpecified = data.endDate.month
+      ? data.endDate.month.length > 0
+      : false
+
+    if (startMonthSpecified !== endMonthSpecified) {
+      if (startMonthSpecified) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'End month is required when start month is specified',
+          path: ['endDate'],
+        })
+      } else {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Start month is required when end month is specified',
+          path: ['startDate'],
+        })
+      }
+      return
+    }
+
+    // Priority 2: Year format and presence
+    // Start year: always required and 4 digits
+    if (!data.startDate.year) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Start year is required',
+        path: ['startDate'],
+      })
+      return
+    }
+    if (!/^\d{4}$/.test(data.startDate.year)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Start year must be four digits (e.g., 2020)',
+        path: ['startDate'],
+      })
+      return
+    }
+
+    // End year: required and 4 digits (since not Present)
+    if (!data.endDate.year) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End year is required when not Present',
+        path: ['endDate'],
+      })
+      return
+    }
+    if (!/^\d{4}$/.test(data.endDate.year)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End year must be four digits (e.g., 2020)',
+        path: ['endDate'],
+      })
+      return
+    }
+
+    // Priority 3: Date validation
+    const startYear = parseInt(data.startDate.year, 10)
+    const endYear = parseInt(data.endDate.year, 10)
+
+    let invalidDate = false
+
+    if (!startMonthSpecified && !endMonthSpecified) {
+      // Years only: end >= start (same allowed)
+      invalidDate = endYear < startYear
+    } else if (startMonthSpecified && endMonthSpecified) {
+      // Months + years: end >= start (same month/year allowed)
+      const startMonthNum =
+        MONTHS.find((m) => m.label === data.startDate.month)?.num ?? 0
+      const endMonthNum =
+        MONTHS.find((m) => m.label === data.endDate.month)?.num ?? 0
+      const startDate = new Date(startYear, startMonthNum, 1)
+      const endDate = new Date(endYear, endMonthNum, 1)
+      invalidDate = endDate < startDate
+    }
+
+    if (invalidDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End date must be on or after start date',
+        path: ['endDate'],
+      })
+    }
+  })
 
 export const projectBlockSchema = z
   .object({
@@ -275,87 +338,107 @@ export const projectBlockSchema = z
     bulletPoints: z.array(bulletPointSchema).default([]),
     isIncluded: z.boolean().optional().default(true),
   })
-  .refine(
-    (data) => {
-      // If present, no need to check date comparisons
-      if (data.endDate.isPresent) {
-        return true
-      }
-
-      // Check if months are provided consistently
-      const startMonthSpecified = !!data.startDate.month
-      const endMonthSpecified = !!data.endDate.month
-
-      // If both months are specified or both are not, proceed with normal comparison
-      // Otherwise, this will fail and be caught by the next refinement
-      if (startMonthSpecified !== endMonthSpecified) {
-        return true // Let the next refinement handle this specific case
-      }
-
-      // If both months are undefined, just compare years
-      if (!startMonthSpecified && !endMonthSpecified) {
-        const startYear = parseInt(data.startDate.year)
-        const endYear = parseInt(data.endDate.year)
-        return endYear >= startYear
-      }
-
-      // Both months are defined, compare full dates
-      const startDate = new Date(
-        parseInt(data.startDate.year),
-        MONTHS.find((m) => m.label === data.startDate.month)?.num || 0,
-        1
-      )
-      const endDate = new Date(
-        parseInt(data.endDate.year),
-        MONTHS.find((m) => m.label === data.endDate.month)?.num || 0,
-        1
-      )
-      return endDate >= startDate
-    },
-    {
-      message: 'End date must be on or after start date',
-      path: ['endDate'],
-    }
-  )
-  .refine(
-    (data) => {
-      // If present, skip this validation
-      if (data.endDate.isPresent) {
-        return true
-      }
-
-      // Check if months are provided consistently
-      const startMonthSpecified = !!data.startDate.month
-      const endMonthSpecified = !!data.endDate.month
-
-      return startMonthSpecified === endMonthSpecified
-    },
-    {
-      message: '',
-      path: ['endDate'],
-    }
-  )
   .superRefine((data, ctx) => {
-    // Skip validation if using "Present"
     if (data.endDate.isPresent) {
+      // Only validate start year format
+      if (!/^\d{4}$/.test(data.startDate.year)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Start year must be four digits (e.g., 2020)',
+          path: ['startDate'],
+        })
+      }
       return
     }
 
-    // Check if one month is specified but the other isn't
-    const startMonthSpecified = !!data.startDate.month
-    const endMonthSpecified = !!data.endDate.month
+    // Priority 1: Format consistency
+    // Treat undefined or '' as not specified
+    const startMonthSpecified = data.startDate.month
+      ? data.startDate.month.length > 0
+      : false
+    const endMonthSpecified = data.endDate.month
+      ? data.endDate.month.length > 0
+      : false
 
-    if (startMonthSpecified && !endMonthSpecified) {
+    if (startMonthSpecified !== endMonthSpecified) {
+      if (startMonthSpecified) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'End month is required when start month is specified',
+          path: ['endDate'],
+        })
+      } else {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Start month is required when end month is specified',
+          path: ['startDate'],
+        })
+      }
+      return
+    }
+
+    // Priority 2: Year format and presence
+    // Start year: always required and 4 digits
+    if (!data.startDate.year) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Month is required when start month is specified',
-        path: ['endDate.month'],
+        message: 'Start year is required',
+        path: ['startDate'],
       })
-    } else if (!startMonthSpecified && endMonthSpecified) {
+      return
+    }
+    if (!/^\d{4}$/.test(data.startDate.year)) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'Month is required when end month is specified',
-        path: ['startDate.month'],
+        message: 'Start year must be four digits (e.g., 2020)',
+        path: ['startDate'],
+      })
+      return
+    }
+
+    // End year: required and 4 digits (since not Present)
+    if (!data.endDate.year) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End year is required when not Present',
+        path: ['endDate'],
+      })
+      return
+    }
+    if (!/^\d{4}$/.test(data.endDate.year)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End year must be four digits (e.g., 2020)',
+        path: ['endDate'],
+      })
+      return
+    }
+
+    // Priority 3: Date validation (only if above pass)
+    const startYear = parseInt(data.startDate.year, 10)
+    const endYear = parseInt(data.endDate.year, 10)
+
+    let invalidDate = false
+
+    if (!startMonthSpecified && !endMonthSpecified) {
+      // Years only: end >= start (same allowed)
+      invalidDate = endYear < startYear
+    } else if (startMonthSpecified && endMonthSpecified) {
+      // Months + years: end >= start (same month/year allowed)
+      const startMonthNum =
+        MONTHS.find((m) => m.label === data.startDate.month)?.num ?? 0
+      const endMonthNum =
+        MONTHS.find((m) => m.label === data.endDate.month)?.num ?? 0
+      const startDate = new Date(startYear, startMonthNum, 1)
+      const endDate = new Date(endYear, endMonthNum, 1)
+      invalidDate = endDate < startDate
+    }
+
+    if (invalidDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End date must be on or after start date',
+        path: ['endDate'],
       })
     }
   })
