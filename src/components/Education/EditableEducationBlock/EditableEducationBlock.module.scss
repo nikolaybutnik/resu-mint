@@ -2,7 +2,7 @@
 @import '../../../styles/variables';
 @import '../../../styles/mixins';
 
-.editableEducationBlock {
+.educationDetails {
   @include card-container;
 }
 
@@ -28,54 +28,10 @@
 
 .formInput {
   @include form-input-base;
-  font-size: 14px;
-  padding: 8px;
-  border: 1.5px solid $color-border;
-  background: white;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-
-  &:focus {
-    border-color: $color-primary;
-    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
-  }
-
-  &::placeholder {
-    color: $color-placeholder;
-    opacity: 0.7;
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-    opacity: 0.6;
-  }
 }
 
 .formTextarea {
   @include form-textarea-base;
-  font-size: 14px;
-  padding: 8px;
-  border: 1.5px solid $color-border;
-  background: white;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
-
-  &:focus {
-    border-color: $color-primary;
-    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
-  }
-
-  &::placeholder {
-    color: $color-placeholder;
-    opacity: 0.7;
-  }
-
-  // Auto-resize on mobile, disable manual resize
-  @media (max-width: 768px) {
-    resize: none;
-    overflow: hidden;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, height 0.1s ease;
-  }
 }
 
 .dateInputs {

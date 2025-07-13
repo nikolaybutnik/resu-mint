@@ -27,7 +27,7 @@ export const DegreeStatus = {
   IN_PROGRESS: 'in-progress',
 } as const
 
-export type DegreeStatus = (typeof DegreeStatus)[keyof typeof DegreeStatus]
+export type DegreeStatus = (typeof DegreeStatus)[keyof typeof DegreeStatus] | ''
 
 export interface EducationBlockData {
   id: string

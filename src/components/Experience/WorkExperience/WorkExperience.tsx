@@ -253,7 +253,7 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
           items={workExperience.map((item) => item.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className={styles.experiencesContainer}>{draggableBlocks}</div>
+          <div className={styles.experienceContainer}>{draggableBlocks}</div>
         </SortableContext>
         <DragOverlay>
           {activeItem && renderDraggableBlock(activeItem, true)}

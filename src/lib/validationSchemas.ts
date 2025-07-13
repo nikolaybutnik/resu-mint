@@ -647,140 +647,141 @@ export const educationBlockSchema = z
 
     return cleanedData
   })
-  .refine(
-    (data) => {
-      // If one date is provided, the other must also be provided
-      const hasStartDate = data.startDate && data.startDate.year !== ''
-      const hasEndDate = data.endDate && data.endDate.year !== ''
-
-      if (hasStartDate && !hasEndDate) {
-        return false
-      }
-      if (hasEndDate && !hasStartDate) {
-        return false
-      }
-
-      return true
-    },
-    {
-      message: 'Both start and end dates are required if either is provided',
-      path: ['endDate'],
-    }
-  )
-  .refine(
-    (data) => {
-      // Skip date validation if either date is missing
-      if (!data.startDate || !data.endDate) {
-        return true
-      }
-
-      // Both dates exist at this point due to the guard above
-      const startDate = data.startDate
-      const endDate = data.endDate
-
-      if (!endDate.year || endDate.year === '') {
-        return true
-      }
-
-      // Check if months are provided consistently
-      const startMonthSpecified = !!startDate.month
-      const endMonthSpecified = !!endDate.month
-
-      // If both months are specified or both are not, proceed with normal comparison
-      // Otherwise, this will fail and be caught by the next refinement
-      if (startMonthSpecified !== endMonthSpecified) {
-        return true // Let the next refinement handle this specific case
-      }
-
-      if (!startDate.month && !endDate.month) {
-        const startYear = parseInt(startDate.year)
-        const endYear = parseInt(endDate.year)
-        return endYear >= startYear
-      }
-
-      const startDateObj = new Date(
-        parseInt(startDate.year),
-        MONTHS.find((m) => m.label === startDate.month)?.num || 0,
-        1
-      )
-      const endDateObj = new Date(
-        parseInt(endDate.year),
-        MONTHS.find((m) => m.label === endDate.month)?.num || 0,
-        1
-      )
-      return endDateObj >= startDateObj
-    },
-    {
-      message: 'End date must be on or after start date',
-      path: ['endDate'],
-    }
-  )
-  .refine(
-    (data) => {
-      // Skip validation if either date is missing
-      if (!data.startDate || !data.endDate) {
-        return true
-      }
-
-      // Check if months are provided consistently
-      const startMonthSpecified = !!data.startDate.month
-      const endMonthSpecified = !!data.endDate.month
-
-      return startMonthSpecified === endMonthSpecified
-    },
-    {
-      message: '',
-      path: ['endDate'],
-    }
-  )
   .superRefine((data, ctx) => {
-    // Check month-year consistency for start date
-    if (
-      data.startDate &&
-      data.startDate.month &&
-      (!data.startDate.year || data.startDate.year === '')
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Year is required when month is specified',
-        path: ['startDate', 'year'],
-      })
-    }
-
-    // Check month-year consistency for end date
-    if (
-      data.endDate &&
-      data.endDate.month &&
-      (!data.endDate.year || data.endDate.year === '')
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Year is required when month is specified',
-        path: ['endDate', 'year'],
-      })
-    }
-
-    // Skip cross-date validation if either date is missing
-    if (!data.startDate || !data.endDate) {
+    // If no dates are provided, that's fine - dates are optional
+    if (!data.startDate && !data.endDate) {
       return
     }
 
-    // Check if one month is specified but the other isn't
-    const startMonthSpecified = !!data.startDate.month
-    const endMonthSpecified = !!data.endDate.month
+    // Require end date if start date is provided (but allow end without start)
+    if (data.startDate && !data.endDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'End date is required when start date is provided',
+        path: ['endDate'],
+      })
+      return
+    }
 
-    if (startMonthSpecified && !endMonthSpecified) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Month is required when start month is specified',
-        path: ['endDate.month'],
-      })
-    } else if (!startMonthSpecified && endMonthSpecified) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: 'Month is required when end month is specified',
-        path: ['startDate.month'],
-      })
+    // Individual date validations
+    if (data.startDate) {
+      const startDate = data.startDate
+      const startMonthSpecified = startDate.month
+        ? startDate.month.length > 0
+        : false
+
+      if (startMonthSpecified && (!startDate.year || startDate.year === '')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Year is required when month is specified',
+          path: ['startDate', 'year'],
+        })
+      }
+
+      if (startDate.year && !/^\d{4}$/.test(startDate.year)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Start year must be four digits (e.g., 2020)',
+          path: ['startDate'],
+        })
+      }
+    }
+
+    if (data.endDate) {
+      const endDate = data.endDate
+      const endMonthSpecified = endDate.month ? endDate.month.length > 0 : false
+
+      if (endMonthSpecified && (!endDate.year || endDate.year === '')) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Year is required when month is specified',
+          path: ['endDate', 'year'],
+        })
+      }
+
+      if (endDate.year && !/^\d{4}$/.test(endDate.year)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'End year must be four digits (e.g., 2020)',
+          path: ['endDate'],
+        })
+      }
+    }
+
+    // Cross-date validation only if both are present
+    if (data.startDate && data.endDate) {
+      const startDate = data.startDate!
+      const endDate = data.endDate!
+
+      // Priority 1: Format consistency
+      const startMonthSpecified = startDate.month
+        ? startDate.month.length > 0
+        : false
+      const endMonthSpecified = endDate.month ? endDate.month.length > 0 : false
+
+      if (startMonthSpecified !== endMonthSpecified) {
+        if (startMonthSpecified) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'End month is required when start month is specified',
+            path: ['endDate'],
+          })
+        } else {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Start month is required when end month is specified',
+            path: ['startDate'],
+          })
+        }
+        return
+      }
+
+      // Priority 2: Year presence and format (already checked individually, but ensure required)
+      if (!startDate.year) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Start year is required',
+          path: ['startDate'],
+        })
+        return
+      }
+
+      if (!endDate.year) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'End year is required',
+          path: ['endDate'],
+        })
+        return
+      }
+
+      // Priority 3: Date validation
+      const startYear = parseInt(startDate.year, 10)
+      const endYear = parseInt(endDate.year, 10)
+
+      let invalidDate = false
+
+      if (!startMonthSpecified && !endMonthSpecified) {
+        // Years only: end >= start (same allowed)
+        invalidDate = endYear < startYear
+      } else if (startMonthSpecified && endMonthSpecified) {
+        // Months + years: end >= start (same month/year allowed)
+        const startMonthNum =
+          MONTHS.find((m) => m.label === startDate.month)?.num ?? 0
+        const endMonthNum =
+          MONTHS.find((m) => m.label === endDate.month)?.num ?? 0
+        const startDateObj = new Date(startYear, startMonthNum, 1)
+        const endDateObj = new Date(endYear, endMonthNum, 1)
+        invalidDate = endDateObj < startDateObj
+      }
+
+      if (invalidDate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'End date must be on or after start date',
+          path: ['endDate'],
+        })
+      }
     }
   })
 

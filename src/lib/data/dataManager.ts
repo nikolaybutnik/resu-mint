@@ -2,6 +2,7 @@ import { personalDetailsManager } from './personalDetailsManager'
 import { experienceManager } from './experienceManager'
 import { projectsManager } from './projectsManager'
 import { settingsManager } from './settingsManager'
+import { educationManager } from './educationManager'
 
 import type { PersonalDetails } from '../types/personalDetails'
 import type {
@@ -16,6 +17,7 @@ import type { AppSettings } from '../types/settings'
 import { JobDetails } from '../types/jobDetails'
 import { jobDetailsManager } from './jobDetailsManager'
 import { JobDescriptionAnalysis } from '../types/api'
+import { EducationBlockData } from '../types/education'
 
 class DataManager {
   // Personal Details
@@ -115,6 +117,19 @@ class DataManager {
 
   invalidateProjects() {
     projectsManager.invalidate()
+  }
+
+  // Education
+  async getEducation(sectionId?: string) {
+    return educationManager.get(sectionId)
+  }
+
+  async saveEducation(data: EducationBlockData[]): Promise<void> {
+    return educationManager.save(data)
+  }
+
+  invalidateEducation() {
+    educationManager.invalidate()
   }
 
   // Settings

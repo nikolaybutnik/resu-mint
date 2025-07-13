@@ -18,7 +18,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FaPlus } from 'react-icons/fa'
 import { v4 as uuidv4 } from 'uuid'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
@@ -26,17 +26,18 @@ import { restrictToParentElement } from '@dnd-kit/modifiers'
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import EditableEducationBlock from '../EditableEducationBlock/EditableEducationBlock'
 import DraggableEducationBlock from '../DraggableEducationBlock/DraggableEducationBlock'
+import { useEducationStore } from '@/stores'
 
 interface EducationProps {
-  data: EducationBlockData[]
   loading: boolean
-  onSave: (data: EducationBlockData[]) => void
 }
 
-const Education = ({ data, loading, onSave }: EducationProps) => {
-  const [localData, setLocalData] = useState<EducationBlockData[]>(data)
+const Education = ({ loading }: EducationProps) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const { data: education, save } = useEducationStore()
+
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
-  const [newBlockId, setNewBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
 
@@ -70,151 +71,149 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
     }
   }, [activeId])
 
-  useEffect(() => {
-    setLocalData(data)
-  }, [data])
+  const createNewEducationBlock = (id: string): EducationBlockData => ({
+    id,
+    institution: '',
+    degree: '',
+    degreeStatus: '' as DegreeStatus,
+    startDate: { month: '' as Month, year: '' },
+    endDate: { month: '' as Month, year: '' },
+    location: '',
+    description: '',
+    isIncluded: true,
+  })
 
-  useEffect(() => {
-    if (localData.length === 0 && !selectedBlockId && !newBlockId && !loading) {
-      handleSectionAdd()
+  const scrollToTop = () => {
+    if (containerRef.current) {
+      const sidebar = containerRef.current.closest('div[class*="sidebar"]')
+      if (sidebar) {
+        sidebar.scrollTop = 0
+      }
     }
-  }, [localData.length, selectedBlockId, newBlockId, loading])
-
-  const handleSectionDelete = useCallback(
-    (id: string) => {
-      const updatedData = localData.filter((education) => education.id !== id)
-      setLocalData(updatedData)
-      setSelectedBlockId(null)
-      setNewBlockId(null)
-      onSave(updatedData)
-    },
-    [localData, onSave]
-  )
-
-  const handleSectionAdd = () => {
-    const newBlock: EducationBlockData = {
-      id: uuidv4(),
-      institution: '',
-      degree: '',
-      degreeStatus: '' as DegreeStatus,
-      startDate: { month: '' as Month, year: '' },
-      endDate: { month: '' as Month, year: '' },
-      location: '',
-      description: '',
-      isIncluded: true,
-    }
-    const updatedData = [...localData, newBlock]
-    setLocalData(updatedData)
-    setSelectedBlockId(newBlock.id)
-    setNewBlockId(newBlock.id)
   }
 
-  const handleSectionSelect = useCallback((id: string) => {
-    setSelectedBlockId(id)
-  }, [])
+  const handleSectionAdd = (): void => {
+    const newBlockId = uuidv4()
+    setSelectedBlockId(newBlockId)
+    scrollToTop()
+  }
+
+  const handleSectionSelect = useCallback(
+    (id: string) => {
+      setSelectedBlockId(id)
+      scrollToTop()
+    },
+    [scrollToTop]
+  )
 
   const handleSectionClose = useCallback(() => {
     setSelectedBlockId(null)
-    setNewBlockId(null)
-    setLocalData(data)
-  }, [data])
-
-  const handleSectionInclusion = useCallback(
-    (sectionId: string, isIncluded: boolean) => {
-      const updatedData = localData.map((education) =>
-        education.id === sectionId ? { ...education, isIncluded } : education
-      )
-      setLocalData(updatedData)
-      onSave(updatedData)
-    },
-    [localData, onSave]
-  )
-
-  const handleEducationSave = useCallback(
-    (updatedBlock: EducationBlockData) => {
-      const updatedData = localData.map((block) =>
-        block.id === updatedBlock.id ? updatedBlock : block
-      )
-      setLocalData(updatedData)
-      onSave(updatedData)
-      setSelectedBlockId(null)
-      setNewBlockId(null)
-    },
-    [localData, onSave]
-  )
+    scrollToTop()
+  }, [scrollToTop])
 
   const handleDragStart = useCallback((event: DragStartEvent): void => {
     setActiveId(event.active.id as string)
   }, [])
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent): void => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        setLocalData((items) => {
-          const oldIndex = items.findIndex((item) => item.id === active.id)
-          const newIndex = items.findIndex((item) => item.id === over.id)
-          const newOrder = arrayMove(items, oldIndex, newIndex)
-          setTimeout(() => onSave(newOrder), 0)
-          return newOrder
-        })
+        const oldIndex = education.findIndex((item) => item.id === active.id)
+        const newIndex = education.findIndex((item) => item.id === over.id)
+        const newOrder = arrayMove(education, oldIndex, newIndex)
+        save(newOrder)
       }
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
-    [onSave]
+    [education, save]
   )
 
   const activeItem = useMemo(
-    () => localData.find((item) => item.id === activeId),
-    [localData, activeId]
+    () => education.find((item) => item.id === activeId),
+    [education, activeId]
   )
 
   const renderEditableBlock = (
-    education: EducationBlockData,
-    existingBlocks: EducationBlockData[]
-  ) => {
-    const isNew = education.id === newBlockId
-    const showCloseButton = existingBlocks.length > 1 || !isNew
-
+    education: EducationBlockData
+  ): React.ReactNode => {
     return (
       <EditableEducationBlock
         key={education.id}
         data={education}
-        isNew={isNew}
-        onDelete={handleSectionDelete}
-        onClose={showCloseButton ? handleSectionClose : undefined}
-        onSave={handleEducationSave}
+        onClose={handleSectionClose}
       />
     )
   }
 
-  const renderDraggableBlock = (
-    education: EducationBlockData,
-    isOverlay = false
-  ) => {
-    if (isOverlay) {
+  const renderDraggableBlock = useCallback(
+    (education: EducationBlockData, isOverlay = false): React.ReactNode => {
+      if (isOverlay) {
+        return (
+          <DraggableEducationBlock
+            key={education.id}
+            data={education}
+            isOverlay={true}
+            isDropping={false}
+            onSectionEdit={() => {}}
+          />
+        )
+      }
+
       return (
         <DraggableEducationBlock
           key={education.id}
           data={education}
-          isOverlay={true}
-          onBlockSelect={() => {}}
-          onToggleInclude={() => {}}
+          isDropping={isDropping}
+          onSectionEdit={handleSectionSelect}
         />
       )
+    },
+    [isDropping, handleSectionSelect]
+  )
+
+  const draggableBlocks = useMemo(
+    () => education.map((education) => renderDraggableBlock(education)),
+    [education, renderDraggableBlock]
+  )
+
+  const renderMainContent = (): React.ReactNode => {
+    // Show currently selected block (existing or new)
+    if (selectedBlockId) {
+      const existingBlock = education.find(
+        (education) => education.id === selectedBlockId
+      )
+      return existingBlock
+        ? renderEditableBlock(existingBlock)
+        : renderEditableBlock(createNewEducationBlock(selectedBlockId))
     }
 
+    // Show default form when no data exists
+    if (education.length === 0) {
+      return renderEditableBlock(createNewEducationBlock(uuidv4()))
+    }
+
+    // Show drag-and-drop view when there is existing data
     return (
-      <DraggableEducationBlock
-        key={education.id}
-        data={education}
-        isDropping={isDropping}
-        onBlockSelect={handleSectionSelect}
-        onToggleInclude={handleSectionInclusion}
-      />
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      >
+        <SortableContext
+          items={education.map((item) => item.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className={styles.educationContainer}>{draggableBlocks}</div>
+        </SortableContext>
+        <DragOverlay>
+          {activeItem && renderDraggableBlock(activeItem, true)}
+        </DragOverlay>
+      </DndContext>
     )
   }
 
@@ -223,9 +222,9 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
       {loading ? (
         <LoadingSpinner text='Loading your education...' size='lg' />
       ) : (
-        <div className={styles.education}>
+        <div ref={containerRef} className={styles.education}>
           <h2 className={styles.formTitle}>Education</h2>
-          {!selectedBlockId && localData.length > 0 && (
+          {!selectedBlockId && education.length > 0 && (
             <button
               type='button'
               className={styles.addButton}
@@ -237,35 +236,7 @@ const Education = ({ data, loading, onSave }: EducationProps) => {
             </button>
           )}
 
-          <div className={styles.educationContainer}>
-            {selectedBlockId ? (
-              localData
-                .filter((education) => education.id === selectedBlockId)
-                .map((education) => renderEditableBlock(education, localData))
-            ) : (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                modifiers={[restrictToVerticalAxis, restrictToParentElement]}
-              >
-                <SortableContext
-                  items={localData.map((item) => item.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className={styles.educationsContainer}>
-                    {localData.map((education) =>
-                      renderDraggableBlock(education)
-                    )}
-                  </div>
-                </SortableContext>
-                <DragOverlay>
-                  {activeItem && renderDraggableBlock(activeItem, true)}
-                </DragOverlay>
-              </DndContext>
-            )}
-          </div>
+          <div className={styles.educationContainer}>{renderMainContent()}</div>
         </div>
       )}
     </>

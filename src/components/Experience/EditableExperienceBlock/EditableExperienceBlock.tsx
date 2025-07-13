@@ -139,7 +139,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         Indicates a required field
       </div>
 
-      <form action={formAction} className={styles.jobDetails}>
+      <form action={formAction} className={styles.experienceDetails}>
         <div className={styles.formField}>
           <label className={styles.label}>
             <span className={styles.requiredIndicator}>*</span>
@@ -251,7 +251,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               defaultValue={state.data?.endDate?.month || ''}
               disabled={isCurrentlyWorking}
             >
-              <option value=''>Select Month</option>
+              <option value=''>Month</option>
               {MONTHS.map((month) => (
                 <option key={month.label} value={month.label}>
                   {month.label}

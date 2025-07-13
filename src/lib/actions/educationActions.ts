@@ -11,40 +11,9 @@ import { EDUCATION_FORM_DATA_KEYS, STORAGE_KEYS } from '../constants'
 export const submitEducation = (
   prevState: EducationFormState,
   formData: FormData,
-  onComplete: () => void
+  education: EducationBlockData[],
+  onSave: (data: EducationBlockData[]) => void
 ): EducationFormState => {
-  const isLoad = formData.get('load') === 'true'
-  const isReset = formData.get('reset') === 'true'
-
-  if (isReset) {
-    return {
-      errors: {},
-      data: undefined,
-    }
-  }
-
-  if (isLoad) {
-    const existingDataString = formData.get('existingData') as string
-    if (existingDataString) {
-      try {
-        const existingData = JSON.parse(
-          existingDataString
-        ) as EducationBlockData
-        return {
-          errors: {},
-          data: existingData,
-        }
-      } catch (error) {
-        console.error('Error parsing existing data:', error)
-      }
-    }
-
-    return {
-      errors: {},
-      data: undefined,
-    }
-  }
-
   const educationData: EducationBlockData = {
     id: prevState.data?.id || '',
     isIncluded: prevState.data?.isIncluded || false,
@@ -86,11 +55,21 @@ export const submitEducation = (
   const validatedData = educationBlockSchema.safeParse(educationData)
 
   if (validatedData.success) {
-    localStorage.setItem(
-      STORAGE_KEYS.EDUCATION,
-      JSON.stringify([validatedData.data])
+    const existingItemIndex = education.findIndex(
+      (item) => item.id === validatedData.data.id
     )
-    onComplete()
+
+    let updatedEducation: EducationBlockData[]
+
+    if (existingItemIndex !== -1) {
+      updatedEducation = education.map((item) =>
+        item.id === validatedData.data.id ? validatedData.data : item
+      )
+    } else {
+      updatedEducation = [...education, validatedData.data]
+    }
+
+    onSave(updatedEducation)
   }
 
   return {
