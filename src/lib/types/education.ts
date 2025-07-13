@@ -44,4 +44,5 @@ export interface EducationBlockData {
 export interface EducationFormState {
   errors: Record<string, string>
   data?: Partial<EducationBlockData>
+  success?: boolean
 }

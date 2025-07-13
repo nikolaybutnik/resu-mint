@@ -6,7 +6,7 @@ import {
 } from '../types/education'
 import { educationBlockSchema } from '../validationSchemas'
 import { zodErrorsToFormErrors } from '../types/errors'
-import { EDUCATION_FORM_DATA_KEYS, STORAGE_KEYS } from '../constants'
+import { EDUCATION_FORM_DATA_KEYS } from '../constants'
 
 export const submitEducation = (
   prevState: EducationFormState,
@@ -14,6 +14,32 @@ export const submitEducation = (
   education: EducationBlockData[],
   onSave: (data: EducationBlockData[]) => void
 ): EducationFormState => {
+  if (formData.get('load') === 'true') {
+    const existingDataString = formData.get('existingData') as string
+    if (existingDataString) {
+      try {
+        const existingData = JSON.parse(
+          existingDataString
+        ) as EducationBlockData
+        return {
+          errors: {},
+          data: existingData,
+          success: false,
+        }
+      } catch (error) {
+        console.error('Error parsing existing education data:', error)
+      }
+    }
+  }
+
+  if (formData.get('reset') === 'true') {
+    return {
+      errors: {},
+      data: undefined,
+      success: false,
+    }
+  }
+
   const educationData: EducationBlockData = {
     id: prevState.data?.id || '',
     isIncluded: prevState.data?.isIncluded || false,
@@ -79,5 +105,6 @@ export const submitEducation = (
     data: validatedData.success
       ? (validatedData.data as EducationBlockData)
       : (educationData as Partial<EducationBlockData>),
+    success: validatedData.success,
   }
 }

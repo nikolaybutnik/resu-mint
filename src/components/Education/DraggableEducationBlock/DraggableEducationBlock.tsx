@@ -1,5 +1,5 @@
 import styles from './DraggableEducationBlock.module.scss'
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback } from 'react'
 import { FaPen, FaEye, FaEyeSlash } from 'react-icons/fa'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -17,8 +17,6 @@ interface DraggableEducationBlockProps {
 const DraggableEducationBlock: React.FC<DraggableEducationBlockProps> =
   React.memo(
     ({ data, isOverlay = false, isDropping = false, onSectionEdit }) => {
-      const isFirstRender = useRef(true)
-
       const { data: educationData, save } = useEducationStore()
 
       const { attributes, listeners, setNodeRef, transform, isDragging } =

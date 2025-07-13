@@ -409,17 +409,6 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     }
   }
 
-  const getEducation = (): EducationBlockData | undefined => {
-    const education = localStorage.getItem(STORAGE_KEYS.EDUCATION)
-    if (education) {
-      const parsedEducation = JSON.parse(education) as EducationBlockData[]
-      if (Array.isArray(parsedEducation) && parsedEducation.length > 0) {
-        return parsedEducation[0] // Return the first (most recent) education entry
-      }
-    }
-    return undefined
-  }
-
   const handlePersonalDetailsSubmitSuccess = (): void => {
     const newWelcomeState = shouldShowWelcomeExperience()
     setCurrentWelcomeState(newWelcomeState)
@@ -477,7 +466,6 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
           <EducationStep
             onContinue={handleEducationSubmit}
             onSkip={handleNext}
-            initialData={getEducation()}
           />
         )
 

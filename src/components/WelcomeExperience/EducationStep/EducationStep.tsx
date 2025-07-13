@@ -1,37 +1,60 @@
 import styles from './EducationStep.module.scss'
 import { useState, useEffect, useActionState } from 'react'
-import { MONTHS, STORAGE_KEYS, EDUCATION_FORM_DATA_KEYS } from '@/lib/constants'
+import { MONTHS, EDUCATION_FORM_DATA_KEYS } from '@/lib/constants'
 import { submitEducation } from '@/lib/actions/educationActions'
-import {
-  EducationBlockData,
-  DegreeStatus,
-  EducationFormState,
-} from '@/lib/types/education'
+import { DegreeStatus, EducationFormState } from '@/lib/types/education'
 import { useAutoResizeTextarea } from '@/lib/hooks/useAutoResizeTextarea'
 import { v4 as uuidv4 } from 'uuid'
+import { useEducationStore } from '@/stores/educationStore'
 
 interface EducationStepProps {
   onContinue: () => void
   onSkip: () => void
-  initialData?: EducationBlockData
 }
 
 export const EducationStep: React.FC<EducationStepProps> = ({
   onContinue,
   onSkip,
-  initialData,
 }) => {
+  const {
+    data: educationData,
+    hasData,
+    save: saveEducation,
+  } = useEducationStore()
+
+  const submitEducationWrapper = (
+    prevState: EducationFormState,
+    formData: FormData
+  ) => {
+    let id = prevState.data?.id
+    if (!id) {
+      id = uuidv4()
+    }
+
+    return submitEducation(
+      { ...prevState, data: { ...prevState.data, id, isIncluded: true } },
+      formData,
+      educationData,
+      saveEducation
+    )
+  }
+
   const [state, formAction] = useActionState(
     (prevState: EducationFormState, formData: FormData) =>
-      submitEducation(prevState, formData, onContinue),
+      submitEducationWrapper(prevState, formData),
     {
       errors: {},
-      data: initialData,
+      data: educationData,
     } as EducationFormState
   )
 
+  useEffect(() => {
+    if (state.success) {
+      onContinue()
+    }
+  }, [state.success, onContinue])
+
   const [showForm, setShowForm] = useState(false)
-  const [isEditingExisting, setIsEditingExisting] = useState(false)
   const [description, setDescription] = useState(state.data?.description || '')
 
   const {
@@ -45,47 +68,19 @@ export const EducationStep: React.FC<EducationStepProps> = ({
   }, [state.data?.description])
 
   const handleEditEducation = () => {
-    const existingData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
-    if (existingData) {
-      const parsedData = JSON.parse(existingData) as EducationBlockData[]
-      if (Array.isArray(parsedData) && parsedData.length > 0) {
-        const latestEntry = parsedData[parsedData.length - 1]
-
-        const loadFormData = new FormData()
-        loadFormData.set('load', 'true')
-        loadFormData.set('existingData', JSON.stringify(latestEntry))
-        formAction(loadFormData)
-        setIsEditingExisting(true)
-      }
-    }
-    setShowForm(true)
-  }
-
-  const handleAddEducation = () => {
-    const newEducationData = {
-      id: uuidv4(),
-      isIncluded: true,
-      institution: '',
-      degree: '',
-      location: '',
-      description: '',
-    } as EducationBlockData
+    const [storedData] = educationData
 
     const loadFormData = new FormData()
     loadFormData.set('load', 'true')
-    loadFormData.set('existingData', JSON.stringify(newEducationData))
+    loadFormData.set('existingData', JSON.stringify(storedData))
+
     formAction(loadFormData)
-    setIsEditingExisting(false)
+
     setShowForm(true)
   }
 
   const renderSelectionPhase = () => {
-    const educationData = localStorage.getItem(STORAGE_KEYS.EDUCATION)
-    const hasExistingData = educationData
-      ? JSON.parse(educationData).length > 0
-      : false
-
-    if (hasExistingData) {
+    if (hasData) {
       return (
         <>
           <p>Great! You&apos;ve added your education details.</p>
@@ -113,7 +108,7 @@ export const EducationStep: React.FC<EducationStepProps> = ({
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
-              onClick={handleAddEducation}
+              onClick={() => setShowForm(true)}
             >
               Add Education
             </button>
@@ -146,7 +141,7 @@ export const EducationStep: React.FC<EducationStepProps> = ({
               className={styles.backToChoiceButton}
               onClick={() => {
                 setShowForm(false)
-                setIsEditingExisting(false)
+                // setIsEditingExisting(false)
               }}
             >
               ← Back to selection
@@ -322,7 +317,8 @@ export const EducationStep: React.FC<EducationStepProps> = ({
           </div>
 
           <button type='submit' className={styles.submitButton}>
-            {isEditingExisting ? 'Update & Continue' : 'Continue'}
+            {/* {isEditingExisting ? 'Update & Continue' : 'Continue'} */}
+            Continue
           </button>
         </form>
       )}

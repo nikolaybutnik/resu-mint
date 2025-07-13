@@ -174,22 +174,26 @@ export const endDateSchema = z.object({
   year: z.string(),
 })
 
-// Education allows the dates to be optional
-export const educationStartDateSchema = z.object({
-  month: monthSchema,
-  year: z.union([
-    z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
-    z.literal(''),
-  ]),
-})
+// Education allows the dates to be completely optional
+export const educationStartDateSchema = z
+  .object({
+    month: monthSchema,
+    year: z.union([
+      z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
+      z.literal(''),
+    ]),
+  })
+  .optional()
 
-export const educationEndDateSchema = z.object({
-  month: monthSchema,
-  year: z.union([
-    z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
-    z.literal(''),
-  ]),
-})
+export const educationEndDateSchema = z
+  .object({
+    month: monthSchema,
+    year: z.union([
+      z.string().regex(/^\d{4}$/, 'Year must be four digits (e.g., 2020)'),
+      z.literal(''),
+    ]),
+  })
+  .optional()
 
 export const experienceBlockSchema = z
   .object({
@@ -617,8 +621,8 @@ export const educationBlockSchema = z
     degreeStatus: z
       .union([z.enum(['completed', 'in-progress']), z.literal('')])
       .optional(),
-    startDate: educationStartDateSchema.optional(),
-    endDate: educationEndDateSchema.optional(),
+    startDate: educationStartDateSchema,
+    endDate: educationEndDateSchema,
     location: z
       .string()
       .max(100, 'Location must be 100 characters or less')
@@ -648,13 +652,23 @@ export const educationBlockSchema = z
     return cleanedData
   })
   .superRefine((data, ctx) => {
-    // If no dates are provided, that's fine - dates are optional
-    if (!data.startDate && !data.endDate) {
+    const isDateProvided = (
+      date: { month?: string; year?: string } | undefined
+    ) => {
+      return (
+        date &&
+        ((date.month && date.month !== '') || (date.year && date.year !== ''))
+      )
+    }
+
+    const startDateProvided = isDateProvided(data.startDate)
+    const endDateProvided = isDateProvided(data.endDate)
+
+    if (!startDateProvided && !endDateProvided) {
       return
     }
 
-    // Require end date if start date is provided (but allow end without start)
-    if (data.startDate && !data.endDate) {
+    if (startDateProvided && !endDateProvided) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         message: 'End date is required when start date is provided',
@@ -663,8 +677,7 @@ export const educationBlockSchema = z
       return
     }
 
-    // Individual date validations
-    if (data.startDate) {
+    if (data.startDate && startDateProvided) {
       const startDate = data.startDate
       const startMonthSpecified = startDate.month
         ? startDate.month.length > 0
@@ -674,20 +687,26 @@ export const educationBlockSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Year is required when month is specified',
-          path: ['startDate', 'year'],
+          path: ['startDate'],
         })
+        return
       }
 
-      if (startDate.year && !/^\d{4}$/.test(startDate.year)) {
+      if (
+        startDate.year &&
+        startDate.year !== '' &&
+        !/^\d{4}$/.test(startDate.year)
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Start year must be four digits (e.g., 2020)',
           path: ['startDate'],
         })
+        return
       }
     }
 
-    if (data.endDate) {
+    if (data.endDate && endDateProvided) {
       const endDate = data.endDate
       const endMonthSpecified = endDate.month ? endDate.month.length > 0 : false
 
@@ -695,23 +714,38 @@ export const educationBlockSchema = z
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'Year is required when month is specified',
-          path: ['endDate', 'year'],
+          path: ['endDate'],
         })
+        return
       }
 
-      if (endDate.year && !/^\d{4}$/.test(endDate.year)) {
+      if (
+        endDate.year &&
+        endDate.year !== '' &&
+        !/^\d{4}$/.test(endDate.year)
+      ) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: 'End year must be four digits (e.g., 2020)',
           path: ['endDate'],
         })
+        return
       }
     }
 
-    // Cross-date validation only if both are present
-    if (data.startDate && data.endDate) {
-      const startDate = data.startDate!
-      const endDate = data.endDate!
+    // Cross-date validation only if both are present AND have actual values
+    if (
+      startDateProvided &&
+      endDateProvided &&
+      data.startDate &&
+      data.endDate &&
+      data.startDate.year &&
+      data.startDate.year !== '' &&
+      data.endDate.year &&
+      data.endDate.year !== ''
+    ) {
+      const startDate = data.startDate
+      const endDate = data.endDate
 
       // Priority 1: Format consistency
       const startMonthSpecified = startDate.month
@@ -736,26 +770,7 @@ export const educationBlockSchema = z
         return
       }
 
-      // Priority 2: Year presence and format (already checked individually, but ensure required)
-      if (!startDate.year) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'Start year is required',
-          path: ['startDate'],
-        })
-        return
-      }
-
-      if (!endDate.year) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: 'End year is required',
-          path: ['endDate'],
-        })
-        return
-      }
-
-      // Priority 3: Date validation
+      // Priority 2: Date validation
       const startYear = parseInt(startDate.year, 10)
       const endYear = parseInt(endDate.year, 10)
 
