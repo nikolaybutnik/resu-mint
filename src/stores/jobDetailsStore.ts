@@ -1,4 +1,4 @@
-import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { JobDetails } from '@/lib/types/jobDetails'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { create } from 'zustand'

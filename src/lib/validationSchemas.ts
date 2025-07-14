@@ -500,10 +500,10 @@ export const jobDescriptionAnalysisSchema = z.object({
     .describe(
       'Brief company summary (50-100 words) based on the job posting, covering mission, industry, or focus'
     ),
-  contextualTechnologies: z
+  contextualSkills: z
     .array(z.string())
     .describe(
-      'Technologies mentioned in the tech stack or environment but not explicitly mentioned as required, e.g., ["AWS", "Docker", "Kafka"]'
+      'Relevant skills or technologies mentioned in the job description but not explicitly stated as required, e.g., ["AWS", "Docker", "Kafka"]'
     ),
   salaryRange: z
     .string()
@@ -816,3 +816,5 @@ export const parseSectionSkillsResponseSchema = z.object({
   hardSkills: z.array(z.string()),
   softSkills: z.array(z.string()),
 })
+
+// TODO: Create validation schema for skills

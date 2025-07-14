@@ -17,12 +17,12 @@ import { parseSectionSkillsResponseSchema } from '@/lib/validationSchemas'
 import { ProjectBlockData } from '@/lib/types/projects'
 import {
   CreatePdfRequest,
-  JobDescriptionAnalysis,
   ParseSectionSkillsRequest,
   ParseSectionSkillsResponse,
 } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { EducationBlockData } from '@/lib/types/education'
+import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 import {
@@ -48,8 +48,6 @@ import {
   useEducationStore,
 } from '@/stores'
 import { useSettingsStore } from '@/stores/settingsStore'
-
-// TODO: As sections are being transitioned to Zustand stores, we'll gradually reduce prop drilling.
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',

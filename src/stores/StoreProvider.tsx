@@ -8,6 +8,7 @@ import { useJobDetailsStore } from './jobDetailsStore'
 import { useAiStateStore } from './aiStateStore'
 import { useProjectStore } from './projectStore'
 import { useEducationStore } from './educationStore'
+import { useSkillsStore } from './skillsStore'
 
 /**
  * StoreProvider - Initializes all Zustand stores when the app starts
@@ -25,6 +26,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const initAiState = useAiStateStore((state) => state.initialize)
   const initProject = useProjectStore((state) => state.initialize)
   const initEducation = useEducationStore((state) => state.initialize)
+  const initSkills = useSkillsStore((state) => state.initialize)
 
   useEffect(() => {
     initPersonalDetails()
@@ -34,6 +36,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
     initAiState()
     initProject()
     initEducation()
+    initSkills()
   }, [
     initPersonalDetails,
     initSettings,
@@ -42,6 +45,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
     initAiState,
     initProject,
     initEducation,
+    initSkills,
   ])
 
   return <>{children}</>

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { ExperienceBlockData } from '../types/experience'
 import { ProjectBlockData } from '../types/projects'
-import { JobDescriptionAnalysis } from '../types/api'
+import { JobDescriptionAnalysis } from '../types/jobDetails'
 import { KeywordUtils } from '../keywordUtils'
 import {
   KeywordAnalysis,
@@ -20,8 +20,7 @@ export const useKeywordAnalysis = (
     () => ({
       hardSkills: jobDescriptionAnalysis?.skillsRequired?.hard || [],
       softSkills: jobDescriptionAnalysis?.skillsRequired?.soft || [],
-      contextualTechnologies:
-        jobDescriptionAnalysis?.contextualTechnologies || [],
+      contextualSkills: jobDescriptionAnalysis?.contextualSkills || [],
     }),
     [jobDescriptionAnalysis]
   )

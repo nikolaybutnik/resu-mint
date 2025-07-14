@@ -1,4 +1,4 @@
-import { JobDescriptionAnalysis } from '@/lib/types/api'
+import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { BulletPoint } from '@/lib/types/projects'
 
 const generateExamplesForLength = (maxChars: number): string => {
@@ -39,7 +39,7 @@ Analyze the job description and return structured data using the "generate_job_d
 - location.listedLocation: Quote raw location (e.g., "Canada").
 - companyName: Extract the exact company name (e.g., "Google").
 - companyDescription: Summarize the company's mission, industry, or focus in 50-100 words based on the posting.
-- contextualTechnologies: List technologies mentioned in the job posting but not explicitly stated as a requirement (e.g., "AWS", "Docker" as a nice ot have).
+- contextualSkills: List technologies mentioned in the job posting but not explicitly stated as a requirement (e.g., "AWS", "Docker" as a nice ot have).
 - salaryRange: Extract the salary range as listed in the job posting. Can be a range or a single value, e.g., "$100,000 - $120,000" or "$100,000". Return empty string if not listed.
 </INSTRUCTIONS>
 
@@ -126,8 +126,7 @@ export const generateExperienceBulletPointsPrompt = (
 ) => {
   const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
-  const contextualTechnologies =
-    jobDescriptionAnalysis.contextualTechnologies.join(', ')
+  const contextualSkills = jobDescriptionAnalysis.contextualSkills.join(', ')
   const formattedSection = formatSectionForAI(section)
   const example = generateExamplesForLength(maxCharsPerBullet)
 
@@ -147,7 +146,7 @@ ${formattedSection}
 LENGTH: ${Math.floor(maxCharsPerBullet * 0.85)}-${maxCharsPerBullet} characters
 EXAMPLE: "${example}"
 
-KEYWORDS (use when section supports): ${softSkills}, ${hardSkills}, ${contextualTechnologies}
+KEYWORDS (use when section supports): ${softSkills}, ${hardSkills}, ${contextualSkills}
 
 Pattern: "Action + specific task from section + measurable result"
 `

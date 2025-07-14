@@ -1,7 +1,7 @@
 export interface KeywordAnalysis {
   hardSkills: string[]
   softSkills: string[]
-  contextualTechnologies: string[]
+  contextualSkills: string[]
 }
 
 export interface KeywordUsageStats {
@@ -23,7 +23,7 @@ export interface KeywordAlignment {
   categoryBreakdown: {
     hardSkills: { used: number; total: number; percentage: number }
     softSkills: { used: number; total: number; percentage: number }
-    contextualTechnologies: { used: number; total: number; percentage: number }
+    contextualSkills: { used: number; total: number; percentage: number }
   }
   usedKeywords: string[]
   missingKeywords: string[]

@@ -3,8 +3,9 @@ import { PersonalDetails } from './types/personalDetails'
 import { ExperienceBlockData } from './types/experience'
 import { EducationBlockData } from './types/education'
 import { AppSettings, LanguageModel } from './types/settings'
-import { JobDescriptionAnalysis } from './types/api'
+import { JobDescriptionAnalysis } from './types/jobDetails'
 import { JobDetails } from './types/jobDetails'
+import { Skills } from './types/skills'
 
 // API
 export const API_BASE_URL = '/api'
@@ -146,11 +147,16 @@ export const DEFAULT_STATE_VALUES = {
       jobTitle: '',
       jobSummary: '',
       specialInstructions: '',
-      location: { type: 'remote', details: '', listedLocation: '' },
+      location: { type: 'hybrid', details: '', listedLocation: '' },
       companyName: '',
       companyDescription: '',
-      contextualTechnologies: [],
+      contextualSkills: [],
       salaryRange: '',
     } as JobDescriptionAnalysis,
   } as JobDetails,
+  SKILLS: {
+    hardSkills: { skills: [], suggestions: [] },
+    softSkills: { skills: [], suggestions: [] },
+    contextualSkills: [],
+  } as Skills,
 } as const

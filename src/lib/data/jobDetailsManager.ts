@@ -1,6 +1,6 @@
 import { STORAGE_KEYS } from '../constants'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import { JobDescriptionAnalysis } from '../types/api'
+import { JobDescriptionAnalysis } from '../types/jobDetails'
 import { JobDetails } from '../types/jobDetails'
 import { jobDetailsSchema } from '../validationSchemas'
 import {

@@ -76,7 +76,7 @@ export class KeywordUtils {
 
     analyzeCategory(keywordAnalysis.hardSkills, 'hard')
     analyzeCategory(keywordAnalysis.softSkills, 'soft')
-    analyzeCategory(keywordAnalysis.contextualTechnologies, 'contextual')
+    analyzeCategory(keywordAnalysis.contextualSkills, 'contextual')
 
     return stats
   }
@@ -153,7 +153,7 @@ export class KeywordUtils {
       priorityKeywords: [
         ...priority.high, // Hard skills first
         ...priority.medium, // Soft skills second
-        ...priority.low, // Contextual tech last
+        ...priority.low, // Contextual skills last
       ],
       excludeKeywords: priority.saturated,
     }
@@ -257,7 +257,7 @@ export class KeywordUtils {
     const totalKeywords =
       keywordAnalysis.hardSkills.length +
       keywordAnalysis.softSkills.length +
-      keywordAnalysis.contextualTechnologies.length
+      keywordAnalysis.contextualSkills.length
 
     const usedKeywords = usageStats
       .filter((stat) => stat.usageCount > 0)
@@ -266,7 +266,7 @@ export class KeywordUtils {
     const missingKeywords = [
       ...keywordAnalysis.hardSkills,
       ...keywordAnalysis.softSkills,
-      ...keywordAnalysis.contextualTechnologies,
+      ...keywordAnalysis.contextualSkills,
     ].filter((keyword) => !usedKeywords.includes(keyword))
 
     // Calculate category-specific alignment
@@ -282,8 +282,8 @@ export class KeywordUtils {
     const categoryBreakdown = {
       hardSkills: calculateCategoryAlignment(keywordAnalysis.hardSkills),
       softSkills: calculateCategoryAlignment(keywordAnalysis.softSkills),
-      contextualTechnologies: calculateCategoryAlignment(
-        keywordAnalysis.contextualTechnologies
+      contextualSkills: calculateCategoryAlignment(
+        keywordAnalysis.contextualSkills
       ),
     }
 

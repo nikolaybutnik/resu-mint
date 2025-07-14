@@ -3,6 +3,7 @@ import { experienceManager } from './experienceManager'
 import { projectsManager } from './projectsManager'
 import { settingsManager } from './settingsManager'
 import { educationManager } from './educationManager'
+import { skillsManager } from './skillsManager'
 
 import type { PersonalDetails } from '../types/personalDetails'
 import type {
@@ -16,8 +17,9 @@ import type {
 import type { AppSettings } from '../types/settings'
 import { JobDetails } from '../types/jobDetails'
 import { jobDetailsManager } from './jobDetailsManager'
-import { JobDescriptionAnalysis } from '../types/api'
+import { JobDescriptionAnalysis } from '../types/jobDetails'
 import { EducationBlockData } from '../types/education'
+import { Skills } from '../types/skills'
 
 class DataManager {
   // Personal Details
@@ -143,6 +145,19 @@ class DataManager {
 
   invalidateSettings() {
     settingsManager.invalidate()
+  }
+
+  // Skills
+  async getSkills(): Promise<Skills> {
+    return skillsManager.get()
+  }
+
+  async saveSkills(data: Skills): Promise<void> {
+    return skillsManager.save(data)
+  }
+
+  invalidateSkills() {
+    skillsManager.invalidate()
   }
 }
 

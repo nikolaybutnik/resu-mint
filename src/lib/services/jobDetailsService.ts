@@ -4,10 +4,8 @@ import {
   jobDescriptionAnalysisSchema,
   jobDescriptionSchema,
 } from '../validationSchemas'
-import {
-  AnalyzeJobDescriptionRequest,
-  JobDescriptionAnalysis,
-} from '../types/api'
+import { AnalyzeJobDescriptionRequest } from '../types/api'
+import { JobDescriptionAnalysis } from '../types/jobDetails'
 import { api } from './api'
 import { ROUTES } from '../constants'
 

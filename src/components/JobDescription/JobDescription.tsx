@@ -185,12 +185,10 @@ export const JobDetails: React.FC = () => {
                 </div>
 
                 <div className={styles.analysisItem}>
-                  <h4 className={styles.analysisLabel}>
-                    Contextual Technologies
-                  </h4>
+                  <h4 className={styles.analysisLabel}>Contextual Skills</h4>
                   <div className={styles.skillsList}>
-                    {jobDetails.analysis?.contextualTechnologies?.length ? (
-                      jobDetails.analysis?.contextualTechnologies.map(
+                    {jobDetails.analysis?.contextualSkills?.length ? (
+                      jobDetails.analysis?.contextualSkills.map(
                         (tech, index) => (
                           <span key={index} className={styles.skillTag}>
                             {tech}

@@ -6,5 +6,6 @@ export { projectsManager } from './projectsManager'
 export { settingsManager } from './settingsManager'
 export { jobDetailsManager } from './jobDetailsManager'
 export { educationManager } from './educationManager'
+export { skillsManager } from './skillsManager'
 
 export * from './dataUtils'

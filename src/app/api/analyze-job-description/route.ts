@@ -5,10 +5,8 @@ import { createErrorResponse } from '@/lib/types/errors'
 import { analyzeJobDescriptionRequestSchema } from '@/lib/validationSchemas'
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import {
-  AnalyzeJobDescriptionRequest,
-  JobDescriptionAnalysis,
-} from '@/lib/types/api'
+import { AnalyzeJobDescriptionRequest } from '@/lib/types/api'
+import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 
 export async function POST(request: NextRequest) {
   try {

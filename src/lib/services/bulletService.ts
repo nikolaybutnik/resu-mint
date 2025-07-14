@@ -3,8 +3,8 @@ import { ROUTES } from '@/lib/constants'
 import {
   GenerateBulletsRequest,
   GenerateBulletsResponse,
-  JobDescriptionAnalysis,
 } from '@/lib/types/api'
+import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { sanitizeResumeBullet } from '@/lib/utils'
 import { BulletPoint } from '../types/experience'
 import { useExperienceStore } from '@/stores'

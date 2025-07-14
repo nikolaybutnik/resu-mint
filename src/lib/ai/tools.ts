@@ -88,7 +88,7 @@ export const generateJobDescriptionAnalysisTool = () => ({
   function: {
     name: 'generate_job_description_analysis',
     description:
-      'Analyzes a job description and returns structured data with skills, title, summary, instructions, location, company details, and contextual technologies.',
+      'Analyzes a job description and returns structured data with skills, title, summary, instructions, location, company details, and contextual skills.',
     parameters: {
       type: 'object',
       properties: {
@@ -153,7 +153,7 @@ export const generateJobDescriptionAnalysisTool = () => ({
           description:
             'Brief company summary (50-100 words) based on the job posting, covering mission, industry, or focus',
         },
-        contextualTechnologies: {
+        contextualSkills: {
           type: 'array',
           items: { type: 'string' },
           description:
@@ -173,7 +173,7 @@ export const generateJobDescriptionAnalysisTool = () => ({
         'location',
         'companyName',
         'companyDescription',
-        'contextualTechnologies',
+        'contextualSkills',
         'salaryRange',
       ],
     },
