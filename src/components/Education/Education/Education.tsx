@@ -1,5 +1,4 @@
 import styles from './Education.module.scss'
-import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { DegreeStatus, EducationBlockData, Month } from '@/lib/types/education'
 import {
   closestCenter,
@@ -28,11 +27,7 @@ import EditableEducationBlock from '../EditableEducationBlock/EditableEducationB
 import DraggableEducationBlock from '../DraggableEducationBlock/DraggableEducationBlock'
 import { useEducationStore } from '@/stores'
 
-interface EducationProps {
-  loading: boolean
-}
-
-const Education = ({ loading }: EducationProps) => {
+const Education: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data: education, save } = useEducationStore()
@@ -218,28 +213,22 @@ const Education = ({ loading }: EducationProps) => {
   }
 
   return (
-    <>
-      {loading ? (
-        <LoadingSpinner text='Loading your education...' size='lg' />
-      ) : (
-        <div ref={containerRef} className={styles.education}>
-          <h2 className={styles.formTitle}>Education</h2>
-          {!selectedBlockId && education.length > 0 && (
-            <button
-              type='button'
-              className={styles.addButton}
-              disabled={!!selectedBlockId}
-              onClick={handleSectionAdd}
-            >
-              <FaPlus size={12} />
-              Add Education
-            </button>
-          )}
-
-          <div className={styles.educationContainer}>{renderMainContent()}</div>
-        </div>
+    <div ref={containerRef} className={styles.education}>
+      <h2 className={styles.formTitle}>Education</h2>
+      {!selectedBlockId && education.length > 0 && (
+        <button
+          type='button'
+          className={styles.addButton}
+          disabled={!!selectedBlockId}
+          onClick={handleSectionAdd}
+        >
+          <FaPlus size={12} />
+          Add Education
+        </button>
       )}
-    </>
+
+      <div className={styles.educationContainer}>{renderMainContent()}</div>
+    </div>
   )
 }
 

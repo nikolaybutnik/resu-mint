@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData, Month } from '@/lib/types/experience'
 import EditableExperienceBlock from '@/components/Experience/EditableExperienceBlock/EditableExperienceBlock'
 import DraggableExperienceBlock from '@/components/Experience/DraggableExperienceBlock/DraggableExperienceBlock'
-import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import {
   closestCenter,
   DndContext,
@@ -33,13 +32,9 @@ import { useExperienceStore } from '@/stores'
 
 interface WorkExperienceProps {
   keywordData: KeywordData
-  loading: boolean
 }
 
-const WorkExperience: React.FC<WorkExperienceProps> = ({
-  keywordData,
-  loading,
-}) => {
+const WorkExperience: React.FC<WorkExperienceProps> = ({ keywordData }) => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data: workExperience, save } = useExperienceStore()
@@ -263,29 +258,21 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({
   }
 
   return (
-    <>
-      {loading ? (
-        <LoadingSpinner text='Loading your work experience...' size='lg' />
-      ) : (
-        <div ref={containerRef} className={styles.experience}>
-          <h2 className={styles.formTitle}>Work Experience</h2>
-          {!selectedBlockId && workExperience.length > 0 && (
-            <button
-              type='button'
-              className={styles.addButton}
-              disabled={!!selectedBlockId}
-              onClick={handleSectionAdd}
-            >
-              <FaPlus size={12} />
-              Add Work Experience
-            </button>
-          )}
-          <div className={styles.experienceContainer}>
-            {renderMainContent()}
-          </div>
-        </div>
+    <div ref={containerRef} className={styles.experience}>
+      <h2 className={styles.formTitle}>Work Experience</h2>
+      {!selectedBlockId && workExperience.length > 0 && (
+        <button
+          type='button'
+          className={styles.addButton}
+          disabled={!!selectedBlockId}
+          onClick={handleSectionAdd}
+        >
+          <FaPlus size={12} />
+          Add Work Experience
+        </button>
       )}
-    </>
+      <div className={styles.experienceContainer}>{renderMainContent()}</div>
+    </div>
   )
 }
 

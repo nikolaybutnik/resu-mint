@@ -9,3 +9,10 @@ export interface Skills {
   }
   contextualSkills: string[]
 }
+
+export type SkillType = 'hard' | 'soft'
+
+export const SKILL_TYPES = {
+  HARD: 'hard' as SkillType,
+  SOFT: 'soft' as SkillType,
+} as const

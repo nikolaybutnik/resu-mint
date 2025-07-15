@@ -6,6 +6,7 @@ import {
   isLocalStorageAvailable,
   isQuotaExceededError,
 } from './dataUtils'
+import { skillsValidationSchema } from '../validationSchemas'
 
 const CACHE_KEYS = {
   SKILLS_LOCAL: 'skills-local',
@@ -25,19 +26,18 @@ class SkillsManager {
         try {
           const stored = localStorage.getItem(STORAGE_KEYS.SKILLS)
 
-          // TODO: Create validation schema for skills
           if (stored) {
-            // const parsed = JSON.parse(stored)
-            // const validation = skillsSchema.safeParse(parsed)
-            // if (validation.success) {
-            //   resolve(validation.data)
-            // } else {
-            //   console.warn(
-            //     'Invalid skills in Local Storage, using defaults:',
-            //     validation.error
-            //   )
-            //   resolve(DEFAULT_STATE_VALUES.SKILLS)
-            // }
+            const parsed = JSON.parse(stored)
+            const validation = skillsValidationSchema.safeParse(parsed)
+            if (validation.success) {
+              resolve(validation.data)
+            } else {
+              console.warn(
+                'Invalid skills in Local Storage, using defaults:',
+                validation.error
+              )
+              resolve(DEFAULT_STATE_VALUES.SKILLS)
+            }
           } else {
             this.save(DEFAULT_STATE_VALUES.SKILLS)
             resolve(DEFAULT_STATE_VALUES.SKILLS)

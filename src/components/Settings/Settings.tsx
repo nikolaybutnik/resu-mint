@@ -1,6 +1,5 @@
 import styles from './Settings.module.scss'
 import { useState, useEffect, useActionState, useRef } from 'react'
-import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import {
   LanguageModel,
   SettingsFields,
@@ -14,7 +13,7 @@ import { SkeletonInputField, SkeletonRangeInput } from '../shared/Skeleton'
 const Settings: React.FC = () => {
   const formRef = useRef<HTMLFormElement>(null)
 
-  const { data: settings, loading, initializing, save } = useSettingsStore()
+  const { data: settings, initializing, save } = useSettingsStore()
 
   const [bulletsPerExperienceBlock, setBulletsPerExperienceBlock] = useState(
     settings.bulletsPerExperienceBlock
@@ -69,13 +68,6 @@ const Settings: React.FC = () => {
   return (
     <form ref={formRef} className={styles.formSection} action={formAction}>
       <h2 className={styles.formTitle}>Settings</h2>
-
-      {loading && (
-        <div className={styles.savingIndicator}>
-          <LoadingSpinner size='sm' />
-          <span>Saving settings...</span>
-        </div>
-      )}
 
       <div className={styles.formFieldsContainer}>
         <div className={styles.formField}>

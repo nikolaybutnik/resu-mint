@@ -41,10 +41,10 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
     const previousData = get().data
 
     set({
-      data: previousData,
+      data: skills,
       hasData:
-        !!previousData?.hardSkills?.skills?.length ||
-        !!previousData?.softSkills?.skills?.length,
+        !!skills?.hardSkills?.skills?.length ||
+        !!skills?.softSkills?.skills?.length,
     })
 
     try {

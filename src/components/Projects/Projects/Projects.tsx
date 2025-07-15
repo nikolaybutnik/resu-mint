@@ -1,6 +1,5 @@
 import styles from './Projects.module.scss'
 import React, { useCallback, useState, useEffect, useMemo, useRef } from 'react'
-import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { v4 as uuidv4 } from 'uuid'
 import EditableProjectBlock from '../EditableProjectBlock/EditableProjectBlock'
 import DraggableProjectBlock from '../DraggableProjectBlock/DraggableProjectBlock'
@@ -33,10 +32,9 @@ import { Month, ProjectBlockData } from '@/lib/types/projects'
 
 interface ProjectsProps {
   keywordData: KeywordData
-  loading: boolean
 }
 
-const Projects: React.FC<ProjectsProps> = ({ keywordData, loading }) => {
+const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { data: projects, save } = useProjectStore()
@@ -256,27 +254,21 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData, loading }) => {
   }
 
   return (
-    <>
-      {loading ? (
-        <LoadingSpinner text='Loading your projects...' size='lg' />
-      ) : (
-        <div ref={containerRef} className={styles.projects}>
-          <h2 className={styles.formTitle}>Projects</h2>
-          {!selectedBlockId && projects.length > 0 && (
-            <button
-              type='button'
-              className={styles.addButton}
-              disabled={!!selectedBlockId}
-              onClick={handleSectionAdd}
-            >
-              <FaPlus size={12} />
-              Add Project
-            </button>
-          )}
-          <div className={styles.projectsContainer}>{renderMainContent()}</div>
-        </div>
+    <div ref={containerRef} className={styles.projects}>
+      <h2 className={styles.formTitle}>Projects</h2>
+      {!selectedBlockId && projects.length > 0 && (
+        <button
+          type='button'
+          className={styles.addButton}
+          disabled={!!selectedBlockId}
+          onClick={handleSectionAdd}
+        >
+          <FaPlus size={12} />
+          Add Project
+        </button>
       )}
-    </>
+      <div className={styles.projectsContainer}>{renderMainContent()}</div>
+    </div>
   )
 }
 
