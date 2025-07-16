@@ -157,6 +157,5 @@ export const DEFAULT_STATE_VALUES = {
   SKILLS: {
     hardSkills: { skills: [], suggestions: [] },
     softSkills: { skills: [], suggestions: [] },
-    contextualSkills: [],
   } as Skills,
 } as const

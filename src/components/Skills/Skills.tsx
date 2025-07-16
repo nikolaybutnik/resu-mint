@@ -1,5 +1,5 @@
 import styles from './Skills.module.scss'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect, memo, forwardRef } from 'react'
 import { FaPlus, FaTimes } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
 import {
@@ -8,14 +8,74 @@ import {
   Skills as SkillsType,
 } from '@/lib/types/skills'
 
+const Suggestions = memo(
+  forwardRef<
+    HTMLDivElement,
+    {
+      suggestions: string[]
+      show: boolean
+      onSuggestionClick: (suggestion: string) => void
+    }
+  >(({ suggestions, show, onSuggestionClick }, ref) => {
+    const [isVisible, setIsVisible] = useState(false)
+
+    useEffect(() => {
+      if (show) {
+        setTimeout(() => setIsVisible(true), 10)
+      } else {
+        setIsVisible(false)
+      }
+    }, [show])
+
+    if (suggestions.length === 0) return null
+
+    const handleMouseDown = (e: React.MouseEvent) => {
+      e.preventDefault()
+    }
+
+    return (
+      <div
+        ref={ref}
+        className={`${styles.suggestionsContainer} ${
+          isVisible ? styles.visible : styles.hidden
+        }`}
+        onMouseDown={handleMouseDown}
+      >
+        {suggestions.slice(0, 4).map((suggestion, index) => (
+          <button
+            key={index}
+            type='button'
+            className={styles.suggestionBubble}
+            onClick={() => onSuggestionClick(suggestion)}
+          >
+            {suggestion}
+          </button>
+        ))}
+      </div>
+    )
+  }),
+  (prevProps, nextProps) => {
+    return (
+      prevProps.show === nextProps.show &&
+      prevProps.suggestions.length === nextProps.suggestions.length &&
+      prevProps.suggestions.every(
+        (suggestion, index) => suggestion === nextProps.suggestions[index]
+      )
+    )
+  }
+)
+
 const Skills: React.FC = () => {
   const { data: skillsData, save } = useSkillsStore()
 
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
   const softSkillInputRef = useRef<HTMLInputElement>(null)
+  const hardSuggestionsRef = useRef<HTMLDivElement>(null)
+  const softSuggestionsRef = useRef<HTMLDivElement>(null)
 
   const [hardSkillInput, setHardSkillInput] = useState('')
   const [softSkillInput, setSoftSkillInput] = useState('')
+  const [focusedInput, setFocusedInput] = useState<SkillType | null>(null)
 
   const normalizeSkill = (skill: string): string => {
     return skill.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -99,6 +159,29 @@ const Skills: React.FC = () => {
     skillsData.softSkills.skills
   )
 
+  const handleInputFocus = (type: SkillType) => {
+    setFocusedInput(type)
+  }
+
+  const handleInputBlur = (e: React.FocusEvent) => {
+    const relatedTarget = e.relatedTarget as HTMLElement
+
+    // Check if focus is moving to either suggestions container
+    if (
+      hardSuggestionsRef.current?.contains(relatedTarget) ||
+      softSuggestionsRef.current?.contains(relatedTarget)
+    ) {
+      return
+    }
+
+    setFocusedInput(null)
+  }
+
+  const handleSuggestionClick = (type: SkillType, suggestion: string) => {
+    // TODO: implement suggestion click
+    console.log('suggestion', type, suggestion)
+  }
+
   return (
     <div className={styles.skills}>
       <h2 className={styles.formTitle}>Skills</h2>
@@ -106,24 +189,36 @@ const Skills: React.FC = () => {
       <div className={styles.formFieldsContainer}>
         <div className={styles.skillSection}>
           <h3 className={styles.sectionTitle}>Hard Skills</h3>
-          <div className={styles.chipInputContainer}>
-            <input
-              ref={hardSkillInputRef}
-              type='text'
-              className={styles.formInput}
-              placeholder='e.g., React, Python, AWS...'
-              value={hardSkillInput}
-              onChange={(e) => setHardSkillInput(e.target.value)}
-              onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.HARD)}
+          <div className={styles.inputWrapper}>
+            <Suggestions
+              suggestions={skillsData.hardSkills.suggestions}
+              show={focusedInput === SKILL_TYPES.HARD}
+              ref={hardSuggestionsRef}
+              onSuggestionClick={(suggestion) =>
+                handleSuggestionClick(SKILL_TYPES.HARD, suggestion)
+              }
             />
-            <button
-              type='button'
-              className={styles.chipAddButton}
-              onClick={() => handleAddSkill(SKILL_TYPES.HARD, hardSkillInput)}
-              disabled={!hardSkillInput.trim() || !!duplicateHardSkill}
-            >
-              <FaPlus size={12} />
-            </button>
+            <div className={styles.chipInputContainer}>
+              <input
+                ref={hardSkillInputRef}
+                type='text'
+                className={styles.formInput}
+                placeholder='e.g., React, Python, AWS...'
+                value={hardSkillInput}
+                onChange={(e) => setHardSkillInput(e.target.value)}
+                onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.HARD)}
+                onFocus={() => handleInputFocus(SKILL_TYPES.HARD)}
+                onBlur={handleInputBlur}
+              />
+              <button
+                type='button'
+                className={styles.chipAddButton}
+                onClick={() => handleAddSkill(SKILL_TYPES.HARD, hardSkillInput)}
+                disabled={!hardSkillInput.trim() || !!duplicateHardSkill}
+              >
+                <FaPlus size={12} />
+              </button>
+            </div>
           </div>
 
           <div className={styles.chipsContainer}>
@@ -158,25 +253,38 @@ const Skills: React.FC = () => {
 
         <div className={styles.skillSection}>
           <h3 className={styles.sectionTitle}>Soft Skills</h3>
-          <div className={styles.chipInputContainer}>
-            <input
-              ref={softSkillInputRef}
-              type='text'
-              className={styles.formInput}
-              placeholder='e.g., Leadership, Communication...'
-              value={softSkillInput}
-              onChange={(e) => setSoftSkillInput(e.target.value)}
-              onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.SOFT)}
+          <div className={styles.inputWrapper}>
+            <Suggestions
+              suggestions={skillsData.softSkills.suggestions}
+              show={focusedInput === SKILL_TYPES.SOFT}
+              ref={softSuggestionsRef}
+              onSuggestionClick={(suggestion) =>
+                handleSuggestionClick(SKILL_TYPES.SOFT, suggestion)
+              }
             />
-            <button
-              type='button'
-              className={styles.chipAddButton}
-              onClick={() => handleAddSkill(SKILL_TYPES.SOFT, softSkillInput)}
-              disabled={!softSkillInput.trim() || !!duplicateSoftSkill}
-            >
-              <FaPlus size={12} />
-            </button>
+            <div className={styles.chipInputContainer}>
+              <input
+                ref={softSkillInputRef}
+                type='text'
+                className={styles.formInput}
+                placeholder='e.g., Leadership, Communication...'
+                value={softSkillInput}
+                onChange={(e) => setSoftSkillInput(e.target.value)}
+                onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.SOFT)}
+                onFocus={() => handleInputFocus(SKILL_TYPES.SOFT)}
+                onBlur={handleInputBlur}
+              />
+              <button
+                type='button'
+                className={styles.chipAddButton}
+                onClick={() => handleAddSkill(SKILL_TYPES.SOFT, softSkillInput)}
+                disabled={!softSkillInput.trim() || !!duplicateSoftSkill}
+              >
+                <FaPlus size={12} />
+              </button>
+            </div>
           </div>
+
           <div className={styles.chipsContainer}>
             {skillsData.softSkills.skills.length === 0 ? (
               <div className={styles.emptyState}>

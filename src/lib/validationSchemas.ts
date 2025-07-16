@@ -828,5 +828,4 @@ export const skillsValidationSchema = z.object({
     skills: z.array(z.string()).default([]),
     suggestions: z.array(z.string()).default([]),
   }),
-  contextualSkills: z.array(z.string()).default([]),
 })

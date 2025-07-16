@@ -7,7 +7,6 @@ export interface Skills {
     skills: string[]
     suggestions: string[]
   }
-  contextualSkills: string[]
 }
 
 export type SkillType = 'hard' | 'soft'
