@@ -1,5 +1,5 @@
 import styles from './Skills.module.scss'
-import { useState, useRef, useEffect, memo, forwardRef } from 'react'
+import { useState, useRef } from 'react'
 import { FaPlus, FaTimes } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
 import {
@@ -7,63 +7,7 @@ import {
   SkillType,
   Skills as SkillsType,
 } from '@/lib/types/skills'
-
-const Suggestions = memo(
-  forwardRef<
-    HTMLDivElement,
-    {
-      suggestions: string[]
-      show: boolean
-      onSuggestionClick: (suggestion: string) => void
-    }
-  >(({ suggestions, show, onSuggestionClick }, ref) => {
-    const [isVisible, setIsVisible] = useState(false)
-
-    useEffect(() => {
-      if (show) {
-        setTimeout(() => setIsVisible(true), 10)
-      } else {
-        setIsVisible(false)
-      }
-    }, [show])
-
-    if (suggestions.length === 0) return null
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-      e.preventDefault()
-    }
-
-    return (
-      <div
-        ref={ref}
-        className={`${styles.suggestionsContainer} ${
-          isVisible ? styles.visible : styles.hidden
-        }`}
-        onMouseDown={handleMouseDown}
-      >
-        {suggestions.slice(0, 4).map((suggestion, index) => (
-          <button
-            key={index}
-            type='button'
-            className={styles.suggestionBubble}
-            onClick={() => onSuggestionClick(suggestion)}
-          >
-            {suggestion}
-          </button>
-        ))}
-      </div>
-    )
-  }),
-  (prevProps, nextProps) => {
-    return (
-      prevProps.show === nextProps.show &&
-      prevProps.suggestions.length === nextProps.suggestions.length &&
-      prevProps.suggestions.every(
-        (suggestion, index) => suggestion === nextProps.suggestions[index]
-      )
-    )
-  }
-)
+import Suggestions from './Suggestions/Suggestions'
 
 const Skills: React.FC = () => {
   const { data: skillsData, save } = useSkillsStore()
@@ -130,7 +74,7 @@ const Skills: React.FC = () => {
   const handleKeyPress = (
     e: React.KeyboardEvent<HTMLInputElement>,
     type: SkillType
-  ) => {
+  ): void => {
     if (e.key === 'Enter') {
       e.preventDefault()
       const value = type === SKILL_TYPES.HARD ? hardSkillInput : softSkillInput
@@ -150,20 +94,11 @@ const Skills: React.FC = () => {
     )
   }
 
-  const duplicateHardSkill = getDuplicateSkill(
-    hardSkillInput,
-    skillsData.hardSkills.skills
-  )
-  const duplicateSoftSkill = getDuplicateSkill(
-    softSkillInput,
-    skillsData.softSkills.skills
-  )
-
-  const handleInputFocus = (type: SkillType) => {
+  const handleInputFocus = (type: SkillType): void => {
     setFocusedInput(type)
   }
 
-  const handleInputBlur = (e: React.FocusEvent) => {
+  const handleInputBlur = (e: React.FocusEvent): void => {
     const relatedTarget = e.relatedTarget as HTMLElement
 
     // Check if focus is moving to either suggestions container
@@ -177,10 +112,47 @@ const Skills: React.FC = () => {
     setFocusedInput(null)
   }
 
-  const handleSuggestionClick = (type: SkillType, suggestion: string) => {
-    // TODO: implement suggestion click
-    console.log('suggestion', type, suggestion)
+  const handleSuggestionClick = (type: SkillType, suggestion: string): void => {
+    const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
+    const updatedSkills: SkillsType = {
+      ...skillsData,
+      [skillKey]: {
+        skills: [...skillsData[skillKey].skills, suggestion],
+        suggestions: skillsData[skillKey].suggestions.filter(
+          (item) => normalizeSkill(item) !== normalizeSkill(suggestion)
+        ),
+      },
+    }
+
+    save(updatedSkills)
   }
+
+  const handleSuggestionDelete = (
+    type: SkillType,
+    suggestion: string
+  ): void => {
+    const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
+    const updatedSkills: SkillsType = {
+      ...skillsData,
+      [skillKey]: {
+        suggestions: skillsData[skillKey].suggestions.filter(
+          (existingSuggestion) => existingSuggestion !== suggestion
+        ),
+        skills: skillsData[skillKey].skills,
+      },
+    }
+
+    save(updatedSkills)
+  }
+
+  const duplicateHardSkill = getDuplicateSkill(
+    hardSkillInput,
+    skillsData.hardSkills.skills
+  )
+  const duplicateSoftSkill = getDuplicateSkill(
+    softSkillInput,
+    skillsData.softSkills.skills
+  )
 
   return (
     <div className={styles.skills}>
@@ -196,6 +168,9 @@ const Skills: React.FC = () => {
               ref={hardSuggestionsRef}
               onSuggestionClick={(suggestion) =>
                 handleSuggestionClick(SKILL_TYPES.HARD, suggestion)
+              }
+              onSuggestionDelete={(suggestion) =>
+                handleSuggestionDelete(SKILL_TYPES.HARD, suggestion)
               }
             />
             <div className={styles.chipInputContainer}>
@@ -260,6 +235,9 @@ const Skills: React.FC = () => {
               ref={softSuggestionsRef}
               onSuggestionClick={(suggestion) =>
                 handleSuggestionClick(SKILL_TYPES.SOFT, suggestion)
+              }
+              onSuggestionDelete={(suggestion) =>
+                handleSuggestionDelete(SKILL_TYPES.SOFT, suggestion)
               }
             />
             <div className={styles.chipInputContainer}>

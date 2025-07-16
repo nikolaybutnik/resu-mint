@@ -17,6 +17,9 @@ interface LongPressHandlerProps {
   onTouchEnd?: (e: React.TouchEvent) => void
   onTouchMove?: (e: React.TouchEvent) => void
   onClick?: (e: React.MouseEvent) => void
+  onLongPress?: () => void
+  longPressDuration?: number
+  showAnimation?: boolean
 }
 
 const LongPressHandler: React.FC<LongPressHandlerProps> = ({
@@ -28,6 +31,9 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
   onTouchEnd,
   onTouchMove,
   onClick,
+  onLongPress,
+  longPressDuration = 850, // Default 750ms + 100ms buffer
+  showAnimation = true,
 }) => {
   const touchCleanupRef = useRef<(() => void) | null>(null)
   const initialTouchRef = useRef<{ x: number; y: number } | null>(null)
@@ -52,20 +58,23 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
 
         setIsLongPressing(true)
 
-        // Wait 150ms before showing animation to differentiate from swipe
-        const showAnimationTimer = setTimeout(() => {
-          setTouchFeedback({ x, y, show: true })
-        }, 150)
+        let showAnimationTimer: NodeJS.Timeout | undefined
+        if (showAnimation) {
+          showAnimationTimer = setTimeout(() => {
+            setTouchFeedback({ x, y, show: true })
+          }, 150)
+        }
 
-        const resetTimer = setTimeout(() => {
+        const longPressTimer = setTimeout(() => {
           setIsLongPressing(false)
           setTouchFeedback(null)
           initialTouchRef.current = null
-        }, 850) // 750ms + 100ms buffer
+          onLongPress?.()
+        }, longPressDuration)
 
         const cleanup = () => {
-          clearTimeout(showAnimationTimer)
-          clearTimeout(resetTimer)
+          if (showAnimationTimer) clearTimeout(showAnimationTimer)
+          clearTimeout(longPressTimer)
           initialTouchRef.current = null
         }
 
@@ -76,7 +85,14 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
       // Call parent handler if provided
       onTouchStart?.(e)
     },
-    [isMobile, disabled, onTouchStart]
+    [
+      isMobile,
+      disabled,
+      onTouchStart,
+      onLongPress,
+      longPressDuration,
+      showAnimation,
+    ]
   )
 
   const handleTouchEnd = useCallback(
@@ -173,7 +189,8 @@ const LongPressHandler: React.FC<LongPressHandlerProps> = ({
     >
       {children}
 
-      {touchFeedback && touchFeedback.show && (
+      {/* Only show animation if enabled */}
+      {showAnimation && touchFeedback && touchFeedback.show && (
         <div
           className={styles.touchFeedback}
           style={{

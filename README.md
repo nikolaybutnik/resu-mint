@@ -315,9 +315,10 @@ resu-mint/
 │   │   │   └── dataManager.ts            # Intelligent caching + localStorage operations
 │   │   ├── services/        # API and business logic
 │   │   │   ├── livePreviewService.ts  # PDF preview management
-│   │   │   ├── api.ts               # HTTP client
-│   │   │   ├── bulletService.ts     # Bullet generation
-│   │   │   └── pdfService.ts        # PDF creation
+│   │   │   ├── api.ts                 # HTTP client
+│   │   │   ├── bulletService.ts       # Bullet generation
+│   │   │   ├── jobDetailsService.ts   # Job analysis and parsing
+│   │   │   └── livePreviewService.ts  # PDF preview and download
 │   │   ├── hooks/           # Custom React hooks
 │   │   │   ├── useKeywordAnalysis.ts # Keyword tracking and analysis
 │   │   │   ├── useExperience.ts      # Experience data hook (legacy)
