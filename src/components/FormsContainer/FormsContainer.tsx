@@ -41,6 +41,7 @@ import {
   useProjectStore,
   useEducationStore,
 } from '@/stores'
+import { useAutoSkillSuggestions } from '@/lib/hooks/useAutoSkillSuggestions'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -202,6 +203,9 @@ interface FormsContainerProps {
 export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const tabNavRef = useRef<HTMLDivElement>(null)
+
+  // TODO: uncomment once functionality is implemented
+  // useAutoSkillSuggestions()
 
   // Stores
   const { data: personalDetails } = usePersonalDetailsStore()
