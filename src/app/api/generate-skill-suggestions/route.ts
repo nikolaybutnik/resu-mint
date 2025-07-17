@@ -1,7 +1,7 @@
 import { parseSectionSkillsPrompt } from '@/lib/ai/prompts'
 import { createError, createSuccessResponse } from '@/lib/types/errors'
 import { createErrorResponse } from '@/lib/types/errors'
-import { parseSectionSkillsRequestSchema } from '@/lib/validationSchemas'
+import { generateSkillsRequestSchema } from '@/lib/validationSchemas'
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { parseSectionSkillsTool } from '@/lib/ai/tools'
@@ -14,17 +14,18 @@ const cleanSkill = (skill: string): string => {
 export async function POST(request: NextRequest) {
   try {
     const rawData = await request.json()
-    console.log(rawData)
-    // const validationResult = parseSectionSkillsRequestSchema.safeParse(rawData)
+    const validationResult = generateSkillsRequestSchema.safeParse(rawData)
 
-    // if (!validationResult.success) {
-    //   return NextResponse.json(
-    //     createErrorResponse([
-    //       createError('validation', 'Invalid request data'),
-    //     ]),
-    //     { status: 400 }
-    //   )
-    // }
+    if (!validationResult.success) {
+      return NextResponse.json(
+        createErrorResponse([
+          createError('validation', 'Invalid request data'),
+        ]),
+        { status: 400 }
+      )
+    }
+
+    console.log(validationResult.data)
 
     // const { sectionDescriptions, settings } = validationResult.data
 

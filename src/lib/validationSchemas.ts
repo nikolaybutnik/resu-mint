@@ -807,18 +807,6 @@ export const createPdfRequestSchema = z.object({
   educationSection: z.array(educationBlockSchema),
 })
 
-// TODO: retire this schema after re-work of skills is complete
-export const parseSectionSkillsRequestSchema = z.object({
-  sectionDescriptions: z.string().min(1, 'Section descriptions are required'),
-  settings: settingsSchema,
-})
-
-// TODO: retire this schema after re-work of skills is complete
-export const parseSectionSkillsResponseSchema = z.object({
-  hardSkills: z.array(z.string()),
-  softSkills: z.array(z.string()),
-})
-
 export const skillsValidationSchema = z.object({
   hardSkills: z.object({
     skills: z.array(z.string()).default([]),
@@ -828,4 +816,18 @@ export const skillsValidationSchema = z.object({
     skills: z.array(z.string()).default([]),
     suggestions: z.array(z.string()).default([]),
   }),
+})
+
+export const generateSkillsRequestSchema = z.object({
+  jobAnalysis: jobDescriptionAnalysisSchema,
+  currentSkills: skillsValidationSchema,
+  userExperience: z.array(
+    z.string().min(1, 'Experience description cannot be empty')
+  ),
+  settings: settingsSchema,
+})
+
+export const generateSkillsResponseSchema = z.object({
+  hardSkills: z.array(z.string()),
+  softSkills: z.array(z.string()),
 })
