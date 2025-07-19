@@ -13,15 +13,23 @@ import { Skills } from '@/lib/types/skills'
 
 export const useAutoSkillSuggestions = () => {
   const prevAnalysisRef = useRef<JobDescriptionAnalysis | null>(null)
-  const isInitialLoadRef = useRef(true)
+  const hasInitializedRef = useRef(false)
 
   const [isGenerating, setIsGenerating] = useState(false)
 
-  const { data: jobDetails } = useJobDetailsStore()
-  const { data: experience } = useExperienceStore()
-  const { data: projects } = useProjectStore()
-  const { data: skills, save: saveSkills } = useSkillsStore()
-  const { data: settings } = useSettingsStore()
+  const { data: jobDetails, initializing: jobDetailsInitializing } =
+    useJobDetailsStore()
+  const { data: experience, initializing: experienceInitializing } =
+    useExperienceStore()
+  const { data: projects, initializing: projectsInitializing } =
+    useProjectStore()
+  const {
+    data: skills,
+    save: saveSkills,
+    initializing: skillsInitializing,
+  } = useSkillsStore()
+  const { data: settings, initializing: settingsInitializing } =
+    useSettingsStore()
 
   const generateSuggestions = async () => {
     try {
@@ -101,12 +109,23 @@ export const useAutoSkillSuggestions = () => {
   useEffect(() => {
     const currentAnalysis = jobDetails.analysis
 
+    const anyStoreInitializing =
+      jobDetailsInitializing ||
+      experienceInitializing ||
+      projectsInitializing ||
+      skillsInitializing ||
+      settingsInitializing
+
+    if (anyStoreInitializing) {
+      return
+    }
+
     if (!currentAnalysis) {
       return
     }
 
-    if (isInitialLoadRef.current) {
-      isInitialLoadRef.current = false
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true
       prevAnalysisRef.current = currentAnalysis
       return
     }
@@ -135,7 +154,18 @@ export const useAutoSkillSuggestions = () => {
 
     generateSuggestions()
     prevAnalysisRef.current = currentAnalysis
-  }, [jobDetails.analysis, experience, projects, skills, settings])
+  }, [
+    jobDetails.analysis,
+    experience,
+    projects,
+    skills,
+    settings,
+    jobDetailsInitializing,
+    experienceInitializing,
+    projectsInitializing,
+    skillsInitializing,
+    settingsInitializing,
+  ])
 
   return {
     isGenerating,

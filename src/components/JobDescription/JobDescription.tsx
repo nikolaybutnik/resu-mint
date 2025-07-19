@@ -8,10 +8,10 @@ import { useJobDetailsStore } from '@/stores'
 import { jobDetailsService } from '@/lib/services/jobDetailsService'
 
 export const JobDetails: React.FC = () => {
-  const { data: jobDetails, analyzing } = useJobDetailsStore()
+  const { data: jobDetails, analyzing, initializing } = useJobDetailsStore()
   const isMobile = useMobile()
 
-  const prevJobDescription = useRef(jobDetails.originalJobDescription)
+  const lastAnalyzedJobDescription = useRef<string>('')
   const isContentSelected = useRef(false)
 
   const [expandedSummary, setExpandedSummary] = useState(false)
@@ -32,12 +32,30 @@ export const JobDetails: React.FC = () => {
   }, [jobDetails.originalJobDescription])
 
   useEffect(() => {
+    if (initializing) {
+      return
+    }
+
     if (
       !jobDetails.originalJobDescription ||
       jobDetails.originalJobDescription.trim() === '' ||
-      prevJobDescription.current === jobDetails.originalJobDescription ||
-      !!jobDetails.analysis?.jobTitle ||
       analyzing
+    ) {
+      return
+    }
+
+    if (
+      lastAnalyzedJobDescription.current === '' &&
+      !!jobDetails.analysis?.jobTitle
+    ) {
+      lastAnalyzedJobDescription.current = jobDetails.originalJobDescription
+      return
+    }
+
+    if (
+      lastAnalyzedJobDescription.current ===
+        jobDetails.originalJobDescription &&
+      !!jobDetails.analysis?.jobTitle
     ) {
       return
     }
@@ -45,14 +63,19 @@ export const JobDetails: React.FC = () => {
     const analyzeJobDescription = async (jobDescription: string) => {
       try {
         await jobDetailsService.analyzeJobDescription(jobDescription)
+        lastAnalyzedJobDescription.current = jobDescription
       } catch (error) {
         console.error('Analysis failed:', error)
       }
     }
 
     analyzeJobDescription(jobDetails.originalJobDescription)
-    prevJobDescription.current = jobDetails.originalJobDescription
-  }, [jobDetails.originalJobDescription, jobDetails.analysis, analyzing])
+  }, [
+    jobDetails.originalJobDescription,
+    jobDetails.analysis,
+    analyzing,
+    initializing,
+  ])
 
   const saveJobDescription = async (data: string) => {
     await jobDetailsService.saveJobDescription(data)
