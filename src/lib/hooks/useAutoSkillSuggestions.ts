@@ -151,12 +151,6 @@ export const useAutoSkillSuggestions = () => {
       skillsInitializing ||
       settingsInitializing
 
-    const debugMsg = `AutoSkill: init=${anyStoreInitializing}, hasAnalysis=${!!currentAnalysis}, initialized=${
-      hasInitializedRef.current
-    }, mobile=${
-      typeof window !== 'undefined' ? window.innerWidth < 768 : false
-    }`
-
     if (anyStoreInitializing) {
       return
     }
