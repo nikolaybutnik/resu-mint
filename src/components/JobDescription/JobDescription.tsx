@@ -52,20 +52,22 @@ export const JobDetails: React.FC = () => {
       return
     }
 
-    if (
-      lastAnalyzedJobDescription.current ===
-        jobDetails.originalJobDescription &&
-      !!jobDetails.analysis?.jobTitle
-    ) {
+    const isAlreadyAnalyzed =
+      lastAnalyzedJobDescription.current === jobDetails.originalJobDescription
+    const hasAnalysis = !!jobDetails.analysis?.jobTitle
+
+    if (isAlreadyAnalyzed && hasAnalysis) {
       return
     }
+
+    lastAnalyzedJobDescription.current = jobDetails.originalJobDescription
 
     const analyzeJobDescription = async (jobDescription: string) => {
       try {
         await jobDetailsService.analyzeJobDescription(jobDescription)
-        lastAnalyzedJobDescription.current = jobDescription
       } catch (error) {
         console.error('Analysis failed:', error)
+        lastAnalyzedJobDescription.current = ''
       }
     }
 
