@@ -16,7 +16,7 @@ export const useAutoSkillSuggestions = () => {
   const hasInitializedRef = useRef(false)
 
   const [isGenerating, setIsGenerating] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<string>('')
+  const [error, setError] = useState<string | null>(null)
 
   const { data: jobDetails, initializing: jobDetailsInitializing } =
     useJobDetailsStore()
@@ -35,16 +35,18 @@ export const useAutoSkillSuggestions = () => {
   const generateSuggestions = async () => {
     try {
       setIsGenerating(true)
-      setDebugInfo('AutoSkill: INSIDE_GENERATE_START')
+      setError(null)
 
       const hasContent =
         experience.some(
-          (exp) => exp.isIncluded && exp.bulletPoints.length > 0
+          (exp) => exp.isIncluded || exp.bulletPoints.length > 0
         ) ||
-        projects.some((proj) => proj.isIncluded && proj.bulletPoints.length > 0)
+        projects.some((proj) => proj.isIncluded || proj.bulletPoints.length > 0)
 
       if (!hasContent) {
-        setDebugInfo('AutoSkill: NO_CONTENT_FOUND')
+        setError(
+          'No content available for skill suggestions. Please add descriptions or bullet points to your experience and/or projects.'
+        )
         return
       }
 
@@ -77,11 +79,11 @@ export const useAutoSkillSuggestions = () => {
         })
 
       if (userExperience.length === 0) {
-        setDebugInfo('AutoSkill: NO_USER_EXPERIENCE')
+        setError(
+          'No content available for skill suggestions. Please add descriptions or bullet points to your experience and/or projects.'
+        )
         return
       }
-
-      setDebugInfo(`AutoSkill: CALLING_API (${userExperience.length} items)`)
 
       const suggestions = await skillsService.generateSuggestions(
         jobDetails.analysis,
@@ -89,8 +91,6 @@ export const useAutoSkillSuggestions = () => {
         userExperience,
         settings
       )
-
-      setDebugInfo('AutoSkill: API_SUCCESS')
 
       const updatedSkills: Skills = {
         ...skills,
@@ -111,14 +111,31 @@ export const useAutoSkillSuggestions = () => {
       }
 
       await saveSkills(updatedSkills)
-      setDebugInfo('AutoSkill: COMPLETED_SUCCESS')
     } catch (error) {
       console.error('Failed to auto-generate skill suggestions:', error)
-      setDebugInfo(
-        `AutoSkill: ERROR - ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
-      )
+
+      let errorMessage = 'Failed to generate skill suggestions'
+
+      if (error instanceof Error) {
+        if (error.message.includes('fetch')) {
+          errorMessage =
+            'Network error: Unable to connect to skill suggestion service'
+        } else if (error.message.includes('validation')) {
+          errorMessage = 'Data validation error: Invalid request format'
+        } else if (
+          error.message.includes('OpenAI') ||
+          error.message.includes('AI')
+        ) {
+          errorMessage = 'AI service error: Unable to generate suggestions'
+        } else if (error.message.includes('timeout')) {
+          errorMessage =
+            'Request timeout: Skill suggestion service took too long to respond'
+        } else {
+          errorMessage = `Skill suggestion error: ${error.message}`
+        }
+      }
+
+      setError(errorMessage)
     } finally {
       setIsGenerating(false)
     }
@@ -139,7 +156,6 @@ export const useAutoSkillSuggestions = () => {
     }, mobile=${
       typeof window !== 'undefined' ? window.innerWidth < 768 : false
     }`
-    setDebugInfo(debugMsg)
 
     if (anyStoreInitializing) {
       return
@@ -152,7 +168,6 @@ export const useAutoSkillSuggestions = () => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true
       prevAnalysisRef.current = currentAnalysis
-      setDebugInfo(debugMsg + ' | FIRST_RUN')
       return
     }
 
@@ -174,12 +189,8 @@ export const useAutoSkillSuggestions = () => {
         }
       : null
 
-    if (isEqual(currentJobKey, previousJobKey)) {
-      setDebugInfo(debugMsg + ' | SAME_JOB')
-      return
-    }
+    if (isEqual(currentJobKey, previousJobKey)) return
 
-    setDebugInfo(debugMsg + ' | GENERATING')
     generateSuggestions()
     prevAnalysisRef.current = currentAnalysis
   }, [
@@ -198,6 +209,6 @@ export const useAutoSkillSuggestions = () => {
   return {
     isGenerating,
     generateSuggestions,
-    debugInfo, // Temporary for mobile debugging
+    error,
   }
 }
