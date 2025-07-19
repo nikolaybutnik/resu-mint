@@ -152,23 +152,50 @@ Pattern: "Action + specific task from section + measurable result"
 `
 }
 
-export const parseSectionSkillsPrompt = (sectionDescriptions: string) => {
+export const generateSkillSuggestionsPrompt = (
+  jobAnalysis: JobDescriptionAnalysis,
+  currentSkills: {
+    hardSkills: { skills: string[] }
+    softSkills: { skills: string[] }
+  },
+  userExperience: string[]
+) => {
+  const jobSummary = jobAnalysis.jobSummary
+  const jobHardSkills = jobAnalysis.skillsRequired.hard.join(', ')
+  const jobSoftSkills = jobAnalysis.skillsRequired.soft.join(', ')
+  const contextualSkills = jobAnalysis.contextualSkills.join(', ')
+
+  const currentHardSkills = currentSkills.hardSkills.skills.join(', ')
+  const currentSoftSkills = currentSkills.softSkills.skills.join(', ')
+
+  const experienceText = userExperience.join('\n\n')
+
   return `
-Extract concrete skills mentioned in the <DATA> below. Use the "parse_section_skills" tool.
+Analyze the user's experience below and suggest skills they likely have that are relevant to the target job, but not already in their current skills list.
 
-HARD SKILLS: Programming languages, frameworks, tools, platforms, technical methodologies
-SOFT SKILLS: Communication, leadership, teamwork, problem-solving, and other interpersonal abilities
+JOB SUMMARY:
+${jobSummary}
 
-RULES:
-- Extract ONLY skills explicitly mentioned in the <DATA> below
-- Extract SPECIFIC, implementable skills only
-- Skip vague concepts like "responsiveness", "scalability", "user engagement"
-- Single words or compounds, no duplicates.
-- Capitalize first letter of the keywords. Preserve natural capitalization of technologies (e.g., "JavaScript, FastAPI")
-- Don't confuse similar technology names (e.g., JavaScript ≠ Java)
+JOB REQUIREMENTS:
+- Hard Skills: ${jobHardSkills}
+- Soft Skills: ${jobSoftSkills}  
+- Contextual Skills: ${contextualSkills}
 
-Extract from:
-<DATA>
-${sectionDescriptions}
-</DATA>`
+CRITICAL: USER ALREADY HAS THESE SKILLS - DO NOT SUGGEST THEM:
+- Hard Skills: ${currentHardSkills}
+- Soft Skills: ${currentSoftSkills}
+
+USER EXPERIENCE:
+${experienceText}
+
+TASK: Based on the user's experience, identify skills they likely possess that are:
+1. Relevant to the job requirements above
+2. NOT already in their current skills list  
+3. Clearly demonstrated in their experience descriptions
+4. Specific and actionable
+
+Focus on skills that are directly mentioned or strongly implied by their work. Prioritize job-required skills over contextual ones.
+
+Use the "generate_skill_suggestions" tool to return your suggestions.
+`
 }

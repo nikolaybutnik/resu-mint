@@ -37,12 +37,17 @@ export interface CreatePdfRequest {
   educationSection: EducationBlockData[]
 }
 
-export interface ParseSectionSkillsRequest {
-  sectionDescriptions: string
+export interface GenerateSkillSuggestionsRequest {
+  jobAnalysis: JobDescriptionAnalysis
+  currentSkills: {
+    hardSkills: { skills: string[] }
+    softSkills: { skills: string[] }
+  }
+  userExperience: string[]
   settings: AppSettings
 }
 
-export interface ParseSectionSkillsResponse {
-  hardSkills: string[]
-  softSkills: string[]
+export interface GenerateSkillSuggestionsResponse {
+  hardSkillSuggestions: string[]
+  softSkillSuggestions: string[]
 }

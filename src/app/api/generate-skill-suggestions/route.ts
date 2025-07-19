@@ -1,14 +1,30 @@
-import { parseSectionSkillsPrompt } from '@/lib/ai/prompts'
+import { generateSkillSuggestionsPrompt } from '@/lib/ai/prompts'
 import { createError, createSuccessResponse } from '@/lib/types/errors'
 import { createErrorResponse } from '@/lib/types/errors'
 import { generateSkillsRequestSchema } from '@/lib/validationSchemas'
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
-import { parseSectionSkillsTool } from '@/lib/ai/tools'
-import { ParseSectionSkillsResponse } from '@/lib/types/api'
+import { generateSkillSuggestionsTool } from '@/lib/ai/tools'
+import { GenerateSkillSuggestionsResponse } from '@/lib/types/api'
 
 const cleanSkill = (skill: string): string => {
   return skill.trim().replace(/^["']|["']$/g, '')
+}
+
+const normalizeForComparison = (skill: string): string => {
+  return skill.trim().toLowerCase().replace(/\s+/g, ' ')
+}
+
+const filterExistingSkills = (
+  suggestions: string[],
+  existingSkills: string[]
+): string[] => {
+  const normalizedExistingSkills = existingSkills.map(normalizeForComparison)
+
+  return suggestions.filter((suggestion) => {
+    const normalizedSuggestion = normalizeForComparison(suggestion)
+    return !normalizedExistingSkills.includes(normalizedSuggestion)
+  })
 }
 
 export async function POST(request: NextRequest) {
@@ -25,50 +41,73 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(validationResult.data)
+    const { jobAnalysis, currentSkills, userExperience, settings } =
+      validationResult.data
 
-    // const { sectionDescriptions, settings } = validationResult.data
+    if (userExperience.length === 0) {
+      return NextResponse.json(
+        createSuccessResponse({
+          hardSkillSuggestions: [],
+          softSkillSuggestions: [],
+        }),
+        { status: 200 }
+      )
+    }
 
-    // const prompt = parseSectionSkillsPrompt(sectionDescriptions)
-    // const tools = [parseSectionSkillsTool()]
-    // const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
+    const prompt = generateSkillSuggestionsPrompt(
+      jobAnalysis,
+      currentSkills,
+      userExperience
+    )
+    const tools = [generateSkillSuggestionsTool()]
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 
-    // const response = await openai.chat.completions.create({
-    //   model: settings.languageModel,
-    //   messages: [{ role: 'user', content: prompt }],
-    //   tools,
-    //   tool_choice: {
-    //     type: 'function',
-    //     function: { name: 'parse_section_skills' },
-    //   },
-    // })
+    const response = await openai.chat.completions.create({
+      model: settings.languageModel,
+      messages: [{ role: 'user', content: prompt }],
+      tools,
+      tool_choice: {
+        type: 'function',
+        function: { name: 'generate_skill_suggestions' },
+      },
+    })
 
-    // const toolCall = response.choices[0].message.tool_calls?.[0]
-    // if (!toolCall) {
-    //   return NextResponse.json(
-    //     createErrorResponse([
-    //       createError(
-    //         'openai',
-    //         'Failed to parse skills from section content: No tool call'
-    //       ),
-    //     ]),
-    //     { status: 500 }
-    //   )
-    // }
+    const toolCall = response.choices[0].message.tool_calls?.[0]
+    if (!toolCall) {
+      return NextResponse.json(
+        createErrorResponse([
+          createError(
+            'openai',
+            'Failed to parse skills from section content: No tool call'
+          ),
+        ]),
+        { status: 500 }
+      )
+    }
 
-    // const skills = JSON.parse(
-    //   toolCall.function.arguments
-    // ) as ParseSectionSkillsResponse
+    const suggestions = JSON.parse(
+      toolCall.function.arguments
+    ) as GenerateSkillSuggestionsResponse
 
-    // const cleanedSkills = {
-    //   hardSkills: skills.hardSkills.map(cleanSkill),
-    //   softSkills: skills.softSkills.map(cleanSkill),
-    // }
+    const cleanedHardSuggestions = suggestions.hardSkillSuggestions
+      .map(cleanSkill)
+      .filter((skill) => skill.length > 0)
 
-    // return NextResponse.json(createSuccessResponse(cleanedSkills), {
-    //   status: 200,
-    // })
-    return NextResponse.json(createSuccessResponse('success'), {
+    const cleanedSoftSuggestions = suggestions.softSkillSuggestions
+      .map(cleanSkill)
+      .filter((skill) => skill.length > 0)
+
+    const filteredSuggestions = {
+      hardSkillSuggestions: filterExistingSkills(
+        cleanedHardSuggestions,
+        currentSkills.hardSkills.skills
+      ),
+      softSkillSuggestions: filterExistingSkills(
+        cleanedSoftSuggestions,
+        currentSkills.softSkills.skills
+      ),
+    }
+    return NextResponse.json(createSuccessResponse(filteredSuggestions), {
       status: 200,
     })
   } catch (error) {

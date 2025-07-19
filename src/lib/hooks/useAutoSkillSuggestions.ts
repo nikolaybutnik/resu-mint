@@ -71,28 +71,26 @@ export const useAutoSkillSuggestions = () => {
         settings
       )
 
-      // Limit to 6 new suggestions at a time
+      // Limit to 5 new suggestions at a time
       const updatedSkills: Skills = {
         ...skills,
         hardSkills: {
           ...skills.hardSkills,
           suggestions: [
             ...skills.hardSkills.suggestions,
-            ...suggestions.hardSkillSuggestions.slice(0, 6),
+            ...suggestions.hardSkillSuggestions.slice(0, 5),
           ],
         },
         softSkills: {
           ...skills.softSkills,
           suggestions: [
             ...skills.softSkills.suggestions,
-            ...suggestions.softSkillSuggestions.slice(0, 6),
+            ...suggestions.softSkillSuggestions.slice(0, 5),
           ],
         },
       }
 
-      console.log('updatedSkills in hook', updatedSkills)
-
-      //   await saveSkills(updatedSkills)
+      await saveSkills(updatedSkills)
     } catch (error) {
       console.error('Failed to auto-generate skill suggestions:', error)
     } finally {

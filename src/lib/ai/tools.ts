@@ -180,28 +180,31 @@ export const generateJobDescriptionAnalysisTool = () => ({
   },
 })
 
-export const parseSectionSkillsTool = () => ({
+export const generateSkillSuggestionsTool = () => ({
   type: 'function' as const,
   function: {
-    name: 'parse_section_skills',
+    name: 'generate_skill_suggestions',
     description:
-      'Parse the skills from the section descriptions and return them categorized as hard skills and soft skills.',
+      'Generate skill suggestions based on user experience and job requirements',
     parameters: {
       type: 'object',
       properties: {
-        hardSkills: {
+        hardSkillSuggestions: {
           type: 'array',
           items: { type: 'string' },
+          maxItems: 8,
           description:
-            'List of technical/hard skills found in the descriptions',
+            'Technical skills the user likely has based on their experience that are relevant to the job but not in their current skills list',
         },
-        softSkills: {
+        softSkillSuggestions: {
           type: 'array',
           items: { type: 'string' },
-          description: 'List of soft skills found in the descriptions',
+          maxItems: 8,
+          description:
+            'Soft skills the user likely has based on their experience that are relevant to the job but not in their current skills list',
         },
       },
-      required: ['hardSkills', 'softSkills'],
+      required: ['hardSkillSuggestions', 'softSkillSuggestions'],
     },
   },
 })

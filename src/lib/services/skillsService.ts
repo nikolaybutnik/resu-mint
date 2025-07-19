@@ -3,18 +3,10 @@ import { ROUTES } from '@/lib/constants'
 import { Skills } from '@/lib/types/skills'
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { AppSettings } from '@/lib/types/settings'
-
-interface GenerateSkillSuggestionsRequest {
-  jobAnalysis: JobDescriptionAnalysis
-  currentSkills: Skills
-  userExperience: string[]
-  settings: AppSettings
-}
-
-interface GenerateSkillSuggestionsResponse {
-  hardSkillSuggestions: string[]
-  softSkillSuggestions: string[]
-}
+import {
+  GenerateSkillSuggestionsRequest,
+  GenerateSkillSuggestionsResponse,
+} from '../types/api'
 
 const generateSuggestionsApi = async (
   params: GenerateSkillSuggestionsRequest
