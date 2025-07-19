@@ -35,6 +35,7 @@ export const useAutoSkillSuggestions = () => {
   const generateSuggestions = async () => {
     try {
       setIsGenerating(true)
+      setDebugInfo('AutoSkill: INSIDE_GENERATE_START')
 
       const hasContent =
         experience.some(
@@ -42,7 +43,10 @@ export const useAutoSkillSuggestions = () => {
         ) ||
         projects.some((proj) => proj.isIncluded && proj.bulletPoints.length > 0)
 
-      if (!hasContent) return
+      if (!hasContent) {
+        setDebugInfo('AutoSkill: NO_CONTENT_FOUND')
+        return
+      }
 
       const userExperience: string[] = []
 
@@ -72,7 +76,12 @@ export const useAutoSkillSuggestions = () => {
           })
         })
 
-      if (userExperience.length === 0) return
+      if (userExperience.length === 0) {
+        setDebugInfo('AutoSkill: NO_USER_EXPERIENCE')
+        return
+      }
+
+      setDebugInfo(`AutoSkill: CALLING_API (${userExperience.length} items)`)
 
       const suggestions = await skillsService.generateSuggestions(
         jobDetails.analysis,
@@ -80,6 +89,8 @@ export const useAutoSkillSuggestions = () => {
         userExperience,
         settings
       )
+
+      setDebugInfo('AutoSkill: API_SUCCESS')
 
       const updatedSkills: Skills = {
         ...skills,
@@ -100,8 +111,14 @@ export const useAutoSkillSuggestions = () => {
       }
 
       await saveSkills(updatedSkills)
+      setDebugInfo('AutoSkill: COMPLETED_SUCCESS')
     } catch (error) {
       console.error('Failed to auto-generate skill suggestions:', error)
+      setDebugInfo(
+        `AutoSkill: ERROR - ${
+          error instanceof Error ? error.message : 'Unknown error'
+        }`
+      )
     } finally {
       setIsGenerating(false)
     }
