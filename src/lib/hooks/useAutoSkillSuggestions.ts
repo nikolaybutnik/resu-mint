@@ -16,6 +16,7 @@ export const useAutoSkillSuggestions = () => {
   const hasInitializedRef = useRef(false)
 
   const [isGenerating, setIsGenerating] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<string>('')
 
   const { data: jobDetails, initializing: jobDetailsInitializing } =
     useJobDetailsStore()
@@ -116,6 +117,13 @@ export const useAutoSkillSuggestions = () => {
       skillsInitializing ||
       settingsInitializing
 
+    const debugMsg = `AutoSkill: init=${anyStoreInitializing}, hasAnalysis=${!!currentAnalysis}, initialized=${
+      hasInitializedRef.current
+    }, mobile=${
+      typeof window !== 'undefined' ? window.innerWidth < 768 : false
+    }`
+    setDebugInfo(debugMsg)
+
     if (anyStoreInitializing) {
       return
     }
@@ -127,6 +135,7 @@ export const useAutoSkillSuggestions = () => {
     if (!hasInitializedRef.current) {
       hasInitializedRef.current = true
       prevAnalysisRef.current = currentAnalysis
+      setDebugInfo(debugMsg + ' | FIRST_RUN')
       return
     }
 
@@ -149,9 +158,11 @@ export const useAutoSkillSuggestions = () => {
       : null
 
     if (isEqual(currentJobKey, previousJobKey)) {
+      setDebugInfo(debugMsg + ' | SAME_JOB')
       return
     }
 
+    setDebugInfo(debugMsg + ' | GENERATING')
     generateSuggestions()
     prevAnalysisRef.current = currentAnalysis
   }, [
@@ -170,5 +181,6 @@ export const useAutoSkillSuggestions = () => {
   return {
     isGenerating,
     generateSuggestions,
+    debugInfo, // Temporary for mobile debugging
   }
 }

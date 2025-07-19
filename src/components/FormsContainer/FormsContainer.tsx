@@ -191,7 +191,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const sidebarRef = useRef<HTMLDivElement>(null)
   const tabNavRef = useRef<HTMLDivElement>(null)
 
-  useAutoSkillSuggestions()
+  const { debugInfo } = useAutoSkillSuggestions()
 
   // Stores
   const { data: personalDetails } = usePersonalDetailsStore()
@@ -304,6 +304,27 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
   return (
     <div className={styles.formsContainer}>
+      {/* Temporary debug panel for mobile testing */}
+      {debugInfo && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '10px',
+            left: '10px',
+            right: '10px',
+            background: 'rgba(255, 0, 0, 0.9)',
+            color: 'white',
+            padding: '8px',
+            fontSize: '12px',
+            zIndex: 9999,
+            borderRadius: '4px',
+            wordBreak: 'break-all',
+          }}
+        >
+          {debugInfo}
+        </div>
+      )}
+
       <div
         ref={sidebarRef}
         className={`${styles.sidebar} ${
