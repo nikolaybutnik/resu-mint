@@ -12,6 +12,7 @@ export const JobDetails: React.FC = () => {
   const isMobile = useMobile()
 
   const prevJobDescription = useRef(jobDetails.originalJobDescription)
+  const isContentSelected = useRef(false)
 
   const [expandedSummary, setExpandedSummary] = useState(false)
   const [expandedCompanyDesc, setExpandedCompanyDesc] = useState(false)
@@ -67,8 +68,21 @@ export const JobDetails: React.FC = () => {
             value={jobDescriptionInput}
             onChange={handleJobDescriptionChange}
             disabled={analyzing}
-            onFocus={(e) => e.target.select()}
-            onClick={(e) => e.currentTarget.select()}
+            onFocus={(e) => {
+              if (!isContentSelected.current) {
+                e.target.select()
+                isContentSelected.current = true
+              }
+            }}
+            onClick={(e) => {
+              if (!isContentSelected.current) {
+                e.currentTarget.select()
+                isContentSelected.current = true
+              }
+            }}
+            onBlur={() => {
+              isContentSelected.current = false
+            }}
           />
           {isMobile && (
             <button
