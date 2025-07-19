@@ -49,6 +49,7 @@ export const JobDetails: React.FC = () => {
     }
 
     analyzeJobDescription(jobDetails.originalJobDescription)
+    prevJobDescription.current = jobDetails.originalJobDescription
   }, [jobDetails.originalJobDescription])
 
   const saveJobDescription = async (data: string) => {
