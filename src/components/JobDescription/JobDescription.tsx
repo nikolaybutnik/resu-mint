@@ -21,6 +21,16 @@ export const JobDetails: React.FC = () => {
     jobDetails.originalJobDescription
   )
 
+  // This useEffect syncs the textarea with the store data when it loads to prevent false triggers of the job analysis endpoint
+  useEffect(() => {
+    if (
+      jobDetails.originalJobDescription &&
+      jobDetails.originalJobDescription !== jobDescriptionInput
+    ) {
+      setJobDescriptionInput(jobDetails.originalJobDescription)
+    }
+  }, [jobDetails.originalJobDescription])
+
   useEffect(() => {
     if (
       !jobDetails.originalJobDescription ||

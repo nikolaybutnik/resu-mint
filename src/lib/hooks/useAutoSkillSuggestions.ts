@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { isEqual } from 'lodash'
 import {
   useJobDetailsStore,
   useExperienceStore,
@@ -100,17 +101,41 @@ export const useAutoSkillSuggestions = () => {
   useEffect(() => {
     const currentAnalysis = jobDetails.analysis
 
+    if (!currentAnalysis) {
+      return
+    }
+
     if (isInitialLoadRef.current) {
       isInitialLoadRef.current = false
       prevAnalysisRef.current = currentAnalysis
       return
     }
 
-    if (!currentAnalysis || currentAnalysis === prevAnalysisRef.current) return
+    const previousAnalysis = prevAnalysisRef.current
+
+    const currentJobKey = {
+      jobTitle: currentAnalysis.jobTitle,
+      companyName: currentAnalysis.companyName,
+      jobSummary: currentAnalysis.jobSummary,
+      skillsRequired: currentAnalysis.skillsRequired,
+    }
+
+    const previousJobKey = previousAnalysis
+      ? {
+          jobTitle: previousAnalysis.jobTitle,
+          companyName: previousAnalysis.companyName,
+          jobSummary: previousAnalysis.jobSummary,
+          skillsRequired: previousAnalysis.skillsRequired,
+        }
+      : null
+
+    if (isEqual(currentJobKey, previousJobKey)) {
+      return
+    }
 
     generateSuggestions()
     prevAnalysisRef.current = currentAnalysis
-  }, [jobDetails.analysis, experience, projects, skills, settings, saveSkills])
+  }, [jobDetails.analysis, experience, projects, skills, settings])
 
   return {
     isGenerating,
