@@ -35,7 +35,9 @@ export const JobDetails: React.FC = () => {
     if (
       !jobDetails.originalJobDescription ||
       jobDetails.originalJobDescription.trim() === '' ||
-      prevJobDescription.current === jobDetails.originalJobDescription
+      prevJobDescription.current === jobDetails.originalJobDescription ||
+      !!jobDetails.analysis?.jobTitle ||
+      analyzing
     ) {
       return
     }
@@ -50,7 +52,7 @@ export const JobDetails: React.FC = () => {
 
     analyzeJobDescription(jobDetails.originalJobDescription)
     prevJobDescription.current = jobDetails.originalJobDescription
-  }, [jobDetails.originalJobDescription])
+  }, [jobDetails.originalJobDescription, jobDetails.analysis, analyzing])
 
   const saveJobDescription = async (data: string) => {
     await jobDetailsService.saveJobDescription(data)
