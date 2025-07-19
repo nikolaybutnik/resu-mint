@@ -35,6 +35,7 @@ export const jobDetailsService = {
     if (!data) return
 
     try {
+      useJobDetailsStore.setState({ analyzing: true })
       const validation = jobDescriptionSchema.safeParse(data)
 
       if (!validation.success) {
@@ -69,6 +70,8 @@ export const jobDetailsService = {
     } catch (error) {
       console.error('Error analyzing job description:', error)
       throw new Error('Failed to analyze job description')
+    } finally {
+      useJobDetailsStore.setState({ analyzing: false })
     }
   },
 }

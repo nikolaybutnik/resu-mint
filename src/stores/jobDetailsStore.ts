@@ -9,6 +9,7 @@ interface JobDetailsStore {
   loading: boolean
   initializing: boolean
   hasJobDescription: boolean
+  analyzing: boolean
   hasAnalysis: boolean
   initialize: () => Promise<void>
   saveJobDescription: (data: string) => Promise<void>
@@ -21,6 +22,7 @@ export const useJobDetailsStore = create<JobDetailsStore>((set, get) => ({
   loading: false,
   initializing: true,
   hasJobDescription: false,
+  analyzing: false,
   hasAnalysis: false,
 
   initialize: async () => {

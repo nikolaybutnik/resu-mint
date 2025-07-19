@@ -8,7 +8,7 @@ import { useJobDetailsStore } from '@/stores'
 import { jobDetailsService } from '@/lib/services/jobDetailsService'
 
 export const JobDetails: React.FC = () => {
-  const { data: jobDetails } = useJobDetailsStore()
+  const { data: jobDetails, analyzing } = useJobDetailsStore()
   const isMobile = useMobile()
 
   const prevJobDescription = useRef(jobDetails.originalJobDescription)
@@ -20,21 +20,21 @@ export const JobDetails: React.FC = () => {
   const [jobDescriptionInput, setJobDescriptionInput] = useState(
     jobDetails.originalJobDescription
   )
-  const [analyzing, setAnalyzing] = useState(false)
 
   useEffect(() => {
-    if (prevJobDescription.current === jobDetails.originalJobDescription) {
+    if (
+      !jobDetails.originalJobDescription ||
+      jobDetails.originalJobDescription.trim() === '' ||
+      prevJobDescription.current === jobDetails.originalJobDescription
+    ) {
       return
     }
 
     const analyzeJobDescription = async (jobDescription: string) => {
       try {
-        setAnalyzing(true)
         await jobDetailsService.analyzeJobDescription(jobDescription)
       } catch (error) {
         console.error('Analysis failed:', error)
-      } finally {
-        setAnalyzing(false)
       }
     }
 

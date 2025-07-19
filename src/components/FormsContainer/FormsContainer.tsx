@@ -93,19 +93,6 @@ const tabs = [
   },
 ]
 
-// const arraysHaveSameElements = (arr1: string[], arr2: string[]): boolean => {
-//   if (arr1?.length !== arr2?.length) return false
-
-//   const sorted1 = [...arr1].sort()
-//   const sorted2 = [...arr2].sort()
-
-//   return sorted1.every((item, index) => item === sorted2[index])
-// }
-
-// const normalizeForComparison = (skill: string): string => {
-//   return skill.trim().toLowerCase().replace(/\s+/g, ' ')
-// }
-
 // TODO: move to hook
 const buildResumeData = (
   personalDetails: PersonalDetailsType,

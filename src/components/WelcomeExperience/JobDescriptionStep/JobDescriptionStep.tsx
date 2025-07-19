@@ -20,6 +20,11 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   onStepComplete,
 }) => {
   const { data: jobDetails, hasAnalysis } = useJobDetailsStore()
+  // TODO: use a progressive mechanism.
+  // 1. Analyze the job description
+  // 2. Generating skill suggestions
+  // 3. Generating bullet points for experience/projects
+  // 4. Populating and sorting skills
 
   const [jobDescriptionInput, setJobDescriptionInput] = useState(
     jobDetails.originalJobDescription || ''
