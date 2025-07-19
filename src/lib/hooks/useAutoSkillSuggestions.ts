@@ -71,22 +71,21 @@ export const useAutoSkillSuggestions = () => {
         settings
       )
 
-      // Limit to 5 new suggestions at a time
       const updatedSkills: Skills = {
         ...skills,
         hardSkills: {
           ...skills.hardSkills,
           suggestions: [
             ...skills.hardSkills.suggestions,
-            ...suggestions.hardSkillSuggestions.slice(0, 5),
-          ],
+            ...suggestions.hardSkillSuggestions,
+          ].slice(-10),
         },
         softSkills: {
           ...skills.softSkills,
           suggestions: [
             ...skills.softSkills.suggestions,
-            ...suggestions.softSkillSuggestions.slice(0, 5),
-          ],
+            ...suggestions.softSkillSuggestions,
+          ].slice(-10),
         },
       }
 

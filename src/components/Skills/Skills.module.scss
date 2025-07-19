@@ -34,10 +34,12 @@
 
   .chip {
     @include skill-chip;
+    padding: 4px 8px;
   }
 
   .skillText {
     @include skill-text;
+    font-size: 13px;
   }
 
   .removeChip {

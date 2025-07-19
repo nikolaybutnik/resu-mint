@@ -8,13 +8,9 @@ import {
   Skills as SkillsType,
 } from '@/lib/types/skills'
 import Suggestions from './Suggestions/Suggestions'
-import { useAutoSkillSuggestions } from '@/lib/hooks/useAutoSkillSuggestions'
 
 const Skills: React.FC = () => {
   const { data: skillsData, save } = useSkillsStore()
-
-  // temporary import for manual triggering
-  const { generateSuggestions } = useAutoSkillSuggestions()
 
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
   const softSkillInputRef = useRef<HTMLInputElement>(null)
@@ -45,7 +41,10 @@ const Skills: React.FC = () => {
       ...skillsData,
       [skillKey]: {
         skills: [...skillsData[skillKey].skills, trimmedSkill],
-        suggestions: skillsData[skillKey].suggestions,
+        suggestions: skillsData[skillKey].suggestions.filter(
+          (suggestion) =>
+            normalizeSkill(suggestion) !== normalizeSkill(trimmedSkill)
+        ),
       },
     }
 
@@ -161,7 +160,6 @@ const Skills: React.FC = () => {
   return (
     <div className={styles.skills}>
       <h2 className={styles.formTitle}>Skills</h2>
-      <button onClick={generateSuggestions}>Test Generate</button>
 
       <div className={styles.formFieldsContainer}>
         <div className={styles.skillSection}>
