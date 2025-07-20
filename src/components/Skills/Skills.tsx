@@ -1,5 +1,5 @@
 import styles from './Skills.module.scss'
-import { useState, useRef } from 'react'
+import { useState, useRef, useCallback, useMemo } from 'react'
 import { FaPlus, FaTimes } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
 import {
@@ -8,6 +8,30 @@ import {
   Skills as SkillsType,
 } from '@/lib/types/skills'
 import Suggestions from './Suggestions/Suggestions'
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  useSensors,
+  KeyboardSensor,
+  useSensor,
+} from '@dnd-kit/core'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import {
+  restrictToParentElement,
+  restrictToVerticalAxis,
+} from '@dnd-kit/modifiers'
+import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
+import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
+import { v4 as uuidv4 } from 'uuid'
+import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
 
 const Skills: React.FC = () => {
   const { data: skillsData, save } = useSkillsStore()
@@ -20,6 +44,26 @@ const Skills: React.FC = () => {
   const [hardSkillInput, setHardSkillInput] = useState('')
   const [softSkillInput, setSoftSkillInput] = useState('')
   const [focusedInput, setFocusedInput] = useState<SkillType | null>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [isDropping, setIsDropping] = useState(false)
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: {
+        delay: 100,
+        tolerance: 5,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 750,
+        tolerance: 15,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  )
 
   const normalizeSkill = (skill: string): string => {
     return skill.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -156,6 +200,28 @@ const Skills: React.FC = () => {
     softSkillInput,
     skillsData.softSkills.skills
   )
+
+  const handleDragStart = useCallback((event: DragStartEvent): void => {
+    setActiveId(event.active.id as string)
+  }, [])
+
+  const handleDragEnd = useCallback((event: DragEndEvent): void => {
+    //   const { active, over } = event
+    //   if (over && active.id !== over.id) {
+    //     const oldIndex = projects.findIndex((item) => item.id === active.id)
+    //     const newIndex = projects.findIndex((item) => item.id === over.id)
+    //     const newOrder = arrayMove(projects, oldIndex, newIndex)
+    //     save(newOrder)
+    //   }
+    setActiveId(null)
+    setIsDropping(true)
+    setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
+  }, [])
+
+  // const activeItem = useMemo(
+  //   () => projects.find((item) => item.id === activeId),
+  //   [projects, activeId]
+  // )
 
   return (
     <div className={styles.skills}>
@@ -296,6 +362,47 @@ const Skills: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        modifiers={[restrictToVerticalAxis, restrictToParentElement]}
+      >
+        <SortableContext
+          items={['Test Skill 1', 'Test Skill 2', 'Test Skill 3']}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className={styles.skillBuilderContainer}>
+            <DraggableSkillBlock
+              id={uuidv4()}
+              title='Test Skills 1'
+              skills={['Test Skill 1', 'Test Skill 2', 'Test Skill 3']}
+              isOverlay={false}
+              isDropping={isDropping}
+            />
+            <DraggableSkillBlock
+              id={uuidv4()}
+              title='Test Skills 2'
+              skills={['Test Skill 4', 'Test Skill 5', 'Test Skill 6']}
+              isOverlay={false}
+              isDropping={isDropping}
+            />
+          </div>
+        </SortableContext>
+        <DragOverlay>
+          {activeId && (
+            <DraggableSkillBlock
+              id={uuidv4()}
+              title='Test Skills 1'
+              skills={['Test Skill 1', 'Test Skill 2', 'Test Skill 3']}
+              isOverlay={true}
+              isDropping={isDropping}
+            />
+          )}
+        </DragOverlay>
+      </DndContext>
     </div>
   )
 }
