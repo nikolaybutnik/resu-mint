@@ -5,7 +5,7 @@ import { EducationBlockData } from './types/education'
 import { AppSettings, LanguageModel } from './types/settings'
 import { JobDescriptionAnalysis } from './types/jobDetails'
 import { JobDetails } from './types/jobDetails'
-import { Skills } from './types/skills'
+import { SkillBlock, Skills } from './types/skills'
 
 // API
 export const API_BASE_URL = '/api'
@@ -56,6 +56,7 @@ export const STORAGE_KEYS = {
   EDUCATION: 'resumint_education',
   SETTINGS: 'resumint_settings',
   SKILLS: 'resumint_skills',
+  RESUME_SKILLS: 'resumint_resume_skills',
 } as const
 
 // Debounce delays
@@ -158,4 +159,5 @@ export const DEFAULT_STATE_VALUES = {
     hardSkills: { skills: [], suggestions: [] },
     softSkills: { skills: [], suggestions: [] },
   } as Skills,
+  RESUME_SKILLS: [] as SkillBlock[],
 } as const

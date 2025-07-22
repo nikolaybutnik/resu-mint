@@ -2,15 +2,19 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { Skills } from '@/lib/types/skills'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
+import { SkillBlock } from '@/lib/types/skills'
 
 interface SkillsStore {
   data: Skills
   loading: boolean
   initializing: boolean
   hasData: boolean
+  resumeSkillData: SkillBlock[]
+  hasResumeSkillData: boolean
   save: (skills: Skills) => Promise<void>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
+  saveSkillResumeData: (skillData: SkillBlock[]) => void
 }
 
 export const useSkillsStore = create<SkillsStore>((set, get) => ({
@@ -18,18 +22,26 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
   loading: false,
   initializing: true,
   hasData: false,
+  resumeSkillData: [],
+  hasResumeSkillData: false,
 
   initialize: async () => {
     set({ loading: true })
+
     try {
-      const data = (await dataManager.getSkills()) as Skills
+      const skillData = (await dataManager.getSkills()) as Skills
+      const resumeSkillsData =
+        (await dataManager.getResumeSkills()) as SkillBlock[]
+
       set({
-        data,
+        data: skillData,
         loading: false,
         initializing: false,
         hasData:
-          !!data?.hardSkills?.skills?.length ||
-          !!data?.softSkills?.skills?.length,
+          !!skillData?.hardSkills?.skills?.length ||
+          !!skillData?.softSkills?.skills?.length,
+        resumeSkillData: resumeSkillsData,
+        hasResumeSkillData: !!resumeSkillsData?.length,
       })
     } catch (error) {
       console.error('SkillsStore: initialization error:', error)
@@ -64,18 +76,46 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
   refresh: async () => {
     try {
       set({ loading: true })
+
       dataManager.invalidateSkills()
+      dataManager.invalidateResumeSkills()
+
       const data = (await dataManager.getSkills()) as Skills
+      const resumeSkillsData =
+        (await dataManager.getResumeSkills()) as SkillBlock[]
+
       set({
         data,
         loading: false,
         hasData:
           !!data?.hardSkills?.skills?.length ||
           !!data?.softSkills?.skills?.length,
+        resumeSkillData: resumeSkillsData,
+        hasResumeSkillData: !!resumeSkillsData?.length,
       })
     } catch (error) {
       console.error('SkillsStore: refresh error:', error)
       set({ loading: false })
+    }
+  },
+
+  saveSkillResumeData: async (resumeSkills: SkillBlock[]) => {
+    const previousData = get().resumeSkillData
+
+    set({
+      resumeSkillData: resumeSkills,
+      hasResumeSkillData: !!resumeSkills?.length,
+    })
+
+    try {
+      await dataManager.saveResumeSkills(resumeSkills)
+    } catch (error) {
+      set({
+        resumeSkillData: previousData,
+        hasResumeSkillData: !!previousData?.length,
+      })
+      console.error('SkillsStore: save resume skills error:', error)
+      throw error
     }
   },
 }))
