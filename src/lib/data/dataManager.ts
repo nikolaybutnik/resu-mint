@@ -162,7 +162,7 @@ class DataManager {
 
   // Resume Skills
   async getResumeSkills(): Promise<SkillBlock[]> {
-    return skillsManager.getResume()
+    return skillsManager.getResumeSkills()
   }
 
   async saveResumeSkills(data: SkillBlock[]): Promise<void> {

@@ -89,7 +89,7 @@ class SkillsManager {
     this.cache.delete(CACHE_KEYS.SKILLS_API)
   }
 
-  async getResume(): Promise<SkillBlock[]> {
+  async getResumeSkills(): Promise<SkillBlock[]> {
     const cacheKey = isAuthenticated()
       ? CACHE_KEYS.SKILLS_RESUME_API
       : CACHE_KEYS.SKILLS_RESUME_LOCAL
@@ -102,6 +102,7 @@ class SkillsManager {
           if (stored) {
             const parsed = JSON.parse(stored)
             const validation = resumeSkillBlockSchema.array().safeParse(parsed)
+
             if (validation.success) {
               resolve(validation.data)
             } else {

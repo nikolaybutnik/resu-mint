@@ -4,6 +4,7 @@ import { FaPlus, FaTimes } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
 import {
   SKILL_TYPES,
+  SkillBlock,
   SkillType,
   Skills as SkillsType,
 } from '@/lib/types/skills'
@@ -34,7 +35,12 @@ import { v4 as uuidv4 } from 'uuid'
 import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
 
 const Skills: React.FC = () => {
-  const { data: skillsData, save } = useSkillsStore()
+  const {
+    data: skillsData,
+    save,
+    resumeSkillData,
+    saveResumeSkillsData,
+  } = useSkillsStore()
 
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
   const softSkillInputRef = useRef<HTMLInputElement>(null)
@@ -46,6 +52,8 @@ const Skills: React.FC = () => {
   const [focusedInput, setFocusedInput] = useState<SkillType | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [isDropping, setIsDropping] = useState(false)
+  const [temporarySkillCategory, setTemporarySkillCategory] =
+    useState<SkillBlock | null>(null)
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -205,23 +213,68 @@ const Skills: React.FC = () => {
     setActiveId(event.active.id as string)
   }, [])
 
-  const handleDragEnd = useCallback((event: DragEndEvent): void => {
-    //   const { active, over } = event
-    //   if (over && active.id !== over.id) {
-    //     const oldIndex = projects.findIndex((item) => item.id === active.id)
-    //     const newIndex = projects.findIndex((item) => item.id === over.id)
-    //     const newOrder = arrayMove(projects, oldIndex, newIndex)
-    //     save(newOrder)
-    //   }
-    setActiveId(null)
-    setIsDropping(true)
-    setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
-  }, [])
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent): void => {
+      const { active, over } = event
 
-  // const activeItem = useMemo(
-  //   () => projects.find((item) => item.id === activeId),
-  //   [projects, activeId]
-  // )
+      if (over && active.id !== over.id) {
+        const oldIndex = resumeSkillData.findIndex(
+          (item) => item.id === active.id
+        )
+        const newIndex = resumeSkillData.findIndex(
+          (item) => item.id === over.id
+        )
+        const newOrder = arrayMove(resumeSkillData, oldIndex, newIndex)
+
+        saveResumeSkillsData(newOrder)
+      }
+
+      setActiveId(null)
+      setIsDropping(true)
+      setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
+    },
+    [resumeSkillData, saveResumeSkillsData]
+  )
+
+  const handleAddSkillCategory = (): void => {
+    if (temporarySkillCategory) return
+
+    setTemporarySkillCategory({
+      id: uuidv4(),
+      title: '',
+      skills: [],
+    })
+  }
+
+  const draggableBlocks = useMemo(
+    () =>
+      resumeSkillData.map((skill) => (
+        <DraggableSkillBlock
+          key={skill.id}
+          id={skill.id}
+          title={skill.title ?? ''}
+          skills={skill.skills}
+          isOverlay={false}
+          isDropping={isDropping}
+        />
+      )),
+    [resumeSkillData, isDropping]
+  )
+
+  const activeItem = useMemo(() => {
+    const draggingBlock = resumeSkillData.find((skill) => skill.id === activeId)
+    if (!draggingBlock) return null
+
+    return (
+      <DraggableSkillBlock
+        id={draggingBlock.id}
+        title={draggingBlock.title ?? ''}
+        skills={draggingBlock.skills}
+        isOverlay={true}
+        isDropping={isDropping}
+      />
+    )
+  }, [activeId, resumeSkillData, isDropping])
 
   return (
     <div className={styles.skills}>
@@ -363,6 +416,13 @@ const Skills: React.FC = () => {
         </div>
       </div>
 
+      <button
+        className={styles.addSkillCategoryButton}
+        onClick={handleAddSkillCategory}
+      >
+        Add New Skill Category
+      </button>
+
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -371,37 +431,29 @@ const Skills: React.FC = () => {
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
         <SortableContext
-          items={['Test Skill 1', 'Test Skill 2', 'Test Skill 3']}
+          items={resumeSkillData.map((skill) => skill.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className={styles.skillBuilderContainer}>
-            <DraggableSkillBlock
-              id={uuidv4()}
-              title='Test Skills 1'
-              skills={['Test Skill 1', 'Test Skill 2', 'Test Skill 3']}
-              isOverlay={false}
-              isDropping={isDropping}
-            />
-            <DraggableSkillBlock
-              id={uuidv4()}
-              title='Test Skills 2'
-              skills={['Test Skill 4', 'Test Skill 5', 'Test Skill 6']}
-              isOverlay={false}
-              isDropping={isDropping}
-            />
+            {draggableBlocks}
+
+            {temporarySkillCategory && (
+              <DraggableSkillBlock
+                id={temporarySkillCategory.id}
+                title={temporarySkillCategory.title ?? ''}
+                skills={temporarySkillCategory.skills}
+                isOverlay={false}
+                isDropping={isDropping}
+                isTemporary
+                onCategoryCreate={() => {
+                  setTemporarySkillCategory(null)
+                }}
+              />
+            )}
           </div>
         </SortableContext>
-        <DragOverlay>
-          {activeId && (
-            <DraggableSkillBlock
-              id={uuidv4()}
-              title='Test Skills 1'
-              skills={['Test Skill 1', 'Test Skill 2', 'Test Skill 3']}
-              isOverlay={true}
-              isDropping={isDropping}
-            />
-          )}
-        </DragOverlay>
+
+        <DragOverlay>{activeItem}</DragOverlay>
       </DndContext>
     </div>
   )

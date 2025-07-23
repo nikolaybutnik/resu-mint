@@ -822,10 +822,6 @@ export const resumeSkillBlockSchema = z.object({
   id: z.string().uuid(),
   title: z.string().optional(),
   skills: z.array(z.string()).default([]),
-  layout: z.object({
-    displayMode: z.enum(['inline', 'bulleted']),
-    maxRows: z.number().int().min(1).optional(),
-  }),
   order: z.number().int().min(0),
 })
 

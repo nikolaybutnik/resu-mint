@@ -14,7 +14,7 @@ interface SkillsStore {
   save: (skills: Skills) => Promise<void>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
-  saveSkillResumeData: (skillData: SkillBlock[]) => void
+  saveResumeSkillsData: (skillData: SkillBlock[]) => void
 }
 
 export const useSkillsStore = create<SkillsStore>((set, get) => ({
@@ -29,17 +29,17 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
     set({ loading: true })
 
     try {
-      const skillData = (await dataManager.getSkills()) as Skills
+      const skillsData = (await dataManager.getSkills()) as Skills
       const resumeSkillsData =
         (await dataManager.getResumeSkills()) as SkillBlock[]
 
       set({
-        data: skillData,
+        data: skillsData,
         loading: false,
         initializing: false,
         hasData:
-          !!skillData?.hardSkills?.skills?.length ||
-          !!skillData?.softSkills?.skills?.length,
+          !!skillsData?.hardSkills?.skills?.length ||
+          !!skillsData?.softSkills?.skills?.length,
         resumeSkillData: resumeSkillsData,
         hasResumeSkillData: !!resumeSkillsData?.length,
       })
@@ -99,7 +99,7 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
     }
   },
 
-  saveSkillResumeData: async (resumeSkills: SkillBlock[]) => {
+  saveResumeSkillsData: async (resumeSkills: SkillBlock[]) => {
     const previousData = get().resumeSkillData
 
     set({
