@@ -822,7 +822,6 @@ export const resumeSkillBlockSchema = z.object({
   id: z.string().uuid(),
   title: z.string().optional(),
   skills: z.array(z.string()).default([]),
-  order: z.number().int().min(0),
 })
 
 export const generateSkillsRequestSchema = z.object({

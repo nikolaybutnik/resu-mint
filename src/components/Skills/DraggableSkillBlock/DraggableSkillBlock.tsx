@@ -6,6 +6,7 @@ import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHand
 import { debounce } from 'lodash'
 import { useSkillsStore } from '@/stores/skillsStore'
 import { SkillBlock } from '@/lib/types/skills'
+import AutoCompleteInput from '@/components/shared/AutoCompleteInput/AutoCompleteInput'
 
 interface DraggableSkillBlockProps {
   id: string
@@ -26,14 +27,20 @@ const DraggableSkillBlock = ({
   isTemporary = false,
   onCategoryCreate,
 }: DraggableSkillBlockProps) => {
-  const blockCategory = useRef(title)
-  const [blockSkills, setBlockSkills] = useState(skills)
+  const blockCategory = useRef<string>(title)
+  const [selectedBlockSkills, setSelectedBlockSkills] =
+    useState<string[]>(skills)
+  const [inputValue, setInputValue] = useState<string>('')
 
-  const { resumeSkillData, saveResumeSkillsData } = useSkillsStore()
+  const {
+    data: skillsData,
+    resumeSkillData,
+    saveResumeSkillsData,
+  } = useSkillsStore()
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
       id,
-      disabled: isOverlay,
+      disabled: isOverlay || isTemporary,
     })
 
   const style = useMemo(
@@ -51,9 +58,31 @@ const DraggableSkillBlock = ({
     [isOverlay, transform, isDropping, isDragging]
   )
 
+  const allSuggestions = useMemo(() => {
+    return [...skillsData.hardSkills.skills, ...skillsData.softSkills.skills]
+  }, [skillsData])
+
+  const filteredSuggestions = useMemo(() => {
+    const allSelectedSkills = resumeSkillData.reduce((acc, block) => {
+      return [...acc, ...block.skills]
+    }, [] as string[])
+
+    let filtered = allSuggestions.filter(
+      (suggestion) => !allSelectedSkills.includes(suggestion)
+    )
+
+    if (inputValue.trim()) {
+      filtered = filtered.filter((suggestion) =>
+        suggestion.toLowerCase().includes(inputValue.toLowerCase())
+      )
+    }
+
+    return filtered
+  }, [allSuggestions, resumeSkillData, inputValue])
+
   const handleCategoryChange = debounce(
     (e: React.ChangeEvent<HTMLInputElement>): void => {
-      // if (isTemporary && !blockSkills.length) return
+      if (isTemporary && !selectedBlockSkills.length) return
 
       let updatedSkillBlocks: SkillBlock[] = [...resumeSkillData]
 
@@ -61,7 +90,7 @@ const DraggableSkillBlock = ({
         const newBlockCategory: SkillBlock = {
           id,
           title: e.target.value,
-          skills: blockSkills,
+          skills: selectedBlockSkills,
         }
         updatedSkillBlocks.push(newBlockCategory)
         onCategoryCreate?.()
@@ -100,6 +129,20 @@ const DraggableSkillBlock = ({
     }
   }
 
+  const handleSuggestionClick = (suggestion: string): void => {
+    const updatedSkills = [...selectedBlockSkills, suggestion]
+    setSelectedBlockSkills(updatedSkills)
+
+    const updatedSkillBlocks = resumeSkillData.map((skill) =>
+      skill.id === id ? { ...skill, skills: updatedSkills } : skill
+    )
+    saveResumeSkillsData(updatedSkillBlocks)
+  }
+
+  const handleSkillInputChange = debounce((value: string): void => {
+    setInputValue(value)
+  }, 250)
+
   return (
     <div
       className={[
@@ -128,17 +171,22 @@ const DraggableSkillBlock = ({
             data-no-dnd='true'
           />
         </div>
-        {/* <h3 className={styles.blockTitle}>{title}</h3>
-        <div className={styles.skillsContainer}>
-          {skills.map((skill) => (
-            <div key={skill} className={styles.skill}>
-              {skill}
-            </div>
-          ))}
-        </div> */}
+        <AutoCompleteInput
+          suggestions={filteredSuggestions}
+          onSuggestionClick={handleSuggestionClick}
+          onChange={handleSkillInputChange}
+        />
         <button className={styles.deleteButton} onClick={handleDeleteCategory}>
           {isTemporary ? 'Cancel' : 'Delete'}
         </button>
+
+        <div className={styles.resumeSkillsChipsContainer}>
+          {selectedBlockSkills.map((skill) => (
+            <div key={skill} className={styles.resumeSkillChip}>
+              {skill}
+            </div>
+          ))}
+        </div>
       </LongPressHandler>
     </div>
   )
