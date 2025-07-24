@@ -1,6 +1,7 @@
 import styles from './AutoCompleteInput.module.scss'
-import { memo, useState, useRef, useLayoutEffect } from 'react'
+import { memo, useState, useRef, useLayoutEffect, useEffect } from 'react'
 import { FaPlus } from 'react-icons/fa'
+import Portal from '@/components/shared/Portal/Portal'
 
 interface AutoCompleteInputProps {
   suggestions: string[]
@@ -22,8 +23,11 @@ const AutoCompleteInput = ({
     left: 0,
     width: 0,
   })
+  const [showTopFade, setShowTopFade] = useState(false)
+  const [showBottomFade, setShowBottomFade] = useState(false)
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const suggestionsContentRef = useRef<HTMLDivElement>(null)
 
   const normalizeSkill = (skill: string): string => {
     return skill.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -48,11 +52,40 @@ const AutoCompleteInput = ({
     }
   }
 
+  const checkScrollState = () => {
+    if (!suggestionsContentRef.current) return
+
+    const container = suggestionsContentRef.current
+    const { scrollTop, scrollHeight, clientHeight } = container
+
+    const threshold = 2
+
+    setShowTopFade(scrollTop > threshold)
+    setShowBottomFade(scrollTop + clientHeight + threshold < scrollHeight)
+  }
+
   useLayoutEffect(() => {
     if (isOpen) {
       updateDropdownPosition()
+
+      const handleScroll = () => updateDropdownPosition()
+      const handleResize = () => updateDropdownPosition()
+
+      window.addEventListener('scroll', handleScroll, true)
+      window.addEventListener('resize', handleResize)
+
+      return () => {
+        window.removeEventListener('scroll', handleScroll, true)
+        window.removeEventListener('resize', handleResize)
+      }
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen && suggestionsContentRef.current && suggestions.length > 0) {
+      setTimeout(checkScrollState, 50)
+    }
+  }, [isOpen, suggestions])
 
   const handleFocus = (): void => {
     setIsOpen(true)
@@ -61,6 +94,8 @@ const AutoCompleteInput = ({
   const handleBlur = (): void => {
     setTimeout(() => {
       setIsOpen(false)
+      setShowTopFade(false)
+      setShowBottomFade(false)
     }, 100)
   }
 
@@ -108,7 +143,11 @@ const AutoCompleteInput = ({
     }
   }
 
-  const isAddDisabled = !inputValue.trim()
+  const handleScroll = () => {
+    checkScrollState()
+  }
+
+  const isAddDisabled = !inputValue.trim() || isDuplicate(inputValue)
   const isInputDuplicate = isDuplicate(inputValue)
 
   return (
@@ -130,7 +169,7 @@ const AutoCompleteInput = ({
           type='button'
           className={styles.addButton}
           onClick={handleAddClick}
-          disabled={isAddDisabled || isInputDuplicate}
+          disabled={isAddDisabled}
           data-no-dnd='true'
         >
           <FaPlus size={12} />
@@ -138,36 +177,52 @@ const AutoCompleteInput = ({
       </div>
 
       {isOpen && (
-        <div
-          className={styles.suggestionsContainer}
-          style={{
-            position: 'fixed',
-            top: dropdownPosition.top,
-            left: dropdownPosition.left,
-            width: dropdownPosition.width,
-          }}
-          data-no-dnd='true'
-        >
-          <div className={styles.suggestionsContent}>
-            {suggestions.length > 0 ? (
-              suggestions.map((suggestion) => (
-                <div
-                  key={suggestion}
-                  className={styles.suggestionChip}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                >
-                  {suggestion}
+        <Portal>
+          <div
+            className={styles.suggestionsContainer}
+            style={{
+              position: 'fixed',
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+            }}
+            data-no-dnd='true'
+          >
+            <div
+              className={`${styles.fadeTop} ${
+                showTopFade ? styles.visible : ''
+              }`}
+            />
+            <div
+              className={`${styles.fadeBottom} ${
+                showBottomFade ? styles.visible : ''
+              }`}
+            />
+            <div
+              className={styles.suggestionsContent}
+              ref={suggestionsContentRef}
+              onScroll={handleScroll}
+            >
+              {suggestions.length > 0 ? (
+                suggestions.map((suggestion) => (
+                  <div
+                    key={suggestion}
+                    className={styles.suggestionChip}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </div>
+                ))
+              ) : (
+                <div className={styles.noSuggestions}>
+                  {isInputDuplicate
+                    ? 'This item has already been added'
+                    : 'No suggestions found'}
                 </div>
-              ))
-            ) : (
-              <div className={styles.noSuggestions}>
-                {isInputDuplicate
-                  ? 'This item has already been added'
-                  : 'No suggestions found'}
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        </Portal>
       )}
     </>
   )

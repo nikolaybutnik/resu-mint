@@ -15,15 +15,63 @@
   margin-bottom: 16px;
 }
 
+.skillSection {
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 8px;
+  background: rgba($color-primary, 0.02);
+  overflow: hidden;
+  transition: border-color 0.2s ease;
+
+  &:hover {
+    border-color: rgba($color-primary, 0.3);
+  }
+}
+
+.collapsibleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: rgba($color-primary, 0.06);
+  }
+
+  svg {
+    color: $color-primary;
+    transition: transform 0.2s ease;
+  }
+}
+
+.collapsibleContent {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  padding: 0 12px;
+
+  &.expanded {
+    max-height: 1000px;
+    padding: 0 12px 8px 12px;
+  }
+}
+
 .sectionTitle {
   @include subsection-title;
+  margin: 0;
 }
 
 .chipInputContainer {
   @include chip-input-container;
+  width: 100%;
+  box-sizing: border-box;
 
   .formInput {
     @include form-input-with-button(60px);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .chipAddButton {
@@ -35,6 +83,8 @@
   @include chip-container;
   padding: 6px;
   gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
 
   .chip {
     @include skill-chip;
@@ -69,6 +119,8 @@
 
 .inputWrapper {
   position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .addSkillCategoryButton {

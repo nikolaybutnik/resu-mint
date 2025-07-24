@@ -1,6 +1,6 @@
 import styles from './Skills.module.scss'
 import { useState, useRef, useCallback, useMemo } from 'react'
-import { FaPlus, FaTimes } from 'react-icons/fa'
+import { FaPlus, FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
 import {
   SKILL_TYPES,
@@ -54,6 +54,8 @@ const Skills: React.FC = () => {
   const [isDropping, setIsDropping] = useState(false)
   const [temporarySkillCategory, setTemporarySkillCategory] =
     useState<SkillBlock | null>(null)
+  const [isHardSkillsExpanded, setIsHardSkillsExpanded] = useState(false)
+  const [isSoftSkillsExpanded, setIsSoftSkillsExpanded] = useState(false)
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -282,136 +284,174 @@ const Skills: React.FC = () => {
 
       <div className={styles.formFieldsContainer}>
         <div className={styles.skillSection}>
-          <h3 className={styles.sectionTitle}>Hard Skills</h3>
-          <div className={styles.inputWrapper}>
-            <Suggestions
-              suggestions={skillsData.hardSkills.suggestions}
-              show={focusedInput === SKILL_TYPES.HARD}
-              ref={hardSuggestionsRef}
-              onSuggestionClick={(suggestion) =>
-                handleSuggestionClick(SKILL_TYPES.HARD, suggestion)
-              }
-              onSuggestionDelete={(suggestion) =>
-                handleSuggestionDelete(SKILL_TYPES.HARD, suggestion)
-              }
-            />
-            <div className={styles.chipInputContainer}>
-              <input
-                ref={hardSkillInputRef}
-                type='text'
-                className={styles.formInput}
-                placeholder='e.g., React, Python, AWS...'
-                value={hardSkillInput}
-                onChange={(e) => setHardSkillInput(e.target.value)}
-                onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.HARD)}
-                onFocus={() => handleInputFocus(SKILL_TYPES.HARD)}
-                onBlur={handleInputBlur}
-              />
-              <button
-                type='button'
-                className={styles.chipAddButton}
-                onClick={() => handleAddSkill(SKILL_TYPES.HARD, hardSkillInput)}
-                disabled={!hardSkillInput.trim() || !!duplicateHardSkill}
-              >
-                <FaPlus size={12} />
-              </button>
-            </div>
+          <div
+            className={styles.collapsibleHeader}
+            onClick={() => setIsHardSkillsExpanded((prev) => !prev)}
+          >
+            <h3 className={styles.sectionTitle}>Hard Skills</h3>
+            {isHardSkillsExpanded ? (
+              <FaChevronUp size={14} />
+            ) : (
+              <FaChevronDown size={14} />
+            )}
           </div>
 
-          <div className={styles.chipsContainer}>
-            {skillsData.hardSkills.skills.length === 0 ? (
-              <div className={styles.emptyState}>
-                <p className={styles.emptyMessage}>
-                  Hard skills you&apos;ve added will be displayed here.
-                </p>
-              </div>
-            ) : (
-              skillsData.hardSkills.skills.map((skill, index) => (
-                <div
-                  key={index}
-                  className={`${styles.chip} ${
-                    duplicateHardSkill === skill ? styles.duplicate : ''
-                  }`}
+          <div
+            className={`${styles.collapsibleContent} ${
+              isHardSkillsExpanded ? styles.expanded : ''
+            }`}
+          >
+            <div className={styles.inputWrapper}>
+              <Suggestions
+                suggestions={skillsData.hardSkills.suggestions}
+                show={focusedInput === SKILL_TYPES.HARD}
+                ref={hardSuggestionsRef}
+                onSuggestionClick={(suggestion) =>
+                  handleSuggestionClick(SKILL_TYPES.HARD, suggestion)
+                }
+                onSuggestionDelete={(suggestion) =>
+                  handleSuggestionDelete(SKILL_TYPES.HARD, suggestion)
+                }
+              />
+              <div className={styles.chipInputContainer}>
+                <input
+                  ref={hardSkillInputRef}
+                  type='text'
+                  className={styles.formInput}
+                  placeholder='e.g., React, Python, AWS...'
+                  value={hardSkillInput}
+                  onChange={(e) => setHardSkillInput(e.target.value)}
+                  onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.HARD)}
+                  onFocus={() => handleInputFocus(SKILL_TYPES.HARD)}
+                  onBlur={handleInputBlur}
+                />
+                <button
+                  type='button'
+                  className={styles.chipAddButton}
+                  onClick={() =>
+                    handleAddSkill(SKILL_TYPES.HARD, hardSkillInput)
+                  }
+                  disabled={!hardSkillInput.trim() || !!duplicateHardSkill}
                 >
-                  <span className={styles.skillText}>{skill}</span>
-                  <button
-                    type='button'
-                    className={styles.removeChip}
-                    onClick={() => handleRemoveSkill(SKILL_TYPES.HARD, skill)}
-                    title='Remove skill'
-                  >
-                    <FaTimes size={10} />
-                  </button>
+                  <FaPlus size={12} />
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.chipsContainer}>
+              {skillsData.hardSkills.skills.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyMessage}>
+                    Hard skills you&apos;ve added will be displayed here.
+                  </p>
                 </div>
-              ))
-            )}
+              ) : (
+                skillsData.hardSkills.skills.map((skill, index) => (
+                  <div
+                    key={index}
+                    className={`${styles.chip} ${
+                      duplicateHardSkill === skill ? styles.duplicate : ''
+                    }`}
+                  >
+                    <span className={styles.skillText}>{skill}</span>
+                    <button
+                      type='button'
+                      className={styles.removeChip}
+                      onClick={() => handleRemoveSkill(SKILL_TYPES.HARD, skill)}
+                      title='Remove skill'
+                    >
+                      <FaTimes size={10} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
 
         <div className={styles.skillSection}>
-          <h3 className={styles.sectionTitle}>Soft Skills</h3>
-          <div className={styles.inputWrapper}>
-            <Suggestions
-              suggestions={skillsData.softSkills.suggestions}
-              show={focusedInput === SKILL_TYPES.SOFT}
-              ref={softSuggestionsRef}
-              onSuggestionClick={(suggestion) =>
-                handleSuggestionClick(SKILL_TYPES.SOFT, suggestion)
-              }
-              onSuggestionDelete={(suggestion) =>
-                handleSuggestionDelete(SKILL_TYPES.SOFT, suggestion)
-              }
-            />
-            <div className={styles.chipInputContainer}>
-              <input
-                ref={softSkillInputRef}
-                type='text'
-                className={styles.formInput}
-                placeholder='e.g., Leadership, Communication...'
-                value={softSkillInput}
-                onChange={(e) => setSoftSkillInput(e.target.value)}
-                onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.SOFT)}
-                onFocus={() => handleInputFocus(SKILL_TYPES.SOFT)}
-                onBlur={handleInputBlur}
-              />
-              <button
-                type='button'
-                className={styles.chipAddButton}
-                onClick={() => handleAddSkill(SKILL_TYPES.SOFT, softSkillInput)}
-                disabled={!softSkillInput.trim() || !!duplicateSoftSkill}
-              >
-                <FaPlus size={12} />
-              </button>
-            </div>
+          <div
+            className={styles.collapsibleHeader}
+            onClick={() => setIsSoftSkillsExpanded((prev) => !prev)}
+          >
+            <h3 className={styles.sectionTitle}>Soft Skills</h3>
+            {isSoftSkillsExpanded ? (
+              <FaChevronUp size={14} />
+            ) : (
+              <FaChevronDown size={14} />
+            )}
           </div>
 
-          <div className={styles.chipsContainer}>
-            {skillsData.softSkills.skills.length === 0 ? (
-              <div className={styles.emptyState}>
-                <p className={styles.emptyMessage}>
-                  Soft skills you&apos;ve added will be displayed here.
-                </p>
-              </div>
-            ) : (
-              skillsData.softSkills.skills.map((skill, index) => (
-                <div
-                  key={index}
-                  className={`${styles.chip} ${
-                    duplicateSoftSkill === skill ? styles.duplicate : ''
-                  }`}
+          <div
+            className={`${styles.collapsibleContent} ${
+              isSoftSkillsExpanded ? styles.expanded : ''
+            }`}
+          >
+            <div className={styles.inputWrapper}>
+              <Suggestions
+                suggestions={skillsData.softSkills.suggestions}
+                show={focusedInput === SKILL_TYPES.SOFT}
+                ref={softSuggestionsRef}
+                onSuggestionClick={(suggestion) =>
+                  handleSuggestionClick(SKILL_TYPES.SOFT, suggestion)
+                }
+                onSuggestionDelete={(suggestion) =>
+                  handleSuggestionDelete(SKILL_TYPES.SOFT, suggestion)
+                }
+              />
+              <div className={styles.chipInputContainer}>
+                <input
+                  ref={softSkillInputRef}
+                  type='text'
+                  className={styles.formInput}
+                  placeholder='e.g., Leadership, Communication...'
+                  value={softSkillInput}
+                  onChange={(e) => setSoftSkillInput(e.target.value)}
+                  onKeyDown={(e) => handleKeyPress(e, SKILL_TYPES.SOFT)}
+                  onFocus={() => handleInputFocus(SKILL_TYPES.SOFT)}
+                  onBlur={handleInputBlur}
+                />
+                <button
+                  type='button'
+                  className={styles.chipAddButton}
+                  onClick={() =>
+                    handleAddSkill(SKILL_TYPES.SOFT, softSkillInput)
+                  }
+                  disabled={!softSkillInput.trim() || !!duplicateSoftSkill}
                 >
-                  <span className={styles.skillText}>{skill}</span>
-                  <button
-                    type='button'
-                    className={styles.removeChip}
-                    onClick={() => handleRemoveSkill(SKILL_TYPES.SOFT, skill)}
-                    title='Remove skill'
-                  >
-                    <FaTimes size={10} />
-                  </button>
+                  <FaPlus size={12} />
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.chipsContainer}>
+              {skillsData.softSkills.skills.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyMessage}>
+                    Soft skills you&apos;ve added will be displayed here.
+                  </p>
                 </div>
-              ))
-            )}
+              ) : (
+                skillsData.softSkills.skills.map((skill, index) => (
+                  <div
+                    key={index}
+                    className={`${styles.chip} ${
+                      duplicateSoftSkill === skill ? styles.duplicate : ''
+                    }`}
+                  >
+                    <span className={styles.skillText}>{skill}</span>
+                    <button
+                      type='button'
+                      className={styles.removeChip}
+                      onClick={() => handleRemoveSkill(SKILL_TYPES.SOFT, skill)}
+                      title='Remove skill'
+                    >
+                      <FaTimes size={10} />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       </div>

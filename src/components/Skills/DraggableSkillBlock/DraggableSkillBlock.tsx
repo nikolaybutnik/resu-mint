@@ -219,7 +219,7 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = React.memo(
 
     const memoizedSkillChips = useMemo(() => {
       return selectedBlockSkills.map((skill) => (
-        <div key={skill} className={styles.resumeSkillChip}>
+        <div key={skill} className={styles.resumeSkillChip} data-no-dnd='true'>
           <span className={styles.skillText}>{skill}</span>
           <button
             type='button'
@@ -289,15 +289,23 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = React.memo(
               </div>
             </div>
 
-            <AutoCompleteInput
-              suggestions={filteredSuggestions}
-              existingSkills={allSelectedSkills}
-              onSuggestionClick={handleSuggestionClick}
-              onChange={handleSkillInputChange}
-            />
+            <div className={styles.autoCompleteWrapper}>
+              <AutoCompleteInput
+                suggestions={filteredSuggestions}
+                existingSkills={allSelectedSkills}
+                onSuggestionClick={handleSuggestionClick}
+                onChange={handleSkillInputChange}
+              />
+            </div>
 
             <div className={styles.resumeSkillsChipsContainer}>
-              {memoizedSkillChips}
+              {memoizedSkillChips.length ? (
+                memoizedSkillChips
+              ) : (
+                <div className={styles.noSkillsMessage}>
+                  Skills you select will be added to your resume.
+                </div>
+              )}
             </div>
           </div>
         </LongPressHandler>
