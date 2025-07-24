@@ -1,9 +1,131 @@
 @import '../../../styles/variables';
 @import '../../../styles/mixins';
 
+.draggableSkillBlockContainer {
+  @include draggable-container;
+}
+
+.draggableProjectBlock {
+  @include draggable-block;
+}
+
+.skillCategoryContent {
+  @include block-content;
+}
+
+.skillCategoryActions {
+  @include block-actions;
+}
+
+.skillCategoryLabel {
+  margin: 8px 0 !important;
+}
+
 .skillCategoryContainer {
+  margin-bottom: 8px;
+
+  span {
+    font-size: 11px;
+    color: $color-disabled;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    display: block;
+  }
+}
+
+.titleInputWrapper {
+  position: relative;
   display: flex;
-  flex-direction: column;
+  align-items: center;
+
+  input {
+    border: none;
+    border-bottom: 1px dashed rgba($color-primary, 0.3);
+    background: rgba($color-primary, 0.02);
+    padding: 4px 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: $color-primary;
+    width: 100%;
+    line-height: 1.2;
+    flex: 1;
+    border-radius: 4px 4px 0 0;
+    transition: all 0.15s ease;
+
+    &::placeholder {
+      color: $color-placeholder;
+      font-weight: 400;
+      font-style: italic;
+    }
+
+    &:hover {
+      background: rgba($color-primary, 0.06);
+      border-bottom-color: rgba($color-primary, 0.5);
+    }
+
+    &:focus {
+      outline: none;
+      color: $color-text;
+      background: $color-background;
+      border-bottom: 1px solid $color-primary;
+      box-shadow: 0 1px 0 0 $color-primary;
+    }
+  }
+}
+
+.editIcon {
+  color: $color-disabled;
+  margin-left: 8px;
+  flex-shrink: 0;
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 1;
+  }
+}
+
+.deleteButton {
+  @include delete-button;
+}
+
+.resumeSkillsChipsContainer {
+  @include chip-container;
+  padding: 6px;
   gap: 4px;
-  margin-bottom: 4px;
+  margin-top: 8px;
+
+  &:empty::before {
+    content: 'Skills will appear here...';
+    color: $color-placeholder;
+    font-size: 13px;
+    font-style: italic;
+  }
+}
+
+.resumeSkillChip {
+  @include skill-chip;
+  padding: 4px 8px;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.skillText {
+  @include skill-text;
+}
+
+.removeSkillButton {
+  @include chip-remove-button;
+  width: 14px;
+  height: 14px;
+
+  svg {
+    height: 8px;
+    width: 8px;
+  }
 }
