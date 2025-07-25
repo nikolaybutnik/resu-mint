@@ -90,8 +90,6 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = React.memo(
     const handleCategoryChange = useMemo(
       () =>
         debounce((e: React.ChangeEvent<HTMLInputElement>): void => {
-          if (isTemporary && !selectedBlockSkills.length) return
-
           let updatedSkillBlocks: SkillBlock[] = [...resumeSkillData]
 
           if (isTemporary) {
@@ -99,6 +97,7 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = React.memo(
               id,
               title: e.target.value,
               skills: selectedBlockSkills,
+              isIncluded: true,
             }
             updatedSkillBlocks.push(newBlockCategory)
             onCategoryCreate?.()
@@ -167,22 +166,46 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = React.memo(
 
     const handleSuggestionClick = useCallback(
       (suggestion: string): void => {
-        const updatedSkills = [...selectedBlockSkills, suggestion]
+        const currentFilteredSuggestions = filteredSuggestions
+        const updatedSkills = [...selectedBlockSkills]
+        const [firstSuggestion] = currentFilteredSuggestions
+
+        if (
+          filteredSuggestions.length === 1 &&
+          suggestion.toLowerCase().trim() ===
+            firstSuggestion.toLowerCase().trim()
+        ) {
+          updatedSkills.push(firstSuggestion)
+        } else updatedSkills.push(suggestion)
+
         setSelectedBlockSkills(updatedSkills)
 
-        if (!isTemporary) {
-          const updatedSkillBlocks = resumeSkillData.map((skill) =>
+        let updatedSkillBlocks: SkillBlock[] = [...resumeSkillData]
+
+        if (isTemporary) {
+          const newBlockCategory: SkillBlock = {
+            id,
+            title: blockCategory.current,
+            skills: updatedSkills,
+            isIncluded: true,
+          }
+          updatedSkillBlocks.push(newBlockCategory)
+          onCategoryCreate?.()
+        } else {
+          updatedSkillBlocks = updatedSkillBlocks.map((skill) =>
             skill.id === id ? { ...skill, skills: updatedSkills } : skill
           )
-          saveResumeSkillsData(updatedSkillBlocks)
         }
+
+        saveResumeSkillsData(updatedSkillBlocks)
       },
       [
         selectedBlockSkills,
-        isTemporary,
         resumeSkillData,
         id,
         saveResumeSkillsData,
+        filteredSuggestions,
+        inputValue,
       ]
     )
 
@@ -207,14 +230,6 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = React.memo(
         id,
         saveResumeSkillsData,
       ]
-    )
-
-    const handleSkillInputChange = useMemo(
-      () =>
-        debounce((value: string): void => {
-          setInputValue(value)
-        }, 250),
-      []
     )
 
     const memoizedSkillChips = useMemo(() => {
@@ -294,7 +309,7 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = React.memo(
                 suggestions={filteredSuggestions}
                 existingSkills={allSelectedSkills}
                 onSuggestionClick={handleSuggestionClick}
-                onChange={handleSkillInputChange}
+                onChange={setInputValue}
               />
             </div>
 

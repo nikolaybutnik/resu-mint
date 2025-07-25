@@ -91,8 +91,8 @@ This project is public, with a custom license allowing personal use and forks fo
 
 ### Welcome Experience (First-Time Users)
 New users are guided through a 4-step onboarding process with personalized content:
-1. **Welcome Screen**: Introduction to ResuMint's AI-powered features
-2. **Personal Details**: Name, email, and contact information
+1. **Welcome Screen**: Introduction to ResuMint's features
+2. **Personal Details**: Name and email
 3. **Experience & Projects**: Add initial work experience or project
 4. **Education** (Optional): Academic background
 5. **Job Description**: Paste target job posting for AI optimization

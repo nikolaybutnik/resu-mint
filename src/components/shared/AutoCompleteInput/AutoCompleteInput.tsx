@@ -110,6 +110,10 @@ const AutoCompleteInput = ({
     const value = e.target.value
     setInputValue(value)
     onChange(value)
+
+    if (!isOpen) {
+      setIsOpen(true)
+    }
   }
 
   const handleAddClick = (): void => {
@@ -131,8 +135,6 @@ const AutoCompleteInput = ({
       e.preventDefault()
       if (inputValue.trim() && !isDuplicate(inputValue)) {
         handleAddClick()
-      } else if (isOpen && suggestions.length > 0) {
-        handleSuggestionClick(suggestions[0])
       }
       return
     }

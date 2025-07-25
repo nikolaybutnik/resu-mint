@@ -186,9 +186,15 @@ ${bulletSection}`
                   .filter((s): s is string => !!s)
                   .map((s) => sanitizeLatexText(s))
                   .join(', ')
-                return `\\textbf{${sanitizeLatexText(
-                  skill.title || ''
-                )}}{: ${skillsList}}`
+                return { title: skill.title, skillsList }
+              })
+              .filter((skill) => skill.skillsList.length > 0)
+              .map((skill) => {
+                return skill.title?.trim()
+                  ? `\\textbf{${sanitizeLatexText(skill.title)}}{: ${
+                      skill.skillsList
+                    }}`
+                  : skill.skillsList
               })
               .join(' \\\\ ')}
           }}

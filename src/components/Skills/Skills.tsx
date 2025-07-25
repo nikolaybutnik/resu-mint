@@ -245,6 +245,7 @@ const Skills: React.FC = () => {
       id: uuidv4(),
       title: '',
       skills: [],
+      isIncluded: true,
     })
   }
 

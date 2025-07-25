@@ -26,4 +26,5 @@ export interface SkillBlock {
   id: string
   title?: string
   skills: string[]
+  isIncluded: boolean
 }
