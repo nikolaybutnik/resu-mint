@@ -35,10 +35,9 @@
 }
 
 .container {
-  min-height: calc(var(--vh) - 80px);
+  min-height: calc(100dvh - 80px);
   flex: 1;
   display: flex;
-  max-width: 1600px;
   margin: 0 auto;
   width: 100%;
 }

@@ -461,7 +461,8 @@ const Skills: React.FC = () => {
         className={styles.addSkillCategoryButton}
         onClick={handleAddSkillCategory}
       >
-        Add New Skill Category
+        <FaPlus size={12} />
+        Add New Skill Block
       </button>
 
       <DndContext
