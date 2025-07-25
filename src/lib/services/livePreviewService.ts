@@ -88,6 +88,11 @@ export class LivePreviewService {
         degree: edu.degree,
         isIncluded: edu.isIncluded,
       })),
+      skills: data.skillsSection.map((skill) => ({
+        id: skill.id,
+        title: skill.title,
+        skills: skill.skills,
+      })),
     }
 
     const jsonString = JSON.stringify(hashData)

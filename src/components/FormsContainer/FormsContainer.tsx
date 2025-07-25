@@ -40,7 +40,9 @@ import {
   usePersonalDetailsStore,
   useProjectStore,
   useEducationStore,
+  useSkillsStore,
 } from '@/stores'
+import { SkillBlock } from '@/lib/types/skills'
 
 const Tabs = {
   PERSONAL_DETAILS: 'PersonalDetails',
@@ -97,13 +99,15 @@ const buildResumeData = (
   personalDetails: PersonalDetailsType,
   workExperience: ExperienceBlockData[],
   projects: ProjectBlockData[],
-  education: EducationBlockData[]
+  education: EducationBlockData[],
+  skills: SkillBlock[]
 ): CreatePdfRequest => {
   return {
     personalDetails,
     experienceSection: workExperience,
     projectSection: projects,
     educationSection: education,
+    skillsSection: skills,
   }
 }
 
@@ -196,6 +200,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const { data: projects } = useProjectStore()
   const { data: education } = useEducationStore()
   const { data: jobDetails } = useJobDetailsStore()
+  const { resumeSkillData } = useSkillsStore()
 
   // UI States
   const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
@@ -275,8 +280,14 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   }, [checkScrollIndicators])
 
   const resumeData = useMemo(() => {
-    return buildResumeData(personalDetails, workExperience, projects, education)
-  }, [personalDetails, workExperience, projects, education])
+    return buildResumeData(
+      personalDetails,
+      workExperience,
+      projects,
+      education,
+      resumeSkillData
+    )
+  }, [personalDetails, workExperience, projects, education, resumeSkillData])
 
   const isDataValid = useMemo(() => {
     if (!resumeData) return false

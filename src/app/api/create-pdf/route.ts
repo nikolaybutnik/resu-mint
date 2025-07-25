@@ -38,8 +38,11 @@ export async function POST(request: NextRequest) {
       data.personalDetails,
       data.experienceSection,
       data.projectSection,
-      data.educationSection
+      data.educationSection,
+      data.skillsSection
     )
+
+    console.log('latexTemplate', latexTemplate)
 
     // Create unique temporary directory for output per request
     const tempId = uuidv4()

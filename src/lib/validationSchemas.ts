@@ -800,13 +800,6 @@ export const educationBlockSchema = z
     }
   })
 
-export const createPdfRequestSchema = z.object({
-  personalDetails: personalDetailsSchema,
-  experienceSection: z.array(experienceBlockSchema),
-  projectSection: z.array(projectBlockSchema),
-  educationSection: z.array(educationBlockSchema),
-})
-
 export const skillsValidationSchema = z.object({
   hardSkills: z.object({
     skills: z.array(z.string()).default([]),
@@ -836,4 +829,12 @@ export const generateSkillsRequestSchema = z.object({
 export const generateSkillsResponseSchema = z.object({
   hardSkills: z.array(z.string()),
   softSkills: z.array(z.string()),
+})
+
+export const createPdfRequestSchema = z.object({
+  personalDetails: personalDetailsSchema,
+  experienceSection: z.array(experienceBlockSchema),
+  projectSection: z.array(projectBlockSchema),
+  educationSection: z.array(educationBlockSchema),
+  skillsSection: z.array(resumeSkillBlockSchema),
 })

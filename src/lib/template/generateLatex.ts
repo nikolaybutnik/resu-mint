@@ -11,6 +11,7 @@ import {
   extractWebsiteDomain,
 } from '../utils'
 import { EducationBlockData } from '../types/education'
+import { SkillBlock } from '../types/skills'
 
 export class LatexGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -23,7 +24,8 @@ export const generateLatex = async (
   personalDetails: PersonalDetails,
   workExperience: ExperienceBlockData[],
   projects: ProjectBlockData[],
-  education: EducationBlockData[]
+  education: EducationBlockData[],
+  skills: SkillBlock[]
 ): Promise<string> => {
   const { name, email, linkedin, github, website, location } = personalDetails
   const extractedGitHub = extractGitHubUsername(github)
@@ -173,6 +175,26 @@ ${bulletSection}`
           .join('\n\n')
       : null
 
+  const skillsSection =
+    skills && skills.length > 0
+      ? `
+        \\begin{itemize}[leftmargin=0.15in, label={}]
+          \\small{\\item{
+            ${skills
+              .map((skill) => {
+                const skillsList = skill.skills
+                  .filter((s): s is string => !!s)
+                  .map((s) => sanitizeLatexText(s))
+                  .join(', ')
+                return `\\textbf{${sanitizeLatexText(
+                  skill.title || ''
+                )}}{: ${skillsList}}`
+              })
+              .join(' \\\\ ')}
+          }}
+        \\end{itemize}`
+      : null
+
   const sections = []
 
   if (experienceSection) {
@@ -197,6 +219,12 @@ ${projectsSection}
   \\resumeSubHeadingListStart
 ${educationSection}
   \\resumeSubHeadingListEnd`)
+  }
+
+  if (skillsSection) {
+    sections.push(`%-----------SKILLS-----------
+\\section{Skills}
+${skillsSection}`)
   }
 
   return `

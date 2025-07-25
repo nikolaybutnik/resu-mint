@@ -4,6 +4,7 @@ import { ExperienceBlockData } from '@/lib/types/experience'
 import { AppSettings } from './settings'
 import { EducationBlockData } from './education'
 import { JobDescriptionAnalysis } from './jobDetails'
+import { SkillBlock } from './skills'
 
 export interface GenerateBulletsRequest {
   sections: {
@@ -35,6 +36,7 @@ export interface CreatePdfRequest {
   experienceSection: ExperienceBlockData[]
   projectSection: ProjectBlockData[]
   educationSection: EducationBlockData[]
+  skillsSection: SkillBlock[]
 }
 
 export interface GenerateSkillSuggestionsRequest {
