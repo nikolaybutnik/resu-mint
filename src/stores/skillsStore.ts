@@ -100,6 +100,7 @@ export const useSkillsStore = create<SkillsStore>((set, get) => ({
   },
 
   saveResumeSkillsData: async (resumeSkills: SkillBlock[]) => {
+    set({ loading: true })
     const previousData = get().resumeSkillData
 
     set({

@@ -181,6 +181,7 @@ ${bulletSection}`
         \\begin{itemize}[leftmargin=0.15in, label={}]
           \\small{\\item{
             ${skills
+              .filter((skill) => skill.isIncluded !== false)
               .map((skill) => {
                 const skillsList = skill.skills
                   .filter((s): s is string => !!s)

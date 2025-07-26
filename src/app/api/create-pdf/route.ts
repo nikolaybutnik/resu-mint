@@ -42,8 +42,6 @@ export async function POST(request: NextRequest) {
       data.skillsSection
     )
 
-    console.log('latexTemplate', latexTemplate)
-
     // Create unique temporary directory for output per request
     const tempId = uuidv4()
     const tempDir = await fs.mkdtemp(

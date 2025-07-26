@@ -58,6 +58,12 @@ class SkillsManager {
   }
 
   async saveSkills(data: Skills): Promise<void> {
+    const validation = skillsValidationSchema.safeParse(data)
+    if (!validation.success) {
+      console.error('Invalid skills data, save aborted:', validation.error)
+      throw new Error('Invalid skills data')
+    }
+
     this.invalidateSkills()
 
     if (!isLocalStorageAvailable()) {
@@ -69,12 +75,12 @@ class SkillsManager {
         ? CACHE_KEYS.SKILLS_API
         : CACHE_KEYS.SKILLS_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(data))
+      localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(validation.data))
     } catch (error) {
       if (isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')
@@ -127,6 +133,15 @@ class SkillsManager {
   }
 
   async saveResumeSkills(data: SkillBlock[]): Promise<void> {
+    const validation = resumeSkillBlockSchema.array().safeParse(data)
+    if (!validation.success) {
+      console.error(
+        'Invalid resume skills data, save aborted:',
+        validation.error
+      )
+      throw new Error('Invalid resume skills data')
+    }
+
     this.invalidateResumeSkills()
 
     if (!isLocalStorageAvailable()) {
@@ -138,12 +153,15 @@ class SkillsManager {
         ? CACHE_KEYS.SKILLS_RESUME_API
         : CACHE_KEYS.SKILLS_RESUME_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.RESUME_SKILLS, JSON.stringify(data))
+      localStorage.setItem(
+        STORAGE_KEYS.RESUME_SKILLS,
+        JSON.stringify(validation.data)
+      )
     } catch (error) {
       if (isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')
