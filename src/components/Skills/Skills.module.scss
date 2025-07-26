@@ -130,19 +130,4 @@
 .skillBuilderContainer {
   @include list-container;
   margin-top: 0;
-
-  &:empty {
-    min-height: 120px;
-    padding: 40px 20px;
-    text-align: center;
-    background: rgba(55, 112, 235, 0.02);
-    border-radius: 12px;
-
-    &::before {
-      content: 'Create skill categories to organize your skills for different sections of your resume...';
-      color: $color-placeholder;
-      font-size: 14px;
-      font-style: italic;
-    }
-  }
 }

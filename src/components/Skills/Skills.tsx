@@ -1,5 +1,5 @@
 import styles from './Skills.module.scss'
-import { useState, useRef, useCallback, useMemo } from 'react'
+import { useState, useRef, useCallback, useMemo, memo, JSX } from 'react'
 import { FaPlus, FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
 import {
@@ -249,22 +249,7 @@ const Skills: React.FC = () => {
     })
   }
 
-  const draggableBlocks = useMemo(
-    () =>
-      resumeSkillData.map((skill) => (
-        <DraggableSkillBlock
-          key={skill.id}
-          id={skill.id}
-          title={skill.title ?? ''}
-          skills={skill.skills}
-          isOverlay={false}
-          isDropping={isDropping}
-        />
-      )),
-    [resumeSkillData, isDropping]
-  )
-
-  const activeItem = useMemo(() => {
+  const activeItem = useMemo((): JSX.Element | null => {
     const draggingBlock = resumeSkillData.find((skill) => skill.id === activeId)
     if (!draggingBlock) return null
 
@@ -278,6 +263,56 @@ const Skills: React.FC = () => {
       />
     )
   }, [activeId, resumeSkillData, isDropping])
+
+  const renderSkillBlocks = useMemo(() => {
+    return (
+      resumeSkillData: SkillBlock[],
+      temporaryBlock: SkillBlock | null
+    ): JSX.Element => {
+      const hasContent = resumeSkillData.length || temporaryBlock
+
+      return (
+        <>
+          {resumeSkillData.length > 0 &&
+            resumeSkillData.map((skill) => (
+              <DraggableSkillBlock
+                key={skill.id}
+                id={skill.id}
+                title={skill.title ?? ''}
+                skills={skill.skills}
+                isOverlay={false}
+                isDropping={isDropping}
+              />
+            ))}
+
+          {temporaryBlock && (
+            <DraggableSkillBlock
+              id={temporaryBlock.id}
+              title={temporaryBlock.title ?? ''}
+              skills={temporaryBlock.skills}
+              isOverlay={false}
+              isDropping={isDropping}
+              isTemporary
+              onCategoryCreate={() => {
+                setTemporarySkillCategory(null)
+              }}
+            />
+          )}
+
+          {!hasContent && (
+            <div className={styles.emptyState}>
+              <p className={styles.emptyMessage}>
+                Try adding a skill block. You can add a single block and list
+                all your skills in it, or you can add multiple blocks,
+                categorize them, and organize the skills by category. You can
+                also drag the blocks to rearrange them.
+              </p>
+            </div>
+          )}
+        </>
+      )
+    }
+  }, [resumeSkillData, temporarySkillCategory, isDropping])
 
   return (
     <div className={styles.skills}>
@@ -477,21 +512,7 @@ const Skills: React.FC = () => {
           strategy={verticalListSortingStrategy}
         >
           <div className={styles.skillBuilderContainer}>
-            {draggableBlocks}
-
-            {temporarySkillCategory && (
-              <DraggableSkillBlock
-                id={temporarySkillCategory.id}
-                title={temporarySkillCategory.title ?? ''}
-                skills={temporarySkillCategory.skills}
-                isOverlay={false}
-                isDropping={isDropping}
-                isTemporary
-                onCategoryCreate={() => {
-                  setTemporarySkillCategory(null)
-                }}
-              />
-            )}
+            {renderSkillBlocks(resumeSkillData, temporarySkillCategory)}
           </div>
         </SortableContext>
 
