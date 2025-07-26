@@ -262,7 +262,7 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
         styles.draggableSkillBlockContainer,
         'prevent-select',
         isDragging || isOverlay ? styles.isDragging : '',
-        isIncluded ? styles.included : styles.excluded,
+        isIncluded || isTemporary ? styles.included : styles.excluded,
       ].join(' ')}
       {...(isTemporary && { 'data-no-dnd': 'true' })}
       ref={isOverlay ? null : setNodeRef}
@@ -286,16 +286,18 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
               {isTemporary ? 'Cancel' : 'Delete'}
             </button>
 
-            <button
-              type='button'
-              data-no-dnd='true'
-              className={styles.toggleIncludeButton}
-              onClick={handleSkillBlockInclusionToggle}
-              disabled={isDragging || isOverlay}
-              title={isIncluded ? 'Exclude from resume' : 'Include in resume'}
-            >
-              {isIncluded ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
-            </button>
+            {!isTemporary && (
+              <button
+                type='button'
+                data-no-dnd='true'
+                className={styles.toggleIncludeButton}
+                onClick={handleSkillBlockInclusionToggle}
+                disabled={isDragging || isOverlay}
+                title={isIncluded ? 'Exclude from resume' : 'Include in resume'}
+              >
+                {isIncluded ? <FaEye size={14} /> : <FaEyeSlash size={14} />}
+              </button>
+            )}
           </div>
           <div className={styles.skillCategoryContainer}>
             <span className={styles.skillCategoryLabel}>

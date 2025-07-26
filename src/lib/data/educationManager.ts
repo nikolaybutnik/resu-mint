@@ -64,6 +64,12 @@ class EducationManager {
   }
 
   async save(data: EducationBlockData[]): Promise<void> {
+    const validation = educationBlockSchema.array().safeParse(data)
+    if (!validation.success) {
+      console.error('Invalid education data, save aborted:', validation.error)
+      throw new Error('Invalid education data')
+    }
+
     this.invalidate()
 
     if (!isLocalStorageAvailable()) {
@@ -75,12 +81,15 @@ class EducationManager {
         ? CACHE_KEYS.EDUCATION_API
         : CACHE_KEYS.EDUCATION_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.EDUCATION, JSON.stringify(data))
+      localStorage.setItem(
+        STORAGE_KEYS.EDUCATION,
+        JSON.stringify(validation.data)
+      )
     } catch (error) {
       if (isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')
