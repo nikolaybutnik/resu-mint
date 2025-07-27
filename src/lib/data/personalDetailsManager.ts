@@ -57,6 +57,15 @@ class PersonalDetailsManager {
   }
 
   async save(data: PersonalDetails): Promise<void> {
+    const validation = personalDetailsSchema.safeParse(data)
+    if (!validation.success) {
+      console.error(
+        'Invalid personal details data, save aborted:',
+        validation.error
+      )
+      throw new Error('Invalid personal details data')
+    }
+
     this.invalidate()
 
     if (!isLocalStorageAvailable()) {
@@ -68,12 +77,15 @@ class PersonalDetailsManager {
         ? CACHE_KEYS.PERSONAL_DETAILS_API
         : CACHE_KEYS.PERSONAL_DETAILS_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.PERSONAL_DETAILS, JSON.stringify(data))
+      localStorage.setItem(
+        STORAGE_KEYS.PERSONAL_DETAILS,
+        JSON.stringify(validation.data)
+      )
     } catch (error) {
       if (isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')

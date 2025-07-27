@@ -55,6 +55,12 @@ class SettingsManager {
   }
 
   async save(data: AppSettings): Promise<void> {
+    const validation = settingsSchema.safeParse(data)
+    if (!validation.success) {
+      console.error('Invalid settings data, save aborted:', validation.error)
+      throw new Error('Invalid settings data')
+    }
+
     this.invalidate()
 
     if (!isLocalStorageAvailable()) {
@@ -66,12 +72,15 @@ class SettingsManager {
         ? CACHE_KEYS.SETTINGS_API
         : CACHE_KEYS.SETTINGS_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(data))
+      localStorage.setItem(
+        STORAGE_KEYS.SETTINGS,
+        JSON.stringify(validation.data)
+      )
     } catch (error) {
       if (isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')

@@ -64,6 +64,12 @@ class ExperienceManager {
   }
 
   async save(data: ExperienceBlockData[]): Promise<void> {
+    const validation = experienceBlockSchema.array().safeParse(data)
+    if (!validation.success) {
+      console.error('Invalid experience data, save aborted:', validation.error)
+      throw new Error('Invalid experience data')
+    }
+
     this.invalidate()
 
     if (!isLocalStorageAvailable()) {
@@ -75,12 +81,15 @@ class ExperienceManager {
         ? CACHE_KEYS.EXPERIENCE_API
         : CACHE_KEYS.EXPERIENCE_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.EXPERIENCE, JSON.stringify(data))
+      localStorage.setItem(
+        STORAGE_KEYS.EXPERIENCE,
+        JSON.stringify(validation.data)
+      )
     } catch (error) {
       if (isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')
@@ -127,9 +136,21 @@ class ExperienceManager {
           ? { ...block, bulletPoints: updatedBulletPoints }
           : block
       )
+
+      const validation = experienceBlockSchema
+        .array()
+        .safeParse(updatedExperience)
+      if (!validation.success) {
+        console.error(
+          'Invalid experience data after bullet update, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid experience data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.EXPERIENCE,
-        JSON.stringify(updatedExperience)
+        JSON.stringify(validation.data)
       )
 
       this.invalidate()
@@ -149,9 +170,21 @@ class ExperienceManager {
       const updatedExperience = existingExperience.map((block) =>
         block.id === sectionId ? { ...block, bulletPoints: bullets } : block
       )
+
+      const validation = experienceBlockSchema
+        .array()
+        .safeParse(updatedExperience)
+      if (!validation.success) {
+        console.error(
+          'Invalid experience data after bullets update, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid experience data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.EXPERIENCE,
-        JSON.stringify(updatedExperience)
+        JSON.stringify(validation.data)
       )
 
       this.invalidate()
@@ -188,9 +221,20 @@ class ExperienceManager {
     )
 
     try {
+      const validation = experienceBlockSchema
+        .array()
+        .safeParse(updatedExperience)
+      if (!validation.success) {
+        console.error(
+          'Invalid experience data after bullet deletion, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid experience data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.EXPERIENCE,
-        JSON.stringify(updatedExperience)
+        JSON.stringify(validation.data)
       )
       this.invalidate()
     } catch (error) {
@@ -220,9 +264,20 @@ class ExperienceManager {
     )
 
     try {
+      const validation = experienceBlockSchema
+        .array()
+        .safeParse(updatedExperience)
+      if (!validation.success) {
+        console.error(
+          'Invalid experience data after bullet lock toggle, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid experience data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.EXPERIENCE,
-        JSON.stringify(updatedExperience)
+        JSON.stringify(validation.data)
       )
       this.invalidate()
     } catch (error) {
@@ -249,9 +304,20 @@ class ExperienceManager {
     )
 
     try {
+      const validation = experienceBlockSchema
+        .array()
+        .safeParse(updatedExperience)
+      if (!validation.success) {
+        console.error(
+          'Invalid experience data after bulk lock toggle, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid experience data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.EXPERIENCE,
-        JSON.stringify(updatedExperience)
+        JSON.stringify(validation.data)
       )
       this.invalidate()
     } catch (error) {

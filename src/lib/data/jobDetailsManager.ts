@@ -55,6 +55,20 @@ class JobDetailsManager {
   }
 
   async saveJobDescription(data: string): Promise<void> {
+    const updatedJobDetails = {
+      ...(await this.get()),
+      originalJobDescription: data,
+    }
+
+    const validation = jobDetailsSchema.safeParse(updatedJobDetails)
+    if (!validation.success) {
+      console.error(
+        'Invalid job details after description update, save aborted:',
+        validation.error
+      )
+      throw new Error('Invalid job details data')
+    }
+
     this.invalidate()
 
     if (!isLocalStorageAvailable()) {
@@ -66,17 +80,14 @@ class JobDetailsManager {
         ? CACHE_KEYS.JOB_DETAILS_API
         : CACHE_KEYS.JOB_DETAILS_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
       localStorage.setItem(
         STORAGE_KEYS.JOB_DETAILS,
-        JSON.stringify({
-          ...(await this.get()),
-          originalJobDescription: data,
-        })
+        JSON.stringify(validation.data)
       )
     } catch (error) {
       if (isQuotaExceededError(error)) {
@@ -88,6 +99,20 @@ class JobDetailsManager {
   }
 
   async saveAnalysis(data: JobDescriptionAnalysis): Promise<void> {
+    const updatedJobDetails = {
+      ...(await this.get()),
+      analysis: data,
+    }
+
+    const validation = jobDetailsSchema.safeParse(updatedJobDetails)
+    if (!validation.success) {
+      console.error(
+        'Invalid job details after analysis update, save aborted:',
+        validation.error
+      )
+      throw new Error('Invalid job details data')
+    }
+
     this.invalidate()
 
     if (!isLocalStorageAvailable()) {
@@ -99,14 +124,14 @@ class JobDetailsManager {
         ? CACHE_KEYS.JOB_DETAILS_API
         : CACHE_KEYS.JOB_DETAILS_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
       localStorage.setItem(
         STORAGE_KEYS.JOB_DETAILS,
-        JSON.stringify({ ...(await this.get()), analysis: data })
+        JSON.stringify(validation.data)
       )
     } catch (error) {
       if (isQuotaExceededError(error)) {

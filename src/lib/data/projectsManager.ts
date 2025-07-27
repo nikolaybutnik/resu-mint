@@ -56,16 +56,20 @@ class ProjectsManager {
       ProjectBlockData[]
     >)
 
-    // If sectionId provided, return specific section
     if (sectionId) {
       return allProjects.find((block) => block.id === sectionId)
     }
 
-    // Otherwise return all sections
     return allProjects
   }
 
   async save(data: ProjectBlockData[]): Promise<void> {
+    const validation = projectBlockSchema.array().safeParse(data)
+    if (!validation.success) {
+      console.error('Invalid projects data, save aborted:', validation.error)
+      throw new Error('Invalid projects data')
+    }
+
     this.invalidate()
 
     if (!isLocalStorageAvailable()) {
@@ -77,12 +81,15 @@ class ProjectsManager {
         ? CACHE_KEYS.PROJECTS_API
         : CACHE_KEYS.PROJECTS_LOCAL
 
-      this.cache.set(cacheKey, Promise.resolve(data))
+      this.cache.set(cacheKey, Promise.resolve(validation.data))
       return
     }
 
     try {
-      localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(data))
+      localStorage.setItem(
+        STORAGE_KEYS.PROJECTS,
+        JSON.stringify(validation.data)
+      )
     } catch (error) {
       if (isQuotaExceededError(error)) {
         console.warn('Local Storage quota exceeded')
@@ -121,9 +128,19 @@ class ProjectsManager {
           ? { ...block, bulletPoints: updatedBulletPoints }
           : block
       )
+
+      const validation = projectBlockSchema.array().safeParse(updatedProjects)
+      if (!validation.success) {
+        console.error(
+          'Invalid projects data after bullet update, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid projects data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.PROJECTS,
-        JSON.stringify(updatedProjects)
+        JSON.stringify(validation.data)
       )
 
       this.invalidate()
@@ -143,9 +160,19 @@ class ProjectsManager {
       const updatedProjects = existingProjects.map((block) =>
         block.id === sectionId ? { ...block, bulletPoints: bullets } : block
       )
+
+      const validation = projectBlockSchema.array().safeParse(updatedProjects)
+      if (!validation.success) {
+        console.error(
+          'Invalid projects data after bullets update, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid projects data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.PROJECTS,
-        JSON.stringify(updatedProjects)
+        JSON.stringify(validation.data)
       )
 
       this.invalidate()
@@ -182,9 +209,18 @@ class ProjectsManager {
     )
 
     try {
+      const validation = projectBlockSchema.array().safeParse(updatedProjects)
+      if (!validation.success) {
+        console.error(
+          'Invalid projects data after bullet deletion, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid projects data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.PROJECTS,
-        JSON.stringify(updatedProjects)
+        JSON.stringify(validation.data)
       )
       this.invalidate()
     } catch (error) {
@@ -214,9 +250,18 @@ class ProjectsManager {
     )
 
     try {
+      const validation = projectBlockSchema.array().safeParse(updatedProjects)
+      if (!validation.success) {
+        console.error(
+          'Invalid projects data after bullet lock toggle, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid projects data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.PROJECTS,
-        JSON.stringify(updatedProjects)
+        JSON.stringify(validation.data)
       )
       this.invalidate()
     } catch (error) {
@@ -243,9 +288,18 @@ class ProjectsManager {
     )
 
     try {
+      const validation = projectBlockSchema.array().safeParse(updatedProjects)
+      if (!validation.success) {
+        console.error(
+          'Invalid projects data after bulk lock toggle, save aborted:',
+          validation.error
+        )
+        throw new Error('Invalid projects data')
+      }
+
       localStorage.setItem(
         STORAGE_KEYS.PROJECTS,
-        JSON.stringify(updatedProjects)
+        JSON.stringify(validation.data)
       )
       this.invalidate()
     } catch (error) {
