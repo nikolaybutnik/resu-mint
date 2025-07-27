@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
-import { AppSettings } from '@/lib/types/settings'
+import { AppSettings, ResumeSection } from '@/lib/types/settings'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 
 interface SettingsStore {
@@ -8,6 +8,7 @@ interface SettingsStore {
   loading: boolean
   initializing: boolean
   save: (settings: AppSettings) => Promise<void>
+  saveOrder: (order: ResumeSection[]) => Promise<void>
   initialize: () => Promise<void>
 }
 
@@ -46,6 +47,28 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
         loading: false,
         data: currentState.data,
       })
+    }
+  },
+
+  saveOrder: async (order: ResumeSection[]) => {
+    const previousData = get().data
+
+    set({
+      data: {
+        ...previousData,
+        sectionOrder: order,
+      },
+    })
+
+    try {
+      await dataManager.saveSettings({
+        ...previousData,
+        sectionOrder: order,
+      })
+    } catch (error) {
+      set({ data: previousData })
+      console.error('SettingsStore: save error:', error)
+      throw error
     }
   },
 }))

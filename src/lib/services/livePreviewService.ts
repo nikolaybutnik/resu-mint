@@ -21,13 +21,6 @@ interface QueuedRequest {
   abortController: AbortController
 }
 
-// SCALABILITY CONCERNS:
-// - Each compilation uses 100-200MB of RAM
-// - Vercel functions has a 10s timeout
-// - Vercel has a 512MB memory limit, multiple concurrent compilations will fail
-// - Cold starts, first request will be slow (2-3 extra seconds)
-// - Each function instance has isolated cache
-
 export class LivePreviewService {
   private debounceTimer: NodeJS.Timeout | null = null
   private pendingPromise: {
@@ -96,6 +89,7 @@ export class LivePreviewService {
           title: skill.title,
           skills: skill.skills,
         })),
+      order: data.settings.sectionOrder,
     }
 
     const jsonString = JSON.stringify(hashData)
