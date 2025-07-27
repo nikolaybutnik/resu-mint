@@ -129,11 +129,6 @@ const ReorderControls: React.FC = () => {
     return sectionOrder.filter((sectionType) => contentMap[sectionType])
   }, [experienceData, projectsData, educationData, skillsData, sectionOrder])
 
-  // Don't render if less than 2 sections
-  if (sectionsWithContent.length < 2) {
-    return null
-  }
-
   useEffect(() => {
     if (activeId) {
       document.body.classList.add('dragging-active')
@@ -177,6 +172,11 @@ const ReorderControls: React.FC = () => {
     () => sectionsWithContent.find((section) => section === activeId),
     [sectionsWithContent, activeId]
   )
+
+  // Don't render if less than 2 sections
+  if (sectionsWithContent.length < 2) {
+    return null
+  }
 
   return (
     <div className={styles.controlsContainer}>
