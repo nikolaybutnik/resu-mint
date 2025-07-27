@@ -18,6 +18,7 @@ import { CreatePdfRequest } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { EducationBlockData } from '@/lib/types/education'
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
+import { AppSettings } from '@/lib/types/settings'
 import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 import {
@@ -41,6 +42,7 @@ import {
   useProjectStore,
   useEducationStore,
   useSkillsStore,
+  useSettingsStore,
 } from '@/stores'
 import { SkillBlock } from '@/lib/types/skills'
 
@@ -100,7 +102,8 @@ const buildResumeData = (
   workExperience: ExperienceBlockData[],
   projects: ProjectBlockData[],
   education: EducationBlockData[],
-  skills: SkillBlock[]
+  skills: SkillBlock[],
+  settings: AppSettings
 ): CreatePdfRequest => {
   return {
     personalDetails,
@@ -108,6 +111,7 @@ const buildResumeData = (
     projectSection: projects,
     educationSection: education,
     skillsSection: skills,
+    settings,
   }
 }
 
@@ -201,6 +205,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const { data: education } = useEducationStore()
   const { data: jobDetails } = useJobDetailsStore()
   const { resumeSkillData } = useSkillsStore()
+  const { data: settings } = useSettingsStore()
 
   // UI States
   const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
@@ -285,9 +290,17 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       workExperience,
       projects,
       education,
-      resumeSkillData
+      resumeSkillData,
+      settings
     )
-  }, [personalDetails, workExperience, projects, education, resumeSkillData])
+  }, [
+    personalDetails,
+    workExperience,
+    projects,
+    education,
+    resumeSkillData,
+    settings,
+  ])
 
   const isDataValid = useMemo(() => {
     if (!resumeData) return false

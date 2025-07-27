@@ -9,7 +9,8 @@ import {
 
 export const submitSettings = async (
   _previousState: SettingsFormState,
-  formData: FormData
+  formData: FormData,
+  currentSettings: AppSettings
 ): Promise<SettingsFormState> => {
   const settingsData: AppSettings = {
     bulletsPerExperienceBlock: Number(
@@ -26,6 +27,7 @@ export const submitSettings = async (
     languageModel: formData.get(
       SETTINGS_FORM_DATA_KEYS.LANGUAGE_MODEL
     ) as LanguageModel,
+    sectionOrder: currentSettings.sectionOrder,
   }
 
   const validatedData = settingsSchema.safeParse(settingsData)

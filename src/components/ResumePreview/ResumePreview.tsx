@@ -1,7 +1,7 @@
 'use client'
 
-import { CreatePdfRequest } from '@/lib/types/api'
 import styles from './ResumePreview.module.scss'
+import { CreatePdfRequest } from '@/lib/types/api'
 import React, { useEffect, useState, useRef, useCallback } from 'react'
 import { livePreviewService } from '@/lib/services/livePreviewService'
 import { LIVE_PREVIEW } from '@/lib/constants'
@@ -17,6 +17,7 @@ import {
 } from 'react-icons/fi'
 import saveAs from 'file-saver'
 import type { DocumentProps, PageProps } from 'react-pdf'
+import ReorderControls from './ReorderControls/ReorderControls'
 
 interface PdfOptions {
   cMapUrl: string
@@ -470,50 +471,56 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
 
       {renderPdfControls()}
 
-      <div className={styles.previewContent} ref={previewContentRef}>
-        {pdfBlob && pdfjsReady && pdfComponents && (
-          <div
-            className={`${styles.pdfContainer} ${
-              fitToWidth ? styles.fitToWidth : ''
-            }`}
-            ref={pdfContainerRef}
-          >
-            <pdfComponents.Document
-              file={pdfBlob}
-              options={pdfComponents.options}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
-              loading={
-                <LoadingSpinner size='lg' text='Loading PDF viewer...' />
-              }
+      <div className={styles.contentContainer}>
+        <div style={{ display: 'none' }} className={styles.reorderControls}>
+          <ReorderControls />
+        </div>
+
+        <div className={styles.previewContent} ref={previewContentRef}>
+          {pdfBlob && pdfjsReady && pdfComponents && (
+            <div
+              className={`${styles.pdfContainer} ${
+                fitToWidth ? styles.fitToWidth : ''
+              }`}
+              ref={pdfContainerRef}
             >
-              <pdfComponents.Page
-                key={`page_${currentPage}`}
-                pageNumber={currentPage}
-                scale={zoom}
-                renderTextLayer={false}
-                renderAnnotationLayer={false}
-              />
-            </pdfComponents.Document>
-          </div>
-        )}
+              <pdfComponents.Document
+                file={pdfBlob}
+                options={pdfComponents.options}
+                onLoadSuccess={onDocumentLoadSuccess}
+                onLoadError={onDocumentLoadError}
+                loading={
+                  <LoadingSpinner size='lg' text='Loading PDF viewer...' />
+                }
+              >
+                <pdfComponents.Page
+                  key={`page_${currentPage}`}
+                  pageNumber={currentPage}
+                  scale={zoom}
+                  renderTextLayer={false}
+                  renderAnnotationLayer={false}
+                />
+              </pdfComponents.Document>
+            </div>
+          )}
 
-        {!pdfjsReady && !error && (
-          <div className={styles.emptyState}>
-            <LoadingSpinner size='lg' text='Loading PDF viewer...' />
-          </div>
-        )}
+          {!pdfjsReady && !error && (
+            <div className={styles.emptyState}>
+              <LoadingSpinner size='lg' text='Loading PDF viewer...' />
+            </div>
+          )}
 
-        {!pdfBlob && !error && pdfjsReady && (
-          <div className={styles.emptyState}>
-            <h3>Resume Preview</h3>
-            <p>
-              {!isDataValid
-                ? 'To generate your resume preview, please provide: your name, email, job description, and at least one work experience or project.'
-                : 'Your resume will appear here once generated.'}
-            </p>
-          </div>
-        )}
+          {!pdfBlob && !error && pdfjsReady && (
+            <div className={styles.emptyState}>
+              <h3>Resume Preview</h3>
+              <p>
+                {!isDataValid
+                  ? 'To generate your resume preview, please provide: your name, email, job description, and at least one work experience or project.'
+                  : 'Your resume will appear here once generated.'}
+              </p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

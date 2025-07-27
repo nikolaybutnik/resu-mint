@@ -2,7 +2,7 @@ import { Month, ProjectBlockData } from './types/projects'
 import { PersonalDetails } from './types/personalDetails'
 import { ExperienceBlockData } from './types/experience'
 import { EducationBlockData } from './types/education'
-import { AppSettings, LanguageModel } from './types/settings'
+import { AppSettings, LanguageModel, ResumeSection } from './types/settings'
 import { JobDescriptionAnalysis } from './types/jobDetails'
 import { JobDetails } from './types/jobDetails'
 import { SkillBlock, Skills } from './types/skills'
@@ -140,6 +140,12 @@ export const DEFAULT_STATE_VALUES = {
     bulletsPerProjectBlock: 3,
     languageModel: LanguageModel.GPT_4O_MINI,
     maxCharsPerBullet: 180,
+    sectionOrder: [
+      ResumeSection.EXPERIENCE,
+      ResumeSection.PROJECTS,
+      ResumeSection.EDUCATION,
+      ResumeSection.SKILLS,
+    ],
   } as AppSettings,
   JOB_DETAILS: {
     originalJobDescription: '',

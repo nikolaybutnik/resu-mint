@@ -37,6 +37,7 @@ export interface CreatePdfRequest {
   projectSection: ProjectBlockData[]
   educationSection: EducationBlockData[]
   skillsSection: SkillBlock[]
+  settings: AppSettings
 }
 
 export interface GenerateSkillSuggestionsRequest {

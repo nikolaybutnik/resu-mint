@@ -39,7 +39,7 @@ const Settings: React.FC = () => {
 
   const [state, formAction] = useActionState(
     async (prevState: SettingsFormState, formData: FormData) => {
-      const result = await submitSettings(prevState, formData)
+      const result = await submitSettings(prevState, formData, settings)
 
       if (Object.keys(result.errors).length === 0 && result.data) {
         try {

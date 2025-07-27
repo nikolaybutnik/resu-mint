@@ -39,7 +39,8 @@ export async function POST(request: NextRequest) {
       data.experienceSection,
       data.projectSection,
       data.educationSection,
-      data.skillsSection
+      data.skillsSection,
+      data.settings
     )
 
     // Create unique temporary directory for output per request

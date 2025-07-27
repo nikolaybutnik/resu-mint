@@ -1,6 +1,6 @@
 import { MONTHS } from './constants'
 import z from 'zod'
-import { LanguageModel } from './types/settings'
+import { LanguageModel, ResumeSection } from './types/settings'
 
 const urlValidator = (errorMessage = 'Must be a valid URL') => {
   return z.union([
@@ -452,6 +452,13 @@ export const settingsSchema = z.object({
   bulletsPerProjectBlock: z.number().int().min(1).max(10),
   maxCharsPerBullet: z.number().int().min(100).max(500),
   languageModel: z.nativeEnum(LanguageModel),
+  sectionOrder: z
+    .array(z.nativeEnum(ResumeSection))
+    .length(4, 'Section order must contain exactly 4 sections')
+    .refine((order) => {
+      const requiredSections = Object.values(ResumeSection)
+      return requiredSections.every((section) => order.includes(section))
+    }, 'Section order must contain all required sections exactly once'),
 })
 
 export const analyzeJobDescriptionRequestSchema = z.object({
@@ -838,4 +845,5 @@ export const createPdfRequestSchema = z.object({
   projectSection: z.array(projectBlockSchema),
   educationSection: z.array(educationBlockSchema),
   skillsSection: z.array(resumeSkillBlockSchema),
+  settings: settingsSchema,
 })

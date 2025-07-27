@@ -7,11 +7,21 @@ export const LanguageModel = {
 
 export type LanguageModel = (typeof LanguageModel)[keyof typeof LanguageModel]
 
+export const ResumeSection = {
+  EXPERIENCE: 'experience',
+  PROJECTS: 'projects',
+  EDUCATION: 'education',
+  SKILLS: 'skills',
+} as const
+
+export type ResumeSection = (typeof ResumeSection)[keyof typeof ResumeSection]
+
 export interface AppSettings {
   bulletsPerExperienceBlock: number
   bulletsPerProjectBlock: number
   maxCharsPerBullet: number
   languageModel: LanguageModel
+  sectionOrder: ResumeSection[]
 }
 
 export const SettingsFields = {

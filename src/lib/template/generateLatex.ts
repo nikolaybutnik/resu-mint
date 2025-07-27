@@ -12,6 +12,7 @@ import {
 } from '../utils'
 import { EducationBlockData } from '../types/education'
 import { SkillBlock } from '../types/skills'
+import { AppSettings, ResumeSection } from '../types/settings'
 
 export class LatexGenerationError extends Error {
   constructor(public error: ApiError) {
@@ -25,12 +26,14 @@ export const generateLatex = async (
   workExperience: ExperienceBlockData[],
   projects: ProjectBlockData[],
   education: EducationBlockData[],
-  skills: SkillBlock[]
+  skills: SkillBlock[],
+  settings: AppSettings
 ): Promise<string> => {
   const { name, email, linkedin, github, website, location } = personalDetails
   const extractedGitHub = extractGitHubUsername(github)
   const extractedLinkedIn = extractLinkedInUsername(linkedin)
   const extractedWebsite = extractWebsiteDomain(website)
+  const { sectionOrder } = settings
 
   const buildPersonalDetailsHeader = () => {
     const nameSection = `\\textbf{\\Huge \\scshape ${name}} \\\\ \\vspace{1pt}`
@@ -202,37 +205,41 @@ ${bulletSection}`
         \\end{itemize}`
       : null
 
-  const sections = []
-
-  if (experienceSection) {
-    sections.push(`%-----------EXPERIENCE-----------
+  const sectionMap: Record<ResumeSection, string | null> = {
+    [ResumeSection.EXPERIENCE]: experienceSection
+      ? `%-----------EXPERIENCE-----------
 \\section{Experience}
   \\resumeSubHeadingListStart
 ${experienceSection}
-  \\resumeSubHeadingListEnd`)
-  }
+  \\resumeSubHeadingListEnd`
+      : null,
 
-  if (projectsSection) {
-    sections.push(`%-----------PROJECTS-----------
+    [ResumeSection.PROJECTS]: projectsSection
+      ? `%-----------PROJECTS-----------
 \\section{Projects}
   \\resumeSubHeadingListStart
 ${projectsSection}
-  \\resumeSubHeadingListEnd`)
-  }
+  \\resumeSubHeadingListEnd`
+      : null,
 
-  if (educationSection) {
-    sections.push(`%-----------EDUCATION-----------
+    [ResumeSection.EDUCATION]: educationSection
+      ? `%-----------EDUCATION-----------
 \\section{Education}
   \\resumeSubHeadingListStart
 ${educationSection}
-  \\resumeSubHeadingListEnd`)
+  \\resumeSubHeadingListEnd`
+      : null,
+
+    [ResumeSection.SKILLS]: skillsSection
+      ? `%-----------SKILLS-----------
+\\section{Skills}
+${skillsSection}`
+      : null,
   }
 
-  if (skillsSection) {
-    sections.push(`%-----------SKILLS-----------
-\\section{Skills}
-${skillsSection}`)
-  }
+  const sections = sectionOrder
+    .map((sectionType) => sectionMap[sectionType])
+    .filter((section): section is string => section !== null)
 
   return `
 %-------------------------
