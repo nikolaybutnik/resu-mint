@@ -5,7 +5,7 @@
 .controlsContainer {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .widget {
@@ -15,22 +15,55 @@
   z-index: 10;
 }
 
-.collapsedControl {
-  @include button-base;
-  width: 40px;
-  height: 40px;
+.container {
   border: 1px solid rgba($color-primary, 0.2);
-  border-radius: 6px;
   background: $color-background;
+  border-radius: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  opacity: 0.8;
+  overflow: hidden;
+  transition: width 0.3s ease-out, height 0.3s ease-out,
+    box-shadow 0.3s ease-out, border-radius 0.3s ease-out, opacity 0.3s ease-out;
+  position: relative;
 
-  &:hover {
-    opacity: 1;
-    background: rgba($color-primary, 0.05);
-    border-color: rgba($color-primary, 0.4);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  &.collapsed {
+    width: 40px;
+    height: 40px;
+    opacity: 0.8;
   }
+
+  &.expanded {
+    width: 250px;
+    height: var(--content-height, 200px);
+    opacity: 1;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+  }
+
+  &.expanding,
+  &.contracting {
+    opacity: 1;
+  }
+
+  &:hover:not(.expanding):not(.contracting) {
+    opacity: 1;
+
+    &.collapsed {
+      background: rgba($color-primary, 0.05);
+      border-color: rgba($color-primary, 0.4);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+  }
+}
+
+.collapsedButton {
+  @include button-base;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 
   svg {
     font-size: 18px;
@@ -38,20 +71,26 @@
   }
 }
 
-.expandedControl {
-  @include card-container;
-  min-width: 200px;
-  max-width: 250px;
-  overflow: hidden;
-  animation: expandIn 0.2s ease-out;
-  border-radius: 8px;
+.expandedContent {
+  padding: 16px;
+  transition: opacity 0.25s ease-out;
+
+  &.contentVisible {
+    opacity: 1;
+  }
+
+  &.contentHidden {
+    opacity: 0;
+  }
 }
 
 .expandedHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-bottom: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba($color-border, 0.5);
 
   span {
     @include subsection-title;
@@ -71,13 +110,12 @@
   }
 }
 
-// Section block styles
 .sectionBlock {
   @include draggable-container;
   @include draggable-block;
   gap: 12px;
+  height: 48px;
   padding: 12px 16px;
-  margin-bottom: 4px;
   justify-content: flex-start;
 
   &:hover {
@@ -119,15 +157,4 @@
   font-size: 16px;
   color: $color-primary;
   flex-shrink: 0;
-}
-
-@keyframes expandIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }

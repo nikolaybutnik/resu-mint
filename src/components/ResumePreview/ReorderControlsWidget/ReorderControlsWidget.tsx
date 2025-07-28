@@ -1,4 +1,11 @@
-import { useEffect, useMemo, useCallback, useState, useRef } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useCallback,
+  useState,
+  useRef,
+} from 'react'
 import styles from './ReorderControlsWidget.module.scss'
 import {
   useExperienceStore,
@@ -217,8 +224,16 @@ const ReorderControls: React.FC = () => {
 
 const ReorderControlsWidget: React.FC = () => {
   const widgetRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
 
   const [isExpanded, setIsExpanded] = useState(false)
+  const [isAnimating, setIsAnimating] = useState(false)
+  const [contentHeight, setContentHeight] = useState(150)
+
+  const { data: experienceData } = useExperienceStore()
+  const { data: projectsData } = useProjectStore()
+  const { data: educationData } = useEducationStore()
+  const { resumeSkillData: skillsData } = useSkillsStore()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -236,31 +251,107 @@ const ReorderControlsWidget: React.FC = () => {
     }
   }, [isExpanded])
 
+  useLayoutEffect(() => {
+    if (contentRef.current && isExpanded && isAnimating) {
+      const measureHeight = () => {
+        if (contentRef.current) {
+          // Get container padding (16px top + 16px bottom from CSS)
+          const computedStyle = window.getComputedStyle(contentRef.current)
+          const paddingTop = parseFloat(computedStyle.paddingTop) || 0
+          const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0
+
+          let totalContentHeight = 0
+
+          // Measure expandedHeader with all its styling (margin, padding, border)
+          const header = contentRef.current.querySelector(
+            `.${styles.expandedHeader}`
+          )
+          if (header) {
+            const headerRect = header.getBoundingClientRect()
+            const headerStyle = window.getComputedStyle(header)
+            const headerMarginBottom = parseFloat(headerStyle.marginBottom) || 0
+            totalContentHeight += headerRect.height + headerMarginBottom
+          }
+
+          // Calculate controlsContainer height based on number of sections
+          const controls = contentRef.current.querySelector(
+            `.${styles.controlsContainer}`
+          )
+          if (controls) {
+            const sectionBlocks = controls.querySelectorAll(
+              `.${styles.sectionBlock}`
+            )
+            const numSections = sectionBlocks.length
+
+            // Each section: 48px height + 8px gap (except last one)
+            const sectionsHeight = numSections * 48
+            const gapsHeight = Math.max(0, numSections - 1) * 8
+            totalContentHeight += sectionsHeight + gapsHeight
+          }
+
+          const totalHeight = totalContentHeight + paddingTop + paddingBottom
+          setContentHeight(totalHeight)
+        }
+      }
+
+      setTimeout(measureHeight, 100)
+    }
+  }, [
+    isExpanded,
+    isAnimating,
+    experienceData,
+    projectsData,
+    educationData,
+    skillsData,
+  ])
+
   const toggleExpanded = () => {
-    setIsExpanded(!isExpanded)
+    if (!isExpanded) {
+      setIsExpanded(true)
+      setTimeout(() => setIsAnimating(true), DROPPING_ANIMATION_DURATION)
+    } else {
+      setIsAnimating(false)
+      setIsExpanded(false)
+    }
   }
 
   return (
     <div ref={widgetRef} className={styles.widget}>
-      {!isExpanded ? (
-        <button
-          onClick={toggleExpanded}
-          className={styles.collapsedControl}
-          title='Reorder resume sections'
-        >
-          <FiLayers />
-        </button>
-      ) : (
-        <div className={styles.expandedControl}>
-          <div className={styles.expandedHeader}>
-            <span>Section Order</span>
-            <button onClick={toggleExpanded} className={styles.closeButton}>
-              <FaXmark />
-            </button>
+      <div
+        className={`${styles.container} ${
+          isExpanded ? styles.expanded : styles.collapsed
+        } ${isAnimating ? styles.expanding : styles.contracting}`}
+        style={
+          { '--content-height': `${contentHeight}px` } as React.CSSProperties
+        }
+      >
+        {!isExpanded && (
+          <button
+            onClick={toggleExpanded}
+            className={styles.collapsedButton}
+            title='Reorder resume sections'
+          >
+            <FiLayers />
+          </button>
+        )}
+
+        {isExpanded && (
+          <div
+            ref={contentRef}
+            className={`${styles.expandedContent} ${
+              isAnimating ? styles.contentVisible : styles.contentHidden
+            }`}
+          >
+            <div className={styles.expandedHeader}>
+              <span>Section Order</span>
+              <button onClick={toggleExpanded} className={styles.closeButton}>
+                <FaXmark />
+              </button>
+            </div>
+            <ReorderControls />
           </div>
-          <ReorderControls />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }
