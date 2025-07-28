@@ -1,0 +1,133 @@
+@use 'sass:color';
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.controlsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.widget {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10;
+}
+
+.collapsedControl {
+  @include button-base;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 6px;
+  background: $color-background;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  opacity: 0.8;
+
+  &:hover {
+    opacity: 1;
+    background: rgba($color-primary, 0.05);
+    border-color: rgba($color-primary, 0.4);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  svg {
+    font-size: 18px;
+    color: $color-primary;
+  }
+}
+
+.expandedControl {
+  @include card-container;
+  min-width: 200px;
+  max-width: 250px;
+  overflow: hidden;
+  animation: expandIn 0.2s ease-out;
+  border-radius: 8px;
+}
+
+.expandedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+
+  span {
+    @include subsection-title;
+    margin-bottom: 0;
+    font-size: 14px;
+  }
+}
+
+.closeButton {
+  @include close-button;
+  width: 24px;
+  height: 24px;
+
+  svg {
+    height: 14px;
+    width: 14px;
+  }
+}
+
+// Section block styles
+.sectionBlock {
+  @include draggable-container;
+  @include draggable-block;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  justify-content: flex-start;
+
+  &:hover {
+    border-color: rgba($color-primary, 0.5);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &.dragging {
+    cursor: grabbing;
+    opacity: 0.8;
+    border-color: $color-primary;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    transform: scale(1.02);
+  }
+
+  &.overlay {
+    background: $color-action-item-background;
+    border-color: $color-primary;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  }
+
+  &.dropping {
+    transition: transform 250ms ease;
+  }
+
+  span {
+    font-size: 14px;
+    font-weight: 500;
+    color: $color-text;
+    text-transform: capitalize;
+  }
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.sectionIcon {
+  font-size: 16px;
+  color: $color-primary;
+  flex-shrink: 0;
+}
+
+@keyframes expandIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}

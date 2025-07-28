@@ -17,7 +17,7 @@ import {
 } from 'react-icons/fi'
 import saveAs from 'file-saver'
 import type { DocumentProps, PageProps } from 'react-pdf'
-import ReorderControls from './ReorderControls/ReorderControls'
+import ReorderControlsWidget from './ReorderControlsWidget/ReorderControlsWidget'
 
 interface PdfOptions {
   cMapUrl: string
@@ -472,9 +472,7 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       {renderPdfControls()}
 
       <div className={styles.contentContainer}>
-        <div style={{ display: 'none' }} className={styles.reorderControls}>
-          <ReorderControls />
-        </div>
+        <ReorderControlsWidget />
 
         <div className={styles.previewContent} ref={previewContentRef}>
           {pdfBlob && pdfjsReady && pdfComponents && (

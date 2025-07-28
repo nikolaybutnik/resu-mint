@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useCallback, useState } from 'react'
-import styles from './ReorderControls.module.scss'
+import { useEffect, useMemo, useCallback, useState, useRef } from 'react'
+import styles from './ReorderControlsWidget.module.scss'
 import {
   useExperienceStore,
   useProjectStore,
@@ -8,7 +8,7 @@ import {
   useSettingsStore,
 } from '@/stores'
 import { ResumeSection } from '@/lib/types/settings'
-import { FiBriefcase, FiFolder, FiBook, FiTool } from 'react-icons/fi'
+import { FiBriefcase, FiFolder, FiBook, FiTool, FiLayers } from 'react-icons/fi'
 import {
   closestCenter,
   DndContext,
@@ -33,6 +33,7 @@ import {
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { FaXmark } from 'react-icons/fa6'
 
 const sectionIconMap = {
   [ResumeSection.EXPERIENCE]: FiBriefcase,
@@ -180,7 +181,6 @@ const ReorderControls: React.FC = () => {
 
   return (
     <div className={styles.controlsContainer}>
-      <h4>Section Order</h4>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -215,4 +215,54 @@ const ReorderControls: React.FC = () => {
   )
 }
 
-export default ReorderControls
+const ReorderControlsWidget: React.FC = () => {
+  const widgetRef = useRef<HTMLDivElement>(null)
+
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        widgetRef.current &&
+        !widgetRef.current.contains(event.target as Node)
+      ) {
+        setIsExpanded(false)
+      }
+    }
+
+    if (isExpanded) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isExpanded])
+
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded)
+  }
+
+  return (
+    <div ref={widgetRef} className={styles.widget}>
+      {!isExpanded ? (
+        <button
+          onClick={toggleExpanded}
+          className={styles.collapsedControl}
+          title='Reorder resume sections'
+        >
+          <FiLayers />
+        </button>
+      ) : (
+        <div className={styles.expandedControl}>
+          <div className={styles.expandedHeader}>
+            <span>Section Order</span>
+            <button onClick={toggleExpanded} className={styles.closeButton}>
+              <FaXmark />
+            </button>
+          </div>
+          <ReorderControls />
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default ReorderControlsWidget
