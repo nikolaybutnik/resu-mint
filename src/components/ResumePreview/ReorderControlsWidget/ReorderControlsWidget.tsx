@@ -7,14 +7,12 @@ import {
   useRef,
 } from 'react'
 import styles from './ReorderControlsWidget.module.scss'
-import {
-  useExperienceStore,
-  useProjectStore,
-  useEducationStore,
-  useSkillsStore,
-  useSettingsStore,
-} from '@/stores'
+import { useSettingsStore } from '@/stores'
 import { ResumeSection } from '@/lib/types/settings'
+import type { ExperienceBlockData } from '@/lib/types/experience'
+import type { ProjectBlockData } from '@/lib/types/projects'
+import type { EducationBlockData } from '@/lib/types/education'
+import type { SkillBlock } from '@/lib/types/skills'
 import { FiBriefcase, FiFolder, FiBook, FiTool, FiLayers } from 'react-icons/fi'
 import {
   closestCenter,
@@ -97,11 +95,19 @@ const DraggableSectionBlock: React.FC<DraggableSectionBlockProps> = ({
   )
 }
 
-const ReorderControls: React.FC = () => {
-  const { data: experienceData } = useExperienceStore()
-  const { data: projectsData } = useProjectStore()
-  const { data: educationData } = useEducationStore()
-  const { resumeSkillData: skillsData } = useSkillsStore()
+interface ReorderControlsProps {
+  experienceData: ExperienceBlockData[]
+  projectsData: ProjectBlockData[]
+  educationData: EducationBlockData[]
+  skillsData: SkillBlock[]
+}
+
+const ReorderControls: React.FC<ReorderControlsProps> = ({
+  experienceData,
+  projectsData,
+  educationData,
+  skillsData,
+}) => {
   const { data: settings, saveOrder } = useSettingsStore()
   const { sectionOrder } = settings
 
@@ -222,18 +228,25 @@ const ReorderControls: React.FC = () => {
   )
 }
 
-const ReorderControlsWidget: React.FC = () => {
+interface ReorderControlsWidgetProps {
+  experienceData: ExperienceBlockData[]
+  projectsData: ProjectBlockData[]
+  educationData: EducationBlockData[]
+  skillsData: SkillBlock[]
+}
+
+const ReorderControlsWidget: React.FC<ReorderControlsWidgetProps> = ({
+  experienceData,
+  projectsData,
+  educationData,
+  skillsData,
+}) => {
   const widgetRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
 
   const [isExpanded, setIsExpanded] = useState(false)
   const [isAnimating, setIsAnimating] = useState(false)
   const [contentHeight, setContentHeight] = useState(150)
-
-  const { data: experienceData } = useExperienceStore()
-  const { data: projectsData } = useProjectStore()
-  const { data: educationData } = useEducationStore()
-  const { resumeSkillData: skillsData } = useSkillsStore()
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -251,59 +264,37 @@ const ReorderControlsWidget: React.FC = () => {
     }
   }, [isExpanded])
 
-  useLayoutEffect(() => {
-    if (contentRef.current && isExpanded && isAnimating) {
-      const measureHeight = () => {
-        if (contentRef.current) {
-          // Get container padding (16px top + 16px bottom from CSS)
-          const computedStyle = window.getComputedStyle(contentRef.current)
-          const paddingTop = parseFloat(computedStyle.paddingTop) || 0
-          const paddingBottom = parseFloat(computedStyle.paddingBottom) || 0
-
-          let totalContentHeight = 0
-
-          // Measure expandedHeader with all its styling (margin, padding, border)
-          const header = contentRef.current.querySelector(
-            `.${styles.expandedHeader}`
-          )
-          if (header) {
-            const headerRect = header.getBoundingClientRect()
-            const headerStyle = window.getComputedStyle(header)
-            const headerMarginBottom = parseFloat(headerStyle.marginBottom) || 0
-            totalContentHeight += headerRect.height + headerMarginBottom
-          }
-
-          // Calculate controlsContainer height based on number of sections
-          const controls = contentRef.current.querySelector(
-            `.${styles.controlsContainer}`
-          )
-          if (controls) {
-            const sectionBlocks = controls.querySelectorAll(
-              `.${styles.sectionBlock}`
-            )
-            const numSections = sectionBlocks.length
-
-            // Each section: 48px height + 8px gap (except last one)
-            const sectionsHeight = numSections * 48
-            const gapsHeight = Math.max(0, numSections - 1) * 8
-            totalContentHeight += sectionsHeight + gapsHeight
-          }
-
-          const totalHeight = totalContentHeight + paddingTop + paddingBottom
-          setContentHeight(totalHeight)
-        }
-      }
-
-      setTimeout(measureHeight, 100)
+  const sectionsWithContent = useMemo(() => {
+    const contentMap = {
+      [ResumeSection.EXPERIENCE]: !!experienceData.length,
+      [ResumeSection.PROJECTS]: !!projectsData.length,
+      [ResumeSection.EDUCATION]: !!educationData.length,
+      [ResumeSection.SKILLS]: !!skillsData.length,
     }
-  }, [
-    isExpanded,
-    isAnimating,
-    experienceData,
-    projectsData,
-    educationData,
-    skillsData,
-  ])
+
+    return Object.values(ResumeSection).filter(
+      (sectionType) => contentMap[sectionType]
+    )
+  }, [experienceData, projectsData, educationData, skillsData])
+
+  useLayoutEffect(() => {
+    if (isExpanded) {
+      // Per CSS
+      const headerContentHeight = 36
+      const headerMargin = 16
+      const headerBorder = 1
+      const headerHeight = headerContentHeight + headerMargin + headerBorder
+
+      const numSections = sectionsWithContent.length
+      const sectionsHeight = numSections * 48
+      const gapsHeight = Math.max(0, numSections - 1) * 8
+      const containerPadding = 32
+
+      const calculatedHeight =
+        headerHeight + sectionsHeight + gapsHeight + containerPadding
+      setContentHeight(calculatedHeight)
+    }
+  }, [isExpanded, sectionsWithContent])
 
   const toggleExpanded = () => {
     if (!isExpanded) {
@@ -348,7 +339,12 @@ const ReorderControlsWidget: React.FC = () => {
                 <FaXmark />
               </button>
             </div>
-            <ReorderControls />
+            <ReorderControls
+              experienceData={experienceData}
+              projectsData={projectsData}
+              educationData={educationData}
+              skillsData={skillsData}
+            />
           </div>
         )}
       </div>

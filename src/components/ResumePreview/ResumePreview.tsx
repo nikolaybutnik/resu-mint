@@ -18,6 +18,12 @@ import {
 import saveAs from 'file-saver'
 import type { DocumentProps, PageProps } from 'react-pdf'
 import ReorderControlsWidget from './ReorderControlsWidget/ReorderControlsWidget'
+import {
+  useExperienceStore,
+  useProjectStore,
+  useEducationStore,
+  useSkillsStore,
+} from '@/stores'
 
 interface PdfOptions {
   cMapUrl: string
@@ -73,6 +79,12 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   const [isGenerating, setIsGenerating] = useState(false)
   const [isDebouncing, setIsDebouncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const { data: experienceData } = useExperienceStore()
+  const { data: projectsData } = useProjectStore()
+  const { data: educationData } = useEducationStore()
+  const { resumeSkillData: skillsData } = useSkillsStore()
+
   const [numPages, setNumPages] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
   const [zoom, setZoom] = useState<number>(DEFAULT_ZOOM)
@@ -472,7 +484,12 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       {renderPdfControls()}
 
       <div className={styles.contentContainer}>
-        <ReorderControlsWidget />
+        <ReorderControlsWidget
+          experienceData={experienceData}
+          projectsData={projectsData}
+          educationData={educationData}
+          skillsData={skillsData}
+        />
 
         <div className={styles.previewContent} ref={previewContentRef}>
           {pdfBlob && pdfjsReady && pdfComponents && (
