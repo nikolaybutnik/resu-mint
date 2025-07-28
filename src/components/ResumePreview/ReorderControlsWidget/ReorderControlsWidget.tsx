@@ -123,8 +123,8 @@ const ReorderControls: React.FC<ReorderControlsProps> = ({
     }),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 750,
-        tolerance: 15,
+        delay: 50,
+        tolerance: 5,
       },
     }),
     useSensor(KeyboardSensor, {
