@@ -254,7 +254,7 @@ const ReorderControlsWidget: React.FC<ReorderControlsWidgetProps> = ({
         widgetRef.current &&
         !widgetRef.current.contains(event.target as Node)
       ) {
-        setIsExpanded(false)
+        toggleExpanded()
       }
     }
 
@@ -296,7 +296,7 @@ const ReorderControlsWidget: React.FC<ReorderControlsWidgetProps> = ({
     }
   }, [isExpanded, sectionsWithContent])
 
-  const toggleExpanded = () => {
+  const toggleExpanded = (): void => {
     if (!isExpanded) {
       setIsExpanded(true)
       setTimeout(() => setIsAnimating(true), DROPPING_ANIMATION_DURATION)
