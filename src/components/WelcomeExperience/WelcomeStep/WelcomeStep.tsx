@@ -1,10 +1,10 @@
 import styles from './WelcomeStep.module.scss'
 
 interface WelcomeStepProps {
-  onGetStarted: () => void
+  onContinue: () => void
 }
 
-export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onGetStarted }) => {
+export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onContinue }) => {
   return (
     <div className={styles.welcomeScreen}>
       <div className={styles.welcomeFeatures}>
@@ -36,7 +36,7 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onGetStarted }) => {
       <button
         type='button'
         className={styles.getStartedButton}
-        onClick={onGetStarted}
+        onClick={onContinue}
       >
         Get Started
       </button>

@@ -9,7 +9,7 @@ import { useEducationStore } from '@/stores/educationStore'
 
 interface EducationStepProps {
   onContinue: () => void
-  onSkip: () => void
+  onSkip?: () => void
 }
 
 export const EducationStep: React.FC<EducationStepProps> = ({
@@ -113,15 +113,17 @@ export const EducationStep: React.FC<EducationStepProps> = ({
               Add Education
             </button>
           </div>
-          <div className={styles.skipSection}>
-            <button
-              type='button'
-              className={styles.skipButton}
-              onClick={onSkip}
-            >
-              Skip for now
-            </button>
-          </div>
+          {onSkip && (
+            <div className={styles.skipSection}>
+              <button
+                type='button'
+                className={styles.skipButton}
+                onClick={onSkip}
+              >
+                Skip for now
+              </button>
+            </div>
+          )}
         </>
       )
     }

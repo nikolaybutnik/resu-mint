@@ -8,11 +8,11 @@ import { SkeletonButton } from '@/components/shared/Skeleton/SkeletonButton'
 import { usePersonalDetailsStore } from '@/stores'
 
 interface PersonalDetailsStepProps {
-  onSubmitSuccess: () => void
+  onContinue: () => void
 }
 
 const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
-  onSubmitSuccess: onSubmit,
+  onContinue,
 }) => {
   const {
     data: personalDetails,
@@ -27,7 +27,7 @@ const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
       if (Object.keys(result.errors).length === 0 && result.data) {
         try {
           await save(result.data)
-          onSubmit()
+          onContinue()
         } catch (error) {
           console.error(
             'PersonalDetailsStep: error saving personal details:',

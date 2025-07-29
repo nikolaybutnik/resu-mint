@@ -1,7 +1,7 @@
 'use client'
 
 import styles from './WelcomeExperience.module.scss'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, JSX } from 'react'
 import {
   WelcomeExperienceState,
   shouldShowWelcomeExperience,
@@ -19,10 +19,18 @@ import {
   useExperienceStore,
   useProjectStore,
 } from '@/stores'
+import { PersonalDetails } from '@/lib/types/personalDetails'
+import { ExperienceBlockData } from '@/lib/types/experience'
+import { ProjectBlockData } from '@/lib/types/projects'
 
 interface WelcomeExperienceProps {
   welcomeState: WelcomeExperienceState
   onComplete: () => void
+}
+
+interface BaseStepProps {
+  onContinue: () => void
+  onSkip?: () => void
 }
 
 interface WelcomeStep {
@@ -105,18 +113,12 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
   const [isClient, setIsClient] = useState(false)
   const [currentWelcomeState, setCurrentWelcomeState] = useState(welcomeState)
 
-  type GetPersonalizationDataParams = {
-    personalDetails: typeof personalDetails
-    workExperience: typeof workExperience
-    projects: typeof projects
-    // Add params for education and skills when implemented
-  }
-
-  const getPersonalizationData = ({
-    personalDetails,
-    workExperience,
-    projects,
-  }: GetPersonalizationDataParams): PersonalizationData => {
+  const getPersonalizationData = (params: {
+    personalDetails: PersonalDetails
+    workExperience: ExperienceBlockData[]
+    projects: ProjectBlockData[]
+  }): PersonalizationData => {
+    const { personalDetails, workExperience, projects } = params
     const defaultData: PersonalizationData = {
       firstName: '',
       fullName: '',
@@ -314,22 +316,18 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     }
   }
 
-  const getStepData = (stepId: number): WelcomeStep => {
-    return getPersonalizedStepData(stepId)
-  }
-
   const getNextIncompleteStep = (
     fromStep: number,
     welcomeState?: WelcomeExperienceState
   ): number => {
     const stateToUse = welcomeState || currentWelcomeState
-    // Find the next step that hasn't been completed
+
     for (let i = fromStep; i <= WELCOME_STEPS.length; i++) {
       if (!stateToUse.completedSteps.includes(i)) {
         return i
       }
     }
-    // If all steps are complete, we shouldn't be here, but return the last step
+
     return WELCOME_STEPS.length
   }
 
@@ -338,29 +336,25 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     welcomeState?: WelcomeExperienceState
   ): boolean => {
     const stateToUse = welcomeState || currentWelcomeState
-    // Step 0 and Step 1 are always accessible
+
+    if (stepId <= currentStep) return true
+
     if (stepId === 0 || stepId === 1) return true
 
-    // A step is accessible if:
-    // 1. It's already completed, OR
-    // 2. All previous required steps are completed
     if (stateToUse.completedSteps.includes(stepId)) {
       return true
     }
 
-    // For Step 2 and beyond, check if Step 1 (personal details) is completed
     if (stepId >= 2) {
       if (!stateToUse.completedSteps.includes(1)) {
         return false
       }
     }
 
-    // For Step 4, we need either Step 2 completed (Step 3 is optional)
     if (stepId === 4) {
       return stateToUse.completedSteps.includes(2)
     }
 
-    // For Step 3, we need Step 2 completed
     if (stepId === 3) {
       return stateToUse.completedSteps.includes(2)
     }
@@ -368,123 +362,82 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
     return true
   }
 
-  const handleStepClick = (stepId: number) => {
+  const handleStepClick = (stepId: number): void => {
+    if (stepId <= currentStep) {
+      setCurrentStep(stepId)
+      return
+    }
+
     if (isStepAccessible(stepId)) {
       setCurrentStep(stepId)
     }
   }
 
-  const handleNext = () => {
-    if (currentStep === 0) {
+  const handleStepContinue = (stepId: number): void => {
+    const newWelcomeState = shouldShowWelcomeExperience()
+    setCurrentWelcomeState(newWelcomeState)
+
+    if (stepId === 0) {
       setCurrentStep(1)
       return
     }
 
-    const newWelcomeState = shouldShowWelcomeExperience()
-
-    setCurrentWelcomeState(newWelcomeState)
-
-    const nextStep = getNextIncompleteStep(currentStep + 1, newWelcomeState)
+    const nextStep = getNextIncompleteStep(stepId + 1, newWelcomeState)
 
     if (
-      nextStep < WELCOME_STEPS.length &&
-      isStepAccessible(nextStep, newWelcomeState)
+      nextStep >= WELCOME_STEPS.length ||
+      !isStepAccessible(nextStep, newWelcomeState)
     ) {
-      setCurrentStep(nextStep)
-    } else {
       onComplete()
+      return
+    }
+
+    setCurrentStep(nextStep)
+  }
+
+  const getStepProps = (stepId: number): BaseStepProps => {
+    const stepData = getPersonalizedStepData(stepId)
+
+    return {
+      onContinue: () => handleStepContinue(currentStep),
+      onSkip: stepData.isOptional
+        ? () => handleStepContinue(currentStep)
+        : undefined,
     }
   }
 
-  const handleGetStarted = () => {
-    setCurrentStep(1)
-  }
-
-  const handlePrevious = () => {
-    for (let i = currentStep - 1; i >= 0; i--) {
-      if (isStepAccessible(i)) {
-        setCurrentStep(i)
-        break
-      }
-    }
-  }
-
-  const handlePersonalDetailsSubmitSuccess = (): void => {
-    const newWelcomeState = shouldShowWelcomeExperience()
-    setCurrentWelcomeState(newWelcomeState)
-
-    const nextStep = getNextIncompleteStep(currentStep + 1, newWelcomeState)
-    if (
-      nextStep < WELCOME_STEPS.length &&
-      isStepAccessible(nextStep, newWelcomeState)
-    ) {
-      setCurrentStep(nextStep)
-    } else {
-      onComplete()
-    }
-  }
-
-  const handleEducationSubmit = (): void => {
-    const newWelcomeState = shouldShowWelcomeExperience()
-    setCurrentWelcomeState(newWelcomeState)
-
-    const nextStep = getNextIncompleteStep(currentStep + 1, newWelcomeState)
-    if (
-      nextStep < WELCOME_STEPS.length &&
-      isStepAccessible(nextStep, newWelcomeState)
-    ) {
-      setCurrentStep(nextStep)
-    } else {
-      onComplete()
-    }
-  }
-
-  const handleStepComplete = () => {
-    const newWelcomeState = shouldShowWelcomeExperience()
-    setCurrentWelcomeState(newWelcomeState)
-  }
-
-  const renderStepContent = () => {
+  const renderStepContent = (): JSX.Element | null => {
     if (!isClient) return null
+
+    const stepProps = getStepProps(currentStep)
 
     switch (currentStep) {
       case 0:
-        return <WelcomeStep onGetStarted={handleGetStarted} />
+        return <WelcomeStep onContinue={stepProps.onContinue} />
 
       case 1:
-        return (
-          <PersonalDetailsStep
-            onSubmitSuccess={handlePersonalDetailsSubmitSuccess}
-          />
-        )
+        return <PersonalDetailsStep onContinue={stepProps.onContinue} />
 
       case 2:
-        return <ExperienceProjectsStep onContinue={handleNext} />
+        return <ExperienceProjectsStep onContinue={stepProps.onContinue} />
 
       case 3:
         return (
           <EducationStep
-            onContinue={handleEducationSubmit}
-            onSkip={handleNext}
+            onContinue={stepProps.onContinue}
+            onSkip={stepProps.onSkip}
           />
         )
 
       case 4:
-        return (
-          <JobDescriptionStep
-            onContinue={handleNext}
-            onStepComplete={handleStepComplete}
-          />
-        )
+        return <JobDescriptionStep onContinue={stepProps.onContinue} />
 
       default:
         return null
     }
   }
 
-  const currentStepData = getStepData(currentStep)
-  const isLastStep = currentStep === WELCOME_STEPS.length
-  const canGoBack = currentStep > welcomeState.startStep
+  const currentStepData = getPersonalizedStepData(currentStep)
 
   return (
     <div className={styles.welcomeWrapper}>
@@ -507,66 +460,37 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
           {renderStepContent()}
         </div>
 
-        {/* Only show navigation for steps that need it (not Step 0, Step 1, Step 2, Step 3, or Step 4 which have their own buttons) */}
-        {currentStep !== 0 &&
-          currentStep !== 1 &&
-          currentStep !== 2 &&
-          currentStep !== 3 &&
-          currentStep !== 4 && (
-            <div className={styles.navigation}>
-              {canGoBack && (
-                <button
-                  type='button'
-                  className={styles.previousButton}
-                  onClick={handlePrevious}
-                >
-                  Previous
-                </button>
-              )}
-
-              <div className={styles.primaryActions}>
-                {currentStepData.isOptional && (
-                  <button
-                    type='button'
-                    className={styles.skipButton}
-                    onClick={handleNext}
-                  >
-                    Skip
-                  </button>
-                )}
-
-                <button
-                  type='button'
-                  className={styles.nextButton}
-                  onClick={handleNext}
-                >
-                  {isLastStep ? 'Get Started' : 'Continue'}
-                </button>
-              </div>
-            </div>
-          )}
-
         <div className={styles.progressIndicator}>
-          {WELCOME_STEPS.map((step) => (
-            <div
-              key={step.id}
-              className={`${styles.progressDot} ${
-                step.id === currentStep ? styles.current : ''
-              } ${isStepAccessible(step.id) ? styles.accessible : ''} ${
-                currentWelcomeState.completedSteps.includes(step.id)
-                  ? styles.completed
-                  : ''
-              }`}
-              onClick={() => handleStepClick(step.id)}
-              title={
-                !isStepAccessible(step.id)
-                  ? 'Complete previous steps to unlock'
-                  : currentWelcomeState.completedSteps.includes(step.id)
-                  ? 'Completed'
-                  : step.title
-              }
-            />
-          ))}
+          {WELCOME_STEPS.map((step) => {
+            const isCurrentStep = step.id === currentStep
+            const isPreviousStep = step.id < currentStep
+            const isAccessibleForward =
+              step.id > currentStep && isStepAccessible(step.id)
+            const isCompleted = currentWelcomeState.completedSteps.includes(
+              step.id
+            )
+            const isClickable =
+              isPreviousStep || isCurrentStep || isAccessibleForward
+
+            return (
+              <div
+                key={step.id}
+                className={`${styles.progressDot} ${
+                  isCurrentStep ? styles.current : ''
+                } ${isClickable ? styles.accessible : ''} ${
+                  isCompleted ? styles.completed : ''
+                }`}
+                onClick={() => handleStepClick(step.id)}
+                title={
+                  !isClickable && step.id > currentStep
+                    ? 'Complete previous steps to unlock'
+                    : isCompleted
+                    ? 'Completed'
+                    : step.title
+                }
+              />
+            )
+          })}
         </div>
       </div>
     </div>
