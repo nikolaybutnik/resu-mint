@@ -4,6 +4,7 @@ import { ExperienceBlockData } from '../types/experience'
 import { ProjectBlockData } from '../types/projects'
 import { v4 as uuidv4 } from 'uuid'
 import { PROJECT_FORM_DATA_KEYS, EXPERIENCE_FORM_DATA_KEYS } from '../constants'
+import { SectionType } from '../types/api'
 
 export const FormSelectionState = {
   experience: 'experience',
@@ -13,7 +14,7 @@ export const FormSelectionState = {
 export type StoredDataItem = ExperienceBlockData | ProjectBlockData
 
 export type ExperienceProjectFormData = {
-  type: 'experience' | 'project'
+  type: SectionType
   id?: string
   title: string
   companyName?: string // Only for experience

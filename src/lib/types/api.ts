@@ -6,16 +6,20 @@ import { EducationBlockData } from './education'
 import { JobDescriptionAnalysis } from './jobDetails'
 import { SkillBlock } from './skills'
 
+export type SectionType = 'experience' | 'project'
+
+export interface Section {
+  id: string
+  type: SectionType
+  title: string
+  technologies?: string[]
+  description: string
+  existingBullets: BulletPoint[]
+  targetBulletIds: string[]
+}
+
 export interface GenerateBulletsRequest {
-  sections: {
-    id: string
-    type: 'project' | 'experience'
-    title: string
-    technologies?: string[]
-    description: string
-    existingBullets: BulletPoint[]
-    targetBulletIds: string[]
-  }[]
+  sections: Section[]
   jobDescriptionAnalysis: JobDescriptionAnalysis
   settings: AppSettings
   numBullets: number

@@ -21,6 +21,7 @@ import { BulletPoint as BulletPointType } from '@/lib/types/experience'
 import { v4 as uuidv4 } from 'uuid'
 import { bulletService } from '@/lib/services/bulletService'
 import { useExperienceStore } from '@/stores'
+import { SectionType } from '@/lib/types/api'
 
 interface DraggableExperienceBlockProps {
   data: ExperienceBlockData
@@ -79,7 +80,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
       const handleLockAllToggle = useCallback(
         async (
           sectionId: string,
-          sectionType: 'experience' | 'project',
+          sectionType: SectionType,
           shouldLock: boolean
         ): Promise<void> => {
           await bulletService.toggleBulletLockAll(

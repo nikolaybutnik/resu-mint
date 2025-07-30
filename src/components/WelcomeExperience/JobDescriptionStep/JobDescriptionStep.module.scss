@@ -10,33 +10,49 @@
   @include required-field-indicator;
 }
 
-.form {
+.jobDescriptionForm {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.formField {
+.formGroup {
   @include form-field;
 }
 
-.formLabel {
+.label {
   @include form-label;
 }
 
-.formTextarea {
+.textarea {
   @include form-textarea-base;
   min-height: 200px;
   max-height: 400px;
   line-height: 1.6;
 }
 
-.errorMessage {
+.formError {
   @include form-error;
 }
 
-.analyzingContainer {
+.progressContainer {
   @include welcome-analyzing-container;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: $color-action-item-background;
+  border-radius: 12px;
+  border: 1px solid $color-border;
+}
+
+.progressMessage {
+  font-size: 1rem;
+  color: $color-text;
+  font-weight: 500;
+  text-align: center;
+  margin: 0;
 }
 
 .analysisSuccess {

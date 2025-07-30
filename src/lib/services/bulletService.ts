@@ -3,6 +3,8 @@ import { ROUTES } from '@/lib/constants'
 import {
   GenerateBulletsRequest,
   GenerateBulletsResponse,
+  Section,
+  SectionType,
 } from '@/lib/types/api'
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { sanitizeResumeBullet } from '@/lib/utils'
@@ -39,7 +41,7 @@ export const bulletService = {
   saveBullet: async (
     bullet: BulletPoint,
     sectionId: string,
-    sectionType: 'experience' | 'project',
+    sectionType: SectionType,
     maxCharsPerBullet: number
   ): Promise<void> => {
     const validation = bulletTextValidationSchema.safeParse({
@@ -95,7 +97,7 @@ export const bulletService = {
 
   deleteBullet: async (
     sectionId: string,
-    sectionType: 'experience' | 'project',
+    sectionType: SectionType,
     bulletId: string
   ): Promise<void> => {
     try {
@@ -134,7 +136,7 @@ export const bulletService = {
 
   toggleBulletLock: async (
     sectionId: string,
-    sectionType: 'experience' | 'project',
+    sectionType: SectionType,
     bulletId: string
   ): Promise<void> => {
     try {
@@ -177,7 +179,7 @@ export const bulletService = {
 
   toggleBulletLockAll: async (
     sectionId: string,
-    sectionType: 'experience' | 'project',
+    sectionType: SectionType,
     shouldLock: boolean
   ): Promise<void> => {
     try {
@@ -216,9 +218,37 @@ export const bulletService = {
     }
   },
 
+  generateBulletsForSections: async (
+    sections: Section[],
+    jobDescriptionAnalysis: JobDescriptionAnalysis,
+    settings: AppSettings,
+    numBullets?: number
+  ): Promise<
+    {
+      sectionId: string
+      bullets: BulletPoint[]
+    }[]
+  > => {
+    try {
+      const payload: GenerateBulletsRequest = {
+        sections,
+        jobDescriptionAnalysis,
+        settings,
+        numBullets: numBullets || settings.bulletsPerExperienceBlock,
+      }
+
+      const generatedData = await generateBulletsApi(payload)
+
+      return generatedData || []
+    } catch (error) {
+      console.error('Error generating bullets for sections:', error)
+      throw new Error('Failed to generate bullets for sections')
+    }
+  },
+
   generateBulletsForSection: async (
     sectionId: string,
-    sectionType: 'experience' | 'project',
+    sectionType: SectionType,
     bullets: BulletPoint[],
     jobDescriptionAnalysis: JobDescriptionAnalysis,
     settings: AppSettings
@@ -241,28 +271,27 @@ export const bulletService = {
         (bullet) => !bullets.some((b) => b.id === bullet.id)
       )
 
-      const payload: GenerateBulletsRequest = {
-        sections: [
-          {
-            id: sectionId,
-            type: sectionType,
-            title: jobDescriptionAnalysis.jobTitle,
-            description: jobDescriptionAnalysis.jobSummary,
-            existingBullets: remainingBullets || [],
-            targetBulletIds: bullets.map((b) => b.id),
-          },
-        ],
+      const sectionData = storedState?.data?.find(
+        (section) => section.id === sectionId
+      )
+
+      const section: Section = {
+        id: sectionId,
+        type: sectionType,
+        title: sectionData?.title || '',
+        description: sectionData?.description || '',
+        existingBullets: remainingBullets || [],
+        targetBulletIds: bullets.map((b) => b.id),
+      }
+
+      const results = await bulletService.generateBulletsForSections(
+        [section],
         jobDescriptionAnalysis,
         settings,
-        numBullets: bullets.length,
-      }
+        bullets.length
+      )
 
-      const generatedData = await generateBulletsApi(payload)
-
-      return {
-        sectionId,
-        bullets: generatedData?.[0]?.bullets || [],
-      }
+      return results.length > 0 ? results[0] : null
     } catch (error) {
       console.error('Error regenerating bullet:', error)
       throw new Error('Failed to regenerate bullet')

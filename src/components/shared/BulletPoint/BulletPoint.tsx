@@ -21,10 +21,11 @@ import { zodErrorsToFormErrors } from '@/lib/types/errors'
 import { bulletService } from '@/lib/services/bulletService'
 import { useJobDetailsStore } from '@/stores'
 import { useAiStateStore } from '@/stores/aiStateStore'
+import { SectionType } from '@/lib/types/api'
 
 interface BulletPointProps {
   sectionId: string
-  sectionType: 'experience' | 'project'
+  sectionType: SectionType
   bulletData: BulletPointType
   isDangerousAction?: boolean
   keywordData: KeywordData | null
