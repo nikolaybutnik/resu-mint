@@ -13,6 +13,8 @@ import { zodErrorsToFormErrors } from '@/lib/types/errors'
 import { Section } from '@/lib/types/api'
 import { bulletService } from '@/lib/services'
 import { v4 as uuidv4 } from 'uuid'
+import { ExperienceBlockData } from '@/lib/types/experience'
+import { ProjectBlockData } from '@/lib/types/projects'
 
 interface JobDescriptionStepProps {
   onContinue: () => void
@@ -51,6 +53,80 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     }
   }
 
+  const handleJobAnalysis = async (jobDescription: string): Promise<void> => {
+    await jobDetailsService.saveJobDescription(jobDescription)
+    await jobDetailsService.analyzeJobDescription(jobDescription)
+  }
+
+  const handlBulletGeneration = async (
+    experience: ExperienceBlockData[],
+    projects: ProjectBlockData[]
+  ): Promise<void> => {
+    const initialBulletCount = 4
+    const allSections: Section[] = [
+      ...experience.map((exp) => ({
+        id: exp.id,
+        type: 'experience' as const,
+        title: exp.title,
+        description: exp.description || '',
+        existingBullets: [],
+        targetBulletIds: Array.from({ length: initialBulletCount }, () =>
+          uuidv4()
+        ),
+      })),
+      ...projects.map((proj) => ({
+        id: proj.id,
+        type: 'project' as const,
+        title: proj.title,
+        technologies: proj.technologies,
+        description: proj.description || '',
+        existingBullets: [],
+        targetBulletIds: Array.from({ length: initialBulletCount }, () =>
+          uuidv4()
+        ),
+      })),
+    ]
+
+    if (allSections.length > 0) {
+      const { data: updatedJobDetails } = useJobDetailsStore.getState()
+
+      const result = await bulletService.generateBulletsForSections(
+        allSections,
+        updatedJobDetails.analysis,
+        settings
+      )
+
+      if (result.length > 0) {
+        for (const { sectionId, bullets } of result) {
+          const experienceSection = workExperience.find(
+            (exp) => exp.id === sectionId
+          )
+          if (experienceSection) {
+            const { save: saveExperience } = useExperienceStore.getState()
+            const updatedExperience = workExperience.map((exp) =>
+              exp.id === sectionId ? { ...exp, bulletPoints: bullets } : exp
+            )
+            await saveExperience(updatedExperience)
+            continue
+          }
+
+          const projectSection = projects.find((proj) => proj.id === sectionId)
+          if (projectSection) {
+            const { save: saveProjects } = useProjectStore.getState()
+            const updatedProjects = projects.map((proj) =>
+              proj.id === sectionId ? { ...proj, bulletPoints: bullets } : proj
+            )
+            await saveProjects(updatedProjects)
+          }
+        }
+      }
+    }
+  }
+
+  const handleSkillExtraction = async () => {
+    // TODO: implement
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -70,77 +146,13 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
 
     try {
       setProgressState('analyzing')
-      await jobDetailsService.saveJobDescription(jobDescriptionInput)
-      await jobDetailsService.analyzeJobDescription(jobDescriptionInput)
+      await handleJobAnalysis(jobDescriptionInput)
 
       setProgressState('extracting-skills')
       // TODO: implement
 
       setProgressState('generating-bullets')
-
-      const initialBulletCount = 4
-      const allSections: Section[] = [
-        ...workExperience.map((exp) => ({
-          id: exp.id,
-          type: 'experience' as const,
-          title: exp.title,
-          description: exp.description || '',
-          existingBullets: [],
-          targetBulletIds: Array.from({ length: initialBulletCount }, () =>
-            uuidv4()
-          ),
-        })),
-        ...projects.map((proj) => ({
-          id: proj.id,
-          type: 'project' as const,
-          title: proj.title,
-          technologies: proj.technologies,
-          description: proj.description || '',
-          existingBullets: [],
-          targetBulletIds: Array.from({ length: initialBulletCount }, () =>
-            uuidv4()
-          ),
-        })),
-      ]
-
-      if (allSections.length > 0) {
-        const { data: updatedJobDetails } = useJobDetailsStore.getState()
-
-        const result = await bulletService.generateBulletsForSections(
-          allSections,
-          updatedJobDetails.analysis,
-          settings
-        )
-
-        if (result.length > 0) {
-          for (const { sectionId, bullets } of result) {
-            const experienceSection = workExperience.find(
-              (exp) => exp.id === sectionId
-            )
-            if (experienceSection) {
-              const { save: saveExperience } = useExperienceStore.getState()
-              const updatedExperience = workExperience.map((exp) =>
-                exp.id === sectionId ? { ...exp, bulletPoints: bullets } : exp
-              )
-              await saveExperience(updatedExperience)
-              continue
-            }
-
-            const projectSection = projects.find(
-              (proj) => proj.id === sectionId
-            )
-            if (projectSection) {
-              const { save: saveProjects } = useProjectStore.getState()
-              const updatedProjects = projects.map((proj) =>
-                proj.id === sectionId
-                  ? { ...proj, bulletPoints: bullets }
-                  : proj
-              )
-              await saveProjects(updatedProjects)
-            }
-          }
-        }
-      }
+      await handlBulletGeneration(workExperience, projects)
 
       setProgressState('success')
     } catch (error) {
