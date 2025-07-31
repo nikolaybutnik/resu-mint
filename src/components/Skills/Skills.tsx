@@ -33,7 +33,6 @@ import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { v4 as uuidv4 } from 'uuid'
 import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
-import { skillsService } from '@/lib/services'
 import { useJobDetailsStore, useSettingsStore } from '@/stores'
 
 const Skills: React.FC = () => {
@@ -43,9 +42,6 @@ const Skills: React.FC = () => {
     resumeSkillData,
     saveResumeSkillsData,
   } = useSkillsStore()
-  const { data: jobDetails } = useJobDetailsStore()
-  const { data: settings } = useSettingsStore()
-
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
   const softSkillInputRef = useRef<HTMLInputElement>(null)
   const hardSuggestionsRef = useRef<HTMLDivElement>(null)
@@ -330,22 +326,8 @@ const Skills: React.FC = () => {
     )
   }
 
-  // TEMPORARY
-  const test = async () => {
-    const result = await skillsService.categorizeSkills(
-      jobDetails.analysis,
-      skillsData,
-      settings
-    )
-    console.log('result', result)
-  }
-
   return (
     <div className={styles.skills}>
-      <button onClick={test} style={{ display: 'none' }}>
-        CATEGORIZE SKILLS TEST
-      </button>
-
       <h2 className={styles.formTitle}>Skills</h2>
 
       <div className={styles.formFieldsContainer}>

@@ -14,7 +14,7 @@ interface SkillsStore {
   save: (skills: Skills) => Promise<void>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
-  saveResumeSkillsData: (skillData: SkillBlock[]) => void
+  saveResumeSkillsData: (skillData: SkillBlock[]) => Promise<void>
 }
 
 export const useSkillsStore = create<SkillsStore>((set, get) => ({

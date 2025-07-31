@@ -16,7 +16,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { analyzeJobDescriptionRequestSchema } from '@/lib/validationSchemas'
-import { Skills } from '@/lib/types/skills'
+import { SkillBlock, Skills } from '@/lib/types/skills'
 
 interface JobDescriptionStepProps {
   onContinue: () => void
@@ -123,7 +123,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     }
   }
 
-  const handleSkillExtraction = async () => {
+  const handleSkillExtraction = async (): Promise<void> => {
     const { data: workExperience } = useExperienceStore.getState()
     const { data: projects } = useProjectStore.getState()
     const initSkills = {
@@ -158,7 +158,27 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     await saveSkills(skillsToSave)
   }
 
-  const handleSkillCategorization = async () => {}
+  const handleSkillCategorization = async (): Promise<void> => {
+    const { data: jobDetails } = useJobDetailsStore.getState()
+    const { data: skills, saveResumeSkillsData } = useSkillsStore.getState()
+
+    const result = await skillsService.categorizeSkills(
+      jobDetails.analysis,
+      skills,
+      settings
+    )
+
+    if (result.length > 0) {
+      const skillBlocks: SkillBlock[] = result.map((item) => ({
+        id: uuidv4(),
+        title: item.title,
+        skills: item.skills,
+        isIncluded: true,
+      }))
+
+      await saveResumeSkillsData(skillBlocks)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
