@@ -123,7 +123,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     }
   }
 
-  const handleSkillExtraction = async () => {
+  const handleSkillMatching = async () => {
     // TODO: implement
   }
 
@@ -149,7 +149,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       await handleJobAnalysis(jobDescriptionInput)
 
       setProgressState('extracting-skills')
-      await handleSkillExtraction()
+      await handleSkillMatching()
 
       setProgressState('generating-bullets')
       await handlBulletGeneration(workExperience, projects)

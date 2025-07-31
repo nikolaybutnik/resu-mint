@@ -4,7 +4,7 @@ import { ExperienceBlockData } from '@/lib/types/experience'
 import { AppSettings } from './settings'
 import { EducationBlockData } from './education'
 import { JobDescriptionAnalysis } from './jobDetails'
-import { SkillBlock } from './skills'
+import { SkillBlock, Skills } from './skills'
 
 export type SectionType = 'experience' | 'project'
 
@@ -57,4 +57,16 @@ export interface GenerateSkillSuggestionsRequest {
 export interface GenerateSkillSuggestionsResponse {
   hardSkillSuggestions: string[]
   softSkillSuggestions: string[]
+}
+
+export interface ExtractSkillsRequest {
+  experienceSections: ExperienceBlockData[]
+  projectSections: ProjectBlockData[]
+  currentSkills: Skills
+  settings: AppSettings
+}
+
+export interface ExtractSkillsResponse {
+  hardSkills: string[]
+  softSkills: string[]
 }

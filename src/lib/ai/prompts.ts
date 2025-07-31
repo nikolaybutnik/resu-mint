@@ -25,7 +25,7 @@ const generateExamplesForLength = (maxChars: number): string => {
 
 export const generateJobDescriptionAnalysisPrompt = (
   jobDescription: string
-) => {
+): string => {
   return `
 <INSTRUCTIONS>
 Analyze the job description and return structured data using the "generate_job_description_analysis" tool. Follow these rules:
@@ -55,7 +55,7 @@ const formatSectionForAI = (section: {
   description: string
   existingBullets: BulletPoint[]
   technologies?: string[]
-}) => {
+}): string => {
   return `
   <title>
   ${section.title}
@@ -84,7 +84,7 @@ export const generateProjectBulletPointsPrompt = (
   jobDescriptionAnalysis: JobDescriptionAnalysis,
   numBullets: number,
   maxCharsPerBullet: number
-) => {
+): string => {
   const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
   const technologies = section.technologies?.join(', ')
@@ -123,7 +123,7 @@ export const generateExperienceBulletPointsPrompt = (
   jobDescriptionAnalysis: JobDescriptionAnalysis,
   numBullets: number,
   maxCharsPerBullet: number
-) => {
+): string => {
   const hardSkills = jobDescriptionAnalysis.skillsRequired.hard.join(', ')
   const softSkills = jobDescriptionAnalysis.skillsRequired.soft.join(', ')
   const contextualSkills = jobDescriptionAnalysis.contextualSkills.join(', ')
@@ -159,7 +159,7 @@ export const generateSkillSuggestionsPrompt = (
     softSkills: { skills: string[] }
   },
   userExperience: string[]
-) => {
+): string => {
   const jobSummary = jobAnalysis.jobSummary
   const jobHardSkills = jobAnalysis.skillsRequired.hard.join(', ')
   const jobSoftSkills = jobAnalysis.skillsRequired.soft.join(', ')
@@ -197,5 +197,44 @@ TASK: Based on the user's experience, identify skills they likely possess that a
 Focus on skills that are directly mentioned or strongly implied by their work. Prioritize job-required skills over contextual ones.
 
 Use the "generate_skill_suggestions" tool to return your suggestions.
+`
+}
+
+export const generateSkillsExtractionPrompt = (
+  contentToExtractFrom: string,
+  currentSkills: {
+    hardSkills: string[]
+    softSkills: string[]
+  }
+): string => {
+  const existingHardSkills = currentSkills.hardSkills.join(', ')
+  const existingSoftSkills = currentSkills.softSkills.join(', ')
+
+  return `
+IMPORTANT: You are extracting NEW skills only. Do NOT extract any skills that already exist in the user's current skills list.
+
+CURRENT SKILLS (EXCLUDE THESE FROM EXTRACTION):
+- Hard Skills: ${existingHardSkills || 'None'}
+- Soft Skills: ${existingSoftSkills || 'None'}
+
+Extract all hard and soft skills from the content below using the "extract_skills" tool.
+
+SKILL CLASSIFICATION RULES:
+- Hard Skills: Technical abilities, tools, technologies, programming languages, frameworks, software, technical systems, methodologies, or technical processes (e.g., "React", "Python", "AWS", "Docker", "SQL", "Machine Learning", "Testing", "Automation", "CI/CD", "Agile")
+- Soft Skills: ONLY interpersonal abilities, communication styles, work habits, leadership qualities, or behavioral competencies (e.g., "Leadership", "Communication", "Problem-solving", "Collaboration", "Time Management", "Adaptability", "Teamwork", "Critical Thinking", "Attention to Detail")
+
+EXTRACTION RULES:
+1. HARD SKILLS: ONLY extract skills that are EXPLICITLY mentioned or directly referenced in the content (e.g., "used React", "built with Python", "deployed on AWS", "implemented automation", "managed testing")
+2. SOFT SKILLS: Can be extracted from explicit mentions OR inferred from demonstrated behaviors/actions (e.g., "led a team" → Leadership, "solved complex problems" → Problem-solving, "worked with stakeholders" → Communication)
+3. CRITICAL: Before extracting any skill, check if it's already in the current skills list above
+4. Be specific - prefer "React" over "Frontend Development", "AWS" over "Cloud Computing"
+5. Normalize skill names (e.g., "JavaScript" not "JS", "Git" not "GitHub")
+6. Avoid duplicates - if a skill appears multiple times, extract it only once
+7. VALIDATION: If unsure whether something is hard or soft skill, default to hard skill (technical processes, methodologies, tools, etc. are typically hard skills)
+
+CONTENT TO ANALYZE:
+${contentToExtractFrom}
+
+TASK: Extract all unique hard and soft skills from the content that are NOT already in the current skills list. Use the "extract_skills" tool to return your findings.
 `
 }

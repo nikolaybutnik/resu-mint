@@ -208,3 +208,31 @@ export const generateSkillSuggestionsTool = () => ({
     },
   },
 })
+
+export const skillExtractionTool = () => ({
+  type: 'function' as const,
+  function: {
+    name: 'extract_skills',
+    description:
+      "Extract hard and soft skills from content, excluding skills already in the user's current skills list",
+    parameters: {
+      type: 'object',
+      properties: {
+        hardSkills: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Technical abilities, tools, technologies, programming languages, frameworks, software, or technical systems found in the content (e.g., "React", "Python", "AWS", "Docker", "SQL", "Machine Learning")',
+        },
+        softSkills: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Interpersonal abilities, communication styles, work habits, leadership qualities, or problem-solving approaches found in the content (e.g., "Leadership", "Communication", "Problem-solving", "Collaboration")',
+        },
+      },
+      required: ['hardSkills', 'softSkills'],
+      additionalProperties: false,
+    },
+  },
+})

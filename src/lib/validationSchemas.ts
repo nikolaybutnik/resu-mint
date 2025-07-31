@@ -834,6 +834,13 @@ export const generateSkillsRequestSchema = z.object({
   settings: settingsSchema,
 })
 
+export const extractSkillsSchema = z.object({
+  experienceSections: z.array(experienceBlockSchema),
+  projectSections: z.array(projectBlockSchema),
+  currentSkills: skillsValidationSchema,
+  settings: settingsSchema,
+})
+
 export const generateSkillsResponseSchema = z.object({
   hardSkills: z.array(z.string()),
   softSkills: z.array(z.string()),
