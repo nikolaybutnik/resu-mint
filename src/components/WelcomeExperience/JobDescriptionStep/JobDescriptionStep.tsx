@@ -25,6 +25,7 @@ interface JobDescriptionStepProps {
 type ProgressState =
   | 'analyzing'
   | 'extracting-skills'
+  | 'categorizing-skills'
   | 'generating-bullets'
   | 'success'
 
@@ -157,6 +158,8 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     await saveSkills(skillsToSave)
   }
 
+  const handleSkillCategorization = async () => {}
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -182,6 +185,9 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       setProgressState('extracting-skills')
       await handleSkillExtraction()
 
+      setProgressState('categorizing-skills')
+      await handleSkillCategorization()
+
       setProgressState('generating-bullets')
       await handlBulletGeneration(workExperience, projects)
 
@@ -201,6 +207,8 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
         return 'Analyzing job description...'
       case 'extracting-skills':
         return 'Extracting skills...'
+      case 'categorizing-skills':
+        return 'Categorizing skills...'
       case 'generating-bullets':
         return 'Generating customized bullet points...'
       case 'success':

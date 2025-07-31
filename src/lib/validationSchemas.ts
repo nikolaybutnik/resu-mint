@@ -854,3 +854,9 @@ export const createPdfRequestSchema = z.object({
   skillsSection: z.array(resumeSkillBlockSchema),
   settings: settingsSchema,
 })
+
+export const categorizeSkillsSchema = z.object({
+  jobAnalysis: jobDescriptionAnalysisSchema,
+  skills: skillsValidationSchema,
+  settings: settingsSchema,
+})

@@ -238,3 +238,68 @@ ${contentToExtractFrom}
 TASK: Extract all unique hard and soft skills from the content that are NOT already in the current skills list. Use the "extract_skills" tool to return your findings.
 `
 }
+
+export const generateSkillCategorizationPrompt = (
+  jobSummary: string,
+  requiredSkills: {
+    hard: string[]
+    soft: string[]
+    contextual: string[]
+  },
+  userSkills: {
+    hard: string[]
+    soft: string[]
+  }
+): string => {
+  const requiredHardSkills = requiredSkills.hard.join(', ')
+  const requiredSoftSkills = requiredSkills.soft.join(', ')
+  const contextualSkills = requiredSkills.contextual.join(', ')
+  const userHardSkills = userSkills.hard.join(', ')
+  const userSoftSkills = userSkills.soft.join(', ')
+
+  return `
+<INSTRUCTIONS>
+Categorize the user's skills to optimize their resume for the target job. Use the "categorize_skills" tool.
+
+CRITICAL SKILL RULES:
+1. HARD SKILLS: ONLY use skills from the user's hard skills list below. DO NOT create or add new hard skills.
+2. SOFT SKILLS: AVOID soft skills categories. Only include soft skills if user has fewer than 4 relevant hard skills total. Soft skills are a last resort.
+3. EXACT SPELLING MATCH: When user skill matches job requirement, use the exact spelling from job requirements:
+   - User has "React" → Use "React.js" if job lists "React.js"
+   - User has "JavaScript" → Use "JS" if job lists "JS"
+4. PRIORITY ORDER: Hard skills → Contextual skills → Soft skills (avoid soft skills)
+
+CATEGORIZATION RULES:
+- FIRST PRIORITY: Include ALL user skills that exactly match job requirements
+- SECOND PRIORITY: Include user skills that closely relate to job requirements
+- LAST PRIORITY: Only include other user skills if they strengthen thin categories
+- ABSOLUTE RULE: MINIMUM 2 skills per category - NEVER create single-skill categories
+- If you cannot create at least 2 categories with 2+ skills each, combine categories more broadly
+- MAXIMUM 3 categories total - focus on substantial, well-populated groups
+- If a skill doesn't fit logically into an existing category, either expand the category or omit the skill
+
+LOGICAL GROUPING REQUIREMENTS:
+- Programming Languages: JavaScript, Python, Java, TypeScript, etc.
+- Frameworks & Libraries: React, Next.js, Angular, Vue, Express, dnd-kit, etc.
+- Development Tools: Git, Docker, VS Code, Webpack, etc.
+- Cloud & Infrastructure: AWS, Azure, Kubernetes, etc.
+- Databases: PostgreSQL, MongoDB, Redis, etc.
+- DO NOT use vague categories like "Technical Skills" or "Development Technologies"
+- DO NOT misplace skills (React is NOT a development tool, it's a framework)
+- Categories must be semantically accurate and industry-standard
+
+JOB SUMMARY:
+${jobSummary}
+
+USER'S SKILLS:
+Hard Skills: ${userHardSkills || 'None'}
+Soft Skills: ${userSoftSkills || 'None'}
+
+JOB REQUIREMENTS:
+Required Hard Skills: ${requiredHardSkills || 'None'}
+Contextual Skills: ${contextualSkills || 'None'}
+Required Soft Skills: ${requiredSoftSkills || 'None'}
+
+TASK: Select and categorize user skills that match job requirements. Prioritize hard skills that align with the job.
+`
+}

@@ -4,6 +4,8 @@ import { Skills } from '@/lib/types/skills'
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { AppSettings } from '@/lib/types/settings'
 import {
+  CategorizeSkillsRequest,
+  CategorizeSkillsResponse,
   ExtractSkillsRequest,
   ExtractSkillsResponse,
   GenerateSkillSuggestionsRequest,
@@ -50,6 +52,22 @@ const extractSkillsApi = async (
   }
 }
 
+const categorizeSkillsApi = async (
+  params: CategorizeSkillsRequest
+): Promise<CategorizeSkillsResponse> => {
+  try {
+    const response = await api.post<
+      CategorizeSkillsRequest,
+      CategorizeSkillsResponse
+    >(ROUTES.CATEGORIZE_USER_SKILLS, params)
+
+    return response
+  } catch (error) {
+    console.error('Error etracting skills:', error)
+    throw new Error('Failed to extract skills')
+  }
+}
+
 export const skillsService = {
   generateSuggestions: async (
     jobAnalysis: JobDescriptionAnalysis,
@@ -81,5 +99,19 @@ export const skillsService = {
     }
 
     return extractSkillsApi(payload)
+  },
+
+  categorizeSkills: async (
+    jobAnalysis: JobDescriptionAnalysis,
+    skills: Skills,
+    settings: AppSettings
+  ) => {
+    const payload: CategorizeSkillsRequest = {
+      jobAnalysis,
+      skills,
+      settings,
+    }
+
+    return categorizeSkillsApi(payload)
   },
 }

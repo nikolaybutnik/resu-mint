@@ -30,12 +30,11 @@ import {
   restrictToVerticalAxis,
 } from '@dnd-kit/modifiers'
 import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
-import { DROPPING_ANIMATION_DURATION, ROUTES } from '@/lib/constants'
+import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { v4 as uuidv4 } from 'uuid'
 import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
-import { api } from '@/lib/services'
-import { ExtractSkillsRequest } from '@/lib/types/api'
-import { useExperienceStore, useProjectStore, useSettingsStore } from '@/stores'
+import { skillsService } from '@/lib/services'
+import { useJobDetailsStore, useSettingsStore } from '@/stores'
 
 const Skills: React.FC = () => {
   const {
@@ -44,8 +43,7 @@ const Skills: React.FC = () => {
     resumeSkillData,
     saveResumeSkillsData,
   } = useSkillsStore()
-  const { data: workExperience } = useExperienceStore()
-  const { data: projects } = useProjectStore()
+  const { data: jobDetails } = useJobDetailsStore()
   const { data: settings } = useSettingsStore()
 
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
@@ -334,20 +332,18 @@ const Skills: React.FC = () => {
 
   // TEMPORARY
   const test = async () => {
-    const body: ExtractSkillsRequest = {
-      experienceSections: workExperience,
-      projectSections: projects,
-      currentSkills: skillsData,
-      settings,
-    }
-    const result = await api.post(ROUTES.EXTRACT_USER_SKILLS, body)
+    const result = await skillsService.categorizeSkills(
+      jobDetails.analysis,
+      skillsData,
+      settings
+    )
     console.log('result', result)
   }
 
   return (
     <div className={styles.skills}>
-      <button style={{ display: 'none' }} onClick={test}>
-        EXTRACT SKILLS TEST
+      <button onClick={test} style={{ display: 'none' }}>
+        CATEGORIZE SKILLS TEST
       </button>
 
       <h2 className={styles.formTitle}>Skills</h2>

@@ -236,3 +236,41 @@ export const skillExtractionTool = () => ({
     },
   },
 })
+
+export const skillCategorizationTool = () => ({
+  type: 'function' as const,
+  function: {
+    name: 'categorize_skills',
+    description:
+      'Categorize skills into logical groups that are specifically tailored to match the requirements and priorities of the target job description',
+    parameters: {
+      type: 'object',
+      properties: {
+        categories: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              title: {
+                type: 'string',
+                description:
+                  'The title/name of the skill category (e.g., "Programming Languages", "Frameworks", "Tools", "Soft Skills")',
+              },
+              skills: {
+                type: 'array',
+                items: { type: 'string' },
+                description: 'Array of skills that belong to this category',
+              },
+            },
+            required: ['title', 'skills'],
+            additionalProperties: false,
+          },
+          description:
+            'Array of skill categories tailored to the job description, each with a title and array of skills',
+        },
+      },
+      required: ['categories'],
+      additionalProperties: false,
+    },
+  },
+})

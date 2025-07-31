@@ -70,3 +70,14 @@ export interface ExtractSkillsResponse {
   hardSkills: string[]
   softSkills: string[]
 }
+
+export interface CategorizeSkillsRequest {
+  jobAnalysis: JobDescriptionAnalysis
+  skills: Skills
+  settings: AppSettings
+}
+
+export type CategorizeSkillsResponse = Array<{
+  title: string
+  skills: string[]
+}>

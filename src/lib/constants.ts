@@ -14,6 +14,7 @@ export const ROUTES = {
   GENERATE_BULLETS: `${API_BASE_URL}/generate-bullets`,
   CREATE_PDF: `${API_BASE_URL}/create-pdf`,
   EXTRACT_USER_SKILLS: `${API_BASE_URL}/extract-user-skills`,
+  CATEGORIZE_USER_SKILLS: `${API_BASE_URL}/categorize-user-skills`,
   GENERATE_SKILL_SUGGESTIONS: `${API_BASE_URL}/generate-skill-suggestions`,
   TECTONIC_HEALTH: `${API_BASE_URL}/tectonic-health`,
 } as const
