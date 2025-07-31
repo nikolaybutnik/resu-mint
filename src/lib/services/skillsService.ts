@@ -4,9 +4,13 @@ import { Skills } from '@/lib/types/skills'
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { AppSettings } from '@/lib/types/settings'
 import {
+  ExtractSkillsRequest,
+  ExtractSkillsResponse,
   GenerateSkillSuggestionsRequest,
   GenerateSkillSuggestionsResponse,
 } from '../types/api'
+import { ExperienceBlockData } from '../types/experience'
+import { ProjectBlockData } from '../types/projects'
 
 const generateSuggestionsApi = async (
   params: GenerateSkillSuggestionsRequest
@@ -27,6 +31,25 @@ const generateSuggestionsApi = async (
   }
 }
 
+const extractSkillsApi = async (
+  params: ExtractSkillsRequest
+): Promise<ExtractSkillsResponse> => {
+  try {
+    const response = await api.post<
+      ExtractSkillsRequest,
+      ExtractSkillsResponse
+    >(ROUTES.EXTRACT_USER_SKILLS, params)
+
+    return {
+      hardSkills: response.hardSkills || [],
+      softSkills: response.softSkills || [],
+    }
+  } catch (error) {
+    console.error('Error etracting skills:', error)
+    throw new Error('Failed to extract skills')
+  }
+}
+
 export const skillsService = {
   generateSuggestions: async (
     jobAnalysis: JobDescriptionAnalysis,
@@ -42,5 +65,21 @@ export const skillsService = {
     }
 
     return generateSuggestionsApi(payload)
+  },
+
+  extractSkills: async (
+    workExperience: ExperienceBlockData[],
+    projects: ProjectBlockData[],
+    currentSkills: Skills,
+    settings: AppSettings
+  ): Promise<ExtractSkillsResponse> => {
+    const payload: ExtractSkillsRequest = {
+      experienceSections: workExperience,
+      projectSections: projects,
+      currentSkills,
+      settings,
+    }
+
+    return extractSkillsApi(payload)
   },
 }

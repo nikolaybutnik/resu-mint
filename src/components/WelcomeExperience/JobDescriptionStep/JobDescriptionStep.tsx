@@ -1,6 +1,5 @@
 import styles from './JobDescriptionStep.module.scss'
 import { useState } from 'react'
-import { z } from 'zod'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
 import { jobDetailsService } from '@/lib/services/jobDetailsService'
 import {
@@ -8,13 +7,16 @@ import {
   useJobDetailsStore,
   useProjectStore,
   useSettingsStore,
+  useSkillsStore,
 } from '@/stores'
 import { zodErrorsToFormErrors } from '@/lib/types/errors'
 import { Section } from '@/lib/types/api'
-import { bulletService } from '@/lib/services'
+import { bulletService, skillsService } from '@/lib/services'
 import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
+import { analyzeJobDescriptionRequestSchema } from '@/lib/validationSchemas'
+import { Skills } from '@/lib/types/skills'
 
 interface JobDescriptionStepProps {
   onContinue: () => void
@@ -26,16 +28,13 @@ type ProgressState =
   | 'generating-bullets'
   | 'success'
 
-const jobDescriptionSchema = z.object({
-  jobDescription: z.string().min(1, 'Job description is required'),
-})
-
 export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   onContinue,
 }) => {
   const { data: jobDetails, hasAnalysis } = useJobDetailsStore()
   const { data: workExperience } = useExperienceStore()
   const { data: projects } = useProjectStore()
+  const { save: saveSkills } = useSkillsStore()
   const { data: settings } = useSettingsStore()
 
   const [jobDescriptionInput, setJobDescriptionInput] = useState(
@@ -123,8 +122,39 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     }
   }
 
-  const handleSkillMatching = async () => {
-    // TODO: implement
+  const handleSkillExtraction = async () => {
+    const { data: workExperience } = useExperienceStore.getState()
+    const { data: projects } = useProjectStore.getState()
+    const initSkills = {
+      hardSkills: {
+        skills: [],
+        suggestions: [],
+      },
+      softSkills: {
+        skills: [],
+        suggestions: [],
+      },
+    }
+
+    const result = await skillsService.extractSkills(
+      workExperience,
+      projects,
+      initSkills,
+      settings
+    )
+
+    const skillsToSave: Skills = {
+      hardSkills: {
+        skills: result.hardSkills,
+        suggestions: [],
+      },
+      softSkills: {
+        skills: result.softSkills,
+        suggestions: [],
+      },
+    }
+
+    await saveSkills(skillsToSave)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -135,8 +165,9 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       return
     }
 
-    const validation = jobDescriptionSchema.safeParse({
+    const validation = analyzeJobDescriptionRequestSchema.safeParse({
       jobDescription: jobDescriptionInput,
+      settings,
     })
 
     if (!validation.success) {
@@ -149,7 +180,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       await handleJobAnalysis(jobDescriptionInput)
 
       setProgressState('extracting-skills')
-      await handleSkillMatching()
+      await handleSkillExtraction()
 
       setProgressState('generating-bullets')
       await handlBulletGeneration(workExperience, projects)
