@@ -11,11 +11,13 @@ This project is public, with a custom license allowing personal use and forks fo
 ### AI-Powered Resume Creation
 - **Intelligent Bullet Generation**: Creates tailored bullet points matching job descriptions using OpenAI's GPT models
 - **Job Description Analysis**: Extracts key skills, requirements, and context from job postings
+- **Skill Extraction & Categorization**: Automatically extracts skills from user content and intelligently categorizes them based on job requirements
+- **Skill Suggestion System**: Suggests relevant skills based on user experience and job analysis
 - **Keyword Prioritization**: Analyzes keyword usage across resume sections to prioritize underused skills
 - **Skill Alignment Tracking**: Monitors alignment between job requirements and resume content
 
-### Live Preview & PDF Generation
-- **Real-Time Preview**: Instant PDF preview with debounced updates during editing
+### PDF Generation & Preview
+- **Automatic Preview**: PDF preview with debounced updates during editing
 - **Advanced Caching**: Multi-tier caching system (memory + localStorage) for optimal performance
 - **LaTeX PDF Generation**: Produces ATS-friendly PDFs with Tectonic for professional output
 - **Queue Management**: Handles multiple concurrent requests efficiently
@@ -25,10 +27,10 @@ This project is public, with a custom license allowing personal use and forks fo
 - **Work Experience**: Drag-and-drop interface with AI-generated bullet points
 - **Projects**: Project showcase with drag-and-drop interface, technology highlighting, and AI-generated bullet points
 - **Education**: Academic background and certifications
-- **Skills Management**: Automatic skill extraction from descriptions with manual curation
+- **Skills Management**: Automatic skill extraction from descriptions, intelligent categorization, and manual curation with suggestion system
 
 ### Smart User Experience
-- **Welcome Experience**: Guided 4-step onboarding flow with personalized content and smart progress tracking
+- **Welcome Experience**: Guided 5-step onboarding flow with personalized content and smart progress tracking
 - **Drag-and-Drop Interface**: Easily arrange sections with dnd-kit, or hide sections entirely
 - **Mobile-Responsive**: Optimized input and preview modes for all devices (work in progress)
 - **Intelligent Messaging**: Context-aware status updates and requirement guidance
@@ -90,12 +92,12 @@ This project is public, with a custom license allowing personal use and forks fo
 ## How to Use
 
 ### Welcome Experience (First-Time Users)
-New users are guided through a 4-step onboarding process with personalized content:
+New users are guided through a 5-step onboarding process with personalized content:
 1. **Welcome Screen**: Introduction to ResuMint's features
 2. **Personal Details**: Name and email
 3. **Experience & Projects**: Add initial work experience or project
 4. **Education** (Optional): Academic background
-5. **Job Description**: Paste target job posting for AI optimization
+5. **Job Description**: Paste target job posting for AI optimization, skill extraction, and bullet generation
 
 ### Building Your Resume
 1. **Enter Job Description**: Paste a job posting for AI analysis and keyword extraction
@@ -103,14 +105,15 @@ New users are guided through a 4-step onboarding process with personalized conte
 3. **Build Your Resume**: Add work experience, projects, and education with drag-and-drop organization
 
 ### AI-Powered Features
-4. **Automatic Skill Detection**: Skills are extracted from your descriptions and categorized
-5. **Keyword Optimization**: The system tracks keyword usage and prioritizes underused skills
-6. **Smart Bullet Generation**: AI creates targeted bullet points emphasizing relevant keywords
+4. **Automatic Skill Detection**: Skills are extracted from your experience and projects, and intelligently categorized based on job requirements
+5. **Skill Suggestions**: AI suggests relevant skills based on your experience and job analysis
+6. **Keyword Optimization**: The system tracks keyword usage and prioritizes underused skills (In development)
+7. **Smart Bullet Generation**: AI creates targeted bullet points emphasizing relevant keywords
 
 ### Customization & Export
-7. **Live Preview**: Watch your resume update in real-time as you make changes
-8. **Customize Settings**: Adjust bullet point counts, character limits, and AI model preferences
-9. **Download PDF**: Generate and save your optimized resume
+1. **Real-time Preview**: Watch your resume update automatically as you make changes
+2. **Customize Settings**: Adjust bullet point counts, character limits, and AI model preferences, and order of resume sections
+3.  **Download PDF**: Generate and save your optimized resume
 
 ## Architecture
 
@@ -204,7 +207,7 @@ This pattern ensures:
 - **Job Analysis**: Extracts keywords, skills, and requirements from job descriptions
 - **Keyword Management**: Tracks usage statistics and prioritizes underused skills
 - **Bullet Generation**: Context-aware AI prompting with keyword prioritization
-- **Skill Extraction**: Automatic skill detection from user descriptions
+- **Skill Processing**: Automatic skill extraction, intelligent categorization, and AI-powered skill suggestions
 
 ### Performance Optimizations
 
@@ -277,7 +280,9 @@ resu-mint/
 │   │   │   ├── analyze-job-description/    # Job analysis
 │   │   │   ├── generate-bullets/           # AI bullet generation
 │   │   │   ├── create-pdf/                 # PDF generation
-│   │   │   ├── parse-section-skills/       # Skill extraction
+│   │   │   ├── extract-user-skills/        # Skill extraction from user content
+│   │   │   ├── categorize-user-skills/     # Intelligent skill categorization
+│   │   │   ├── generate-skill-suggestions/ # AI-powered skill suggestions
 │   │   │   └── tectonic-health/            # System health monitoring
 │   │   ├── globals.scss     # Global styles
 │   │   ├── layout.tsx       # Root layout
@@ -318,7 +323,7 @@ resu-mint/
 │   │   │   ├── api.ts                 # HTTP client
 │   │   │   ├── bulletService.ts       # Bullet generation
 │   │   │   ├── jobDetailsService.ts   # Job analysis and parsing
-│   │   │   └── livePreviewService.ts  # PDF preview and download
+│   │   │   └── skillsService.ts       # Skill extraction, categorization, and suggestions
 │   │   ├── hooks/           # Custom React hooks
 │   │   │   ├── useKeywordAnalysis.ts # Keyword tracking and analysis
 │   │   │   ├── useExperience.ts      # Experience data hook (legacy)
@@ -348,7 +353,9 @@ resu-mint/
 - **POST /api/analyze-job-description** - Analyzes job postings and extracts keywords
 - **POST /api/generate-bullets** - Creates AI-powered bullet points for experiences/projects
 - **POST /api/create-pdf** - Generates LaTeX-based PDF resumes
-- **POST /api/parse-section-skills** - Extracts skills from user descriptions
+- **POST /api/extract-user-skills** - Extracts skills from user descriptions and content
+- **POST /api/categorize-user-skills** - Intelligently categorizes skills based on job requirements
+- **POST /api/generate-skill-suggestions** - Suggests relevant skills based on user experience and job analysis
 - **GET/POST /api/tectonic-health** - System health monitoring and cache management
 
 ## Admin Dashboard

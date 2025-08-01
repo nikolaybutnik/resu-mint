@@ -33,7 +33,6 @@ import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { v4 as uuidv4 } from 'uuid'
 import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
-import { useJobDetailsStore, useSettingsStore } from '@/stores'
 
 const Skills: React.FC = () => {
   const {
