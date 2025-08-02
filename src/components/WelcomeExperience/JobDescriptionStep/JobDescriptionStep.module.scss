@@ -71,11 +71,32 @@
   min-height: 400px;
   padding: 40px 20px;
   animation: fadeInCenter 0.5s ease-out;
+  width: 100%;
+
+  @include breakpoint(tablet) {
+    min-height: 350px;
+    padding: 30px 16px;
+  }
+
+  @include breakpoint(mobile) {
+    min-height: 300px;
+    padding: 20px 12px;
+  }
 
   &:has(.messageContainer:has(.successContainer)) {
     align-items: flex-start;
     padding-top: 20px;
     padding-bottom: 60px;
+
+    @include breakpoint(tablet) {
+      padding-top: 16px;
+      padding-bottom: 40px;
+    }
+
+    @include breakpoint(mobile) {
+      padding-top: 12px;
+      padding-bottom: 30px;
+    }
   }
 }
 
@@ -84,17 +105,17 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 24px;
-  padding: 40px;
+  gap: 6%;
+  padding: 10%;
   background: $color-background;
-  width: 400px;
-  height: 400px;
+  width: clamp(200px, 100%, 400px);
   border-radius: 50%;
   border: 2px solid rgba($color-primary, 0.15);
   position: relative;
   overflow: visible;
   transition: all 0.4s ease;
   box-shadow: 0 15px 50px rgba(0, 0, 0, 0.12);
+  aspect-ratio: 1;
 
   &.analyzing {
     background: linear-gradient(
@@ -117,16 +138,18 @@
     border-color: rgba($color-transformative, 0.4);
     box-shadow: 0 25px 70px rgba(38, 214, 156, 0.25);
     border-radius: 16px;
-    width: 500px;
-    height: 450px;
-    padding: 32px 40px;
+    width: clamp(250px, 100%, 500px);
+    height: auto;
+    min-height: clamp(200px, 90%, 450px);
+    padding: 8% 10%;
     transform: scale(1.02);
     animation: morphToBox 0.3s ease-out;
+    aspect-ratio: auto;
   }
 }
 
 .messageText {
-  font-size: 1.1rem;
+  font-size: 18px;
   color: $color-text;
   font-weight: 500;
   text-align: center;
@@ -135,13 +158,29 @@
   transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
   line-height: 1.5;
 
+  @include breakpoint(tablet) {
+    font-size: 16px;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 14px;
+  }
+
   &.successText {
-    font-size: 1.2rem;
+    font-size: 20px;
     color: $color-transformative;
     font-weight: 600;
-    max-width: 420px;
+    max-width: 90%;
     line-height: 1.6;
     animation: successFadeIn 0.6s ease-out;
+
+    @include breakpoint(tablet) {
+      font-size: 18px;
+    }
+
+    @include breakpoint(mobile) {
+      font-size: 16px;
+    }
   }
 }
 
@@ -225,6 +264,20 @@
   background: rgba($color-primary, 0.08);
   border-radius: 50%;
   border: 2px solid rgba($color-primary, 0.15);
+
+  @include breakpoint(tablet) {
+    font-size: 28px;
+    width: 52px;
+    height: 52px;
+    margin: 10px 0 6px 0;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 24px;
+    width: 44px;
+    height: 44px;
+    margin: 8px 0 5px 0;
+  }
 }
 
 @keyframes pulse {
@@ -260,6 +313,16 @@
   margin: 8px 0;
   position: relative;
   animation: successContentFadeIn 0.5s ease-out 0.3s both;
+
+  @include breakpoint(tablet) {
+    gap: 14px;
+    margin: 6px 0;
+  }
+
+  @include breakpoint(mobile) {
+    gap: 12px;
+    margin: 4px 0;
+  }
 }
 
 .successIcon {
@@ -274,6 +337,14 @@
   animation: bounce-celebrate 1.2s ease-out;
   z-index: 2;
   position: relative;
+
+  @include breakpoint(tablet) {
+    font-size: 42px;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 36px;
+  }
 }
 
 .sparkles {
@@ -284,12 +355,30 @@
   width: 120px;
   height: 120px;
   pointer-events: none;
+
+  @include breakpoint(tablet) {
+    width: 100px;
+    height: 100px;
+  }
+
+  @include breakpoint(mobile) {
+    width: 80px;
+    height: 80px;
+  }
 }
 
 .sparkle {
   position: absolute;
   font-size: 20px;
   animation: sparkle-float 2s ease-in-out infinite;
+
+  @include breakpoint(tablet) {
+    font-size: 18px;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 16px;
+  }
 
   &:nth-child(1) {
     top: 10%;
@@ -332,6 +421,18 @@
   letter-spacing: 1px;
   box-shadow: 0 4px 15px rgba(38, 214, 156, 0.3);
   animation: badge-glow 2s ease-in-out infinite;
+
+  @include breakpoint(tablet) {
+    padding: 7px 18px;
+    font-size: 13px;
+    border-radius: 18px;
+  }
+
+  @include breakpoint(mobile) {
+    padding: 6px 16px;
+    font-size: 12px;
+    border-radius: 16px;
+  }
 }
 
 .successContinueButton {
@@ -342,6 +443,18 @@
   box-shadow: 0 6px 20px rgba(55, 112, 235, 0.3);
   font-size: 16px;
   font-weight: 600;
+
+  @include breakpoint(tablet) {
+    margin-top: 18px;
+    min-width: 180px;
+    font-size: 15px;
+  }
+
+  @include breakpoint(mobile) {
+    margin-top: 16px;
+    min-width: 160px;
+    font-size: 14px;
+  }
 
   &:hover {
     transform: translateY(-2px);
@@ -422,17 +535,19 @@
 @keyframes morphToBox {
   0% {
     border-radius: 50%;
-    width: 400px;
-    height: 400px;
-    padding: 40px;
+    width: clamp(200px, 100%, 400px);
+    padding: 10%;
     transform: scale(1.05);
+    aspect-ratio: 1;
   }
   100% {
     border-radius: 16px;
-    width: 500px;
-    height: 450px;
-    padding: 32px 40px;
+    width: clamp(250px, 100%, 500px);
+    height: auto;
+    min-height: clamp(200px, 90%, 450px);
+    padding: 8% 10%;
     transform: scale(1.02);
+    aspect-ratio: auto;
   }
 }
 

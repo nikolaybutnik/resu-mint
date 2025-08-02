@@ -370,10 +370,10 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
                 <div className={styles.successIcon}>
                   <span className={styles.partyEmoji}>🎉</span>
                   <div className={styles.sparkles}>
-                    <span className={styles.sparkle}>✨</span>
-                    <span className={styles.sparkle}>✨</span>
-                    <span className={styles.sparkle}>✨</span>
                     <span className={styles.sparkle}>⭐</span>
+                    <span className={styles.sparkle}>✨</span>
+                    <span className={styles.sparkle}>✨</span>
+                    <span className={styles.sparkle}>✨</span>
                     <span className={styles.sparkle}>💫</span>
                   </div>
                 </div>
