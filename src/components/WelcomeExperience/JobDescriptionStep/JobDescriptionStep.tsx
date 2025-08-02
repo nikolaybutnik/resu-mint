@@ -1,6 +1,5 @@
 import styles from './JobDescriptionStep.module.scss'
-import { useState } from 'react'
-import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
+import { useState, useEffect, useRef } from 'react'
 import { jobDetailsService } from '@/lib/services/jobDetailsService'
 import {
   useExperienceStore,
@@ -43,6 +42,12 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [progressState, setProgressState] = useState<ProgressState | null>(null)
+  const [isMessageAnimating, setIsMessageAnimating] = useState(false)
+  const [displayMessage, setDisplayMessage] = useState('')
+  const [typewriterText, setTypewriterText] = useState('')
+  const [isTypewriting, setIsTypewriting] = useState(false)
+  const centeredWrapperRef = useRef<HTMLDivElement>(null)
+  const typewriterTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
@@ -212,6 +217,13 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       await handlBulletGeneration(workExperience, projects)
 
       setProgressState('success')
+
+      setTimeout(() => {
+        centeredWrapperRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'end',
+        })
+      }, 400)
     } catch (error) {
       console.error('Error in job description processing:', error)
       setErrors({
@@ -221,72 +233,181 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
     }
   }
 
-  const getProgressMessage = (progressState: ProgressState): string => {
-    switch (progressState) {
-      case 'analyzing':
-        return 'Analyzing job description...'
-      case 'extracting-skills':
-        return 'Extracting skills...'
-      case 'categorizing-skills':
-        return 'Categorizing skills...'
-      case 'generating-bullets':
-        return 'Generating customized bullet points...'
-      case 'success':
-        return 'Success! Your resume preview is ready.'
-      default:
-        return ''
+  const progressMessages = {
+    analyzing: 'Analyzing job description...',
+    'extracting-skills': 'Extracting skills...',
+    'categorizing-skills': 'Categorizing skills...',
+    'generating-bullets': 'Generating customized bullet points...',
+    success:
+      'Job description analyzed successfully! Your resume preview is ready. Enjoy your time with ResuMint!',
+  } as const
+
+  const typewriterEffect = (text: string) => {
+    if (typewriterTimeoutRef.current) {
+      clearTimeout(typewriterTimeoutRef.current)
     }
+
+    setIsTypewriting(true)
+    setTypewriterText('')
+
+    let index = 0
+    const type = () => {
+      if (index <= text.length) {
+        setTypewriterText(text.slice(0, index))
+        index++
+        typewriterTimeoutRef.current = setTimeout(type, 60)
+      } else {
+        setIsTypewriting(false)
+        typewriterTimeoutRef.current = null
+      }
+    }
+
+    typewriterTimeoutRef.current = setTimeout(type, 80)
   }
 
+  const progressEmojis = {
+    analyzing: '🔍',
+    'extracting-skills': '⚡',
+    'categorizing-skills': '📊',
+    'generating-bullets': '✨',
+    success: '🎉',
+  } as const
+
+  useEffect(() => {
+    if (progressState) {
+      const newMessage = progressMessages[progressState] || ''
+
+      if (displayMessage && newMessage !== displayMessage) {
+        setIsMessageAnimating(true)
+
+        setTimeout(() => {
+          setDisplayMessage(newMessage)
+          setIsMessageAnimating(false)
+          setTimeout(() => typewriterEffect(newMessage), 100)
+        }, 300)
+      } else {
+        setDisplayMessage(newMessage)
+        typewriterEffect(newMessage)
+      }
+    } else {
+      setDisplayMessage('')
+      setTypewriterText('')
+    }
+  }, [progressState, displayMessage])
+
+  useEffect(() => {
+    return () => {
+      if (typewriterTimeoutRef.current) {
+        clearTimeout(typewriterTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const isLoading = progressState !== null && progressState !== 'success'
-  const isSuccess = progressState === 'success' || hasAnalysis
 
   return (
-    <form onSubmit={handleSubmit} className={styles.jobDescriptionForm}>
-      <div className={styles.formGroup}>
-        <label htmlFor='jobDescription' className={styles.label}>
-          Job Description
-        </label>
-        <textarea
-          id='jobDescription'
-          name='jobDescription'
-          value={jobDescriptionInput}
-          onChange={handleInputChange}
-          placeholder="Paste the job description and click 'Analyze'. The resulting resume will be tailored to this job description."
-          className={styles.textarea}
-          disabled={isLoading}
-          rows={8}
-        />
-        {errors.jobDescription && (
-          <span className={styles.formError}>{errors.jobDescription}</span>
+    <form
+      onSubmit={handleSubmit}
+      className={`${styles.jobDescriptionForm} ${
+        progressState ? styles.analyzing : ''
+      }`}
+    >
+      <div
+        className={`${styles.formSection} ${
+          progressState ? styles.fadeOut : ''
+        }`}
+      >
+        <div className={styles.formGroup}>
+          <label htmlFor='jobDescription' className={styles.label}>
+            Job Description
+          </label>
+          <textarea
+            id='jobDescription'
+            name='jobDescription'
+            value={jobDescriptionInput}
+            onChange={handleInputChange}
+            placeholder="Paste the job description and click 'Analyze'. The resulting resume will be tailored to this job description."
+            className={styles.textarea}
+            disabled={isLoading}
+            rows={8}
+          />
+          {errors.jobDescription && (
+            <span className={styles.formError}>{errors.jobDescription}</span>
+          )}
+        </div>
+
+        {!progressState && !hasAnalysis && (
+          <div className={styles.actionButtons}>
+            <button type='submit' className={styles.continueButton}>
+              Analyze
+            </button>
+          </div>
         )}
       </div>
 
-      {isLoading && (
-        <div className={styles.progressContainer}>
-          <LoadingSpinner />
-          <p className={styles.progressMessage}>
-            {getProgressMessage(progressState)}
-          </p>
+      {(progressState || hasAnalysis) && (
+        <div ref={centeredWrapperRef} className={styles.centeredWrapper}>
+          <div
+            className={`${styles.messageContainer} ${
+              progressState && progressState !== 'success'
+                ? styles.analyzing
+                : ''
+            }`}
+          >
+            {progressState && progressState !== 'success' && (
+              <div className={styles.analysisIndicator}></div>
+            )}
+
+            {progressState && progressState !== 'success' && (
+              <div className={styles.statusEmoji}>
+                {progressEmojis[progressState] || '⚙️'}
+              </div>
+            )}
+
+            {(progressState === 'success' ||
+              (hasAnalysis && !progressState)) && (
+              <div className={styles.successContainer}>
+                <div className={styles.successIcon}>
+                  <span className={styles.partyEmoji}>🎉</span>
+                  <div className={styles.sparkles}>
+                    <span className={styles.sparkle}>✨</span>
+                    <span className={styles.sparkle}>✨</span>
+                    <span className={styles.sparkle}>✨</span>
+                    <span className={styles.sparkle}>⭐</span>
+                    <span className={styles.sparkle}>💫</span>
+                  </div>
+                </div>
+                <div className={styles.successBadge}>SUCCESS!</div>
+                <button
+                  onClick={onContinue}
+                  className={styles.successContinueButton}
+                >
+                  Continue to App 🚀
+                </button>
+              </div>
+            )}
+
+            <div
+              className={`${styles.messageText} ${
+                progressState === 'success' || (hasAnalysis && !progressState)
+                  ? styles.successText
+                  : isMessageAnimating
+                  ? styles.slideOut
+                  : styles.slideIn
+              }`}
+            >
+              <span className={styles.textContent}>
+                {progressState && progressState !== 'success'
+                  ? typewriterText
+                  : displayMessage}
+              </span>
+              {isTypewriting && progressState !== 'success' && (
+                <span className={styles.cursor}>|</span>
+              )}
+            </div>
+          </div>
         </div>
       )}
-
-      {isSuccess && !isLoading && (
-        <div className={styles.analysisSuccess}>
-          Job description analyzed successfully! Your resume preview is ready.
-          Enjoy your time with ResuMint!
-        </div>
-      )}
-
-      <div className={styles.actionButtons}>
-        <button
-          type='submit'
-          className={styles.continueButton}
-          disabled={isLoading}
-        >
-          {hasAnalysis ? 'Continue' : 'Analyze'}
-        </button>
-      </div>
     </form>
   )
 }
