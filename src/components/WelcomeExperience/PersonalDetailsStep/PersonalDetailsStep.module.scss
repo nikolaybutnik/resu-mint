@@ -24,4 +24,5 @@
 
 .submitButton {
   @include welcome-action-button('primary');
+  @include welcome-button-responsive;
 }

@@ -16,6 +16,7 @@
 
 .choiceButton {
   @include welcome-action-button('secondary');
+  @include welcome-button-responsive;
 }
 
 .skipSection {
@@ -28,6 +29,7 @@
 
 .skipButton {
   @include welcome-action-button('skip');
+  @include welcome-button-small-responsive;
 }
 
 .formField {
@@ -48,16 +50,16 @@
 
 .formTextarea {
   @include form-textarea-base;
-  min-height: 140px;
-  max-height: 300px;
 }
 
 .submitButton {
   @include welcome-action-button('primary');
+  @include welcome-button-responsive;
 }
 
 .backToChoiceButton {
   @include welcome-action-button('text');
+  @include welcome-button-small-responsive;
 }
 
 .dateInputs {

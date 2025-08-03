@@ -437,22 +437,20 @@
 
 .successContinueButton {
   @include welcome-action-button('primary');
+  @include welcome-button-responsive;
   margin-top: 20px;
   min-width: 200px;
   box-shadow: 0 6px 20px rgba(55, 112, 235, 0.3);
-  font-size: 16px;
   font-weight: 600;
 
   @include breakpoint(tablet) {
     margin-top: 18px;
     min-width: 180px;
-    font-size: 15px;
   }
 
   @include breakpoint(mobile) {
     margin-top: 16px;
     min-width: 160px;
-    font-size: 14px;
   }
 
   &:hover {
@@ -576,5 +574,6 @@
 
 .continueButton {
   @include welcome-action-button('primary');
+  @include welcome-button-responsive;
   width: auto;
 }

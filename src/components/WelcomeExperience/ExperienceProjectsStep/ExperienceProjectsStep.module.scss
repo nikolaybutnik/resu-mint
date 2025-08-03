@@ -16,6 +16,7 @@
 
 .choiceButton {
   @include welcome-action-button('secondary');
+  @include welcome-button-responsive;
 }
 
 .formField {
@@ -40,10 +41,12 @@
 
 .submitButton {
   @include welcome-action-button('primary');
+  @include welcome-button-responsive;
 }
 
 .backToChoiceButton {
   @include welcome-action-button('text');
+  @include welcome-button-small-responsive;
 }
 
 .dateInputs {
@@ -52,4 +55,13 @@
 
 .presentCheckbox {
   @include custom-checkbox;
+  margin-top: 12px;
+
+  @include breakpoint(tablet) {
+    margin-top: 10px;
+  }
+
+  @include breakpoint(mobile) {
+    margin-top: 8px;
+  }
 }

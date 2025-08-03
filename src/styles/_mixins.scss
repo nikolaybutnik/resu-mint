@@ -142,20 +142,34 @@
 @mixin form-field {
   display: flex;
   flex-direction: column;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
+
+  @include breakpoint(tablet) {
+    margin-bottom: 18px;
+  }
+
+  @include breakpoint(mobile) {
+    margin-bottom: 16px;
+  }
 }
 
 // Form label styling
 @mixin form-label {
   font-size: 16px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   color: $color-text;
   display: flex;
   align-items: center;
 
+  @include breakpoint(tablet) {
+    font-size: 15px;
+    margin-bottom: 7px;
+  }
+
   @include breakpoint(mobile) {
     font-size: 14px;
+    margin-bottom: 6px;
   }
 }
 
@@ -430,6 +444,11 @@
     }
   }
 
+  @include breakpoint(tablet) {
+    font-size: 15px;
+    padding: 11px 14px;
+  }
+
   @include breakpoint(mobile) {
     font-size: 14px;
     padding: 10px 12px;
@@ -440,11 +459,18 @@
 @mixin form-textarea-base {
   @include form-input-base;
   resize: vertical;
-  min-height: 80px;
+  min-height: 140px;
+  max-height: 300px;
   width: 100%;
 
-  // Auto-resize on mobile, disable manual resize
-  @media (max-width: 768px) {
+  @include breakpoint(tablet) {
+    min-height: 130px;
+    max-height: 280px;
+  }
+
+  @include breakpoint(mobile) {
+    min-height: 120px;
+    max-height: 250px;
     resize: none;
     overflow: hidden;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, height 0.1s ease;
@@ -998,6 +1024,14 @@
   gap: 16px;
   max-width: 400px;
   margin: 0 auto;
+
+  @include breakpoint(tablet) {
+    gap: 14px;
+  }
+
+  @include breakpoint(mobile) {
+    gap: 12px;
+  }
 }
 
 // Welcome experience placeholder/instructional content
@@ -1008,6 +1042,16 @@
     font-size: 16px;
     color: $color-text;
     margin-bottom: 24px;
+    line-height: 1.5;
+
+    @include breakpoint(tablet) {
+      font-size: 15px;
+    }
+
+    @include breakpoint(mobile) {
+      font-size: 14px;
+      line-height: 1.4;
+    }
   }
 }
 
@@ -1082,6 +1126,14 @@
   font-size: 14px;
   color: $color-disabled;
   margin-bottom: 16px;
+
+  @include breakpoint(tablet) {
+    font-size: 13px;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 12px;
+  }
 }
 
 // Welcome required fields note
@@ -1120,6 +1172,32 @@
   display: flex;
   justify-content: center;
   margin-top: 16px;
+}
+
+// Welcome button responsive font sizing (for secondary buttons, choice buttons, etc.)
+@mixin welcome-button-responsive {
+  font-size: 16px;
+
+  @include breakpoint(tablet) {
+    font-size: 15px;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 14px;
+  }
+}
+
+// Welcome small button responsive font sizing (for skip buttons, text buttons, etc.)
+@mixin welcome-button-small-responsive {
+  font-size: 14px;
+
+  @include breakpoint(tablet) {
+    font-size: 13px;
+  }
+
+  @include breakpoint(mobile) {
+    font-size: 12px;
+  }
 }
 
 // ========================================
@@ -1507,67 +1585,38 @@
 
 // Animated gradient background with smooth color morphing
 @mixin animated-gradient-background() {
-  position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, #9198e5 0%, #c939b0 100%);
-    opacity: 0;
-    animation: gradientLayer1 16s ease-in-out infinite;
-    pointer-events: none;
-    z-index: -1;
-  }
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, #536dfe 0%, #6327b0 100%);
-    opacity: 0;
-    animation: gradientLayer2 16s ease-in-out infinite;
-    pointer-events: none;
-    z-index: -1;
-  }
+  background: linear-gradient(
+    135deg,
+    #667eea 0%,
+    #764ba2 25%,
+    #9198e5 50%,
+    #c939b0 75%,
+    #536dfe 100%
+  );
+  background-size: 400% 400%;
+  animation: gradientFlow 12s ease-in-out infinite;
 }
 
 // ========================================
 // ANIMATION KEYFRAMES
 // ========================================
 
-// Gradient morphing animations
-@keyframes gradientLayer1 {
-  0%,
+// Gradient flow animation
+@keyframes gradientFlow {
+  0% {
+    background-position: 0% 50%;
+  }
   25% {
-    opacity: 0;
+    background-position: 100% 50%;
   }
   50% {
-    opacity: 1;
-  }
-  75%,
-  100% {
-    opacity: 0;
-  }
-}
-
-@keyframes gradientLayer2 {
-  0%,
-  50% {
-    opacity: 0;
+    background-position: 50% 100%;
   }
   75% {
-    opacity: 1;
+    background-position: 0% 50%;
   }
   100% {
-    opacity: 0;
+    background-position: 50% 0%;
   }
 }
 
