@@ -42,13 +42,13 @@
   animation: slideInUp 0.6s ease-out;
 
   @include breakpoint(tablet) {
-    padding: 40px;
+    padding: 36px;
     border-radius: 18px;
     max-height: calc(var(--vh) - 48px);
   }
 
   @include breakpoint(mobile) {
-    padding: 32px;
+    padding: 24px;
     border-radius: 16px;
     max-height: calc(var(--vh) - 32px);
   }
