@@ -39,8 +39,11 @@
 
 .actionButtons {
   @include action-buttons-container;
+  position: sticky;
+  bottom: 0;
 }
 
 .formButton {
   @include action-button('primary');
+  width: 100%;
 }

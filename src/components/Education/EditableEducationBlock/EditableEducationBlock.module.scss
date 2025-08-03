@@ -48,10 +48,13 @@
 
 .actionButtons {
   @include action-buttons-container;
+  position: sticky;
+  bottom: 0;
 }
 
 .saveButton {
   @include action-button('primary');
+  width: 100%;
 }
 
 .addButton {

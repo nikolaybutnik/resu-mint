@@ -331,9 +331,7 @@
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid rgba($color-border, 0.3);
+  margin-top: 16px;
 }
 
 // Header with close/delete buttons
@@ -506,24 +504,8 @@
   border: none;
   cursor: pointer;
   font-weight: 500;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease, border-color 0.2s ease;
-
-  &:hover {
-    transform: scale(1.02);
-  }
-
-  &:active {
-    transform: scale(0.98);
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    pointer-events: none;
-    opacity: 0.6;
-    transform: none;
-  }
+  outline: none;
+  user-select: none;
 }
 
 // Close button (X button, typically round)
@@ -890,62 +872,42 @@
 // Variants: 'primary', 'secondary', 'text', 'skip', 'onboarding'
 @mixin action-button($variant: 'primary') {
   @include button-base;
-  color: white;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 15px;
-  overflow: hidden;
 
-  &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba($color-primary, 0.3);
-  }
+  @if $variant == 'primary' {
+    // Primary button - completely self-contained
+    background: $color-primary;
+    color: white;
+    border-radius: 4px;
+    padding: 10px 20px;
+    font-size: 15px;
+    border: none;
 
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-  }
+    &:hover {
+      background: $color-primary-hover;
+    }
 
-  @if $variant == 'onboarding' {
+    &:active {
+      background: $color-primary-hover;
+    }
+
+    &:disabled {
+      background: $color-primary;
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  } @else if $variant == 'onboarding' {
     // Onboarding flow action button (animated gradient background)
     @include animated-gradient-background();
     color: white;
     padding: 14px 32px;
     min-height: 48px;
+    border-radius: 4px;
     width: 100%;
     margin-top: 16px;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
     overflow: hidden;
 
     &:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
-    }
-
-    &:active {
-      transform: translateY(0);
-    }
-
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-    }
-  } @else if $variant == 'primary' {
-    // Primary button (simple blue background)
-    background: $color-primary;
-    color: white;
-    padding: 14px 32px;
-    min-height: 48px;
-    width: 100%;
-    margin-top: 16px;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-    overflow: hidden;
-
-    &:hover {
-      background: $color-primary-hover;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
     }
@@ -1523,42 +1485,6 @@
     max-height: 2000px;
     transition: max-height 0.5s ease-in-out, padding 0s;
     overflow: visible;
-  }
-}
-
-// Primary action button (elevated style)
-@mixin primary-action-button {
-  font-family: $font-family-base;
-  padding: 8px 16px;
-  font-size: 14px;
-  font-weight: 600;
-  color: $color-background;
-  background: $color-primary;
-  border: 2px solid $color-primary;
-  border-radius: 6px;
-  cursor: pointer;
-  transform: translateY(0);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-
-  &:hover {
-    background: $color-primary-hover;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 8px $color-border;
-  }
-
-  &:active {
-    transform: translateY(1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  }
-
-  &:disabled {
-    background: $color-border;
-    border-color: $color-border;
-    color: $color-disabled;
-    cursor: not-allowed;
-    transform: translateY(0);
-    box-shadow: none;
   }
 }
 
