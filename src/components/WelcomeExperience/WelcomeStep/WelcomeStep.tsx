@@ -10,26 +10,34 @@ export const WelcomeStep: React.FC<WelcomeStepProps> = ({ onContinue }) => {
       <div className={styles.welcomeFeatures}>
         <div className={styles.feature}>
           <div className={styles.featureIcon}>🤖</div>
-          <h3>AI-Powered Optimization</h3>
+          <h3>AI-Optimized ATS Compatibility</h3>
           <p>
-            Our AI analyzes job descriptions and tailors your resume content for
-            maximum impact
+            Our AI fine-tunes your resume to match job criteria, helping you
+            rank higher in the Applicant Tracking System
           </p>
         </div>
         <div className={styles.feature}>
           <div className={styles.featureIcon}>⚡</div>
-          <h3>Quick & Easy</h3>
+          <h3>Build Once, Apply Often</h3>
           <p>
-            Create a professional resume in just a few minutes with our guided
-            process
+            Enter your skills and experience just once, then effortlessly target
+            any job with a tailored resume
           </p>
         </div>
         <div className={styles.feature}>
           <div className={styles.featureIcon}>🎯</div>
-          <h3>Job-Specific</h3>
+          <h3>Swift Resume Customization</h3>
           <p>
-            Get personalized suggestions based on the specific role you&apos;re
-            applying for
+            Take control and adapt your resume in seconds, streamlining your
+            application workflow to never miss an opportunity
+          </p>
+        </div>
+        <div className={styles.feature}>
+          <div className={styles.featureIcon}>💼</div>
+          <h3>Apply With Confidence</h3>
+          <p>
+            Feel ready to impress, knowing your resume is crafted to capture
+            hiring managers&apos; attention
           </p>
         </div>
       </div>
