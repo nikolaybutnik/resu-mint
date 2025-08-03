@@ -21,7 +21,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   data,
   onClose,
 }) => {
-  const { data: educationData, save } = useEducationStore()
+  const { data: educationData, save, hasChanges } = useEducationStore()
 
   const isNew = !educationData.some((block) => block.id === data.id)
   const shouldShowCloseButton = educationData.length > 1 || !isNew
@@ -34,6 +34,15 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
       data,
     } as EducationFormState
   )
+
+  const updatedEducationData = educationData.map((block) =>
+    block.id === data.id
+      ? state.data
+        ? { ...data, ...state.data }
+        : data
+      : block
+  )
+  const currentFormHasChanges = hasChanges(updatedEducationData)
 
   const [description, setDescription] = useState(state.data?.description || '')
 
@@ -61,12 +70,17 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
     }
   }
 
-  // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
-  const SubmitButton: React.FC = () => {
+  const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
     const { pending } = useFormStatus()
 
+    const shouldDisable = hasChanges && pending
+
     return (
-      <button type='submit' className={styles.saveButton} disabled={pending}>
+      <button
+        type='submit'
+        className={styles.saveButton}
+        disabled={shouldDisable}
+      >
         Save
       </button>
     )
@@ -271,7 +285,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         </div>
 
         <div className={styles.actionButtons}>
-          <SubmitButton />
+          <SubmitButton hasChanges={currentFormHasChanges} />
         </div>
       </form>
     </section>

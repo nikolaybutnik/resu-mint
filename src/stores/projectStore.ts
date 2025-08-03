@@ -37,6 +37,13 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   },
 
   save: async (data: ProjectBlockData[]) => {
+    const currentState = get()
+
+    if (!currentState.hasChanges(data)) {
+      console.info('No changes in form, skipping save')
+      return
+    }
+
     const previousData = get().data
 
     set({ data, hasData: !!data?.length })

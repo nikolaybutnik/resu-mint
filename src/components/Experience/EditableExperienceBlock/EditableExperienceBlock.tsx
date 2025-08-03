@@ -28,7 +28,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   keywordData,
   onClose,
 }) => {
-  const { data: experienceData, save } = useExperienceStore()
+  const { data: experienceData, save, hasChanges } = useExperienceStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
   const isNew = !experienceData.some((block) => block.id === data.id)
@@ -49,6 +49,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       data,
     } as ExperienceFormState
   )
+
+  const updatedExperienceData = experienceData.map((block) =>
+    block.id === data.id ? state.data || data : block
+  )
+  const currentFormHasChanges = hasChanges(updatedExperienceData)
 
   const [isCurrentlyWorking, setIsCurrentlyWorking] = useState(
     state.data?.endDate?.isPresent || false
@@ -85,12 +90,17 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     }
   }
 
-  // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
-  const SubmitButton: React.FC = () => {
+  const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
     const { pending } = useFormStatus()
 
+    const shouldDisable = hasChanges && pending
+
     return (
-      <button type='submit' className={styles.saveButton} disabled={pending}>
+      <button
+        type='submit'
+        className={styles.saveButton}
+        disabled={shouldDisable}
+      >
         Save
       </button>
     )
@@ -317,7 +327,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.actionButtons}>
-          <SubmitButton />
+          <SubmitButton hasChanges={currentFormHasChanges} />
         </div>
       </form>
 

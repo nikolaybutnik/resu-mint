@@ -60,12 +60,17 @@ const formFields = [
   },
 ]
 
-// TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
-const SubmitButton: React.FC = () => {
+const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
   const { pending } = useFormStatus()
 
+  const shouldDisable = hasChanges && pending
+
   return (
-    <button type='submit' className={styles.formButton} disabled={pending}>
+    <button
+      type='submit'
+      className={styles.formButton}
+      disabled={shouldDisable}
+    >
       Save
     </button>
   )
@@ -76,6 +81,7 @@ const PersonalDetails: React.FC = () => {
     data: personalDetails,
     save,
     initializing,
+    hasChanges,
   } = usePersonalDetailsStore()
 
   const [state, formAction] = useActionState(
@@ -104,6 +110,8 @@ const PersonalDetails: React.FC = () => {
       data: personalDetails,
     } as PersonalDetailsFormState
   )
+
+  const currentFormHasChanges = hasChanges(state.data || personalDetails)
 
   if (initializing) {
     return <LoadingState />
@@ -146,7 +154,7 @@ const PersonalDetails: React.FC = () => {
       </div>
 
       <div className={styles.actionButtons}>
-        <SubmitButton />
+        <SubmitButton hasChanges={currentFormHasChanges} />
       </div>
     </form>
   )

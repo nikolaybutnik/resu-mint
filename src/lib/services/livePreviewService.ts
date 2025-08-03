@@ -54,33 +54,39 @@ export class LivePreviewService {
   private generateHash(data: CreatePdfRequest): string {
     const hashData = {
       personal: data.personalDetails,
-      experience: data.experienceSection.map((exp) => ({
-        id: exp.id,
-        title: exp.title,
-        company: exp.companyName,
-        location: exp.location,
-        startDate: exp.startDate,
-        endDate: exp.endDate,
-        bulletPoints: exp.bulletPoints.map((b) => b.text),
-        isIncluded: exp.isIncluded,
-      })),
-      projects: data.projectSection.map((proj) => ({
-        id: proj.id,
-        title: proj.title,
-        startDate: proj.startDate,
-        endDate: proj.endDate,
-        technologies: proj.technologies,
-        link: proj.link,
-        bulletPoints: proj.bulletPoints.map((b) => b.text),
-        isIncluded: proj.isIncluded,
-      })),
-      education: data.educationSection.map((edu) => ({
-        id: edu.id,
-        institution: edu.institution,
-        location: edu.location,
-        degree: edu.degree,
-        isIncluded: edu.isIncluded,
-      })),
+      experience: data.experienceSection
+        .filter((exp) => exp.isIncluded)
+        .map((exp) => ({
+          id: exp.id,
+          title: exp.title,
+          company: exp.companyName,
+          location: exp.location,
+          startDate: exp.startDate,
+          endDate: exp.endDate,
+          bulletPoints: exp.bulletPoints.map((b) => b.text),
+          isIncluded: exp.isIncluded,
+        })),
+      projects: data.projectSection
+        .filter((proj) => proj.isIncluded)
+        .map((proj) => ({
+          id: proj.id,
+          title: proj.title,
+          startDate: proj.startDate,
+          endDate: proj.endDate,
+          technologies: proj.technologies,
+          link: proj.link,
+          bulletPoints: proj.bulletPoints.map((b) => b.text),
+          isIncluded: proj.isIncluded,
+        })),
+      education: data.educationSection
+        .filter((edu) => edu.isIncluded)
+        .map((edu) => ({
+          id: edu.id,
+          institution: edu.institution,
+          location: edu.location,
+          degree: edu.degree,
+          isIncluded: edu.isIncluded,
+        })),
       skills: data.skillsSection
         .filter((skill) => skill.skills.length > 0)
         .filter((skill) => skill.isIncluded)

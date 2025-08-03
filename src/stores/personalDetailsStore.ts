@@ -38,6 +38,13 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
     },
 
     save: async (details) => {
+      const currentState = get()
+
+      if (!currentState.hasChanges(details)) {
+        console.info('No changes in form, skipping save')
+        return
+      }
+
       try {
         set({ loading: true })
         await dataManager.savePersonalDetails(details)
@@ -48,7 +55,6 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
         })
       } catch (error) {
         console.error('PersonalDetailsStore: save error:', error)
-        const currentState = get()
         set({
           loading: false,
           data: currentState.data,

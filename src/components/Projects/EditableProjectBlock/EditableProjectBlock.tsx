@@ -31,7 +31,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   keywordData,
   onClose,
 }) => {
-  const { data: projectData, save } = useProjectStore()
+  const { data: projectData, save, hasChanges } = useProjectStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
   const isNew = !projectData.some((block) => block.id === data.id)
@@ -46,6 +46,12 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
       data,
     } as ProjectFormState
   )
+
+  const updatedProjectData = projectData.map((block) =>
+    block.id === data.id ? state.data || data : block
+  )
+  const currentFormHasChanges = hasChanges(updatedProjectData)
+
   const [techInput, setTechInput] = useState('')
   const [technologies, setTechnologies] = useState<string[]>(
     state.data?.technologies || []
@@ -133,12 +139,17 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     setTemporaryBullet(null)
   }
 
-  // TODO: this will be useful when saving data gets tied to a database. Add a loading indicator
-  const SubmitButton: React.FC = () => {
+  const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
     const { pending } = useFormStatus()
 
+    const shouldDisable = hasChanges && pending
+
     return (
-      <button type='submit' className={styles.saveButton} disabled={pending}>
+      <button
+        type='submit'
+        className={styles.saveButton}
+        disabled={shouldDisable}
+      >
         Save
       </button>
     )
@@ -394,7 +405,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         </div>
 
         <div className={styles.actionButtons}>
-          <SubmitButton />
+          <SubmitButton hasChanges={currentFormHasChanges} />
         </div>
       </form>
 

@@ -37,6 +37,13 @@ export const useEducationStore = create<EducationStore>((set, get) => ({
   },
 
   save: async (data: EducationBlockData[]) => {
+    const currentState = get()
+
+    if (!currentState.hasChanges(data)) {
+      console.info('No changes in form, skipping save')
+      return
+    }
+
     const previousData = get().data
 
     set({ data, hasData: !!data?.length })
