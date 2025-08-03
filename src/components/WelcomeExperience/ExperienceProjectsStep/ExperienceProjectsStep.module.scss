@@ -15,7 +15,7 @@
 }
 
 .choiceButton {
-  @include welcome-action-button('secondary');
+  @include action-button('secondary');
   @include welcome-button-responsive;
 }
 
@@ -40,12 +40,12 @@
 }
 
 .submitButton {
-  @include welcome-action-button('primary');
+  @include action-button('onboarding');
   @include welcome-button-responsive;
 }
 
 .backToChoiceButton {
-  @include welcome-action-button('text');
+  @include action-button('text');
   @include welcome-button-small-responsive;
 }
 

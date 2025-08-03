@@ -42,5 +42,5 @@
 }
 
 .formButton {
-  @include save-button;
+  @include action-button('primary');
 }

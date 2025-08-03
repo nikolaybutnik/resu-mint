@@ -565,28 +565,6 @@
   }
 }
 
-// Primary save button (main action)
-@mixin save-button {
-  @include button-base;
-  @include animated-gradient-background();
-  color: white;
-  border-radius: 4px;
-  padding: 10px 20px;
-  font-size: 15px;
-  overflow: hidden;
-
-  &:hover {
-    transform: scale(1.02);
-    box-shadow: 0 2px 8px rgba($color-primary, 0.3);
-  }
-
-  &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
-  }
-}
-
 // Small icon button (toolbar buttons)
 @mixin icon-button-small($size: 24px) {
   @include button-base;
@@ -908,21 +886,29 @@
   }
 }
 
-// ========================================
-// WELCOME EXPERIENCE MIXINS
-// ========================================
-
 // Welcome experience action button (used in WelcomeExperience and related components)
-// Variants: 'primary', 'secondary', 'text', 'skip'
-@mixin welcome-action-button($variant: 'primary') {
+// Variants: 'primary', 'secondary', 'text', 'skip', 'onboarding'
+@mixin action-button($variant: 'primary') {
   @include button-base;
-  font-weight: 500;
-  border-radius: 12px;
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease,
-    box-shadow 0.2s ease, border-color 0.2s ease;
+  color: white;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 15px;
+  overflow: hidden;
 
-  @if $variant == 'primary' {
-    // Primary submit button (animated gradient background)
+  &:hover {
+    transform: scale(1.02);
+    box-shadow: 0 2px 8px rgba($color-primary, 0.3);
+  }
+
+  &:disabled {
+    background: $color-action-item-background;
+    color: $color-disabled;
+    border-color: $color-border;
+  }
+
+  @if $variant == 'onboarding' {
+    // Onboarding flow action button (animated gradient background)
     @include animated-gradient-background();
     color: white;
     padding: 14px 32px;
@@ -933,6 +919,33 @@
     overflow: hidden;
 
     &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    }
+  } @else if $variant == 'primary' {
+    // Primary button (simple blue background)
+    background: $color-primary;
+    color: white;
+    padding: 14px 32px;
+    min-height: 48px;
+    width: 100%;
+    margin-top: 16px;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    overflow: hidden;
+
+    &:hover {
+      background: $color-primary-hover;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
     }
@@ -1007,6 +1020,10 @@
     }
   }
 }
+
+// ========================================
+// WELCOME EXPERIENCE MIXINS
+// ========================================
 
 // Welcome experience form container (standard width-constrained form)
 @mixin welcome-form-container {

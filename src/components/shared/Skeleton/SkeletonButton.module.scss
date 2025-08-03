@@ -2,22 +2,22 @@
 
 .skeletonButton {
   &.primary {
-    @include welcome-action-button('primary');
+    @include action-button('primary');
     @include skeleton-shimmer;
   }
 
   &.secondary {
-    @include welcome-action-button('secondary');
+    @include action-button('secondary');
     @include skeleton-shimmer;
   }
 
   &.text {
-    @include welcome-action-button('text');
+    @include action-button('text');
     @include skeleton-shimmer;
   }
 
   &.skip {
-    @include welcome-action-button('skip');
+    @include action-button('skip');
     @include skeleton-shimmer;
   }
 

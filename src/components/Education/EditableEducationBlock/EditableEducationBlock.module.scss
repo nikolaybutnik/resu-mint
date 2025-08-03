@@ -51,7 +51,7 @@
 }
 
 .saveButton {
-  @include save-button;
+  @include action-button('primary');
 }
 
 .addButton {

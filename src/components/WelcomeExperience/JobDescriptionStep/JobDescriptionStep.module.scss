@@ -436,7 +436,7 @@
 }
 
 .successContinueButton {
-  @include welcome-action-button('primary');
+  @include action-button('onboarding');
   @include welcome-button-responsive;
   margin-top: 20px;
   min-width: 200px;
@@ -573,7 +573,7 @@
 }
 
 .continueButton {
-  @include welcome-action-button('primary');
+  @include action-button('onboarding');
   @include welcome-button-responsive;
   width: auto;
 }

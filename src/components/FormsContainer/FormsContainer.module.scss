@@ -403,16 +403,6 @@
   border-radius: 5px;
 }
 
-.formInput {
-  @include form-input-base;
-  margin-bottom: 10px;
-}
-
-.formButton {
-  @include save-button;
-  margin-top: 10px;
-}
-
 .errorMessage {
   @include form-error;
 }

@@ -19,7 +19,7 @@
 }
 
 .getStartedButton {
-  @include welcome-action-button('primary');
+  @include action-button('onboarding');
   font-size: 18px;
   margin: 0 auto;
   display: block;
