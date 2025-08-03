@@ -469,45 +469,91 @@
 
 .progressIndicator {
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 8px;
   flex-shrink: 0;
-  padding: 8px 0;
+  padding: 24px 16px;
+  max-width: 100%;
+  overflow-x: auto;
+  background: transparent;
 
   @include breakpoint(tablet) {
-    gap: 7px;
-    padding: 7px 0;
+    padding: 20px 12px;
   }
 
   @include breakpoint(mobile) {
-    gap: 6px;
-    padding: 6px 0;
+    padding: 16px 8px;
   }
 }
 
-.progressDot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: $color-border;
-  transition: all 0.3s ease;
-  cursor: pointer;
+.progressStep {
+  display: flex;
+  align-items: center;
   position: relative;
+  background: transparent;
+
+  &:not(:last-child) {
+    margin-right: 20px;
+
+    @include breakpoint(tablet) {
+      margin-right: 16px;
+    }
+
+    @include breakpoint(mobile) {
+      margin-right: 12px;
+    }
+  }
+}
+
+.stepButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: $color-action-item-background;
+  border: 2px solid $color-border;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 2;
+  min-width: 40px;
 
   @include breakpoint(tablet) {
-    width: 11px;
-    height: 11px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    min-width: 36px;
   }
 
   @include breakpoint(mobile) {
-    width: 10px;
-    height: 10px;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    min-width: 32px;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    color: $color-disabled;
+    transition: all 0.3s ease;
+
+    @include breakpoint(tablet) {
+      width: 14px;
+      height: 14px;
+    }
+
+    @include breakpoint(mobile) {
+      width: 12px;
+      height: 12px;
+    }
   }
 
   &:not(.accessible):not(.completed) {
-    background: color.adjust($color-border, $lightness: 10%);
     cursor: not-allowed;
-    opacity: 0.5;
+    opacity: 0.4;
 
     &:hover {
       transform: none;
@@ -515,90 +561,164 @@
   }
 
   &.accessible:not(.current):not(.completed) {
-    background: $color-border;
+    background: $color-background;
+    border-color: rgba($color-primary, 0.3);
+    overflow: hidden;
+
+    svg {
+      color: $color-primary;
+    }
 
     &:hover {
-      transform: scale(1.1);
-      background: color.adjust($color-border, $lightness: -10%);
+      border-color: $color-primary;
+
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba($color-primary, 0.2) 50%,
+          transparent 100%
+        );
+        animation: glint 0.6s ease-out;
+        pointer-events: none;
+      }
     }
   }
 
-  &.current {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    transform: scale(1.2);
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+  &.current:not(.completed) {
+    background: $color-background;
+    border-color: $color-primary;
+    border-width: 3px;
+    transform: scale(1.1);
+    overflow: hidden;
+
+    svg {
+      color: $color-primary;
+    }
 
     @include breakpoint(tablet) {
-      transform: scale(1.15);
-      box-shadow: 0 0 0 2.5px rgba(102, 126, 234, 0.3);
+      transform: scale(1.08);
     }
 
     @include breakpoint(mobile) {
-      transform: scale(1.1);
-      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.3);
+      transform: scale(1.06);
     }
 
     &:hover {
-      transform: scale(1.3);
-
-      @include breakpoint(tablet) {
-        transform: scale(1.25);
-      }
-
-      @include breakpoint(mobile) {
-        transform: scale(1.2);
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba($color-primary, 0.2) 50%,
+          transparent 100%
+        );
+        animation: glint 0.6s ease-out;
+        pointer-events: none;
+        z-index: 1;
       }
     }
   }
 
   &.completed {
-    background: $color-transformative;
-    transform: scale(1.1);
+    background: linear-gradient(135deg, $color-transformative 0%, #20d69f 100%);
+    border-color: transparent;
+    box-shadow: 0 6px 20px rgba($color-transformative, 0.25);
+    overflow: hidden;
 
-    @include breakpoint(tablet) {
-      transform: scale(1.05);
+    svg {
+      color: white;
     }
 
-    @include breakpoint(mobile) {
-      transform: scale(1.02);
+    &.current {
+      transform: scale(1.1);
+
+      @include breakpoint(tablet) {
+        transform: scale(1.08);
+      }
+
+      @include breakpoint(mobile) {
+        transform: scale(1.06);
+      }
     }
 
     &:hover {
-      transform: scale(1.2);
-      box-shadow: 0 3px 8px rgba($color-transformative, 0.3);
-
-      @include breakpoint(tablet) {
-        transform: scale(1.15);
-      }
-
-      @include breakpoint(mobile) {
-        transform: scale(1.1);
-      }
-    }
-
-    &::after {
-      content: '✓';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: white;
-      font-size: 8px;
-      font-weight: bold;
-
-      @include breakpoint(tablet) {
-        font-size: 7px;
-      }
-
-      @include breakpoint(mobile) {
-        font-size: 6px;
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.3) 50%,
+          transparent 100%
+        );
+        animation: glint 0.6s ease-out;
+        pointer-events: none;
+        z-index: 1;
       }
     }
   }
+}
 
-  &.current.completed {
-    background: $color-transformative;
-    box-shadow: 0 0 0 3px rgba(38, 214, 156, 0.3);
+.stepConnector {
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  width: 20px;
+  height: 2px;
+  background: rgba($color-primary, 0.3);
+  transform: translateY(-50%);
+  z-index: 1;
+  transition: all 0.4s ease;
+
+  @include breakpoint(tablet) {
+    right: -16px;
+    width: 16px;
+    height: 2px;
+  }
+
+  @include breakpoint(mobile) {
+    right: -12px;
+    width: 12px;
+    height: 1.5px;
+  }
+
+  &.completed {
+    background: linear-gradient(90deg, $color-transformative 0%, #20d69f 100%);
+    height: 3px;
+    box-shadow: 0 1px 4px rgba($color-transformative, 0.2);
+
+    @include breakpoint(tablet) {
+      height: 2.5px;
+    }
+
+    @include breakpoint(mobile) {
+      height: 2px;
+    }
+  }
+}
+
+@keyframes glint {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
   }
 }
 

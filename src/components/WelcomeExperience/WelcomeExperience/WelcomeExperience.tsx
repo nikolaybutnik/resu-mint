@@ -22,6 +22,7 @@ import {
 import { PersonalDetails } from '@/lib/types/personalDetails'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
+import { FiStar, FiUser, FiBriefcase, FiBook, FiFileText } from 'react-icons/fi'
 
 interface WelcomeExperienceProps {
   welcomeState: WelcomeExperienceState
@@ -99,6 +100,14 @@ const WELCOME_STEPS: WelcomeStep[] = [
       "Paste a job description to let our AI optimize your resume for that specific role. We'll analyze the requirements and tailor your content accordingly.",
   },
 ]
+
+const STEP_ICONS = {
+  0: FiStar,
+  1: FiUser,
+  2: FiBriefcase,
+  3: FiBook,
+  4: FiFileText,
+}
 
 export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
   welcomeState,
@@ -461,7 +470,7 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
         </div>
 
         <div className={styles.progressIndicator}>
-          {WELCOME_STEPS.map((step) => {
+          {WELCOME_STEPS.map((step, index) => {
             const isCurrentStep = step.id === currentStep
             const isPreviousStep = step.id < currentStep
             const isAccessibleForward =
@@ -471,24 +480,44 @@ export const WelcomeExperience: React.FC<WelcomeExperienceProps> = ({
             )
             const isClickable =
               isPreviousStep || isCurrentStep || isAccessibleForward
+            const IconComponent = STEP_ICONS[step.id as keyof typeof STEP_ICONS]
+            const isLastStep = index === WELCOME_STEPS.length - 1
+
+            const nextStep = WELCOME_STEPS[index + 1]
+            const isNextStepCompleted = nextStep
+              ? currentWelcomeState.completedSteps.includes(nextStep.id)
+              : false
+            const shouldConnectorBeCompleted =
+              isCompleted && isNextStepCompleted
 
             return (
-              <div
-                key={step.id}
-                className={`${styles.progressDot} ${
-                  isCurrentStep ? styles.current : ''
-                } ${isClickable ? styles.accessible : ''} ${
-                  isCompleted ? styles.completed : ''
-                }`}
-                onClick={() => handleStepClick(step.id)}
-                title={
-                  !isClickable && step.id > currentStep
-                    ? 'Complete previous steps to unlock'
-                    : isCompleted
-                    ? 'Completed'
-                    : step.title
-                }
-              />
+              <div key={step.id} className={styles.progressStep}>
+                <button
+                  className={`${styles.stepButton} ${
+                    isCurrentStep ? styles.current : ''
+                  } ${isClickable ? styles.accessible : ''} ${
+                    isCompleted ? styles.completed : ''
+                  }`}
+                  onClick={() => handleStepClick(step.id)}
+                  title={
+                    !isClickable && step.id > currentStep
+                      ? 'Complete previous steps to unlock'
+                      : isCompleted
+                      ? `${step.title} - Completed`
+                      : step.title
+                  }
+                  disabled={!isClickable}
+                >
+                  <IconComponent />
+                </button>
+                {!isLastStep && (
+                  <div
+                    className={`${styles.stepConnector} ${
+                      shouldConnectorBeCompleted ? styles.completed : ''
+                    }`}
+                  />
+                )}
+              </div>
             )
           })}
         </div>
