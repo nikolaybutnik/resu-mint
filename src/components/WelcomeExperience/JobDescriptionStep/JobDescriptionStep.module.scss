@@ -439,7 +439,6 @@
   @include welcome-action-button('primary');
   margin-top: 20px;
   min-width: 200px;
-  background: linear-gradient(135deg, $color-primary, $color-primary-hover);
   box-shadow: 0 6px 20px rgba(55, 112, 235, 0.3);
   font-size: 16px;
   font-weight: 600;

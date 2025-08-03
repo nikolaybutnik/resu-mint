@@ -542,18 +542,15 @@
 // Primary save button (main action)
 @mixin save-button {
   @include button-base;
-  background: linear-gradient(135deg, $color-primary, $color-primary-hover);
+  @include animated-gradient-background();
   color: white;
   border-radius: 4px;
   padding: 10px 20px;
   font-size: 15px;
+  overflow: hidden;
 
   &:hover {
-    background: linear-gradient(
-      135deg,
-      $color-primary-hover,
-      color.adjust($color-primary-hover, $lightness: -5%)
-    );
+    transform: scale(1.02);
     box-shadow: 0 2px 8px rgba($color-primary, 0.3);
   }
 
@@ -899,8 +896,8 @@
     box-shadow 0.2s ease, border-color 0.2s ease;
 
   @if $variant == 'primary' {
-    // Primary submit button (gradient background)
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    // Primary submit button (animated gradient background)
+    @include animated-gradient-background();
     color: white;
     border: 2px solid transparent;
     padding: 14px 32px;
@@ -908,6 +905,7 @@
     width: 100%;
     margin-top: 16px;
     box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+    overflow: hidden;
 
     &:hover {
       transform: translateY(-1px);
@@ -1504,8 +1502,74 @@
 }
 
 // ========================================
+// ANIMATED GRADIENT MIXIN
+// ========================================
+
+// Animated gradient background with smooth color morphing
+@mixin animated-gradient-background() {
+  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #9198e5 0%, #c939b0 100%);
+    opacity: 0;
+    animation: gradientLayer1 16s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #536dfe 0%, #6327b0 100%);
+    opacity: 0;
+    animation: gradientLayer2 16s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+// ========================================
 // ANIMATION KEYFRAMES
 // ========================================
+
+// Gradient morphing animations
+@keyframes gradientLayer1 {
+  0%,
+  25% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  75%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes gradientLayer2 {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 
 // Magic button animations
 @keyframes pulseGlow {
