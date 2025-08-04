@@ -860,3 +860,35 @@ export const categorizeSkillsSchema = z.object({
   skills: skillsValidationSchema,
   settings: settingsSchema,
 })
+
+const passwordValidation = z
+  .string()
+  .min(6, 'Password must be at least 6 characters')
+  .max(15, 'Password must be no more than 15 characters')
+  .regex(/[a-z]/, 'Password must contain at least 1 lowercase letter')
+  .regex(/[A-Z]/, 'Password must contain at least 1 uppercase letter')
+  .regex(/[0-9]/, 'Password must contain at least 1 number')
+  .regex(
+    /[!@#$%^&*]/,
+    'Password must contain at least 1 special character (!@#$%^&*)'
+  )
+  .regex(
+    /^[a-zA-Z0-9!@#$%^&*]+$/,
+    'Password can only contain letters, numbers, and these symbols: !@#$%^&*'
+  )
+
+export const loginSchema = z.object({
+  email: z.string().email('Valid email address is required'),
+  password: passwordValidation,
+})
+
+export const signUpSchema = z
+  .object({
+    email: z.string().email('Valid email address is required'),
+    password: passwordValidation,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  })

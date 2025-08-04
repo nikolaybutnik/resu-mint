@@ -43,6 +43,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return { error: null }
     } catch (error) {
       set({ loading: false })
+      console.error('Sign in error: ', error)
       return {
         error: 'There was an error signing you in. Please try again later.',
       }
@@ -67,6 +68,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return { error: null }
     } catch (error) {
       set({ loading: false })
+      console.error('Sign up error: ', error)
       return {
         error: 'There was an error during sign up. Please try again later.',
       }
@@ -88,6 +90,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return { error: null }
     } catch (error) {
       set({ loading: false })
+      console.error('Sign out error: ', error)
       return {
         error: 'There was an error signing you out. Please try again later.',
       }
