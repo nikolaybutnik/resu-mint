@@ -1,14 +1,18 @@
 'use client'
 
 import { useEffect } from 'react'
-import { usePersonalDetailsStore } from './personalDetailsStore'
-import { useSettingsStore } from './settingsStore'
-import { useExperienceStore } from './experienceStore'
-import { useJobDetailsStore } from './jobDetailsStore'
-import { useAiStateStore } from './aiStateStore'
-import { useProjectStore } from './projectStore'
-import { useEducationStore } from './educationStore'
-import { useSkillsStore } from './skillsStore'
+import {
+  usePersonalDetailsStore,
+  useSettingsStore,
+  useExperienceStore,
+  useJobDetailsStore,
+  useAiStateStore,
+  useProjectStore,
+  useEducationStore,
+  useSkillsStore,
+  useAuthStore,
+} from './'
+import { Subscription } from '@supabase/supabase-js'
 
 /**
  * StoreProvider - Initializes all Zustand stores when the app starts
@@ -27,6 +31,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const initProject = useProjectStore((state) => state.initialize)
   const initEducation = useEducationStore((state) => state.initialize)
   const initSkills = useSkillsStore((state) => state.initialize)
+  const initUser = useAuthStore((state) => state.initialize)
+
+  useEffect(() => {
+    let authSubscription: Subscription | null = null
+
+    const initAuth = async () => {
+      authSubscription = (await initUser()) || null
+    }
+
+    initAuth()
+
+    return () => {
+      if (authSubscription) {
+        authSubscription.unsubscribe()
+      }
+    }
+  }, [])
 
   useEffect(() => {
     initPersonalDetails()

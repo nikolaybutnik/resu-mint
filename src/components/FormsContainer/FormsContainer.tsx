@@ -43,6 +43,7 @@ import {
   useEducationStore,
   useSkillsStore,
   useSettingsStore,
+  useAuthStore,
 } from '@/stores'
 import { SkillBlock } from '@/lib/types/skills'
 
