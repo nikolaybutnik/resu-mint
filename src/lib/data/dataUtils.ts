@@ -1,6 +1,7 @@
+import { useAuthStore } from '@/stores/authStore'
+
 export function isAuthenticated(): boolean {
-  // TODO: Implement when auth system is ready
-  return false // Always use localStorage for now
+  return useAuthStore.getState().user !== null
 }
 
 export function isLocalStorageAvailable(): boolean {
