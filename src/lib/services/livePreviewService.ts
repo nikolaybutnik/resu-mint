@@ -1,5 +1,5 @@
 import { CreatePdfRequest } from '@/lib/types/api'
-import { LIVE_PREVIEW, ROUTES } from '@/lib/constants'
+import { LIVE_PREVIEW, API_ROUTES } from '@/lib/constants'
 import { api, ResponseType } from '@/lib/services/api'
 
 interface LivePreviewOptions {
@@ -355,7 +355,7 @@ export class LivePreviewService {
 
     try {
       const blob = await api.post<CreatePdfRequest, Blob>(
-        ROUTES.CREATE_PDF,
+        API_ROUTES.CREATE_PDF,
         request.data,
         {
           signal: request.abortController.signal,

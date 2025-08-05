@@ -1,5 +1,5 @@
 import { api } from './api'
-import { ROUTES } from '@/lib/constants'
+import { API_ROUTES } from '@/lib/constants'
 import {
   GenerateBulletsRequest,
   GenerateBulletsResponse,
@@ -22,7 +22,7 @@ const generateBulletsApi = async (
     const response = await api.post<
       GenerateBulletsRequest,
       GenerateBulletsResponse[]
-    >(ROUTES.GENERATE_BULLETS, params)
+    >(API_ROUTES.GENERATE_BULLETS, params)
     return response.map((item: GenerateBulletsResponse) => ({
       sectionId: item.sectionId,
       bullets: item.bullets.map((bullet) => ({

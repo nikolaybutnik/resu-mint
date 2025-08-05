@@ -7,9 +7,15 @@ import { JobDescriptionAnalysis } from './types/jobDetails'
 import { JobDetails } from './types/jobDetails'
 import { SkillBlock, Skills } from './types/skills'
 
+// ROUTING
+export const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+}
+
 // API
 export const API_BASE_URL = '/api'
-export const ROUTES = {
+export const API_ROUTES = {
   ANALYZE_JOB_DESCRIPTION: `${API_BASE_URL}/analyze-job-description`,
   GENERATE_BULLETS: `${API_BASE_URL}/generate-bullets`,
   CREATE_PDF: `${API_BASE_URL}/create-pdf`,
@@ -122,6 +128,13 @@ export const SETTINGS_FORM_DATA_KEYS = {
   BULLETS_PER_PROJECT_BLOCK: 'bulletsPerProjectBlock',
   LANGUAGE_MODEL: 'languageModel',
   MAX_CHARS_PER_BULLET: 'maxCharsPerBullet',
+} as const
+
+export const LOGIN_FORM_DATA_KEYS = {
+  EMAIL: 'email',
+  PASSWORD: 'password',
+  CONFIRM_PASSWORD: 'confirmPassword',
+  MODE: 'mode',
 } as const
 
 export const DEFAULT_STATE_VALUES = {

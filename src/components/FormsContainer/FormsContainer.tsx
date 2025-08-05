@@ -12,7 +12,7 @@ import Settings from '../Settings/Settings'
 import { JobDetails } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
 import Skills from '../Skills/Skills'
-import { MOBILE_VIEW, ROUTES } from '@/lib/constants'
+import { MOBILE_VIEW, API_ROUTES } from '@/lib/constants'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { CreatePdfRequest } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
@@ -175,7 +175,7 @@ const handleDownload = async (resumeData: CreatePdfRequest): Promise<void> => {
 
   try {
     const blob = await api.post<CreatePdfRequest, Blob>(
-      ROUTES.CREATE_PDF,
+      API_ROUTES.CREATE_PDF,
       resumeData,
       { responseType: ResponseType.BLOB }
     )

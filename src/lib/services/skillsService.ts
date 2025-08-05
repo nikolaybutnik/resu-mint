@@ -1,5 +1,5 @@
 import { api } from './api'
-import { ROUTES } from '@/lib/constants'
+import { API_ROUTES } from '@/lib/constants'
 import { Skills } from '@/lib/types/skills'
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { AppSettings } from '@/lib/types/settings'
@@ -21,7 +21,7 @@ const generateSuggestionsApi = async (
     const response = await api.post<
       GenerateSkillSuggestionsRequest,
       GenerateSkillSuggestionsResponse
-    >(ROUTES.GENERATE_SKILL_SUGGESTIONS, params)
+    >(API_ROUTES.GENERATE_SKILL_SUGGESTIONS, params)
 
     return {
       hardSkillSuggestions: response.hardSkillSuggestions || [],
@@ -40,7 +40,7 @@ const extractSkillsApi = async (
     const response = await api.post<
       ExtractSkillsRequest,
       ExtractSkillsResponse
-    >(ROUTES.EXTRACT_USER_SKILLS, params)
+    >(API_ROUTES.EXTRACT_USER_SKILLS, params)
 
     return {
       hardSkills: response.hardSkills || [],
@@ -59,7 +59,7 @@ const categorizeSkillsApi = async (
     const response = await api.post<
       CategorizeSkillsRequest,
       CategorizeSkillsResponse
-    >(ROUTES.CATEGORIZE_USER_SKILLS, params)
+    >(API_ROUTES.CATEGORIZE_USER_SKILLS, params)
 
     return response
   } catch (error) {

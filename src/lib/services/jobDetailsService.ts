@@ -7,7 +7,7 @@ import {
 import { AnalyzeJobDescriptionRequest } from '../types/api'
 import { JobDescriptionAnalysis } from '../types/jobDetails'
 import { api } from './api'
-import { ROUTES } from '../constants'
+import { API_ROUTES } from '../constants'
 
 export const jobDetailsService = {
   saveJobDescription: async (data: string): Promise<void> => {
@@ -52,7 +52,7 @@ export const jobDetailsService = {
       const response = await api.post<
         AnalyzeJobDescriptionRequest,
         JobDescriptionAnalysis
-      >(ROUTES.ANALYZE_JOB_DESCRIPTION, payload)
+      >(API_ROUTES.ANALYZE_JOB_DESCRIPTION, payload)
 
       const validationResult = jobDescriptionAnalysisSchema.safeParse(response)
 

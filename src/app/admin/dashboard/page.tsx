@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import styles from './page.module.scss'
+import { useEffect, useState } from 'react'
 import { TectonicHealth } from '@/lib/types/admin'
 
 export default function AdminDashboard() {

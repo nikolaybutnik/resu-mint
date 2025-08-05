@@ -879,7 +879,7 @@ const passwordValidation = z
 
 export const loginSchema = z.object({
   email: z.string().email('Valid email address is required'),
-  password: passwordValidation,
+  password: z.string().min(1, 'Password is required'),
 })
 
 export const signUpSchema = z
