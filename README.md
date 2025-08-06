@@ -4,9 +4,16 @@
 
 ResuMint is a modern web application that uses AI to create tailored, ATS-friendly resumes optimized for specific job descriptions. Powered by OpenAI's language models and built with Next.js, ResuMint automates resume customization with intelligent keyword analysis, generating bullet points that highlight your relevant skills and experiences. It produces professional PDF resumes using LaTeX and Tectonic, with real-time live preview capabilities ensuring clean formatting and precise typography.
 
-This project is public, with a custom license allowing personal use and forks for non-commercial purposes. I plan to introduce user authentication and premium features (e.g., advanced templates, analytics) for commercial use in the future.
+This project is public, with a custom license allowing personal use and forks for non-commercial purposes. It includes user authentication with Supabase, and I plan to introduce premium features (e.g., advanced templates, analytics) for commercial use in the future.
 
 ## Key Features
+
+### Authentication & Data Management
+- **Dual-Path Data System**: Authenticated users get database storage, unauthenticated users get localStorage
+- **Secure Authentication**: Email/password signup and login with Supabase Auth
+- **Row Level Security**: Database policies ensure users only access their own data
+- **Session Management**: Automatic session persistence and middleware-based route protection
+- **Password Security**: Comprehensive validation with requirements for security and special characters
 
 ### AI-Powered Resume Creation
 - **Intelligent Bullet Generation**: Creates tailored bullet points matching job descriptions using OpenAI's GPT models
@@ -40,19 +47,22 @@ This project is public, with a custom license allowing personal use and forks fo
 ## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript, SASS
+- **Authentication**: Supabase Auth with Row Level Security (RLS)
+- **Database**: Supabase PostgreSQL with TypeScript type generation
 - **AI Integration**: OpenAI API (GPT-4o mini, GPT-4) with tiktoken for token management
 - **PDF Generation**: LaTeX with Tectonic for professional resume output  
 - **UI Components**: dnd-kit for drag-and-drop, react-pdf for preview, react-icons
 - **Validation**: Zod schemas for type-safe form validation
-- **State Management**: Zustand for global state with localStorage persistence via custom dataManager
+- **State Management**: Zustand for global state with dual-path data persistence (Database + localStorage)
 - **Loading States**: Mixin-based skeleton system integrated with design tokens
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or newer)
+- Node.js (v18.18.0 or newer)
 - pnpm, npm, or yarn
+- Docker and Docker Compose (for local Supabase development)
 - OpenAI API key
 - Tectonic (automatically downloaded during build): [Tectonic Documentation](https://tectonic-typesetting.github.io)
 
@@ -68,26 +78,80 @@ This project is public, with a custom license allowing personal use and forks fo
 2. Install dependencies:
 
    ```bash
-   pnpm install
-   # or
    npm install
    ```
 
-3. Create a `.env.local` file in the root directory:
-
-   ```
-   OPENAI_API_KEY=your_api_key_here
-   ```
-
-4. Start the development server:
+3. Set up Supabase for local development:
 
    ```bash
-   pnpm dev
-   # or
+   # Install Supabase CLI
+   npm install -g @supabase/cli
+
+   # Start local Supabase stack (requires Docker)
+   # This automatically applies the migration in supabase/migrations/
+   npx supabase start
+   ```
+
+   This will start local Supabase services, apply the database migration to create all tables with Row Level Security policies, and display connection details.
+
+4. Create a `.env.local` file in the root directory:
+
+   ```env
+   OPENAI_API_KEY=your_api_key_here
+   
+   # Local Supabase (from `supabase start` output)
+   NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_anon_key_here
+   SUPABASE_SECRET_KEY=your_service_role_key_here
+   ```
+
+5. Start the development server:
+
+   ```bash
    npm run dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) to view the app.
+6. Open [http://localhost:3000](http://localhost:3000) to view the app.
+
+### Database Management
+
+The app uses a **dual-path data management system**:
+
+- **Authenticated Users**: Data is stored in Supabase PostgreSQL with Row Level Security
+- **Unauthenticated Users**: Data is stored in browser localStorage for immediate use
+
+#### Database Schema
+
+The database includes tables for:
+- **`personal_details`** - Contact information and professional profiles
+- **`experience`** - Work history with AI-generated bullet points
+- **`projects`** - Project showcase with technology highlighting
+- **`education`** - Academic background and certifications
+- **`skills`** - Extracted and categorized skills
+- **`app_settings`** - User preferences and AI model settings
+
+#### Local Development Commands
+
+```bash
+# Stop local Supabase services
+npx supabase stop
+
+# Reset local database (deletes all data)
+npx supabase db reset
+
+# View database in Supabase Studio
+npx supabase start
+# Open http://localhost:54323 in browser
+
+# Apply database migrations
+npx supabase migration up
+
+# Generate new migration from schema changes
+npx supabase db diff --file new_migration
+
+# Regenerate types after schema changes (only needed if you modify the migration)
+npx supabase gen types typescript --local > src/lib/types/database.ts
+```
 
 ## How to Use
 
@@ -272,10 +336,12 @@ resu-mint/
 │   ├── stores/          # Zustand global state stores
 │   │   ├── index.ts                 # Store exports and hooks
 │   │   ├── StoreProvider.tsx        # Centralized store initialization
+│   │   ├── authStore.ts             # Authentication state management
 │   │   ├── personalDetailsStore.ts  # Personal details state management
 │   │   └── settingsStore.ts         # Application settings state
 │   ├── app/             # App Router pages and API routes
 │   │   ├── admin/           # Admin dashboard for system monitoring
+│   │   ├── login/           # Authentication page with signup/login
 │   │   ├── api/             # AI and PDF generation endpoints
 │   │   │   ├── analyze-job-description/    # Job analysis
 │   │   │   ├── generate-bullets/           # AI bullet generation
@@ -310,11 +376,15 @@ resu-mint/
 │   │       └── LongPressHandler/ # Mobile interaction handler
 │   ├── lib/             # Core utilities and services
 │   │   ├── actions/         # Pure validation functions (no side effects)
+│   │   │   ├── loginActions.ts           # Authentication form validation
 │   │   │   ├── personalDetailsActions.ts # Personal details validation
 │   │   │   ├── experienceActions.ts      # Experience form validation
 │   │   │   ├── projectActions.ts         # Project form validation
 │   │   │   ├── educationActions.ts       # Education form validation
 │   │   │   └── settingsActions.ts        # Settings form validation
+│   │   ├── supabase/        # Supabase configuration and clients
+│   │   │   ├── client.ts                 # Browser client for authentication
+│   │   │   └── server.ts                 # Server client for admin operations
 │   │   ├── ai/              # AI prompts and tools
 │   │   ├── data/            # Data persistence layer
 │   │   │   └── dataManager.ts            # Intelligent caching + localStorage operations
@@ -331,6 +401,8 @@ resu-mint/
 │   │   │   └── useAutoResizeTextarea.ts # Auto-resizing textarea utility
 │   │   ├── types/           # TypeScript definitions
 │   │   │   ├── api.ts       # API request/response types
+│   │   │   ├── auth.ts      # Authentication form types
+│   │   │   ├── database.ts  # Supabase database types (generated)
 │   │   │   ├── keywords.ts  # Keyword analysis types
 │   │   │   ├── admin.ts     # Admin dashboard types
 │   │   │   ├── experience.ts, projects.ts, education.ts
@@ -341,7 +413,13 @@ resu-mint/
 │   │   ├── utils.ts         # General utilities
 │   │   ├── constants.ts     # Application constants
 │   │   └── validationSchemas.ts # Zod validation schemas
+│   ├── middleware.ts    # Next.js middleware for route protection
 │   └── styles/          # SASS styles and variables
+├── supabase/            # Supabase configuration and migrations
+│   ├── config.toml              # Local Supabase configuration
+│   ├── migrations/              # Database migration files
+│   │   └── 20250803234543_create_resume_tables.sql
+│   └── .gitignore               # Supabase-specific gitignore
 ├── .env.local           # Environment variables
 ├── next.config.ts       # Next.js configuration
 ├── package.json         # Dependencies and scripts
@@ -367,9 +445,10 @@ Access `/admin/dashboard` for system monitoring including:
 
 ## Future Enhancements
 
-### Authentication & Data
-- **User Authentication**: Secure profiles with database storage (replacing browser storage)
+### Data & Storage
+- **Data Migration Tools**: Migrate localStorage data to database for new authenticated users
 - **Version History**: Track and restore previous resume versions
+- **Data Export/Import**: Allow users to export/import their data
 
 ### Premium Features
 - **Multiple Templates**: Professional resume layouts and themes, optimized for ATS readability
