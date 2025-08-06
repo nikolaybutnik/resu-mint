@@ -115,7 +115,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
         data: { subscription },
       } = supabase.auth.onAuthStateChange(
         (event: AuthChangeEvent, session: Session | null) => {
-          console.info('Auth state changed: ', event, session?.user?.id)
+          console.info(
+            `Auth event: ${event} - User: ${
+              session?.user ? 'Found' : 'None'
+            } - ID: ${session?.user?.id || 'N/A'}`
+          )
 
           if (session?.user) {
             set({ user: session.user, loading: false })

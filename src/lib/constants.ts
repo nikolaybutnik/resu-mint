@@ -11,6 +11,10 @@ import { SkillBlock, Skills } from './types/skills'
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  ADMIN: {
+    BASE: '/admin',
+    DASHBOARD: '/admin/dashboard',
+  },
 }
 
 // API
