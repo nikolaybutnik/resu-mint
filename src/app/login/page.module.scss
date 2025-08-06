@@ -1,3 +1,160 @@
+@import '../../styles/_variables.scss';
+@import '../../styles/_mixins.scss';
+
 .loginPage {
+  min-height: 100vh;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    135deg,
+    rgba($color-primary, 0.05) 0%,
+    rgba($color-primary, 0.1) 100%
+  );
+  padding: 20px;
+}
+
+.formWrapper {
+  @include welcome-form-container;
+  @include card-container;
+  padding: 40px;
+  text-align: center;
+
+  h1 {
+    color: $color-primary;
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 32px;
+    letter-spacing: -0.5px;
+  }
+
+  @include breakpoint(mobile) {
+    padding: 24px;
+
+    h1 {
+      font-size: 24px;
+      margin-bottom: 24px;
+    }
+  }
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.field {
+  @include form-field;
+
+  label {
+    @include form-label;
+  }
+
+  input {
+    @include form-input-base;
+    width: 100%;
+  }
+}
+
+.passwordContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  input {
+    @include form-input-base;
+    width: 100%;
+    padding-right: 45px;
+  }
+}
+
+.passwordToggle {
+  @include button-base;
+  position: absolute;
+  right: 12px;
+  background: transparent;
+  border: none;
+  color: $color-disabled;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $color-primary;
+    background: rgba($color-primary, 0.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.fieldError {
+  @include form-error;
+  align-self: flex-start;
+}
+
+.error {
+  border-color: $color-error;
+
+  &:focus {
+    box-shadow: 0 0 0 3px rgba($color-error, 0.1);
+  }
+}
+
+.generalError {
+  background: rgba($color-error, 0.1);
+  border: 1px solid rgba($color-error, 0.3);
+  color: $color-error;
+  padding: 12px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.submitButton {
+  @include action-button('primary');
+  @include welcome-button-responsive;
+  font-weight: 600;
+  margin-top: 8px;
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+
+    &:hover {
+      transform: none;
+      box-shadow: 0 2px 8px rgba($color-primary, 0.2);
+    }
+  }
+}
+
+.toggleButton {
+  @include button-base;
+  @include welcome-button-small-responsive;
+  background: transparent;
+  border: none;
+  color: $color-primary;
+  font-weight: 500;
+  padding: 12px 0;
+  margin-top: 16px;
+  transition: all 0.2s ease-in-out;
+
+  &:hover {
+    color: $color-primary-hover;
+    text-decoration: underline;
+  }
+
+  &:active {
+    transform: translateY(1px);
+  }
 }

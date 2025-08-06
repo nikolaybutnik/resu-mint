@@ -7,6 +7,7 @@ import { useFormStatus } from 'react-dom'
 import { login } from '@/lib/actions/loginActions'
 import { AuthFormState } from '@/lib/types/auth'
 import { useAuthStore } from '@/stores'
+import { FaEye, FaEyeSlash } from 'react-icons/fa'
 
 const FORM_STATE = {
   LOGIN: 'login',
@@ -55,6 +56,9 @@ export default function LoginPage() {
   const { signIn, signUp } = useAuthStore()
 
   const [isSignUp, setIsSignUp] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
   const [state, action] = useActionState(
     (_previousState: AuthFormState, formData: FormData) =>
       submitAuth(formData, signIn, signUp),
@@ -86,6 +90,7 @@ export default function LoginPage() {
               type='text'
               name={LOGIN_FORM_DATA_KEYS.EMAIL}
               defaultValue={state.data?.email || ''}
+              className={state.errors.email ? styles.error : ''}
             />
             {state.errors.email && (
               <span className={styles.fieldError}>{state.errors.email}</span>
@@ -94,11 +99,22 @@ export default function LoginPage() {
 
           <div className={styles.field}>
             <label htmlFor={LOGIN_FORM_DATA_KEYS.PASSWORD}>Password</label>
-            <input
-              type='text'
-              name={LOGIN_FORM_DATA_KEYS.PASSWORD}
-              defaultValue={state.data?.password || ''}
-            />
+            <div className={styles.passwordContainer}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name={LOGIN_FORM_DATA_KEYS.PASSWORD}
+                defaultValue={state.data?.password || ''}
+                className={state.errors.password ? styles.error : ''}
+                autoComplete='off'
+              />
+              <button
+                type='button'
+                className={styles.passwordToggle}
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
+              </button>
+            </div>
             {state.errors.password && (
               <span className={styles.fieldError}>{state.errors.password}</span>
             )}
@@ -109,11 +125,22 @@ export default function LoginPage() {
               <label htmlFor={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}>
                 Confirm Password
               </label>
-              <input
-                type='text'
-                name={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}
-                defaultValue={state.data?.confirmPassword || ''}
-              />
+              <div className={styles.passwordContainer}>
+                <input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}
+                  defaultValue={state.data?.confirmPassword || ''}
+                  className={state.errors.confirmPassword ? styles.error : ''}
+                  autoComplete='off'
+                />
+                <button
+                  type='button'
+                  className={styles.passwordToggle}
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
               {state.errors.confirmPassword && (
                 <span className={styles.fieldError}>
                   {state.errors.confirmPassword}
@@ -123,7 +150,7 @@ export default function LoginPage() {
           )}
 
           {state.errors.general && (
-            <div className={styles.error}>{state.errors.general}</div>
+            <div className={styles.generalError}>{state.errors.general}</div>
           )}
 
           <SubmitButton isSignUp={isSignUp} />
