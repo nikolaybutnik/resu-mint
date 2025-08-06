@@ -1,0 +1,92 @@
+@import '../../styles/_variables.scss';
+
+.accountMenu {
+  background-color: rgba($color-background, 0.15);
+  height: 100%;
+  width: 100%;
+  border-radius: 50%;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid rgba($color-background, 0.2);
+  position: relative;
+
+  &:hover {
+    background-color: rgba($color-background, 0.25);
+    box-shadow: 0 2px 8px rgba($color-text, 0.15);
+  }
+
+  &:active {
+    box-shadow: 0 1px 4px rgba($color-text, 0.1);
+  }
+}
+
+.iconBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.icon {
+  color: $color-background;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999999;
+  background-color: rgba($color-text, 0.1);
+}
+
+.optionsContainer {
+  position: absolute;
+  right: 16px;
+  top: 72px;
+  background: $color-background;
+  border: 1px solid $color-border;
+  border-radius: 4px;
+  padding: 8px;
+  box-shadow: 0 4px 12px rgba($color-text, 0.15);
+}
+
+.option {
+  background: none;
+  border: none;
+  padding: 8px 16px;
+  margin: 0;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: $color-text;
+  border-radius: 4px;
+  transition: all 0.2s ease-in-out;
+  width: 100%;
+  text-align: left;
+  display: block;
+
+  &:hover {
+    background-color: rgba($color-primary, 0.08);
+    color: $color-primary;
+  }
+
+  &:active {
+    background-color: rgba($color-primary, 0.12);
+    transform: translateY(1px);
+  }
+}

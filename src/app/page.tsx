@@ -9,6 +9,7 @@ import {
   shouldShowWelcomeExperience,
   WelcomeExperienceState,
 } from '@/lib/utils'
+import AccountMenu from '@/components/AccountMenu/AccountMenu'
 
 export default function Home() {
   const [view, setView] = useState<string>(MOBILE_VIEW.INPUT)
@@ -44,7 +45,13 @@ export default function Home() {
   return (
     <div className={styles.appWrapper}>
       <header className={styles.header}>
+        <div className={styles.headerSpacer}></div>
+
         <h1>ResuMint</h1>
+
+        <div className={styles.accountManagement}>
+          <AccountMenu />
+        </div>
       </header>
       <main className={styles.container}>
         <FormsContainer view={view} />

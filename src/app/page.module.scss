@@ -16,6 +16,9 @@
   padding: 16px;
   text-align: center;
   z-index: 100000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 
   @include breakpoint(tablet) {
     padding: 12px;
@@ -32,6 +35,15 @@
       font-size: 24px !important;
     }
   }
+}
+
+.headerSpacer,
+.accountManagement {
+  width: 48px;
+}
+
+.accountManagement {
+  height: 48px;
 }
 
 .container {
