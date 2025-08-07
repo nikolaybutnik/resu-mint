@@ -3,7 +3,11 @@
 
 .appWrapper {
   font-family: $font-family-base;
-  min-height: var(--vh);
+  height: 100vh;
+  height: 100svh;
+  height: 100dvh;
+  overflow: hidden;
+  overscroll-behavior: none;
   display: flex;
   flex-direction: column;
   background-color: $color-background;
@@ -47,11 +51,12 @@
 }
 
 .container {
-  min-height: calc(100dvh - 80px);
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   margin: 0 auto;
   width: 100%;
+  overflow: auto;
 }
 
 .bottomNav {

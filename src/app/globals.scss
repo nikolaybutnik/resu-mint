@@ -9,6 +9,13 @@
   }
 }
 
+/* Constrain page scroll to app-level containers */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 /* Drag state styles */
 body.dragging-active {
   overflow: hidden !important;

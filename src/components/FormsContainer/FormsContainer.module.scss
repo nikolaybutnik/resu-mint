@@ -4,17 +4,10 @@
 
 .formsContainer {
   display: flex;
-  height: calc(var(--vh) - 80px);
+  height: 100%;
+  min-height: 0;
   width: 100%;
   position: relative;
-
-  @include breakpoint(tablet) {
-    height: calc(var(--vh) - 66px);
-  }
-
-  @include breakpoint(mobile) {
-    height: calc(var(--vh) - 52px);
-  }
 }
 
 .sidebar {
@@ -23,6 +16,7 @@
   background-color: $color-background;
   padding: 16px;
   overflow-y: auto;
+  min-height: 0;
   border-right: 1px solid $color-border;
 
   @include breakpoint(tablet) {
@@ -42,15 +36,16 @@
 .preview {
   flex: 1;
   overflow-y: auto;
+  min-height: 0;
   background-color: $color-action-item-background;
 
   @include breakpoint(tablet) {
-    padding-bottom: 72px;
+    padding-bottom: 0;
   }
 
   @include breakpoint(mobile) {
     &.active {
-      padding-bottom: 56px;
+      padding-bottom: 0;
     }
   }
 }

@@ -14,8 +14,7 @@
   justify-content: center;
   z-index: 9999;
   padding: 32px;
-  height: 100vh;
-  height: var(--vh);
+  box-sizing: border-box;
   overflow: hidden;
 
   @include breakpoint(tablet) {
@@ -35,7 +34,6 @@
   padding: 48px;
   max-width: 600px;
   width: 100%;
-  max-height: calc(var(--vh) - 64px);
   display: flex;
   flex-direction: column;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
@@ -44,13 +42,11 @@
   @include breakpoint(tablet) {
     padding: 36px;
     border-radius: 18px;
-    max-height: calc(var(--vh) - 48px);
   }
 
   @include breakpoint(mobile) {
     padding: 24px;
     border-radius: 16px;
-    max-height: calc(var(--vh) - 32px);
   }
 }
 
