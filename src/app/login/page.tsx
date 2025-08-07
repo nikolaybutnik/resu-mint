@@ -47,6 +47,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordInput, setPasswordInput] = useState('')
 
   const [state, action] = useActionState(
     (_previousState: AuthFormState, formData: FormData) =>
@@ -94,6 +95,7 @@ export default function LoginPage() {
                 name={LOGIN_FORM_DATA_KEYS.PASSWORD}
                 defaultValue={state.data?.password || ''}
                 className={state.errors.password ? styles.error : ''}
+                onInput={(e) => setPasswordInput(e.currentTarget.value)}
                 autoComplete='off'
               />
               <button
@@ -110,32 +112,97 @@ export default function LoginPage() {
           </div>
 
           {isSignUp && (
-            <div className={styles.field}>
-              <label htmlFor={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}>
-                Confirm Password
-              </label>
-              <div className={styles.passwordContainer}>
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  name={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}
-                  defaultValue={state.data?.confirmPassword || ''}
-                  className={state.errors.confirmPassword ? styles.error : ''}
-                  autoComplete='off'
-                />
-                <button
-                  type='button'
-                  className={styles.passwordToggle}
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                </button>
+            <>
+              <div className={styles.field}>
+                <label htmlFor={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}>
+                  Confirm Password
+                </label>
+                <div className={styles.passwordContainer}>
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}
+                    defaultValue={state.data?.confirmPassword || ''}
+                    className={state.errors.confirmPassword ? styles.error : ''}
+                    autoComplete='off'
+                  />
+                  <button
+                    type='button'
+                    className={styles.passwordToggle}
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                {state.errors.confirmPassword && (
+                  <span className={styles.fieldError}>
+                    {state.errors.confirmPassword}
+                  </span>
+                )}
               </div>
-              {state.errors.confirmPassword && (
-                <span className={styles.fieldError}>
-                  {state.errors.confirmPassword}
-                </span>
-              )}
-            </div>
+
+              <div className={styles.passwordRequirements}>
+                <div className={styles.requirementItem}>
+                  <span
+                    className={
+                      /[a-z]/.test(passwordInput)
+                        ? styles.checkValid
+                        : styles.checkInvalid
+                    }
+                  >
+                    ✓
+                  </span>
+                  One lowercase letter
+                </div>
+                <div className={styles.requirementItem}>
+                  <span
+                    className={
+                      /[A-Z]/.test(passwordInput)
+                        ? styles.checkValid
+                        : styles.checkInvalid
+                    }
+                  >
+                    ✓
+                  </span>
+                  One uppercase letter
+                </div>
+                <div className={styles.requirementItem}>
+                  <span
+                    className={
+                      /\d/.test(passwordInput)
+                        ? styles.checkValid
+                        : styles.checkInvalid
+                    }
+                  >
+                    ✓
+                  </span>
+                  One number
+                </div>
+                <div className={styles.requirementItem}>
+                  <span
+                    className={
+                      /[!@#$%^&*]/.test(passwordInput)
+                        ? styles.checkValid
+                        : styles.checkInvalid
+                    }
+                  >
+                    ✓
+                  </span>
+                  One special character (!@#$%^&*)
+                </div>
+                <div className={styles.requirementItem}>
+                  <span
+                    className={
+                      passwordInput.length >= 6 && passwordInput.length <= 15
+                        ? styles.checkValid
+                        : styles.checkInvalid
+                    }
+                  >
+                    ✓
+                  </span>
+                  6-15 characters long
+                </div>
+              </div>
+            </>
           )}
 
           {state.errors.general && (

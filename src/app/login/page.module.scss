@@ -46,6 +46,7 @@
 
 .field {
   @include form-field;
+  margin-bottom: 0;
 
   label {
     @include form-label;
@@ -124,7 +125,6 @@
   @include action-button('primary');
   @include welcome-button-responsive;
   font-weight: 600;
-  margin-top: 8px;
 
   &:disabled {
     opacity: 0.7;
@@ -157,4 +157,63 @@
   &:active {
     transform: translateY(1px);
   }
+}
+
+.passwordRequirements {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.requirementItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  &:has(.checkValid) {
+    background: rgba($color-transformative, 0.08);
+    color: darken($color-transformative, 15%);
+  }
+
+  &:has(.checkInvalid) {
+    background: transparent;
+    color: $color-disabled;
+  }
+}
+
+.checkValid {
+  color: $color-transformative;
+  font-weight: 700;
+  font-size: 13px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-transformative, 0.15);
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.checkInvalid {
+  color: $color-disabled;
+  font-weight: 700;
+  font-size: 14px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba($color-disabled, 0.1);
+  border-radius: 50%;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
 }
