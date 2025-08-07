@@ -4,7 +4,7 @@ import styles from './page.module.scss'
 import { LOGIN_FORM_DATA_KEYS } from '@/lib/constants'
 import { useState, useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
-import { login } from '@/lib/actions/loginActions'
+import { login, signup } from '@/lib/actions/authActions'
 import { AuthFormState } from '@/lib/types/auth'
 import { useAuthStore } from '@/stores'
 import { FaEye, FaEyeSlash } from 'react-icons/fa'
@@ -25,18 +25,7 @@ const submitAuth = async (
   const mode = formData.get(LOGIN_FORM_DATA_KEYS.MODE) as string
 
   if (mode === FORM_STATE.SIGN_UP) {
-    // TODO: Call signup action
-    console.log(signUp)
-    return {
-      errors: {},
-      data: {
-        email: (formData.get(LOGIN_FORM_DATA_KEYS.EMAIL) as string) || '',
-        password: (formData.get(LOGIN_FORM_DATA_KEYS.PASSWORD) as string) || '',
-        confirmPassword:
-          (formData.get(LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD) as string) || '',
-      },
-      mode,
-    }
+    return await signup(formData, signUp)
   } else {
     return await login(formData, signIn)
   }

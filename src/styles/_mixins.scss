@@ -1188,7 +1188,8 @@
   margin: 6px 0;
   opacity: 0;
   transform: translateX(-8px);
-  display: inline-block;
+  display: block;
+  text-align: left;
   animation: slideIn 0.3s ease forwards;
 }
 

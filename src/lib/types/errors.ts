@@ -58,7 +58,11 @@ export const zodErrorsToFormErrors = (
 ): Record<string, string> => {
   return error.errors.reduce((acc, err) => {
     if (err.path.length > 0) {
-      acc[err.path[0] as string] = err.message
+      // Preserve first error message
+      const field = err.path[0] as string
+      if (!(field in acc)) {
+        acc[field] = err.message
+      }
     }
     return acc
   }, {} as Record<string, string>)
