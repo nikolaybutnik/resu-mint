@@ -4,25 +4,24 @@ import { personalDetailsSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
 import {
   isAuthenticated,
-  isLocalStorageAvailable,
   isQuotaExceededError,
+  waitForAuthReady,
 } from './dataUtils'
+import { supabase } from '../supabase/client'
 
-const CACHE_KEYS = {
-  PERSONAL_DETAILS_LOCAL: 'personalDetails-local',
-  PERSONAL_DETAILS_API: 'personalDetails-api',
-} as const
+const CACHE_KEY = 'personalDetails'
 
 class PersonalDetailsManager {
   private cache = new Map<string, Promise<unknown>>()
 
+  // get(): prefer DB if authed; fallback to local; keep local in sync
   async get(): Promise<PersonalDetails> {
-    const cacheKey = isAuthenticated()
-      ? CACHE_KEYS.PERSONAL_DETAILS_API
-      : CACHE_KEYS.PERSONAL_DETAILS_LOCAL
+    if (!this.cache.has(CACHE_KEY)) {
+      const promise = new Promise<PersonalDetails>(async (resolve) => {
+        await waitForAuthReady()
 
-    if (!this.cache.has(cacheKey)) {
-      const promise = new Promise<PersonalDetails>((resolve) => {
+        let localData: PersonalDetails = DEFAULT_STATE_VALUES.PERSONAL_DETAILS
+
         try {
           const stored = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS)
 
@@ -30,74 +29,98 @@ class PersonalDetailsManager {
             const parsed = JSON.parse(stored)
             const validation = personalDetailsSchema.safeParse(parsed)
 
-            if (validation.success) {
-              resolve(validation.data)
-            } else {
-              console.warn(
-                'Invalid personal details in Local Storage, using defaults:',
-                validation.error
-              )
-              resolve(DEFAULT_STATE_VALUES.PERSONAL_DETAILS)
-            }
-          } else {
-            resolve(DEFAULT_STATE_VALUES.PERSONAL_DETAILS)
+            if (validation.success) localData = validation.data
           }
-        } catch (error) {
-          console.error(
-            'Error loading personal details, using defaults:',
-            error
-          )
-          resolve(DEFAULT_STATE_VALUES.PERSONAL_DETAILS)
+        } catch {}
+
+        if (!isAuthenticated()) {
+          resolve(localData)
+          return
         }
+
+        const { data, error } = await supabase
+          .from('personal_details')
+          .select(
+            'name, email, phone, location, linkedin, github, website, updated_at'
+          )
+          .maybeSingle()
+
+        if (!error && data) {
+          const dbData: PersonalDetails = {
+            name: data.name ?? '',
+            email: data.email ?? '',
+            phone: data.phone ?? '',
+            location: data.location ?? '',
+            linkedin: data.linkedin ?? '',
+            github: data.github ?? '',
+            website: data.website ?? '',
+          }
+
+          // TODO: implement method to choose freshest data
+          const chosen = dbData
+
+          // Sync local data
+          try {
+            localStorage.setItem(
+              STORAGE_KEYS.PERSONAL_DETAILS,
+              JSON.stringify(chosen)
+            )
+          } catch {}
+
+          resolve(chosen)
+          return
+        }
+
+        // DB missing or error: fallback to local
+        resolve(localData)
       })
-      this.cache.set(cacheKey, promise)
+      this.cache.set(CACHE_KEY, promise)
     }
 
-    return this.cache.get(cacheKey)! as Promise<PersonalDetails>
+    return this.cache.get(CACHE_KEY)! as Promise<PersonalDetails>
   }
 
+  // save(): optimistic local write; then DB (if authed)
   async save(data: PersonalDetails): Promise<void> {
     const validation = personalDetailsSchema.safeParse(data)
+
     if (!validation.success) {
-      console.error(
-        'Invalid personal details data, save aborted:',
-        validation.error
-      )
       throw new Error('Invalid personal details data')
     }
 
     this.invalidate()
 
-    if (!isLocalStorageAvailable()) {
-      console.warn(
-        'Local Storage not available, data will not persist across sessions'
-      )
-
-      const cacheKey = isAuthenticated()
-        ? CACHE_KEYS.PERSONAL_DETAILS_API
-        : CACHE_KEYS.PERSONAL_DETAILS_LOCAL
-
-      this.cache.set(cacheKey, Promise.resolve(validation.data))
-      return
-    }
-
+    // optimistic local write
     try {
       localStorage.setItem(
         STORAGE_KEYS.PERSONAL_DETAILS,
         JSON.stringify(validation.data)
       )
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
+      if (isQuotaExceededError(error)) throw new Error('Storage quota exceeded')
       throw error
     }
+
+    await waitForAuthReady()
+    if (isAuthenticated()) {
+      const { error } = await supabase.rpc('upsert_personal_details', {
+        p_name: data.name,
+        p_email: data.email,
+        p_phone: data.phone ?? '',
+        p_location: data.location ?? '',
+        p_linkedin: data.linkedin ?? '',
+        p_github: data.github ?? '',
+        p_website: data.website ?? '',
+      })
+      if (error) throw error
+    }
+
+    // Prime cache with saved value for immediate reads
+    this.cache.set(CACHE_KEY, Promise.resolve(validation.data))
   }
 
   invalidate() {
-    this.cache.delete(CACHE_KEYS.PERSONAL_DETAILS_LOCAL)
-    this.cache.delete(CACHE_KEYS.PERSONAL_DETAILS_API)
+    this.cache.delete(CACHE_KEY)
   }
 }
 

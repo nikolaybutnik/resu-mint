@@ -136,7 +136,7 @@ The database includes tables for:
 # Stop local Supabase services
 npx supabase stop
 
-# Reset local database (deletes all data)
+# Reset local database (deletes all data) and apply pending migrations
 npx supabase db reset
 
 # View database in Supabase Studio
@@ -148,6 +148,9 @@ npx supabase migration up
 
 # Generate new migration from schema changes
 npx supabase db diff --file new_migration
+
+# Create a new migration file
+npx supabase migration new <name>
 
 # Regenerate types after schema changes (only needed if you modify the migration)
 npx supabase gen types typescript --local > src/lib/types/database.ts

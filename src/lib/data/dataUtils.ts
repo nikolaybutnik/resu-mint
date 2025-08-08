@@ -4,6 +4,10 @@ export function isAuthenticated(): boolean {
   return useAuthStore.getState().user !== null
 }
 
+export function getUserId(): string | null {
+  return useAuthStore.getState().user?.id ?? null
+}
+
 export function isLocalStorageAvailable(): boolean {
   try {
     const test = '__storage_test__'
@@ -13,6 +17,21 @@ export function isLocalStorageAvailable(): boolean {
   } catch {
     return false
   }
+}
+
+export function waitForAuthReady(): Promise<void> {
+  return new Promise((resolve) => {
+    if (!useAuthStore.getState().loading) return resolve()
+
+    let unsub: () => void
+    const listener = (state: { loading: boolean }) => {
+      if (!state.loading) {
+        unsub()
+        resolve()
+      }
+    }
+    unsub = useAuthStore.subscribe(listener)
+  })
 }
 
 export function isQuotaExceededError(error: unknown): boolean {
