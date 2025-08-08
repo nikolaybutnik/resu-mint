@@ -283,7 +283,7 @@ export type Database = {
           p_phone: string
           p_website: string
         }
-        Returns: undefined
+        Returns: string
       }
     }
     Enums: {

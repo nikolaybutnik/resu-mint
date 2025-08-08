@@ -41,3 +41,25 @@ export function isQuotaExceededError(error: unknown): boolean {
       error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
   )
 }
+
+export const nowIso = (): string => new Date().toISOString()
+
+type LocalEnvelope<T> = { data: T; meta: { updatedAt: string } }
+
+export function readLocalEnvelope<T>(key: string): LocalEnvelope<T> | null {
+  try {
+    const raw = localStorage.getItem(key)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed?.data || !parsed?.meta?.updatedAt) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+export function writeLocalEnvelope<T>(key: string, data: T, updatedAt: string) {
+  try {
+    localStorage.setItem(key, JSON.stringify({ data, meta: { updatedAt } }))
+  } catch {}
+}

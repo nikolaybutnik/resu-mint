@@ -6,8 +6,12 @@ import {
   isAuthenticated,
   isQuotaExceededError,
   waitForAuthReady,
+  readLocalEnvelope,
+  writeLocalEnvelope,
+  nowIso,
 } from './dataUtils'
 import { supabase } from '../supabase/client'
+import { useAuthStore } from '@/stores/authStore'
 
 const CACHE_KEY = 'personalDetails'
 
@@ -18,57 +22,66 @@ class PersonalDetailsManager {
   async get(): Promise<PersonalDetails> {
     if (!this.cache.has(CACHE_KEY)) {
       const promise = new Promise<PersonalDetails>(async (resolve) => {
-        await waitForAuthReady()
+        // 1) Read local first (fast path)
+        const localEnv = readLocalEnvelope<PersonalDetails>(
+          STORAGE_KEYS.PERSONAL_DETAILS
+        )
 
-        let localData: PersonalDetails = DEFAULT_STATE_VALUES.PERSONAL_DETAILS
+        let localData: PersonalDetails =
+          localEnv?.data ?? DEFAULT_STATE_VALUES.PERSONAL_DETAILS
+        const localUpdatedAt =
+          localEnv?.meta?.updatedAt ?? '1970-01-01T00:00:00.000Z'
 
-        try {
-          const stored = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS)
-
-          if (stored) {
-            const parsed = JSON.parse(stored)
-            const validation = personalDetailsSchema.safeParse(parsed)
-
-            if (validation.success) localData = validation.data
-          }
-        } catch {}
+        // If auth is still initializing, return local immediately (avoid blocking UI)
+        const authLoading = useAuthStore.getState().loading
+        if (authLoading) {
+          resolve(localData)
+          return
+        }
 
         if (!isAuthenticated()) {
           resolve(localData)
           return
         }
 
-        const { data, error } = await supabase
-          .from('personal_details')
-          .select(
-            'name, email, phone, location, linkedin, github, website, updated_at'
-          )
-          .maybeSingle()
-
-        if (!error && data) {
-          const dbData: PersonalDetails = {
-            name: data.name ?? '',
-            email: data.email ?? '',
-            phone: data.phone ?? '',
-            location: data.location ?? '',
-            linkedin: data.linkedin ?? '',
-            github: data.github ?? '',
-            website: data.website ?? '',
-          }
-
-          // TODO: implement method to choose freshest data
-          const chosen = dbData
-
-          // Sync local data
-          try {
-            localStorage.setItem(
-              STORAGE_KEYS.PERSONAL_DETAILS,
-              JSON.stringify(chosen)
+        // 2) Try DB under RLS
+        try {
+          const { data, error } = await supabase
+            .from('personal_details')
+            .select(
+              'name, email, phone, location, linkedin, github, website, updated_at'
             )
-          } catch {}
+            .maybeSingle()
 
-          resolve(chosen)
-          return
+          if (!error && data) {
+            const dbData: PersonalDetails = {
+              name: data.name ?? '',
+              email: data.email ?? '',
+              phone: data.phone ?? '',
+              location: data.location ?? '',
+              linkedin: data.linkedin ?? '',
+              github: data.github ?? '',
+              website: data.website ?? '',
+            }
+            const dbUpdatedAt = data.updated_at ?? '1970-01-01T00:00:00.000Z'
+
+            // Choose freshest
+            const useDb = Date.parse(dbUpdatedAt) >= Date.parse(localUpdatedAt)
+            const chosen = useDb ? dbData : localData
+            const chosenUpdatedAt = useDb ? dbUpdatedAt : localUpdatedAt
+
+            // Sync local data
+            writeLocalEnvelope(
+              STORAGE_KEYS.PERSONAL_DETAILS,
+              chosen,
+              chosenUpdatedAt
+            )
+
+            resolve(chosen)
+            return
+          }
+        } catch {
+          // fall through to local
         }
 
         // DB missing or error: fallback to local
@@ -90,11 +103,12 @@ class PersonalDetailsManager {
 
     this.invalidate()
 
-    // optimistic local write
+    // optimistic local write with timestamp
     try {
-      localStorage.setItem(
+      writeLocalEnvelope(
         STORAGE_KEYS.PERSONAL_DETAILS,
-        JSON.stringify(validation.data)
+        validation.data,
+        nowIso()
       )
     } catch (error) {
       if (isQuotaExceededError(error)) throw new Error('Storage quota exceeded')
@@ -103,16 +117,27 @@ class PersonalDetailsManager {
 
     await waitForAuthReady()
     if (isAuthenticated()) {
-      const { error } = await supabase.rpc('upsert_personal_details', {
-        p_name: data.name,
-        p_email: data.email,
-        p_phone: data.phone ?? '',
-        p_location: data.location ?? '',
-        p_linkedin: data.linkedin ?? '',
-        p_github: data.github ?? '',
-        p_website: data.website ?? '',
-      })
+      const { data: updatedAt, error } = await supabase.rpc(
+        'upsert_personal_details',
+        {
+          p_name: data.name,
+          p_email: data.email,
+          p_phone: data.phone ?? '',
+          p_location: data.location ?? '',
+          p_linkedin: data.linkedin ?? '',
+          p_github: data.github ?? '',
+          p_website: data.website ?? '',
+        }
+      )
+
       if (error) throw error
+
+      // Reflect server write locally
+      writeLocalEnvelope(
+        STORAGE_KEYS.PERSONAL_DETAILS,
+        validation.data,
+        updatedAt ?? nowIso()
+      )
     }
 
     // Prime cache with saved value for immediate reads

@@ -6,19 +6,23 @@ CREATE OR REPLACE FUNCTION upsert_personal_details(
     p_linkedin TEXT,
     p_github TEXT,
     p_website TEXT
-) RETURNS VOID
+) RETURNS TIMESTAMPTZ
 LANGUAGE sql
 SECURITY DEFINER
 AS $$
-    INSERT INTO personal_details (user_id, name, email, phone, location, linkedin, github, website)
-    VALUES (auth.uid(), p_name, p_email, p_phone, p_location, p_linkedin, p_github, p_website)
-    ON CONFLICT (user_id) DO UPDATE SET
-        name = EXCLUDED.name,
-        email = EXCLUDED.email,
-        phone = EXCLUDED.phone,
-        location = EXCLUDED.location,
-        linkedin = EXCLUDED.linkedin,
-        github = EXCLUDED.github,
-        website = EXCLUDED.website,
-        updated_at = NOW();
+    WITH upsert AS (
+        INSERT INTO personal_details (user_id, name, email, phone, location, linkedin, github, website)
+        VALUES (auth.uid(), p_name, p_email, p_phone, p_location, p_linkedin, p_github, p_website)
+        ON CONFLICT (user_id) DO UPDATE SET
+            name = EXCLUDED.name,
+            email = EXCLUDED.email,
+            phone = EXCLUDED.phone,
+            location = EXCLUDED.location,
+            linkedin = EXCLUDED.linkedin,
+            github = EXCLUDED.github,
+            website = EXCLUDED.website,
+            updated_at = NOW()
+        RETURNING updated_at
+    )
+    SELECT updated_at FROM upsert;
 $$;
