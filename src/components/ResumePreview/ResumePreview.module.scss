@@ -293,15 +293,19 @@
   flex: 1;
   overflow: auto;
   position: relative;
-  padding: 20px 20px 20px 12px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   background: $color-action-item-background;
   position: relative;
 
+  @include breakpoint(tablet) {
+    padding-bottom: 95px; // 75px bottom nav height + 20px bottom padding
+  }
+
   @include breakpoint(mobile) {
-    padding: 10px;
+    padding: 10px 10px 66px 10px; // 56px bottom nav height + 10px bottom padding
   }
 
   // Custom scrollbar styling

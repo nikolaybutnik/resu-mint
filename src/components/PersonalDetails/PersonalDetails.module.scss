@@ -41,6 +41,10 @@
   @include action-buttons-container;
   position: sticky;
   bottom: 0;
+
+  @include breakpoint(mobile) {
+    bottom: 56px; // account for bottom nav in mobile view
+  }
 }
 
 .formButton {
