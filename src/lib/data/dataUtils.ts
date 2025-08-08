@@ -23,14 +23,14 @@ export function waitForAuthReady(): Promise<void> {
   return new Promise((resolve) => {
     if (!useAuthStore.getState().loading) return resolve()
 
-    let unsub: () => void
-    const listener = (state: { loading: boolean }) => {
-      if (!state.loading) {
-        unsub()
-        resolve()
+    const unsubscribe = useAuthStore.subscribe(
+      (state: { loading: boolean }) => {
+        if (!state.loading) {
+          unsubscribe()
+          resolve()
+        }
       }
-    }
-    unsub = useAuthStore.subscribe(listener)
+    )
   })
 }
 

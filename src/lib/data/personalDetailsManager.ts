@@ -27,7 +27,7 @@ class PersonalDetailsManager {
           STORAGE_KEYS.PERSONAL_DETAILS
         )
 
-        let localData: PersonalDetails =
+        const localData: PersonalDetails =
           localEnv?.data ?? DEFAULT_STATE_VALUES.PERSONAL_DETAILS
         const localUpdatedAt =
           localEnv?.meta?.updatedAt ?? '1970-01-01T00:00:00.000Z'
