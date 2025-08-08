@@ -18,14 +18,49 @@ const CACHE_KEY = 'personalDetails'
 class PersonalDetailsManager {
   private cache = new Map<string, Promise<unknown>>()
 
-  // get(): prefer DB if authed; fallback to local; keep local in sync
+  // get(): prefer local for fast reads, keep in sync with db
   async get(): Promise<PersonalDetails> {
     if (!this.cache.has(CACHE_KEY)) {
       const promise = new Promise<PersonalDetails>(async (resolve) => {
         // 1) Read local first (fast path)
-        const localEnv = readLocalEnvelope<PersonalDetails>(
+        let localEnv = readLocalEnvelope<PersonalDetails>(
           STORAGE_KEYS.PERSONAL_DETAILS
         )
+
+        // Migration: support legacy flat shape by wrapping it into an envelope once
+        if (!localEnv && typeof window !== 'undefined') {
+          try {
+            const raw = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS)
+            if (raw) {
+              const parsed = JSON.parse(raw)
+              if (parsed && typeof parsed === 'object' && !('meta' in parsed)) {
+                const candidate = {
+                  name: typeof parsed.name === 'string' ? parsed.name : '',
+                  email: typeof parsed.email === 'string' ? parsed.email : '',
+                  phone: typeof parsed.phone === 'string' ? parsed.phone : '',
+                  location:
+                    typeof parsed.location === 'string' ? parsed.location : '',
+                  linkedin:
+                    typeof parsed.linkedin === 'string' ? parsed.linkedin : '',
+                  github:
+                    typeof parsed.github === 'string' ? parsed.github : '',
+                  website:
+                    typeof parsed.website === 'string' ? parsed.website : '',
+                } as PersonalDetails
+
+                const migratedAt = nowIso()
+                writeLocalEnvelope(
+                  STORAGE_KEYS.PERSONAL_DETAILS,
+                  candidate,
+                  migratedAt
+                )
+                localEnv = { data: candidate, meta: { updatedAt: migratedAt } }
+              }
+            }
+          } catch {
+            // ignore invalid JSON
+          }
+        }
 
         const localData: PersonalDetails =
           localEnv?.data ?? DEFAULT_STATE_VALUES.PERSONAL_DETAILS

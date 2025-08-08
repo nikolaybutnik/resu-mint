@@ -405,13 +405,12 @@ export const shouldShowWelcomeExperience = (): WelcomeExperienceState => {
     let startStep = 0
 
     // Step 1: Check for basic personal details (name + email)
-    // Support both legacy flat shape and new envelope { data, meta }
     const personalDetails = localStorage.getItem(STORAGE_KEYS.PERSONAL_DETAILS)
     let hasPersonalDetails = false
     if (personalDetails) {
       try {
         const parsed = JSON.parse(personalDetails)
-        const pd = parsed?.data ? parsed.data : parsed
+        const pd = parsed?.data
         const name = typeof pd?.name === 'string' ? pd.name.trim() : ''
         const email = typeof pd?.email === 'string' ? pd.email.trim() : ''
         if (name && email) {

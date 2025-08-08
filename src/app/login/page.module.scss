@@ -1,5 +1,6 @@
 @import '../../styles/_variables.scss';
 @import '../../styles/_mixins.scss';
+@use 'sass:color';
 
 .loginPage {
   height: 100vh;
@@ -212,7 +213,7 @@
 
   &:has(.checkValid) {
     background: rgba($color-transformative, 0.08);
-    color: darken($color-transformative, 15%);
+    color: color.adjust($color-transformative, $lightness: -15%);
   }
 
   &:has(.checkInvalid) {
