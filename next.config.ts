@@ -1,6 +1,13 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  sassOptions: {
+    // Silence specific Dart Sass deprecations that clutter the console
+    // See: https://sass-lang.com/d/import and https://sass-lang.com/d/mixed-decls
+    silenceDeprecations: ['mixed-decls', 'import'],
+    // Don't surface deprecations coming from dependencies
+    quietDeps: true,
+  },
   webpack: (config, { isServer }) => {
     // Disable canvas for react-pdf
     config.resolve.alias.canvas = false
