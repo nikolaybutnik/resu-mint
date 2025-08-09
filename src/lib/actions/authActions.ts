@@ -1,17 +1,20 @@
 import { LOGIN_FORM_DATA_KEYS, ROUTES } from '../constants'
 import { zodErrorsToFormErrors } from '../types/errors'
-import { loginSchema, signupSchema } from '../validationSchemas'
+import {
+  loginSchema,
+  signupSchema,
+  resetPasswordSchema,
+} from '../validationSchemas'
 import { redirect } from 'next/navigation'
+import { supabase } from '../supabase/client'
+import type { AuthFormState } from '../types/auth'
+
+// TODO: implement toasts and return errors as {toast: {type: string, message: string}}
 
 export const login = async (
   formData: FormData,
-  signIn: (
-    email: string,
-    password: string
-  ) => Promise<{
-    error: string | null
-  }>
-) => {
+  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+): Promise<AuthFormState> => {
   const loginFormData = {
     email: (formData.get(LOGIN_FORM_DATA_KEYS.EMAIL) as string)?.trim() || '',
     password:
@@ -20,36 +23,29 @@ export const login = async (
 
   const validatedData = loginSchema.safeParse(loginFormData)
 
-  if (validatedData.success) {
-    const { error } = await signIn(loginFormData.email, loginFormData.password)
-
-    if (!error) {
-      redirect(ROUTES.HOME)
-    }
-
+  if (!validatedData.success) {
     return {
-      errors: { general: error },
+      errors: zodErrorsToFormErrors(validatedData.error),
       data: loginFormData,
     }
   }
 
+  const { error } = await signIn(loginFormData.email, loginFormData.password)
+
+  if (!error) {
+    redirect(ROUTES.HOME)
+  }
+
   return {
-    errors: validatedData.success
-      ? {}
-      : zodErrorsToFormErrors(validatedData.error),
+    errors: {},
     data: loginFormData,
   }
 }
 
 export const signup = async (
   formData: FormData,
-  signUp: (
-    email: string,
-    password: string
-  ) => Promise<{
-    error: string | null
-  }>
-) => {
+  signUp: (email: string, password: string) => Promise<{ error: string | null }>
+): Promise<AuthFormState> => {
   const signupFormData = {
     email: (formData.get(LOGIN_FORM_DATA_KEYS.EMAIL) as string)?.trim() || '',
     password:
@@ -61,24 +57,54 @@ export const signup = async (
 
   const validatedData = signupSchema.safeParse(signupFormData)
 
-  if (validatedData.success) {
-    const { error } = await signUp(
-      signupFormData.email,
-      signupFormData.password
-    )
-    if (!error) {
-      redirect(ROUTES.HOME)
-    }
+  if (!validatedData.success) {
     return {
-      errors: { general: error },
+      errors: zodErrorsToFormErrors(validatedData.error),
       data: signupFormData,
     }
   }
 
+  const { error } = await signUp(signupFormData.email, signupFormData.password)
+
+  if (!error) {
+    redirect(ROUTES.HOME)
+  }
+
   return {
-    errors: validatedData.success
-      ? {}
-      : zodErrorsToFormErrors(validatedData.error),
+    errors: {},
     data: signupFormData,
+  }
+}
+
+export const resetPassword = async (
+  formData: FormData
+): Promise<AuthFormState> => {
+  const resetFormData = {
+    email: (formData.get(LOGIN_FORM_DATA_KEYS.EMAIL) as string)?.trim() || '',
+  }
+
+  const validatedData = resetPasswordSchema.safeParse(resetFormData)
+
+  if (!validatedData.success) {
+    return {
+      errors: zodErrorsToFormErrors(validatedData.error),
+      data: { email: resetFormData.email, password: '' },
+    }
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(
+    resetFormData.email
+  )
+
+  if (error) {
+    return {
+      errors: {},
+      data: { email: resetFormData.email, password: '' },
+    }
+  }
+
+  return {
+    errors: {},
+    data: { email: resetFormData.email, password: '' },
   }
 }

@@ -2,16 +2,19 @@
 
 import styles from './page.module.scss'
 import { LOGIN_FORM_DATA_KEYS } from '@/lib/constants'
-import { useState, useActionState } from 'react'
+import { useState, useActionState, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
-import { login, signup } from '@/lib/actions/authActions'
+import { login, signup, resetPassword } from '@/lib/actions/authActions'
 import { AuthFormState } from '@/lib/types/auth'
 import { useAuthStore } from '@/stores'
 import { FaEye, FaEyeSlash } from 'react-icons/fa'
 
+// TODO: handle toast messages forgot password submit
+
 const FORM_STATE = {
   LOGIN: 'login',
   SIGN_UP: 'signup',
+  FORGOT_PASSWORD: 'forgot-password',
 } as const
 
 const submitAuth = async (
@@ -26,17 +29,26 @@ const submitAuth = async (
 
   if (mode === FORM_STATE.SIGN_UP) {
     return await signup(formData, signUp)
+  } else if (mode === FORM_STATE.FORGOT_PASSWORD) {
+    return await resetPassword(formData)
   } else {
     return await login(formData, signIn)
   }
 }
 
-const SubmitButton: React.FC<{ isSignUp: boolean }> = ({ isSignUp }) => {
+const SubmitButton: React.FC<{ mode: string }> = ({ mode }) => {
   const { pending } = useFormStatus()
+
+  const getButtonText = (): string => {
+    if (pending) return 'Loading...'
+    if (mode === FORM_STATE.SIGN_UP) return 'Sign Up'
+    if (mode === FORM_STATE.FORGOT_PASSWORD) return 'Send Reset Link'
+    return 'Sign In'
+  }
 
   return (
     <button type='submit' disabled={pending} className={styles.submitButton}>
-      {pending ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
+      {getButtonText()}
     </button>
   )
 }
@@ -44,7 +56,9 @@ const SubmitButton: React.FC<{ isSignUp: boolean }> = ({ isSignUp }) => {
 export default function LoginPage() {
   const { signIn, signUp } = useAuthStore()
 
-  const [isSignUp, setIsSignUp] = useState(false)
+  const [mode, setMode] = useState<
+    (typeof FORM_STATE)[keyof typeof FORM_STATE]
+  >(FORM_STATE.LOGIN)
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [passwordInput, setPasswordInput] = useState('')
@@ -62,16 +76,26 @@ export default function LoginPage() {
     }
   )
 
+  const getTitle = () => {
+    if (mode === FORM_STATE.SIGN_UP) return 'Sign Up'
+    if (mode === FORM_STATE.FORGOT_PASSWORD) return 'Reset Password'
+    return 'Sign In'
+  }
+
+  const getModeValue = () => {
+    return mode
+  }
+
   return (
     <div className={styles.loginPage}>
       <div className={styles.formWrapper}>
-        <h1>{isSignUp ? 'Sign Up' : 'Sign In'}</h1>
+        <h1>{getTitle()}</h1>
 
         <form action={action} className={styles.form}>
           <input
             type='hidden'
             name={LOGIN_FORM_DATA_KEYS.MODE}
-            value={isSignUp ? FORM_STATE.SIGN_UP : FORM_STATE.LOGIN}
+            value={getModeValue()}
           />
 
           <div className={styles.field}>
@@ -87,31 +111,35 @@ export default function LoginPage() {
             )}
           </div>
 
-          <div className={styles.field}>
-            <label htmlFor={LOGIN_FORM_DATA_KEYS.PASSWORD}>Password</label>
-            <div className={styles.passwordContainer}>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                name={LOGIN_FORM_DATA_KEYS.PASSWORD}
-                defaultValue={state.data?.password || ''}
-                className={state.errors.password ? styles.error : ''}
-                onInput={(e) => setPasswordInput(e.currentTarget.value)}
-                autoComplete='off'
-              />
-              <button
-                type='button'
-                className={styles.passwordToggle}
-                onClick={() => setShowPassword(!showPassword)}
-              >
-                {showPassword ? <FaEyeSlash /> : <FaEye />}
-              </button>
+          {mode !== FORM_STATE.FORGOT_PASSWORD && (
+            <div className={styles.field}>
+              <label htmlFor={LOGIN_FORM_DATA_KEYS.PASSWORD}>Password</label>
+              <div className={styles.passwordContainer}>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  name={LOGIN_FORM_DATA_KEYS.PASSWORD}
+                  defaultValue={state.data?.password || ''}
+                  className={state.errors.password ? styles.error : ''}
+                  onInput={(e) => setPasswordInput(e.currentTarget.value)}
+                  autoComplete='off'
+                />
+                <button
+                  type='button'
+                  className={styles.passwordToggle}
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <FaEyeSlash /> : <FaEye />}
+                </button>
+              </div>
+              {state.errors.password && (
+                <span className={styles.fieldError}>
+                  {state.errors.password}
+                </span>
+              )}
             </div>
-            {state.errors.password && (
-              <span className={styles.fieldError}>{state.errors.password}</span>
-            )}
-          </div>
+          )}
 
-          {isSignUp && (
+          {mode === FORM_STATE.SIGN_UP && (
             <>
               <div className={styles.field}>
                 <label htmlFor={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}>
@@ -205,22 +233,48 @@ export default function LoginPage() {
             </>
           )}
 
-          {state.errors.general && (
-            <div className={styles.generalError}>{state.errors.general}</div>
-          )}
+          <SubmitButton mode={mode} />
 
-          <SubmitButton isSignUp={isSignUp} />
+          {mode === FORM_STATE.LOGIN && (
+            // Temporarily hide button until functionality is complete
+            <button
+              type='button'
+              style={{ display: 'none' }}
+              className={styles.forgotButton}
+              onClick={() => setMode(FORM_STATE.FORGOT_PASSWORD)}
+            >
+              Forgot password?
+            </button>
+          )}
         </form>
 
-        <button
-          type='button'
-          onClick={() => setIsSignUp(!isSignUp)}
-          className={styles.toggleButton}
-        >
-          {isSignUp
-            ? 'Already have an account? Sign In'
-            : 'Need an account? Sign Up'}
-        </button>
+        {mode !== FORM_STATE.FORGOT_PASSWORD && (
+          <button
+            type='button'
+            onClick={() =>
+              setMode(
+                mode === FORM_STATE.SIGN_UP
+                  ? FORM_STATE.LOGIN
+                  : FORM_STATE.SIGN_UP
+              )
+            }
+            className={styles.toggleButton}
+          >
+            {mode === FORM_STATE.SIGN_UP
+              ? 'Already have an account? Sign In'
+              : 'Need an account? Sign Up'}
+          </button>
+        )}
+
+        {mode === FORM_STATE.FORGOT_PASSWORD && (
+          <button
+            type='button'
+            onClick={() => setMode(FORM_STATE.LOGIN)}
+            className={styles.toggleButton}
+          >
+            Back to Sign In
+          </button>
+        )}
       </div>
     </div>
   )
