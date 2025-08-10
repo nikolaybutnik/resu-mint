@@ -8,6 +8,7 @@ import {
 import { redirect } from 'next/navigation'
 import { supabase } from '../supabase/client'
 import type { AuthFormState } from '../types/auth'
+import { updatePasswordSchema } from '../validationSchemas'
 
 // TODO: implement toasts and return errors as {toast: {type: string, message: string}}
 
@@ -93,7 +94,10 @@ export const resetPassword = async (
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(
-    resetFormData.email
+    resetFormData.email,
+    {
+      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}${ROUTES.RESET_PASSWORD}`,
+    }
   )
 
   if (error) {
@@ -107,4 +111,50 @@ export const resetPassword = async (
     errors: {},
     data: { email: resetFormData.email, password: '' },
   }
+}
+
+export const updatePassword = async (
+  formData: FormData
+): Promise<AuthFormState> => {
+  const updateFormData = {
+    email: '',
+    password:
+      (formData.get(LOGIN_FORM_DATA_KEYS.PASSWORD) as string)?.trim() || '',
+    confirmPassword:
+      (formData.get(LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD) as string)?.trim() ||
+      '',
+  }
+
+  const validatedData = updatePasswordSchema.safeParse(updateFormData)
+
+  if (!validatedData.success) {
+    return {
+      errors: zodErrorsToFormErrors(validatedData.error),
+      data: updateFormData,
+    }
+  }
+
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (!session) {
+    return {
+      errors: {},
+      data: updateFormData,
+    }
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: validatedData.data.password,
+  })
+
+  if (error) {
+    return {
+      errors: {},
+      data: updateFormData,
+    }
+  }
+
+  redirect(ROUTES.HOME)
 }

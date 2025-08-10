@@ -896,3 +896,13 @@ export const signupSchema = z
 export const resetPasswordSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
 })
+
+export const updatePasswordSchema = z
+  .object({
+    password: passwordValidation,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  })

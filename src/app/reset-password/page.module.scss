@@ -2,7 +2,7 @@
 @import '../../styles/_variables.scss';
 @import '../../styles/_mixins.scss';
 
-.loginPage {
+.resetPasswordPage {
   height: 100vh;
   height: 100svh;
   height: 100dvh;
@@ -155,55 +155,6 @@
       transform: none;
       box-shadow: 0 2px 8px rgba($color-primary, 0.2);
     }
-  }
-}
-
-.forgotButton {
-  @include button-base;
-  background: transparent;
-  border: none;
-  color: $color-disabled;
-  font-size: 14px;
-  font-weight: 500;
-  padding: 12px 0;
-  transition: all 0.2s ease-in-out;
-  text-decoration: none;
-  width: 100%;
-  text-align: center;
-
-  &:hover {
-    color: $color-primary;
-    text-decoration: underline;
-  }
-
-  &:active {
-    transform: translateY(1px);
-  }
-
-  @include breakpoint(mobile) {
-    font-size: 13px;
-    padding: 10px 0;
-    margin-top: 10px;
-  }
-}
-
-.toggleButton {
-  @include button-base;
-  @include welcome-button-small-responsive;
-  background: transparent;
-  border: none;
-  color: $color-primary;
-  font-weight: 500;
-  padding: 12px 0;
-  transition: all 0.2s ease-in-out;
-
-  &:hover {
-    color: $color-primary-hover;
-    text-decoration: underline;
-  }
-
-  &:active {
-    transform: translateY(1px);
   }
 }
 

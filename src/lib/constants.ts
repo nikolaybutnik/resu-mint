@@ -11,6 +11,7 @@ import { SkillBlock, Skills } from './types/skills'
 export const ROUTES = {
   HOME: '/',
   LOGIN: '/login',
+  RESET_PASSWORD: '/reset-password',
   ADMIN: {
     BASE: '/admin',
     DASHBOARD: '/admin/dashboard',

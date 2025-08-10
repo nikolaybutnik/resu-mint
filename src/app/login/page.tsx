@@ -2,7 +2,7 @@
 
 import styles from './page.module.scss'
 import { LOGIN_FORM_DATA_KEYS } from '@/lib/constants'
-import { useState, useActionState, useRef } from 'react'
+import { useState, useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { login, signup, resetPassword } from '@/lib/actions/authActions'
 import { AuthFormState } from '@/lib/types/auth'
@@ -236,10 +236,8 @@ export default function LoginPage() {
           <SubmitButton mode={mode} />
 
           {mode === FORM_STATE.LOGIN && (
-            // Temporarily hide button until functionality is complete
             <button
               type='button'
-              style={{ display: 'none' }}
               className={styles.forgotButton}
               onClick={() => setMode(FORM_STATE.FORGOT_PASSWORD)}
             >
