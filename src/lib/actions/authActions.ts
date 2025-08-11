@@ -10,8 +10,6 @@ import { supabase } from '../supabase/client'
 import type { AuthFormState } from '../types/auth'
 import { updatePasswordSchema } from '../validationSchemas'
 
-// TODO: implement toasts and return errors as {toast: {type: string, message: string}}
-
 export const login = async (
   formData: FormData,
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
@@ -26,7 +24,7 @@ export const login = async (
 
   if (!validatedData.success) {
     return {
-      errors: zodErrorsToFormErrors(validatedData.error),
+      formErrors: zodErrorsToFormErrors(validatedData.error),
       data: loginFormData,
     }
   }
@@ -38,7 +36,7 @@ export const login = async (
   }
 
   return {
-    errors: {},
+    formErrors: {},
     data: loginFormData,
   }
 }
@@ -60,7 +58,7 @@ export const signup = async (
 
   if (!validatedData.success) {
     return {
-      errors: zodErrorsToFormErrors(validatedData.error),
+      formErrors: zodErrorsToFormErrors(validatedData.error),
       data: signupFormData,
     }
   }
@@ -72,7 +70,7 @@ export const signup = async (
   }
 
   return {
-    errors: {},
+    formErrors: {},
     data: signupFormData,
   }
 }
@@ -88,7 +86,7 @@ export const resetPassword = async (
 
   if (!validatedData.success) {
     return {
-      errors: zodErrorsToFormErrors(validatedData.error),
+      formErrors: zodErrorsToFormErrors(validatedData.error),
       data: { email: resetFormData.email, password: '' },
     }
   }
@@ -102,14 +100,27 @@ export const resetPassword = async (
 
   if (error) {
     return {
-      errors: {},
+      formErrors: {},
       data: { email: resetFormData.email, password: '' },
+      notifications: [
+        {
+          type: 'error',
+          message: 'Unable to send password reset link. Please try again.',
+        },
+      ],
     }
   }
 
   return {
-    errors: {},
+    formErrors: {},
     data: { email: resetFormData.email, password: '' },
+    notifications: [
+      {
+        type: 'success',
+        message:
+          'If an account exists for that email, a reset link has been sent.',
+      },
+    ],
   }
 }
 
@@ -129,7 +140,7 @@ export const updatePassword = async (
 
   if (!validatedData.success) {
     return {
-      errors: zodErrorsToFormErrors(validatedData.error),
+      formErrors: zodErrorsToFormErrors(validatedData.error),
       data: updateFormData,
     }
   }
@@ -140,8 +151,15 @@ export const updatePassword = async (
 
   if (!session) {
     return {
-      errors: {},
+      formErrors: {},
       data: updateFormData,
+      notifications: [
+        {
+          type: 'error',
+          message:
+            'Password reset link is invalid or has expired. Please request a new one.',
+        },
+      ],
     }
   }
 
@@ -151,10 +169,26 @@ export const updatePassword = async (
 
   if (error) {
     return {
-      errors: {},
+      formErrors: {},
       data: updateFormData,
+      notifications: [
+        {
+          type: 'error',
+          message: 'Failed to update your password. Please try again.',
+        },
+      ],
     }
   }
 
-  redirect(ROUTES.HOME)
+  return {
+    formErrors: {},
+    data: updateFormData,
+    notifications: [
+      {
+        type: 'success',
+        message:
+          'Your password has been updated. You will be redirected shortly.',
+      },
+    ],
+  }
 }

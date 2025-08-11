@@ -2,14 +2,13 @@
 
 import styles from './page.module.scss'
 import { LOGIN_FORM_DATA_KEYS } from '@/lib/constants'
-import { useState, useActionState } from 'react'
+import { useState, useActionState, useEffect } from 'react'
 import { useFormStatus } from 'react-dom'
 import { login, signup, resetPassword } from '@/lib/actions/authActions'
 import { AuthFormState } from '@/lib/types/auth'
 import { useAuthStore } from '@/stores'
 import { FaEye, FaEyeSlash } from 'react-icons/fa'
-
-// TODO: handle toast messages forgot password submit
+import { toast } from '@/stores/toastStore'
 
 const FORM_STATE = {
   LOGIN: 'login',
@@ -67,7 +66,7 @@ export default function LoginPage() {
     (_previousState: AuthFormState, formData: FormData) =>
       submitAuth(formData, signIn, signUp),
     {
-      errors: {},
+      formErrors: {},
       data: {
         email: '',
         password: '',
@@ -75,6 +74,15 @@ export default function LoginPage() {
       mode: FORM_STATE.LOGIN,
     }
   )
+
+  useEffect(() => {
+    const notifications = state?.notifications
+    if (!notifications || notifications.length === 0) return
+
+    notifications.forEach((notification) => {
+      toast[notification.type](notification.message)
+    })
+  }, [state?.notifications])
 
   const getTitle = () => {
     if (mode === FORM_STATE.SIGN_UP) return 'Sign Up'
@@ -104,10 +112,12 @@ export default function LoginPage() {
               type='text'
               name={LOGIN_FORM_DATA_KEYS.EMAIL}
               defaultValue={state.data?.email || ''}
-              className={state.errors.email ? styles.error : ''}
+              className={state.formErrors.email ? styles.error : ''}
             />
-            {state.errors.email && (
-              <span className={styles.fieldError}>{state.errors.email}</span>
+            {state.formErrors.email && (
+              <span className={styles.fieldError}>
+                {state.formErrors.email}
+              </span>
             )}
           </div>
 
@@ -119,7 +129,7 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   name={LOGIN_FORM_DATA_KEYS.PASSWORD}
                   defaultValue={state.data?.password || ''}
-                  className={state.errors.password ? styles.error : ''}
+                  className={state.formErrors.password ? styles.error : ''}
                   onInput={(e) => setPasswordInput(e.currentTarget.value)}
                   autoComplete='off'
                 />
@@ -131,9 +141,9 @@ export default function LoginPage() {
                   {showPassword ? <FaEyeSlash /> : <FaEye />}
                 </button>
               </div>
-              {state.errors.password && (
+              {state.formErrors.password && (
                 <span className={styles.fieldError}>
-                  {state.errors.password}
+                  {state.formErrors.password}
                 </span>
               )}
             </div>
@@ -150,7 +160,9 @@ export default function LoginPage() {
                     type={showConfirmPassword ? 'text' : 'password'}
                     name={LOGIN_FORM_DATA_KEYS.CONFIRM_PASSWORD}
                     defaultValue={state.data?.confirmPassword || ''}
-                    className={state.errors.confirmPassword ? styles.error : ''}
+                    className={
+                      state.formErrors.confirmPassword ? styles.error : ''
+                    }
                     autoComplete='off'
                   />
                   <button
@@ -161,9 +173,9 @@ export default function LoginPage() {
                     {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
                   </button>
                 </div>
-                {state.errors.confirmPassword && (
+                {state.formErrors.confirmPassword && (
                   <span className={styles.fieldError}>
-                    {state.errors.confirmPassword}
+                    {state.formErrors.confirmPassword}
                   </span>
                 )}
               </div>

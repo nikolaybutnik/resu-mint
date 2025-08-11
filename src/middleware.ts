@@ -34,10 +34,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
+  if (user && request.nextUrl.pathname === ROUTES.RESET_PASSWORD) {
+    const url = request.nextUrl.clone()
+    url.pathname = ROUTES.HOME
+    return NextResponse.redirect(url)
+  }
+
   return supabaseResponse
 }
 
 // TODO: block the admin panel behind a user role
 export const config = {
-  matcher: ['/login'],
+  matcher: ['/login', '/reset-password'],
 }
