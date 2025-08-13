@@ -129,6 +129,7 @@ export default function ResetPasswordPage() {
                 type='button'
                 className={styles.passwordToggle}
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
               >
                 {showPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
@@ -156,6 +157,7 @@ export default function ResetPasswordPage() {
                 type='button'
                 className={styles.passwordToggle}
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                tabIndex={-1}
               >
                 {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
