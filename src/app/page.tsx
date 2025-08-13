@@ -10,18 +10,53 @@ import {
   WelcomeExperienceState,
 } from '@/lib/utils'
 import AccountMenu from '@/components/AccountMenu/AccountMenu'
+import { useAuthStore } from '@/stores'
+import { toast } from '@/stores/toastStore'
 
 export default function Home() {
+  const { user } = useAuthStore()
+
   const [view, setView] = useState<string>(MOBILE_VIEW.INPUT)
   const [welcomeState, setWelcomeState] =
     useState<WelcomeExperienceState | null>(null)
   const [isClient, setIsClient] = useState(false)
+  const [previousUser, setPreviousUser] = useState<typeof user>(null)
 
   useEffect(() => {
     setIsClient(true)
     const state = shouldShowWelcomeExperience()
     setWelcomeState(state)
   }, [])
+
+  useEffect(() => {
+    if (!isClient) return
+
+    const wasLoggedIn = previousUser !== null
+    const isNowLoggedIn = user !== null
+
+    if (!wasLoggedIn && isNowLoggedIn) {
+      if (user.created_at && user.updated_at) {
+        const createdAt = new Date(user.created_at)
+        const updatedAt = new Date(user.updated_at)
+        const timeDiffSeconds =
+          Math.abs(updatedAt.getTime() - createdAt.getTime()) / 1000
+
+        if (timeDiffSeconds <= 10) {
+          toast.success(
+            'Welcome to ResuMint! Your account has been created successfully.'
+          )
+        } else {
+          toast.success('Login successful, welcome back to ResuMint!')
+        }
+      } else {
+        toast.success('Login successful, welcome back to ResuMint!')
+      }
+    } else if (wasLoggedIn && !isNowLoggedIn) {
+      toast.success('You have been signed out successfully.')
+    }
+
+    setPreviousUser(user)
+  }, [user, previousUser, isClient])
 
   const handleWelcomeComplete = () => {
     // Re-check the welcome state after completion

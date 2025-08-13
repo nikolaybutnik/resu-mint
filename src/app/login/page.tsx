@@ -9,6 +9,7 @@ import { AuthFormState } from '@/lib/types/auth'
 import { useAuthStore } from '@/stores'
 import { FaEye, FaEyeSlash } from 'react-icons/fa'
 import { toast } from '@/stores/toastStore'
+import { AuthResult } from '@/stores/authStore'
 
 const FORM_STATE = {
   LOGIN: 'login',
@@ -18,11 +19,8 @@ const FORM_STATE = {
 
 const submitAuth = async (
   formData: FormData,
-  signIn: (
-    email: string,
-    password: string
-  ) => Promise<{ error: string | null }>,
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>
+  signIn: (email: string, password: string) => AuthResult,
+  signUp: (email: string, password: string) => AuthResult
 ): Promise<AuthFormState> => {
   const mode = formData.get(LOGIN_FORM_DATA_KEYS.MODE) as string
 

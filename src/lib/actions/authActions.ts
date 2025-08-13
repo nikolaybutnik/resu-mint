@@ -4,15 +4,16 @@ import {
   loginSchema,
   signupSchema,
   resetPasswordSchema,
+  updatePasswordSchema,
 } from '../validationSchemas'
 import { redirect } from 'next/navigation'
 import { supabase } from '../supabase/client'
 import type { AuthFormState } from '../types/auth'
-import { updatePasswordSchema } from '../validationSchemas'
+import type { AuthResult } from '../../stores/authStore'
 
 export const login = async (
   formData: FormData,
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  signIn: (email: string, password: string) => AuthResult
 ): Promise<AuthFormState> => {
   const loginFormData = {
     email: (formData.get(LOGIN_FORM_DATA_KEYS.EMAIL) as string)?.trim() || '',
@@ -31,19 +32,36 @@ export const login = async (
 
   const { error } = await signIn(loginFormData.email, loginFormData.password)
 
-  if (!error) {
-    redirect(ROUTES.HOME)
-  }
+  if (error) {
+    if (error.code === 'invalid_credentials') {
+      return {
+        formErrors: {},
+        data: loginFormData,
+        notifications: [
+          {
+            type: 'error',
+            message: 'Incorrect email or password.',
+          },
+        ],
+      }
+    }
 
-  return {
-    formErrors: {},
-    data: loginFormData,
-  }
+    return {
+      formErrors: {},
+      data: loginFormData,
+      notifications: [
+        {
+          type: 'error',
+          message: 'Login failed. Please try again.',
+        },
+      ],
+    }
+  } else redirect(ROUTES.HOME)
 }
 
 export const signup = async (
   formData: FormData,
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>
+  signUp: (email: string, password: string) => AuthResult
 ): Promise<AuthFormState> => {
   const signupFormData = {
     email: (formData.get(LOGIN_FORM_DATA_KEYS.EMAIL) as string)?.trim() || '',
@@ -65,9 +83,31 @@ export const signup = async (
 
   const { error } = await signUp(signupFormData.email, signupFormData.password)
 
-  if (!error) {
-    redirect(ROUTES.HOME)
-  }
+  if (error) {
+    if (error.code === 'user_already_exists') {
+      return {
+        formErrors: {},
+        data: signupFormData,
+        notifications: [
+          {
+            type: 'error',
+            message: 'User with this email already exists.',
+          },
+        ],
+      }
+    }
+
+    return {
+      formErrors: {},
+      data: signupFormData,
+      notifications: [
+        {
+          type: 'error',
+          message: 'Account creation failed. Please try again.',
+        },
+      ],
+    }
+  } else redirect(ROUTES.HOME)
 
   return {
     formErrors: {},
@@ -118,7 +158,7 @@ export const resetPassword = async (
       {
         type: 'success',
         message:
-          'If an account exists for that email, a reset link has been sent.',
+          'If an account exists for this email, a password reset link will be sent shortly.',
       },
     ],
   }
@@ -168,6 +208,20 @@ export const updatePassword = async (
   })
 
   if (error) {
+    if (error.code === 'same_password') {
+      return {
+        formErrors: {},
+        data: updateFormData,
+        notifications: [
+          {
+            type: 'error',
+            message:
+              'Your new password must be different from your existing one.',
+          },
+        ],
+      }
+    }
+
     return {
       formErrors: {},
       data: updateFormData,

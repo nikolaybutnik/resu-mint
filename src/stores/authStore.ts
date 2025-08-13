@@ -15,13 +15,17 @@ import type {
   User,
 } from '@supabase/supabase-js'
 
+export type AuthResult = Promise<{
+  error: { message: string; code?: string } | null
+}>
+
 interface AuthStore {
   user: User | null
   loading: boolean
   hasSyncedPersonalDetails: boolean
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
-  signUp: (email: string, password: string) => Promise<{ error: string | null }>
-  signOut: () => Promise<{ error: string | null }>
+  signIn: (email: string, password: string) => AuthResult
+  signUp: (email: string, password: string) => AuthResult
+  signOut: () => AuthResult
   initialize: () => Promise<Subscription | undefined>
 }
 
@@ -30,12 +34,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   loading: true,
   hasSyncedPersonalDetails: false,
 
-  signIn: async (
-    email: string,
-    password: string
-  ): Promise<{
-    error: string | null
-  }> => {
+  signIn: async (email: string, password: string): AuthResult => {
     try {
       set({ loading: true })
 
@@ -45,7 +44,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       })
 
       if (error) {
-        return { error: error.message }
+        return {
+          error: {
+            message: error.message,
+            code: error.code,
+          },
+        }
       }
 
       set({ user: data.user, loading: false })
@@ -57,22 +61,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ loading: false })
       console.error('Sign in error: ', error)
       return {
-        error: 'There was an error signing you in. Please try again later.',
+        error: {
+          message: 'There was an error signing you in. Please try again later.',
+        },
       }
     }
   },
 
-  signUp: async (
-    email: string,
-    password: string
-  ): Promise<{ error: string | null }> => {
+  signUp: async (email: string, password: string): AuthResult => {
     try {
       set({ loading: true })
 
       const { data, error } = await supabase.auth.signUp({ email, password })
 
       if (error) {
-        return { error: error.message }
+        return { error: { message: error.message, code: error.code } }
       }
 
       set({ user: data.user, loading: false })
@@ -84,19 +87,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ loading: false })
       console.error('Sign up error: ', error)
       return {
-        error: 'There was an error during sign up. Please try again later.',
+        error: {
+          message: 'There was an error during sign up. Please try again later.',
+        },
       }
     }
   },
 
-  signOut: async (): Promise<{ error: string | null }> => {
+  signOut: async (): AuthResult => {
     try {
       set({ loading: true })
 
       const { error } = await supabase.auth.signOut()
 
       if (error) {
-        return { error: error.message }
+        return {
+          error: {
+            message: error.message,
+            code: error.code,
+          },
+        }
       }
 
       set({ user: null, loading: false, hasSyncedPersonalDetails: false })
@@ -108,7 +118,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ loading: false })
       console.error('Sign out error: ', error)
       return {
-        error: 'There was an error signing you out. Please try again later.',
+        error: {
+          message:
+            'There was an error signing you out. Please try again later.',
+        },
       }
     }
   },
