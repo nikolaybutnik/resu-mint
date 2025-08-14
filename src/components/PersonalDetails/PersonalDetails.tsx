@@ -3,10 +3,11 @@ import { useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { PersonalDetailsFormState } from '@/lib/types/personalDetails'
 import { submitPersonalDetails } from '@/lib/actions/personalDetailsActions'
-import { PERSONAL_DETAILS_FORM_DATA_KEYS } from '@/lib/constants'
+import { PERSONAL_DETAILS_FORM_DATA_KEYS, FORM_IDS } from '@/lib/constants'
 import { usePersonalDetailsStore } from '@/stores'
 import { SkeletonInputField } from '@/components/shared/Skeleton/SkeletonInputField'
 import { SkeletonButton } from '@/components/shared/Skeleton/SkeletonButton'
+import { toast } from '@/stores/toastStore'
 
 const formFields = [
   {
@@ -88,16 +89,29 @@ const PersonalDetails: React.FC = () => {
     async (prevState: PersonalDetailsFormState, formData: FormData) => {
       const result = await submitPersonalDetails(prevState, formData)
 
-      if (Object.keys(result.errors).length === 0 && result.data) {
+      if (Object.keys(result.fieldErrors).length === 0 && result.data) {
         try {
+          if (!hasChanges(result.data)) {
+            toast.warning(
+              "You haven't made any changes to your personal details."
+            )
+
+            return {
+              fieldErrors: {},
+              data: result.data,
+            }
+          }
+
           await save(result.data)
-        } catch (error) {
-          console.error(
-            'PersonalDetails: error saving personal details:',
-            error
+
+          toast.success('Your personal details were updated.')
+        } catch {
+          toast.error(
+            'Failed to update your personal details. Please try again.'
           )
+
           return {
-            errors: { submit: 'Failed to save personal details' },
+            fieldErrors: {},
             data: result.data,
           }
         }
@@ -106,7 +120,7 @@ const PersonalDetails: React.FC = () => {
       return result
     },
     {
-      errors: {},
+      fieldErrors: {},
       data: personalDetails,
     } as PersonalDetailsFormState
   )
@@ -118,7 +132,11 @@ const PersonalDetails: React.FC = () => {
   }
 
   return (
-    <form className={styles.formSection} action={formAction}>
+    <form
+      className={styles.formSection}
+      action={formAction}
+      data-tab={FORM_IDS.PERSONAL_DETAILS}
+    >
       <h2 className={styles.formTitle}>Personal Details</h2>
 
       <div className={styles.formFieldsContainer}>
@@ -139,14 +157,14 @@ const PersonalDetails: React.FC = () => {
               type={field.type}
               name={field.name}
               className={`${styles.formInput} ${
-                state?.errors?.[field.name] ? styles.error : ''
+                state?.fieldErrors?.[field.name] ? styles.error : ''
               }`}
               defaultValue={state.data?.[field.name] || ''}
               placeholder={field.placeholder}
             />
-            {state?.errors?.[field.name] && (
+            {state?.fieldErrors?.[field.name] && (
               <span className={styles.formError}>
-                {state.errors[field.name]}
+                {state.fieldErrors[field.name]}
               </span>
             )}
           </div>

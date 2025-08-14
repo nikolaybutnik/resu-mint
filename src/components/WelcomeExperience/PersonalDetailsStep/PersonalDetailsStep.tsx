@@ -24,7 +24,7 @@ const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
     async (prevState: PersonalDetailsFormState, formData: FormData) => {
       const result = await submitPersonalDetails(prevState, formData)
 
-      if (Object.keys(result.errors).length === 0 && result.data) {
+      if (Object.keys(result.fieldErrors).length === 0 && result.data) {
         try {
           await save(result.data)
           onContinue()
@@ -34,7 +34,7 @@ const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
             error
           )
           return {
-            errors: { submit: 'Failed to save personal details' },
+            fieldErrors: { submit: 'Failed to save personal details' },
             data: result.data,
           }
         }
@@ -43,7 +43,7 @@ const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
       return result
     },
     {
-      errors: {},
+      fieldErrors: {},
       data: personalDetails,
     } as PersonalDetailsFormState
   )
@@ -60,13 +60,13 @@ const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
           type='text'
           name={PERSONAL_DETAILS_FORM_DATA_KEYS.NAME}
           className={`${styles.formInput} ${
-            state?.errors?.name ? styles.error : ''
+            state?.fieldErrors?.name ? styles.error : ''
           }`}
           defaultValue={state.data?.name || ''}
           placeholder='Enter your full name'
         />
-        {state?.errors?.name && (
-          <span className={styles.formError}>{state.errors.name}</span>
+        {state?.fieldErrors?.name && (
+          <span className={styles.formError}>{state.fieldErrors.name}</span>
         )}
       </div>
 
@@ -76,13 +76,13 @@ const PersonalDetailsStep: React.FC<PersonalDetailsStepProps> = ({
           type='text'
           name={PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL}
           className={`${styles.formInput} ${
-            state?.errors?.email ? styles.error : ''
+            state?.fieldErrors?.email ? styles.error : ''
           }`}
           defaultValue={state.data?.email || ''}
           placeholder='Enter your email address'
         />
-        {state?.errors?.email && (
-          <span className={styles.formError}>{state.errors.email}</span>
+        {state?.fieldErrors?.email && (
+          <span className={styles.formError}>{state.fieldErrors.email}</span>
         )}
       </div>
 

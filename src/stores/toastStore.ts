@@ -3,9 +3,10 @@ import type { ToastMessage } from '@/lib/types/toast'
 import { v4 as uuidv4 } from 'uuid'
 
 interface ToastState {
-  toasts: Array<ToastMessage & { id: string }>
+  toasts: Array<ToastMessage & { id: string; isExiting?: boolean }>
   show: (toast: ToastMessage) => string
   dismiss: (id: string) => void
+  remove: (id: string) => void
   clearAll: () => void
 }
 
@@ -29,6 +30,19 @@ export const useToastStore = create<ToastState>((set, get) => ({
   },
 
   dismiss: (id: string) => {
+    set((state) => ({
+      toasts: state.toasts.map((t) =>
+        t.id === id ? { ...t, isExiting: true } : t
+      ),
+    }))
+
+    setTimeout(() => {
+      const { remove } = get()
+      remove(id)
+    }, 300)
+  },
+
+  remove: (id: string) => {
     set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }))
   },
 

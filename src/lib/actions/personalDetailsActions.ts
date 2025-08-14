@@ -42,12 +42,12 @@ export const submitPersonalDetails = async (
 
   if (validatedData.success) {
     return {
-      errors: {},
+      fieldErrors: {},
       data: validatedData.data,
     }
   } else {
     return {
-      errors: zodErrorsToFormErrors(validatedData.error),
+      fieldErrors: zodErrorsToFormErrors(validatedData.error),
       data: personalDetailsData,
     }
   }

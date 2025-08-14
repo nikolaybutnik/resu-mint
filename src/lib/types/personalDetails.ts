@@ -9,6 +9,6 @@ export interface PersonalDetails {
 }
 
 export type PersonalDetailsFormState = {
-  errors: Record<string, string>
+  fieldErrors: Record<string, string>
   data?: PersonalDetails
 }

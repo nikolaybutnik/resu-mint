@@ -41,9 +41,9 @@
   pointer-events: auto;
   position: relative;
   overflow: hidden;
-  transform: translateY(100%) scale(0.96);
+  transform: translateX(100%) scale(0.96);
   opacity: 0;
-  animation: toastSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: toastSlideLeft 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
   @include breakpoint(mobile) {
     min-width: auto;
@@ -51,10 +51,16 @@
     max-width: none;
     padding: 14px 18px;
     border-radius: 14px;
+    transform: translateY(-100%) scale(0.96);
+    animation: toastSlideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   &.exiting {
-    animation: toastSlideDown 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+    animation: toastSlideRight 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+
+    @include breakpoint(mobile) {
+      animation: toastSlideUp 0.3s cubic-bezier(0.4, 0, 1, 1) forwards;
+    }
   }
 
   &::before {
@@ -105,7 +111,6 @@
       rgba(255, 255, 255, 0.6) 55%,
       transparent 100%
     );
-    animation: glintSlide 2s ease-in-out infinite;
     border-radius: 16px 0 0 16px;
   }
 }
@@ -142,7 +147,6 @@
       rgba(255, 255, 255, 0.6) 55%,
       transparent 100%
     );
-    animation: glintSlide 2s ease-in-out infinite;
     animation-delay: 0.5s;
     border-radius: 16px 0 0 16px;
   }
@@ -180,7 +184,6 @@
       rgba(255, 255, 255, 0.6) 55%,
       transparent 100%
     );
-    animation: glintSlide 2s ease-in-out infinite;
     animation-delay: 1s;
     border-radius: 16px 0 0 16px;
   }
@@ -278,41 +281,46 @@
   }
 }
 
-@keyframes toastSlideUp {
+@keyframes toastSlideLeft {
   from {
-    transform: translateY(100%) scale(0.96);
+    transform: translateX(100%) scale(0.96);
     opacity: 0;
   }
   to {
-    transform: translateY(0) scale(1);
+    transform: translateX(0) scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes toastSlideRight {
+  from {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%) scale(0.96);
+    opacity: 0;
   }
 }
 
 @keyframes toastSlideDown {
   from {
+    transform: translateY(-100%) scale(0.96);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes toastSlideUp {
+  from {
     transform: translateY(0) scale(1);
     opacity: 1;
   }
   to {
-    transform: translateY(100%) scale(0.96);
-    opacity: 0;
-  }
-}
-
-@keyframes glintSlide {
-  0% {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100%);
+    transform: translateY(-100%) scale(0.96);
     opacity: 0;
   }
 }

@@ -12,7 +12,12 @@ import Settings from '../Settings/Settings'
 import { JobDetails } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
 import Skills from '../Skills/Skills'
-import { MOBILE_VIEW, API_ROUTES } from '@/lib/constants'
+import {
+  MOBILE_VIEW,
+  API_ROUTES,
+  FORM_IDS,
+  PERSONAL_DETAILS_FORM_DATA_KEYS,
+} from '@/lib/constants'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { CreatePdfRequest } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
@@ -229,6 +234,55 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   )
 
   const handleTabChange = (tabId: string) => {
+    let isDirty = false
+
+    switch (activeTab) {
+      case Tabs.PERSONAL_DETAILS:
+        const form = document.querySelector(
+          `form[data-tab="${FORM_IDS.PERSONAL_DETAILS}"]`
+        ) as HTMLFormElement | null
+        if (form) {
+          const formData = new FormData(form)
+          const current = {
+            name:
+              (
+                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.NAME) as string
+              )?.trim() || '',
+            email:
+              (
+                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL) as string
+              )?.trim() || '',
+            phone:
+              (
+                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.PHONE) as string
+              )?.trim() || '',
+            location:
+              (
+                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.LOCATION) as string
+              )?.trim() || '',
+            linkedin:
+              (
+                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.LINKEDIN) as string
+              )?.trim() || '',
+            github:
+              (
+                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.GITHUB) as string
+              )?.trim() || '',
+            website:
+              (
+                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.WEBSITE) as string
+              )?.trim() || '',
+          }
+
+          // TODO: reuse the portal from bullet points
+          const { hasChanges } = usePersonalDetailsStore.getState()
+          isDirty = hasChanges(current)
+        }
+    }
+
+    if (isDirty && !window.confirm('You have unsaved changes. Leave anyway?'))
+      return
+
     setActiveTab(tabId)
     if (sidebarRef.current) {
       sidebarRef.current.scrollTop = 0

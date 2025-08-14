@@ -40,10 +40,7 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
     save: async (details) => {
       const currentState = get()
 
-      if (!currentState.hasChanges(details)) {
-        console.info('No changes in form, skipping save')
-        return
-      }
+      if (!currentState.hasChanges(details)) return
 
       try {
         set({ loading: true })

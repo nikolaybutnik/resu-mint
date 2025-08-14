@@ -27,7 +27,12 @@ const Toasts = () => {
     <Portal>
       <div className={styles.toastContainer}>
         {toasts.map((t) => (
-          <div key={t.id} className={`${styles.toast} ${styles[t.type]}`}>
+          <div
+            key={t.id}
+            className={`${styles.toast} ${styles[t.type]} ${
+              t.isExiting ? styles.exiting : ''
+            }`}
+          >
             <div className={styles.row}>
               <div className={styles.icon}>{getIcon(t.type)}</div>
               <div className={styles.content}>{t.message}</div>

@@ -72,6 +72,13 @@ export const STORAGE_KEYS = {
   RESUME_SKILLS: 'resumint_resume_skills',
 } as const
 
+export const FORM_IDS = {
+  PERSONAL_DETAILS: 'personal',
+  EXPERIENCE: 'experience',
+  PROJECTS: 'projects',
+  EDUCATION: 'education',
+} as const
+
 // Debounce delays
 export const VALIDATION_DELAY = 250
 export const TOUCH_DELAY = 300
