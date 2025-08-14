@@ -9,7 +9,7 @@ import {
   FaUnlock,
 } from 'react-icons/fa'
 import { memo, useEffect, useRef, useState } from 'react'
-import Portal from '@/components/shared/Portal/Portal'
+import { confirm } from '@/stores'
 import { KeywordUtils } from '@/lib/keywordUtils'
 import { KeywordData } from '@/lib/types/keywords'
 import { useSettingsStore } from '@/stores'
@@ -27,7 +27,6 @@ interface BulletPointProps {
   sectionId: string
   sectionType: SectionType
   bulletData: BulletPointType
-  isDangerousAction?: boolean
   keywordData: KeywordData | null
   onBulletCancel: () => void
 }
@@ -36,21 +35,12 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   sectionId,
   sectionType,
   bulletData,
-  isDangerousAction = false,
   keywordData, // TODO: work into Zustand store
   onBulletCancel,
 }) => {
   const editInputRef = useRef<HTMLTextAreaElement>(null)
   const bulletContainerRef = useRef<HTMLDivElement>(null)
-  const popupRef = useRef<HTMLDivElement>(null)
 
-  const [activePopup, setActivePopup] = useState<
-    null | 'delete' | 'regenerate'
-  >(null)
-  const [popupPosition, setPopupPosition] = useState<{
-    top: number
-    left: number
-  } | null>(null)
   const [isFadingIn, setIsFadingIn] = useState(false)
   const [isFadingOut, setIsFadingOut] = useState(false)
   const [editMode, setEditMode] = useState(false)
@@ -94,50 +84,6 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     }
   }, [editMode])
 
-  useEffect(() => {
-    if (!activePopup || !bulletContainerRef.current) {
-      setPopupPosition(null)
-      return
-    }
-
-    const updatePosition = () => {
-      const rect = bulletContainerRef.current!.getBoundingClientRect()
-      const scrollY = window.scrollY
-      const scrollX = window.scrollX
-      const top = rect.top + scrollY
-      const left =
-        activePopup === 'delete'
-          ? rect.left + scrollX
-          : rect.right + scrollX - 240 // 240px width of popup
-      setPopupPosition({ top, left })
-    }
-
-    updatePosition()
-    window.addEventListener('resize', updatePosition)
-    window.addEventListener('scroll', updatePosition)
-
-    return () => {
-      window.removeEventListener('resize', updatePosition)
-      window.removeEventListener('scroll', updatePosition)
-    }
-  }, [activePopup])
-
-  useEffect(() => {
-    if (!activePopup) return
-
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
-        setActivePopup(null)
-      }
-    }
-
-    document.addEventListener('mousedown', handleOutsideClick)
-    return () => document.removeEventListener('mousedown', handleOutsideClick)
-  }, [activePopup])
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault()
@@ -156,29 +102,38 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     }
   }
 
-  const popupConfig = {
-    delete: {
-      message: `Delete this bullet? ${
-        isDangerousAction
-          ? "This can't be undone."
-          : 'Changes will not take effect until the form is saved.'
-      }`,
-      onConfirm: () => {
-        handleBulletDelete()
-        setActivePopup(null)
-      },
-    },
-    regenerate: {
-      message: `Regenerate this bullet? ${
-        isDangerousAction
-          ? "This can't be undone."
-          : 'Changes will not take effect until the form is saved.'
-      }`,
-      onConfirm: () => {
-        handleBulletRegenerate()
-        setActivePopup(null)
-      },
-    },
+  const onDeleteClick = async (): Promise<void> => {
+    const ok = await confirm({
+      title: 'Delete this bullet?',
+      message: "This can't be undone.",
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      anchorEl: bulletContainerRef.current,
+      placement: 'left',
+      width: 240,
+    })
+    if (ok) {
+      await handleBulletDelete()
+    }
+  }
+
+  const onRegenerateClick = async (): Promise<void> => {
+    if (editMode) {
+      await handleBulletRegenerate()
+      return
+    }
+    const ok = await confirm({
+      title: 'Regenerate this bullet?',
+      message: "This can't be undone.",
+      confirmText: 'Regenerate',
+      cancelText: 'Cancel',
+      anchorEl: bulletContainerRef.current,
+      placement: 'right',
+      width: 240,
+    })
+    if (ok) {
+      await handleBulletRegenerate()
+    }
   }
 
   const validateBulletText = (text: string) => {
@@ -312,7 +267,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
         <div className={styles.toolbarLeft}>
           <button
             className={styles.deleteButton}
-            onClick={() => setActivePopup('delete')}
+            onClick={onDeleteClick}
             disabled={
               editMode ||
               isCurrentBulletRegenerating ||
@@ -390,11 +345,7 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           )}
           <button
             className={styles.regenerateButton}
-            onClick={
-              editMode
-                ? () => handleBulletRegenerate()
-                : () => setActivePopup('regenerate')
-            }
+            onClick={onRegenerateClick}
             disabled={
               isCurrentBulletRegenerating ||
               isAnyBulletRegenerating ||
@@ -407,50 +358,6 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           </button>
         </div>
       </div>
-
-      {activePopup && (
-        <Portal>
-          <div
-            className={styles.popupBackdrop}
-            onClick={() => setActivePopup(null)}
-          />
-          {popupPosition && (
-            <div
-              className={styles.popupWrapper}
-              style={{ top: popupPosition.top, left: popupPosition.left }}
-            >
-              <div
-                className={
-                  activePopup === 'delete'
-                    ? styles.deleteConfirmPopup
-                    : styles.regenerateConfirmPopup
-                }
-                ref={popupRef}
-              >
-                <div className={styles.popupContent}>
-                  <p>{popupConfig[activePopup].message}</p>
-                  <div className={styles.popupButtons}>
-                    <button
-                      className={styles.confirmButton}
-                      onClick={popupConfig[activePopup].onConfirm}
-                      title={`Confirm ${activePopup}`}
-                    >
-                      <FaCheck size={12} />
-                    </button>
-                    <button
-                      className={styles.cancelButton}
-                      onClick={() => setActivePopup(null)}
-                      title='Cancel'
-                    >
-                      <FaTimes size={12} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </Portal>
-      )}
 
       {editMode ? (
         <div className={styles.bulletInputAreaWrapper}>
@@ -518,7 +425,6 @@ export default memo(BulletPoint, (prevProps, nextProps) => {
   return (
     prevProps.sectionId === nextProps.sectionId &&
     prevProps.sectionType === nextProps.sectionType &&
-    prevProps.isDangerousAction === nextProps.isDangerousAction &&
     prevProps.bulletData.id === nextProps.bulletData.id &&
     prevProps.bulletData.text === nextProps.bulletData.text &&
     prevProps.bulletData.isLocked === nextProps.bulletData.isLocked &&

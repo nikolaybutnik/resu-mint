@@ -123,7 +123,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
             sectionId={data.id}
             sectionType='project'
             keywordData={keywordData}
-            isDangerousAction={true}
             bulletData={bullet}
             onBulletCancel={handleBulletCancel}
           />
@@ -279,7 +278,6 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
               sectionId={data.id}
               sectionType='project'
               keywordData={keywordData}
-              isDangerousAction={false}
               bulletData={temporaryBullet}
               onBulletCancel={handleBulletCancel}
             />

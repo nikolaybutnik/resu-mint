@@ -363,7 +363,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
                 sectionId={data.id}
                 sectionType='experience'
                 keywordData={keywordData}
-                isDangerousAction={false}
                 bulletData={temporaryBullet}
                 onBulletCancel={handleBulletCancel}
               />

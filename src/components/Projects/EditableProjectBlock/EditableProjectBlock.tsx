@@ -439,7 +439,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
                 sectionId={data.id}
                 sectionType='project'
                 keywordData={keywordData}
-                isDangerousAction={false}
                 bulletData={temporaryBullet}
                 onBulletCancel={handleBulletCancel}
               />

@@ -1,0 +1,150 @@
+@import '../../../styles/variables';
+@import '../../../styles/mixins';
+
+.overlayBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: $color-backdrop;
+  z-index: 100002;
+}
+
+.modal {
+  padding: 12px;
+  border-radius: 4px;
+  background: $color-background;
+  border: 1.5px solid $color-primary;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 100003;
+  opacity: 0;
+  animation: slideIn 0.3s ease-out forwards;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.22);
+  }
+}
+
+.title {
+  margin: 0 0 8px 0;
+}
+.message {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  font-family: $font-family-base;
+  color: $color-text;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.actionButton {
+  @include button-base;
+  padding: 6px 10px;
+  border: 1px solid $color-border;
+  border-radius: 4px;
+  background: $color-background;
+  color: $color-text;
+  min-height: 28px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:focus-visible {
+    outline: 2px solid rgba($color-primary, 0.2);
+    outline-offset: 2px;
+  }
+}
+
+.cancelActionButton {
+  @extend .actionButton;
+  border: 1px solid rgba($color-error, 0.3);
+  background: transparent;
+
+  &:hover {
+    background: $color-error;
+    color: $color-background;
+    border-color: $color-error;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($color-error, 0.2);
+    outline-offset: 2px;
+  }
+}
+
+.confirmActionButton {
+  @extend .actionButton;
+  border: 1px solid rgba($color-primary, 0.3);
+  background: transparent;
+
+  &:hover {
+    background: $color-primary;
+    color: $color-background;
+    border-color: $color-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($color-primary, 0.2);
+    outline-offset: 2px;
+  }
+}
+
+.cancelIconButton {
+  @include icon-button-small;
+  border: 1px solid rgba($color-error, 0.3);
+  background: transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    background: $color-error;
+    color: $color-background;
+    border-color: $color-error;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($color-error, 0.2);
+    outline-offset: 2px;
+  }
+}
+
+.confirmIconButton {
+  @include icon-button-small;
+  border: 1px solid rgba($color-primary, 0.3);
+  background: transparent;
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+
+  &:hover {
+    background: $color-primary;
+    color: $color-background;
+    border-color: $color-primary;
+  }
+
+  &:focus-visible {
+    outline: 2px solid rgba($color-primary, 0.2);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes slideIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

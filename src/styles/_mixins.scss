@@ -590,50 +590,6 @@
   }
 }
 
-// Delete button variant (small, toolbar style)
-@mixin delete-button-small {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-error;
-    color: $color-background;
-    border-color: $color-error;
-  }
-}
-
-// Save button variant (small, toolbar style)
-@mixin save-button-small {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-transformative;
-    color: $color-background;
-    border-color: $color-transformative;
-  }
-}
-
-// Cancel button variant (small, toolbar style)
-@mixin cancel-button-small {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-primary;
-    color: $color-background;
-    border-color: $color-primary;
-  }
-}
-
-// Regenerate button variant (small, toolbar style)
-@mixin regenerate-button-small {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-regenerate;
-    color: $color-background;
-    border-color: $color-regenerate;
-  }
-}
-
 // Embedded button styling (for inputs)
 @mixin embedded-button-base {
   @include button-base;

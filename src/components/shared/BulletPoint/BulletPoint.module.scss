@@ -52,15 +52,14 @@
   gap: 8px;
 }
 
-.popupButtons {
-  display: flex;
-  flex-direction: row;
-  gap: 8px;
-}
-
 .deleteButton {
-  @include delete-button-small;
-  z-index: 3;
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-error;
+    color: $color-background;
+    border-color: $color-error;
+  }
 }
 
 .editButton {
@@ -74,24 +73,32 @@
 }
 
 .saveButton {
-  @include save-button-small;
-}
-
-.regenerateButton {
-  @include regenerate-button-small;
-}
-
-.cancelButton {
-  @include cancel-button-small;
-}
-
-.confirmButton {
   @include icon-button-small;
 
   &:hover {
-    background: $color-error;
+    background: $color-transformative;
     color: $color-background;
-    border-color: $color-error;
+    border-color: $color-transformative;
+  }
+}
+
+.regenerateButton {
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-regenerate;
+    color: $color-background;
+    border-color: $color-regenerate;
+  }
+}
+
+.cancelButton {
+  @include icon-button-small;
+
+  &:hover {
+    background: $color-primary;
+    color: $color-background;
+    border-color: $color-primary;
   }
 }
 
@@ -131,62 +138,6 @@
   opacity: 0.7;
   pointer-events: none;
   transform: none;
-}
-
-.popupBackdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: $color-backdrop;
-  z-index: 9990;
-}
-
-.popupWrapper {
-  position: absolute;
-  z-index: 10000;
-}
-
-.deleteConfirmPopup,
-.regenerateConfirmPopup {
-  position: relative;
-  background: $color-background;
-  border: 1.5px solid $color-primary;
-  border-radius: 4px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  z-index: 10001;
-  opacity: 0;
-  animation: slideIn 0.3s ease-out forwards;
-  width: 240px;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-}
-
-.popupContent {
-  padding: 12px;
-}
-
-.deleteConfirmPopup p,
-.regenerateConfirmPopup p {
-  margin: 0 0 8px;
-  font-size: 14px;
-  font-family: $font-family-base;
-  color: $color-text;
-}
-
-.regenerateConfirmPopup .confirmButton:hover {
-  background: $color-regenerate;
-  color: $color-background;
-  border-color: $color-regenerate;
-}
-
-.regenerateConfirmPopup .cancelButton:hover {
-  background: $color-primary;
-  color: $color-background;
-  border-color: $color-primary;
 }
 
 .contentArea {

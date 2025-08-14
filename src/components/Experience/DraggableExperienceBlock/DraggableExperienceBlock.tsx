@@ -100,7 +100,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
               sectionId={data.id}
               sectionType='experience'
               keywordData={keywordData}
-              isDangerousAction={true}
               bulletData={bullet}
               onBulletCancel={handleBulletCancel}
             />
@@ -275,7 +274,6 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
                 sectionId={data.id}
                 sectionType='experience'
                 keywordData={keywordData}
-                isDangerousAction={false}
                 bulletData={temporaryBullet}
                 onBulletCancel={handleBulletCancel}
               />
