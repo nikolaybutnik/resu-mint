@@ -48,6 +48,7 @@ import {
   useEducationStore,
   useSkillsStore,
   useSettingsStore,
+  confirm,
 } from '@/stores'
 import { SkillBlock } from '@/lib/types/skills'
 
@@ -233,7 +234,13 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     jobDetails.analysis
   )
 
-  const handleTabChange = (tabId: string) => {
+  const handleTabChange = async (
+    e:
+      | React.MouseEvent<HTMLButtonElement>
+      | React.TouchEvent<HTMLButtonElement>,
+    tabId: string
+  ) => {
+    const targetEl = e.currentTarget
     let isDirty = false
 
     switch (activeTab) {
@@ -274,14 +281,25 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
               )?.trim() || '',
           }
 
-          // TODO: reuse the portal from bullet points
           const { hasChanges } = usePersonalDetailsStore.getState()
           isDirty = hasChanges(current)
         }
     }
 
-    if (isDirty && !window.confirm('You have unsaved changes. Leave anyway?'))
-      return
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'You have unsaved changes',
+        message:
+          'If you leave without saving, you will lose your changes. Continue?',
+        confirmText: 'Yes',
+        cancelText: 'No',
+        anchorEl: targetEl,
+        placement: 'left',
+        width: 260,
+      })
+
+      if (!ok) return
+    }
 
     setActiveTab(tabId)
     if (sidebarRef.current) {
@@ -395,7 +413,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
                   className={`${styles.tabButton} ${
                     activeTab === tab.id ? styles.activeTab : ''
                   }`}
-                  onClick={() => handleTabChange(tab.id)}
+                  onClick={(e) => handleTabChange(e, tab.id)}
                 >
                   <IconComponent className={styles.tabIcon} />
                   <span className={styles.tabLabel}>{tab.label}</span>
