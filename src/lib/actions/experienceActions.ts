@@ -22,6 +22,8 @@ export const submitExperience = (
     }
   )
 
+  console.log(experienceData)
+
   const validatedData = experienceBlockSchema.safeParse(experienceData)
 
   if (validatedData.success) {

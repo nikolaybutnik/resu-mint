@@ -3,8 +3,9 @@ import { submitProject } from './projectActions'
 import { ExperienceBlockData } from '../types/experience'
 import { ProjectBlockData } from '../types/projects'
 import { v4 as uuidv4 } from 'uuid'
-import { PROJECT_FORM_DATA_KEYS, EXPERIENCE_FORM_DATA_KEYS } from '../constants'
+import { PROJECT_FORM_DATA_KEYS } from '../constants'
 import { SectionType } from '../types/api'
+import { extractExperienceFormData } from '../utils'
 
 export const FormSelectionState = {
   experience: 'experience',
@@ -112,83 +113,30 @@ export const submitExperienceProject = (
     }
   }
 
+  const experienceFormData = extractExperienceFormData(formData, {
+    isIncluded: true,
+    bulletPoints: [],
+  })
+
   const data: ExperienceProjectFormData = {
     type,
-    id: prevState.data?.id || uuidv4(),
-    title:
-      (formData.get(EXPERIENCE_FORM_DATA_KEYS.TITLE) as string)?.trim() || '',
-    companyName:
-      (
-        formData.get(EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME) as string
-      )?.trim() || '',
-    location:
-      (formData.get(EXPERIENCE_FORM_DATA_KEYS.LOCATION) as string)?.trim() ||
-      '',
+    id: prevState.data?.id || experienceFormData.id || uuidv4(),
+    title: experienceFormData.title,
+    companyName: experienceFormData.companyName,
+    location: experienceFormData.location,
     link: (formData.get(PROJECT_FORM_DATA_KEYS.LINK) as string)?.trim() || '',
     technologies:
       (formData.get(PROJECT_FORM_DATA_KEYS.TECHNOLOGIES) as string)?.trim() ||
       '',
-    startDate: {
-      month:
-        (formData.get(EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH) as string) ||
-        '',
-      year:
-        (
-          formData.get(EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR) as string
-        )?.trim() || '',
-    },
-    endDate: {
-      month:
-        (formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH) as string) ||
-        '',
-      year:
-        (
-          formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR) as string
-        )?.trim() || '',
-      isPresent: !!formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT),
-    },
-    description:
-      (formData.get(EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
-      '',
+    startDate: experienceFormData.startDate,
+    endDate: experienceFormData.endDate,
+    description: experienceFormData.description,
   }
 
   if (type === FormSelectionState.experience) {
-    const experienceFormData = new FormData()
-    experienceFormData.append(EXPERIENCE_FORM_DATA_KEYS.TITLE, data.title)
-    experienceFormData.append(
-      EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME,
-      data.companyName || ''
-    )
-    experienceFormData.append(
-      EXPERIENCE_FORM_DATA_KEYS.LOCATION,
-      data.location || ''
-    )
-    experienceFormData.append(
-      EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH,
-      data.startDate.month
-    )
-    experienceFormData.append(
-      EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR,
-      data.startDate.year
-    )
-    experienceFormData.append(
-      EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH,
-      data.endDate.month
-    )
-    experienceFormData.append(
-      EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR,
-      data.endDate.year
-    )
-    if (data.endDate.isPresent) {
-      experienceFormData.append(
-        EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT,
-        'true'
-      )
+    if (!formData.has('id')) {
+      formData.append('id', data.id || uuidv4())
     }
-    experienceFormData.append(
-      EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION,
-      data.description
-    )
 
     const result = submitExperience(
       {
@@ -205,7 +153,7 @@ export const submitExperienceProject = (
           description: '',
         },
       },
-      experienceFormData,
+      formData,
       experienceData,
       [],
       saveExperience
