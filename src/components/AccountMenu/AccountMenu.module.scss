@@ -50,6 +50,7 @@
   height: 100%;
   z-index: 999999;
   background-color: rgba($color-text, 0.1);
+  backdrop-filter: blur(1px);
 }
 
 .optionsContainer {

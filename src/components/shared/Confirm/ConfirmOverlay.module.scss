@@ -9,142 +9,187 @@
   bottom: 0;
   background: $color-backdrop;
   z-index: 100002;
+  backdrop-filter: blur(1px);
 }
 
 .modal {
-  padding: 12px;
-  border-radius: 4px;
+  padding: 16px;
+  border-radius: 8px;
   background: $color-background;
-  border: 1.5px solid $color-primary;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba($color-primary, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   z-index: 100003;
   opacity: 0;
-  animation: slideIn 0.3s ease-out forwards;
-  transition: box-shadow 0.2s ease;
+  animation: modalSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
-  &:hover {
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.22);
+  @include breakpoint(mobile) {
+    padding: 14px;
+    border-radius: 6px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
   }
 }
 
 .title {
-  margin: 0 0 8px 0;
+  margin: 0 0 12px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: $color-text;
+  font-family: $font-family-base;
+
+  @include breakpoint(mobile) {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
 }
+
 .message {
-  margin: 0 0 8px 0;
+  margin: 0 0 16px 0;
   font-size: 14px;
   font-family: $font-family-base;
   color: $color-text;
+  line-height: 1.4;
+
+  @include breakpoint(mobile) {
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
   flex-wrap: wrap;
+
+  @include breakpoint(mobile) {
+    gap: 8px;
+  }
 }
 
 .actionButton {
   @include button-base;
-  padding: 6px 10px;
-  border: 1px solid $color-border;
-  border-radius: 4px;
+  padding: 8px;
+  border: 1px solid rgba($color-primary, 0.2);
+  border-radius: 6px;
   background: $color-background;
   color: $color-text;
-  min-height: 28px;
-  line-height: 1;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 32px;
+  line-height: 1.2;
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  max-width: 100%;
-  transition: background-color 0.2s ease, border-color 0.2s ease,
-    color 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:focus-visible {
-    outline: 2px solid rgba($color-primary, 0.2);
+    outline: 2px solid rgba($color-primary, 0.3);
     outline-offset: 2px;
+  }
+
+  @include breakpoint(mobile) {
+    padding: 7px 14px;
+    font-size: 13px;
+    min-height: 30px;
   }
 }
 
 .cancelActionButton {
   @extend .actionButton;
-  border: 1px solid rgba($color-error, 0.3);
-  background: transparent;
+  border-color: rgba($color-error, 0.2);
+  color: $color-error;
 
   &:hover {
-    background: $color-error;
-    color: $color-background;
-    border-color: $color-error;
+    background: rgba($color-error, 0.08);
+    border-color: rgba($color-error, 0.4);
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   &:focus-visible {
-    outline: 2px solid rgba($color-error, 0.2);
-    outline-offset: 2px;
+    outline-color: rgba($color-error, 0.3);
   }
 }
 
 .confirmActionButton {
   @extend .actionButton;
-  border: 1px solid rgba($color-primary, 0.3);
-  background: transparent;
+  background: $color-primary;
+  border-color: $color-primary;
+  color: $color-background;
 
   &:hover {
-    background: $color-primary;
-    color: $color-background;
-    border-color: $color-primary;
+    background: $color-primary-hover;
+    border-color: $color-primary-hover;
+    transform: translateY(-1px);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 
   &:focus-visible {
-    outline: 2px solid rgba($color-primary, 0.2);
-    outline-offset: 2px;
+    outline-color: rgba($color-primary, 0.4);
   }
 }
 
 .cancelIconButton {
-  @include icon-button-small;
-  border: 1px solid rgba($color-error, 0.3);
-  background: transparent;
-  transition: background-color 0.2s ease, border-color 0.2s ease,
-    color 0.2s ease;
+  @include icon-button-small(28px);
+  border: 1px solid rgba($color-error, 0.2);
+  background: $color-background;
+  color: $color-error;
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    background: $color-error;
-    color: $color-background;
-    border-color: $color-error;
+    background: rgba($color-error, 0.08);
+    border-color: rgba($color-error, 0.4);
+    transform: translateY(-1px) scale(1.05);
+  }
+
+  &:active {
+    transform: translateY(0) scale(1);
   }
 
   &:focus-visible {
-    outline: 2px solid rgba($color-error, 0.2);
+    outline: 2px solid rgba($color-error, 0.3);
     outline-offset: 2px;
   }
 }
 
 .confirmIconButton {
-  @include icon-button-small;
-  border: 1px solid rgba($color-primary, 0.3);
-  background: transparent;
-  transition: background-color 0.2s ease, border-color 0.2s ease,
-    color 0.2s ease;
+  @include icon-button-small(28px);
+  border: 1px solid $color-primary;
+  background: $color-primary;
+  color: $color-background;
+  border-radius: 6px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
   &:hover {
-    background: $color-primary;
-    color: $color-background;
-    border-color: $color-primary;
+    background: $color-primary-hover;
+    border-color: $color-primary-hover;
+    transform: translateY(-1px) scale(1.05);
+  }
+
+  &:active {
+    transform: translateY(0) scale(1);
   }
 
   &:focus-visible {
-    outline: 2px solid rgba($color-primary, 0.2);
+    outline: 2px solid rgba($color-primary, 0.4);
     outline-offset: 2px;
   }
 }
 
-@keyframes slideIn {
+@keyframes modalSlideIn {
   0% {
     opacity: 0;
-    transform: translateY(-8px);
+    transform: translateY(-12px) scale(0.96);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }

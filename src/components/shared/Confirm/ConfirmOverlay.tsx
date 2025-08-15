@@ -5,8 +5,24 @@ import { useConfirmStore } from '@/stores/confirmStore'
 import styles from './ConfirmOverlay.module.scss'
 import { FaCheck, FaXmark } from 'react-icons/fa6'
 
+const clampToScreen = (elWidth: number, initPosition: number): number => {
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1024 // fallback for SSR
+  if (elWidth + 32 >= windowWidth) return 0
+
+  if (initPosition <= 16) {
+    return 16
+  } else if (initPosition + elWidth > windowWidth) {
+    return windowWidth - elWidth - 16
+  } else return initPosition
+}
+
 const ConfirmOverlay = () => {
   const { open, options, resolve, close } = useConfirmStore()
+
+  const popupWidth = Math.min(
+    options.width ?? 240,
+    typeof window !== 'undefined' ? window.innerWidth : 1024
+  )
 
   const rect = options.anchorEl?.getBoundingClientRect()
   const scrollY = typeof window !== 'undefined' ? window.scrollY : 0
@@ -14,9 +30,10 @@ const ConfirmOverlay = () => {
   const top = rect ? rect.top + scrollY : 120
   const left = rect
     ? options.placement === 'left'
-      ? rect.left + scrollX
-      : rect.right + scrollX - (options.width ?? 240)
+      ? clampToScreen(popupWidth, rect.left + scrollX)
+      : clampToScreen(popupWidth, rect.right + scrollX - popupWidth)
     : undefined
+
   if (!open) return null
 
   return (
@@ -27,7 +44,7 @@ const ConfirmOverlay = () => {
         style={{
           top,
           left,
-          width: options.width ?? (rect ? 240 : 320),
+          width: popupWidth,
           position: rect ? ('absolute' as const) : ('fixed' as const),
         }}
       >

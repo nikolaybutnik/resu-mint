@@ -119,6 +119,7 @@
   transition: all 0.2s ease;
   flex: 1;
   min-height: 40px;
+  position: relative;
 
   &.activeTab {
     background-color: rgba($color-primary, 0.12);
