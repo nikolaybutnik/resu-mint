@@ -21,7 +21,10 @@ import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { AppSettings } from '@/lib/types/settings'
 import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
-import { extractPersonalDetailsFormData } from '@/lib/utils'
+import {
+  extractExperienceFormData,
+  extractPersonalDetailsFormData,
+} from '@/lib/utils'
 import {
   FiDownload,
   FiUser,
@@ -240,19 +243,27 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
 
     const targetEl = e.currentTarget
     let isDirty = false
+    let form: HTMLFormElement | null = null
 
     switch (activeTab) {
       case Tabs.PERSONAL_DETAILS:
-        const form = document.querySelector(
+        form = document.querySelector(
           `form[data-tab="${FORM_IDS.PERSONAL_DETAILS}"]`
-        ) as HTMLFormElement | null
+        )
+
         if (form) {
           const current = extractPersonalDetailsFormData(form)
           const { hasChanges } = usePersonalDetailsStore.getState()
           isDirty = hasChanges(current)
         }
       case Tabs.EXPERIENCE:
-        break
+        form = document.querySelector(`form[data-tab="${FORM_IDS.EXPERIENCE}"]`)
+
+        if (form) {
+          const current = extractExperienceFormData(form)
+          const { hasBlockChanges } = useExperienceStore.getState()
+          isDirty = hasBlockChanges(current.id, current)
+        }
       case Tabs.PROJECTS:
         break
       case Tabs.EDUCATION:

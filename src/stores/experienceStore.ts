@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
+import { isEqual, omit } from 'lodash'
 
 interface ExperienceStore {
   data: ExperienceBlockData[]
@@ -12,6 +13,10 @@ interface ExperienceStore {
   refresh: () => Promise<void>
   initialize: () => Promise<void>
   hasChanges: (newData: ExperienceBlockData[]) => boolean
+  hasBlockChanges: (
+    blockId: string,
+    newBlockData: ExperienceBlockData
+  ) => boolean
 }
 
 export const useExperienceStore = create<ExperienceStore>((set, get) => ({
@@ -75,6 +80,19 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
 
   hasChanges: (newData: ExperienceBlockData[]) => {
     const currentData = get().data
-    return JSON.stringify(currentData) !== JSON.stringify(newData)
+
+    return !isEqual(currentData, newData)
+  },
+
+  hasBlockChanges: (blockId: string, newBlockData: ExperienceBlockData) => {
+    const currentData = get().data
+    const existingBlock = currentData.find((block) => block.id === blockId)
+
+    if (!existingBlock) return true
+
+    const existingFields = omit(existingBlock, ['bulletPoints', 'isIncluded'])
+    const newFields = omit(newBlockData, ['bulletPoints', 'isIncluded'])
+
+    return !isEqual(existingFields, newFields)
   },
 }))

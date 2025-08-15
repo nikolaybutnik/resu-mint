@@ -1,4 +1,10 @@
-import { STORAGE_KEYS, PERSONAL_DETAILS_FORM_DATA_KEYS } from './constants'
+import {
+  STORAGE_KEYS,
+  PERSONAL_DETAILS_FORM_DATA_KEYS,
+  EXPERIENCE_FORM_DATA_KEYS,
+} from './constants'
+import { Month } from './types/experience'
+import { BulletPoint } from './types/projects'
 
 /**
  * Sanitizes user input for UI display, preventing XSS and normalizing text
@@ -409,7 +415,7 @@ export const extractFormData = <T extends Record<string, string>>(
 }
 
 /**
- * Extracts form data specifically for personal details
+ * Extracts form data for personal details
  * Uses the PERSONAL_DETAILS_FORM_DATA_KEYS constants
  *
  * @param source - The HTMLFormElement or FormData containing personal details
@@ -434,6 +440,60 @@ export const extractPersonalDetailsFormData = (
     linkedin: string
     github: string
     website: string
+  }
+}
+
+/**
+ * Extracts form data for work experience
+ * Uses the EXPERIENCE_FORM_DATA_KEYS constants and handles complex nested structure
+ *
+ * @param source - The HTMLFormElement or FormData containing experience data
+ * @param preservedData - Optional data to preserve (isIncluded, bulletPoints)
+ * @returns ExperienceBlockData object with extracted values
+ */
+export const extractExperienceFormData = (
+  source: HTMLFormElement | FormData,
+  preservedData?: {
+    isIncluded?: boolean
+    bulletPoints?: BulletPoint[]
+  }
+) => {
+  const formData = source instanceof FormData ? source : new FormData(source)
+
+  return {
+    id: (formData.get('id') as string) || '',
+    isIncluded: preservedData?.isIncluded || false,
+    bulletPoints: preservedData?.bulletPoints || [],
+    title:
+      (formData.get(EXPERIENCE_FORM_DATA_KEYS.TITLE) as string)?.trim() || '',
+    companyName:
+      (
+        formData.get(EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME) as string
+      )?.trim() || '',
+    location:
+      (formData.get(EXPERIENCE_FORM_DATA_KEYS.LOCATION) as string)?.trim() ||
+      '',
+    startDate: {
+      month:
+        (formData.get(EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH) as Month) ||
+        '',
+      year:
+        (
+          formData.get(EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR) as string
+        )?.trim() || '',
+    },
+    endDate: {
+      month:
+        (formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH) as Month) || '',
+      year:
+        (
+          formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR) as string
+        )?.trim() || '',
+      isPresent: !!formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_IS_PRESENT),
+    },
+    description:
+      (formData.get(EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
+      '',
   }
 }
 

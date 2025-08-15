@@ -2,7 +2,7 @@ import styles from './EditableExperienceBlock.module.scss'
 import React, { useState, useEffect, useActionState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
-import { MONTHS } from '@/lib/constants'
+import { FORM_IDS, MONTHS } from '@/lib/constants'
 import {
   ExperienceBlockData,
   ExperienceFormState,
@@ -149,7 +149,12 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         Indicates a required field
       </div>
 
-      <form action={formAction} className={styles.experienceDetails}>
+      <form
+        action={formAction}
+        className={styles.experienceDetails}
+        data-tab={FORM_IDS.EXPERIENCE}
+      >
+        <input type='hidden' name='id' value={data.id} />
         <div className={styles.formField}>
           <label className={styles.label}>
             <span className={styles.requiredIndicator}>*</span>

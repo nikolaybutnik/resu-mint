@@ -1,4 +1,3 @@
-import { PERSONAL_DETAILS_FORM_DATA_KEYS } from '@/lib/constants'
 import { personalDetailsSchema } from '../validationSchemas'
 import { zodErrorsToFormErrors } from '../types/errors'
 import {
