@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from './constants'
+import { STORAGE_KEYS, PERSONAL_DETAILS_FORM_DATA_KEYS } from './constants'
 
 /**
  * Sanitizes user input for UI display, preventing XSS and normalizing text
@@ -383,6 +383,58 @@ export const validateEmail = (email: string): boolean => {
   if (tld.length < 2 || !/^[a-zA-Z]+$/.test(tld)) return false
 
   return true
+}
+
+/**
+ * Extracts and sanitizes form data from an HTMLFormElement or FormData
+ * Returns an object with trimmed string values for all form fields
+ *
+ * @param source - The HTMLFormElement or FormData to extract data from
+ * @param fieldKeys - Object mapping field names to their FormData keys
+ * @returns Object with extracted and sanitized form field values
+ */
+export const extractFormData = <T extends Record<string, string>>(
+  source: HTMLFormElement | FormData,
+  fieldKeys: Record<keyof T, string>
+): T => {
+  const formData = source instanceof FormData ? source : new FormData(source)
+  const result = {} as T
+
+  for (const [fieldName, formDataKey] of Object.entries(fieldKeys)) {
+    const value = formData.get(formDataKey) as string
+    result[fieldName as keyof T] = (value?.trim() || '') as T[keyof T]
+  }
+
+  return result
+}
+
+/**
+ * Extracts form data specifically for personal details
+ * Uses the PERSONAL_DETAILS_FORM_DATA_KEYS constants
+ *
+ * @param source - The HTMLFormElement or FormData containing personal details
+ * @returns PersonalDetails object with extracted values
+ */
+export const extractPersonalDetailsFormData = (
+  source: HTMLFormElement | FormData
+) => {
+  return extractFormData(source, {
+    name: PERSONAL_DETAILS_FORM_DATA_KEYS.NAME,
+    email: PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL,
+    phone: PERSONAL_DETAILS_FORM_DATA_KEYS.PHONE,
+    location: PERSONAL_DETAILS_FORM_DATA_KEYS.LOCATION,
+    linkedin: PERSONAL_DETAILS_FORM_DATA_KEYS.LINKEDIN,
+    github: PERSONAL_DETAILS_FORM_DATA_KEYS.GITHUB,
+    website: PERSONAL_DETAILS_FORM_DATA_KEYS.WEBSITE,
+  }) as {
+    name: string
+    email: string
+    phone: string
+    location: string
+    linkedin: string
+    github: string
+    website: string
+  }
 }
 
 export interface WelcomeExperienceState {

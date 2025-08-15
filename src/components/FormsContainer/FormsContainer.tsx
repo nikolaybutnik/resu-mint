@@ -12,12 +12,7 @@ import Settings from '../Settings/Settings'
 import { JobDetails } from '../JobDescription/JobDescription'
 import Projects from '../Projects/Projects/Projects'
 import Skills from '../Skills/Skills'
-import {
-  MOBILE_VIEW,
-  API_ROUTES,
-  FORM_IDS,
-  PERSONAL_DETAILS_FORM_DATA_KEYS,
-} from '@/lib/constants'
+import { MOBILE_VIEW, API_ROUTES, FORM_IDS } from '@/lib/constants'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { CreatePdfRequest } from '@/lib/types/api'
 import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
@@ -26,6 +21,7 @@ import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { AppSettings } from '@/lib/types/settings'
 import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
+import { extractPersonalDetailsFormData } from '@/lib/utils'
 import {
   FiDownload,
   FiUser,
@@ -239,7 +235,9 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       | React.MouseEvent<HTMLButtonElement>
       | React.TouchEvent<HTMLButtonElement>,
     tabId: string
-  ) => {
+  ): Promise<void> => {
+    if (activeTab === tabId) return
+
     const targetEl = e.currentTarget
     let isDirty = false
 
@@ -249,41 +247,16 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           `form[data-tab="${FORM_IDS.PERSONAL_DETAILS}"]`
         ) as HTMLFormElement | null
         if (form) {
-          const formData = new FormData(form)
-          const current = {
-            name:
-              (
-                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.NAME) as string
-              )?.trim() || '',
-            email:
-              (
-                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL) as string
-              )?.trim() || '',
-            phone:
-              (
-                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.PHONE) as string
-              )?.trim() || '',
-            location:
-              (
-                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.LOCATION) as string
-              )?.trim() || '',
-            linkedin:
-              (
-                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.LINKEDIN) as string
-              )?.trim() || '',
-            github:
-              (
-                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.GITHUB) as string
-              )?.trim() || '',
-            website:
-              (
-                formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.WEBSITE) as string
-              )?.trim() || '',
-          }
-
+          const current = extractPersonalDetailsFormData(form)
           const { hasChanges } = usePersonalDetailsStore.getState()
           isDirty = hasChanges(current)
         }
+      case Tabs.EXPERIENCE:
+        break
+      case Tabs.PROJECTS:
+        break
+      case Tabs.EDUCATION:
+        break
     }
 
     if (isDirty) {
