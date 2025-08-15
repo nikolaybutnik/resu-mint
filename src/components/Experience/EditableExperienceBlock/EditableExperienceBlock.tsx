@@ -38,15 +38,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const isNew = !experienceData.some((block) => block.id === data.id)
   const shouldShowCloseButton = experienceData.length > 0 || !isNew
 
-  // Debug info for mobile issue - remove this later
-  const debugInfo = {
-    dataId: data.id,
-    experienceDataLength: experienceData.length,
-    isNew,
-    shouldShowCloseButton,
-    onClose: !!onClose,
-    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A',
-  }
   const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
 
   const [state, formAction] = useActionState(
@@ -161,32 +152,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
   return (
     <section className={styles.editableExperienceBlock}>
-      {/* DEBUG PANEL - REMOVE LATER */}
-      <div
-        style={{
-          background: '#ff0000',
-          color: 'white',
-          padding: '10px',
-          fontSize: '12px',
-          marginBottom: '10px',
-          fontFamily: 'monospace',
-        }}
-      >
-        <strong>DEBUG INFO:</strong>
-        <br />
-        ID: {debugInfo.dataId}
-        <br />
-        Data Length: {debugInfo.experienceDataLength}
-        <br />
-        Is New: {debugInfo.isNew.toString()}
-        <br />
-        Should Show Close: {debugInfo.shouldShowCloseButton.toString()}
-        <br />
-        Has onClose: {debugInfo.onClose.toString()}
-        <br />
-        UA: {debugInfo.userAgent.slice(0, 50)}...
-      </div>
-
       <div className={styles.header}>
         {!isNew && (
           <button
