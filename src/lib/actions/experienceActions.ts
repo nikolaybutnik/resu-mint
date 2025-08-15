@@ -17,7 +17,6 @@ export const submitExperience = (
   const experienceData: ExperienceBlockData = extractExperienceFormData(
     formData,
     {
-      id: prevState.data?.id,
       isIncluded: prevState.data?.isIncluded,
       bulletPoints: currentBulletPoints,
     }

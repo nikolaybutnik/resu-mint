@@ -1,5 +1,5 @@
 import styles from './EditableExperienceBlock.module.scss'
-import React, { useState, useEffect, useActionState } from 'react'
+import React, { useState, useEffect, useActionState, useRef } from 'react'
 import { useFormStatus } from 'react-dom'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
 import { FORM_IDS, MONTHS } from '@/lib/constants'
@@ -11,11 +11,12 @@ import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
 import { submitExperience } from '@/lib/actions/experienceActions'
 import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
-import { useExperienceStore } from '@/stores'
+import { useExperienceStore, confirm } from '@/stores'
 import { useAiStateStore } from '@/stores'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPoint as BulletPointType } from '@/lib/types/experience'
 import { v4 as uuidv4 } from 'uuid'
+import { extractExperienceFormData } from '@/lib/utils'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -28,7 +29,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   keywordData,
   onClose,
 }) => {
-  const { data: experienceData, save, hasChanges } = useExperienceStore()
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
+
+  const { data: experienceData, save, hasBlockChanges } = useExperienceStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
   const isNew = !experienceData.some((block) => block.id === data.id)
@@ -49,11 +53,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       data,
     } as ExperienceFormState
   )
-
-  const updatedExperienceData = experienceData.map((block) =>
-    block.id === data.id ? state.data || data : block
-  )
-  const currentFormHasChanges = hasChanges(updatedExperienceData)
 
   const [isCurrentlyWorking, setIsCurrentlyWorking] = useState(
     state.data?.endDate?.isPresent || false
@@ -76,37 +75,38 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     handleInput,
   } = useAutoResizeTextarea(description)
 
-  const handleDelete = (): void => {
-    if (
-      window.confirm(
-        'Are you sure you want to delete this work experience? This action cannot be undone.'
-      )
-    ) {
-      const updatedSections = experienceData.filter(
-        (section) => section.id !== data.id
-      )
-      save(updatedSections)
-      onClose?.()
-    }
+  const handleDelete = async (): Promise<void> => {
+    const ok = await confirm({
+      title: 'Delete this work experience?',
+      message: 'This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      anchorEl: deleteButtonRef.current,
+      placement: 'left',
+      width: 260,
+    })
+
+    if (!ok) return
+
+    const updatedSections = experienceData.filter(
+      (section) => section.id !== data.id
+    )
+
+    save(updatedSections)
+    onClose?.()
   }
 
-  const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
+  const SubmitButton: React.FC = () => {
     const { pending } = useFormStatus()
 
-    const shouldDisable = hasChanges && pending
-
     return (
-      <button
-        type='submit'
-        className={styles.saveButton}
-        disabled={shouldDisable}
-      >
+      <button type='submit' className={styles.saveButton} disabled={pending}>
         Save
       </button>
     )
   }
 
-  const handleBulletAdd = () => {
+  const handleBulletAdd = (): void => {
     const newBullet: BulletPointType = {
       id: uuidv4(),
       text: '',
@@ -116,8 +116,37 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     setTemporaryBullet(newBullet)
   }
 
-  const handleBulletCancel = () => {
+  const handleBulletCancel = (): void => {
     setTemporaryBullet(null)
+  }
+
+  const handleFormClose = async (): Promise<void> => {
+    const form = document.querySelector(
+      `form[data-tab="${FORM_IDS.EXPERIENCE}"]`
+    ) as HTMLFormElement | null
+    let isDirty = false
+
+    if (form) {
+      const current = extractExperienceFormData(form)
+      isDirty = hasBlockChanges(current.id, current)
+    }
+
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'You have unsaved changes',
+        message:
+          'If you leave without saving, you will lose your changes. Continue?',
+        confirmText: 'Yes',
+        cancelText: 'No',
+        anchorEl: closeButtonRef.current,
+        placement: 'right',
+        width: 260,
+      })
+
+      if (!ok) return
+    }
+
+    onClose?.()
   }
 
   return (
@@ -127,6 +156,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <button
             type='button'
             className={styles.deleteButton}
+            ref={deleteButtonRef}
             onClick={handleDelete}
             disabled={isAnyBulletRegenerating}
           >
@@ -137,7 +167,8 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
           <button
             type='button'
             className={styles.closeButton}
-            onClick={onClose}
+            ref={closeButtonRef}
+            onClick={handleFormClose}
           >
             <FaXmark />
           </button>
@@ -332,7 +363,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.actionButtons}>
-          <SubmitButton hasChanges={currentFormHasChanges} />
+          <SubmitButton />
         </div>
       </form>
 
