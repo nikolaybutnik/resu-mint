@@ -24,7 +24,7 @@ const handleResponse = async <T>(
   }
 
   const result = await response.json()
-  if (result.status !== 'success' || result.errors) {
+  if (!result.success || result.errors) {
     throw new Error(result.errors || 'Operation failed')
   }
 
