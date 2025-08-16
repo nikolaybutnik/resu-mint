@@ -3,13 +3,17 @@ import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit } from 'lodash'
+import { OperationError } from '@/lib/types/errors'
 
 interface ExperienceStore {
   data: ExperienceBlockData[]
   loading: boolean
   initializing: boolean
   hasData: boolean
-  save: (data: ExperienceBlockData[]) => Promise<void>
+  error: OperationError | null
+  save: (
+    data: ExperienceBlockData[]
+  ) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
   hasChanges: (newData: ExperienceBlockData[]) => boolean
@@ -17,6 +21,7 @@ interface ExperienceStore {
     blockId: string,
     newBlockData: ExperienceBlockData
   ) => boolean
+  clearError: () => void
 }
 
 export const useExperienceStore = create<ExperienceStore>((set, get) => ({
@@ -24,6 +29,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
   loading: false,
   initializing: true,
   hasData: false,
+  error: null,
 
   initialize: async () => {
     set({ loading: true })
@@ -45,20 +51,40 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
     const currentState = get()
 
     if (!currentState.hasChanges(data)) {
-      console.info('No changes in form, skipping save')
-      return
+      return { error: null }
     }
 
     const previousData = get().data
+    const previousError = get().error
 
-    set({ data, hasData: !!data?.length })
+    // Optimistically update UI
+    set({ data, hasData: !!data?.length, error: null })
 
     try {
-      await dataManager.saveExperience(data)
-    } catch (error) {
-      set({ data: previousData, hasData: !!previousData?.length })
-      console.error('ExperienceStore: save error:', error)
-      throw error
+      const result = await dataManager.saveExperience(data)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+        return { error: result.warning || null }
+      } else {
+        set({
+          data: previousData,
+          hasData: !!previousData?.length,
+          error: result.error,
+        })
+        return { error: result.error }
+      }
+    } catch {
+      set({
+        data: previousData,
+        hasData: !!previousData?.length,
+        error: previousError,
+      })
+      return { error: previousError }
     }
   },
 
@@ -94,5 +120,9 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
     const newFields = omit(newBlockData, ['bulletPoints', 'isIncluded'])
 
     return !isEqual(existingFields, newFields)
+  },
+
+  clearError: () => {
+    set({ error: null })
   },
 }))

@@ -19,6 +19,7 @@ export interface BulletPoint {
   text: string
   isLocked?: boolean
   isTemporary?: boolean
+  position?: number
 }
 
 export type StartDate = {
@@ -42,6 +43,7 @@ export interface ExperienceBlockData {
   description?: string
   bulletPoints: BulletPoint[]
   isIncluded: boolean
+  position?: number
 }
 
 export interface ExperienceFormState {

@@ -13,7 +13,14 @@ import { useExperienceStore } from '@/stores'
 import { useProjectStore } from '@/stores'
 import { bulletTextValidationSchema } from '../validationSchemas'
 import { AppSettings } from '../types/settings'
-import { zodErrorsToFormErrors } from '../types/errors'
+import {
+  zodErrorsToFormErrors,
+  Result,
+  Success,
+  Failure,
+  createValidationError,
+  createUnknownError,
+} from '../types/errors'
 
 const generateBulletsApi = async (
   params: GenerateBulletsRequest
@@ -43,25 +50,29 @@ export const bulletService = {
     sectionId: string,
     sectionType: SectionType,
     maxCharsPerBullet: number
-  ): Promise<void> => {
-    const validation = bulletTextValidationSchema.safeParse({
-      text: bullet.text,
-      maxCharsPerBullet,
-    })
-
-    if (!validation.success) {
-      const errors = zodErrorsToFormErrors(validation.error)
-      if (!errors.bulletTooLong) {
-        throw new Error(validation.error.message)
-      }
-    }
-
+  ): Promise<Result<void>> => {
     try {
+      const validation = bulletTextValidationSchema.safeParse({
+        text: bullet.text,
+        maxCharsPerBullet,
+      })
+
+      if (!validation.success) {
+        const errors = zodErrorsToFormErrors(validation.error)
+        // bulletTooLong is non-blocking
+        if (!errors.bulletTooLong) {
+          return Failure(
+            createValidationError('Invalid bullet data', validation.error)
+          )
+        }
+      }
+
       const cleanBullet = {
         id: bullet.id,
         text: bullet.text,
         isLocked: bullet.isLocked ?? false,
       }
+
       if (sectionType === 'experience') {
         const dataStore = useExperienceStore.getState()
         const updatedData = dataStore.data.map((section) =>
@@ -74,8 +85,13 @@ export const bulletService = {
               }
             : section
         )
-        await dataStore.save(updatedData)
+        const saveResult = await dataStore.save(updatedData)
+        if (saveResult.error) {
+          return Failure(saveResult.error)
+        }
+        return Success(undefined)
       } else if (sectionType === 'project') {
+        // TODO: Update when project manager supports Result pattern
         const dataStore = useProjectStore.getState()
         const updatedData = dataStore.data.map((section) =>
           section.id === sectionId
@@ -88,10 +104,14 @@ export const bulletService = {
             : section
         )
         await dataStore.save(updatedData)
+        return Success(undefined)
       }
+
+      return Failure(createValidationError('Invalid section type'))
     } catch (error) {
-      console.error('Error saving bullet:', error)
-      throw new Error('Failed to save bullet')
+      return Failure(
+        createUnknownError('Unexpected error during bullet save', error)
+      )
     }
   },
 
@@ -99,7 +119,7 @@ export const bulletService = {
     sectionId: string,
     sectionType: SectionType,
     bulletId: string
-  ): Promise<void> => {
+  ): Promise<Result<void>> => {
     try {
       if (sectionType === 'experience') {
         const dataStore = useExperienceStore.getState()
@@ -113,8 +133,13 @@ export const bulletService = {
               }
             : section
         )
-        await dataStore.save(updatedData)
+        const saveResult = await dataStore.save(updatedData)
+        if (saveResult.error) {
+          return Failure(saveResult.error)
+        }
+        return Success(undefined)
       } else if (sectionType === 'project') {
+        // TODO: Update when project manager supports Result pattern
         const dataStore = useProjectStore.getState()
         const updatedData = dataStore.data.map((section) =>
           section.id === sectionId
@@ -127,10 +152,14 @@ export const bulletService = {
             : section
         )
         await dataStore.save(updatedData)
+        return Success(undefined)
       }
+
+      return Failure(createValidationError('Invalid section type'))
     } catch (error) {
-      console.error('Error deleting bullet:', error)
-      throw new Error('Failed to delete bullet')
+      return Failure(
+        createUnknownError('Unexpected error during bullet deletion', error)
+      )
     }
   },
 
@@ -138,7 +167,7 @@ export const bulletService = {
     sectionId: string,
     sectionType: SectionType,
     bulletId: string
-  ): Promise<void> => {
+  ): Promise<Result<void>> => {
     try {
       if (sectionType === 'experience') {
         const dataStore = useExperienceStore.getState()
@@ -154,8 +183,13 @@ export const bulletService = {
               }
             : section
         )
-        await dataStore.save(updatedData)
+        const saveResult = await dataStore.save(updatedData)
+        if (saveResult.error) {
+          return Failure(saveResult.error)
+        }
+        return Success(undefined)
       } else if (sectionType === 'project') {
+        // TODO: Update when project manager supports Result pattern
         const dataStore = useProjectStore.getState()
         const updatedData = dataStore.data.map((section) =>
           section.id === sectionId
@@ -170,10 +204,14 @@ export const bulletService = {
             : section
         )
         await dataStore.save(updatedData)
+        return Success(undefined)
       }
+
+      return Failure(createValidationError('Invalid section type'))
     } catch (error) {
-      console.error('Error toggling bullet lock:', error)
-      throw new Error('Failed to toggle bullet lock')
+      return Failure(
+        createUnknownError('Unexpected error during bullet lock toggle', error)
+      )
     }
   },
 
@@ -181,7 +219,7 @@ export const bulletService = {
     sectionId: string,
     sectionType: SectionType,
     shouldLock: boolean
-  ): Promise<void> => {
+  ): Promise<Result<void>> => {
     try {
       if (sectionType === 'experience') {
         const dataStore = useExperienceStore.getState()
@@ -196,8 +234,13 @@ export const bulletService = {
               }
             : section
         )
-        await dataStore.save(updatedData)
+        const saveResult = await dataStore.save(updatedData)
+        if (saveResult.error) {
+          return Failure(saveResult.error)
+        }
+        return Success(undefined)
       } else if (sectionType === 'project') {
+        // TODO: Update when project manager supports Result pattern
         const dataStore = useProjectStore.getState()
         const updatedData = dataStore.data.map((section) =>
           section.id === sectionId
@@ -211,10 +254,14 @@ export const bulletService = {
             : section
         )
         await dataStore.save(updatedData)
+        return Success(undefined)
       }
+
+      return Failure(createValidationError('Invalid section type'))
     } catch (error) {
-      console.error('Error toggling bullet lock all:', error)
-      throw new Error('Failed to toggle bullet lock all')
+      return Failure(
+        createUnknownError('Unexpected error during bulk lock toggle', error)
+      )
     }
   },
 

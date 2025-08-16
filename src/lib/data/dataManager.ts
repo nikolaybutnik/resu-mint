@@ -55,34 +55,50 @@ class DataManager {
   }
 
   // Experience
-  async getExperience(sectionId?: string) {
+  async getExperience(
+    sectionId?: string
+  ): Promise<ExperienceBlockData | ExperienceBlockData[] | undefined> {
     return experienceManager.get(sectionId)
   }
 
-  async saveExperience(data: ExperienceBlockData[]): Promise<void> {
+  async saveExperience(
+    data: ExperienceBlockData[]
+  ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.save(data)
   }
 
-  async saveExperienceBullet(data: ExperienceBulletPoint, sectionId: string) {
+  async saveExperienceBullet(
+    data: ExperienceBulletPoint,
+    sectionId: string
+  ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.saveBullet(data, sectionId)
   }
 
   async saveExperienceBullets(
     bullets: ExperienceBulletPoint[],
     sectionId: string
-  ) {
+  ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.saveBullets(bullets, sectionId)
   }
 
-  async deleteExperienceBullet(sectionId: string, bulletId: string) {
+  async deleteExperienceBullet(
+    sectionId: string,
+    bulletId: string
+  ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.deleteBullet(sectionId, bulletId)
   }
 
-  async toggleExperienceBulletLock(sectionId: string, bulletId: string) {
+  async toggleExperienceBulletLock(
+    sectionId: string,
+    bulletId: string
+  ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.toggleBulletLock(sectionId, bulletId)
   }
 
-  async toggleExperienceBulletLockAll(sectionId: string, shouldLock: boolean) {
+  async toggleExperienceBulletLockAll(
+    sectionId: string,
+    shouldLock: boolean
+  ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.toggleBulletLockAll(sectionId, shouldLock)
   }
 

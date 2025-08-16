@@ -106,11 +106,15 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
         sectionType: 'project',
         shouldLock: boolean
       ): Promise<void> => {
-        await bulletService.toggleBulletLockAll(
+        const result = await bulletService.toggleBulletLockAll(
           sectionId,
           sectionType,
           shouldLock
         )
+        if (!result.success) {
+          console.error('Failed to toggle bullet lock all:', result.error)
+          // TODO: Could show toast notification here
+        }
       },
       []
     )

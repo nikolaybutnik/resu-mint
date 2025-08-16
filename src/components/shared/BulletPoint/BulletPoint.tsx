@@ -190,12 +190,18 @@ const BulletPoint: React.FC<BulletPointProps> = ({
       isLocked: bulletData.isLocked ?? false,
     }
 
-    await bulletService.saveBullet(
+    const result = await bulletService.saveBullet(
       updatedBulletData,
       sectionId,
       sectionType,
       settings.maxCharsPerBullet
     )
+
+    if (!result.success) {
+      console.error('Failed to save bullet:', result.error)
+      // TODO: Could show toast notification here
+      return
+    }
 
     if (bulletData.isTemporary) {
       onBulletCancel()
@@ -207,11 +213,27 @@ const BulletPoint: React.FC<BulletPointProps> = ({
   }
 
   const handleBulletDelete = async (): Promise<void> => {
-    await bulletService.deleteBullet(sectionId, sectionType, bulletData.id)
+    const result = await bulletService.deleteBullet(
+      sectionId,
+      sectionType,
+      bulletData.id
+    )
+    if (!result.success) {
+      console.error('Failed to delete bullet:', result.error)
+      // TODO: Could show toast notification here
+    }
   }
 
   const handleBulletLockToggle = async (): Promise<void> => {
-    await bulletService.toggleBulletLock(sectionId, sectionType, bulletData.id)
+    const result = await bulletService.toggleBulletLock(
+      sectionId,
+      sectionType,
+      bulletData.id
+    )
+    if (!result.success) {
+      console.error('Failed to toggle bullet lock:', result.error)
+      // TODO: Could show toast notification here
+    }
   }
 
   const handleBulletRegenerate = async (): Promise<void> => {
@@ -240,12 +262,16 @@ const BulletPoint: React.FC<BulletPointProps> = ({
         if (editMode && generatedBullet) {
           setEditModeText(generatedBullet.text)
         } else if (!editMode && generatedBullet) {
-          await bulletService.saveBullet(
+          const saveResult = await bulletService.saveBullet(
             generatedBullet,
             sectionId,
             sectionType,
             settings.maxCharsPerBullet
           )
+          if (!saveResult.success) {
+            console.error('Failed to save generated bullet:', saveResult.error)
+            // TODO: Could show toast notification here
+          }
         }
       }
     } catch (error) {
