@@ -40,7 +40,7 @@ export const submitProject = (
   }
 
   return {
-    errors: validatedData.success
+    fieldErrors: validatedData.success
       ? {}
       : zodErrorsToFormErrors(validatedData.error),
     data: validatedData.success ? validatedData.data : projectData,

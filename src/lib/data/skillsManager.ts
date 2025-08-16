@@ -1,11 +1,7 @@
 import { DEFAULT_STATE_VALUES } from '../constants'
 import { SkillBlock, Skills } from '../types/skills'
 import { STORAGE_KEYS } from '../constants'
-import {
-  isAuthenticated,
-  isLocalStorageAvailable,
-  isQuotaExceededError,
-} from './dataUtils'
+import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
 import {
   resumeSkillBlockSchema,
   skillsValidationSchema,
@@ -82,10 +78,6 @@ class SkillsManager {
     try {
       localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(validation.data))
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }
@@ -163,10 +155,6 @@ class SkillsManager {
         JSON.stringify(validation.data)
       )
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }

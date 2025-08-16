@@ -2,16 +2,19 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { PersonalDetails } from '@/lib/types/personalDetails'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
+import { OperationError } from '@/lib/types/errors'
 
 interface PersonalDetailsStore {
   data: PersonalDetails
   loading: boolean
   initializing: boolean
   hasData: boolean
-  save: (details: PersonalDetails) => Promise<void>
+  error: OperationError | null
+  save: (details: PersonalDetails) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
   hasChanges: (newData: PersonalDetails) => boolean
+  clearError: () => void
 }
 
 export const usePersonalDetailsStore = create<PersonalDetailsStore>(
@@ -20,6 +23,7 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
     loading: false,
     initializing: true,
     hasData: false,
+    error: null,
 
     initialize: async () => {
       set({ loading: true })
@@ -40,22 +44,29 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
     save: async (details) => {
       const currentState = get()
 
-      if (!currentState.hasChanges(details)) return
+      if (!currentState.hasChanges(details)) {
+        return { error: null }
+      }
 
-      try {
-        set({ loading: true })
-        await dataManager.savePersonalDetails(details)
+      set({ loading: true, error: null })
+
+      const result = await dataManager.savePersonalDetails(details)
+
+      if (result.success) {
         set({
-          data: details,
+          data: result.data,
           loading: false,
-          hasData: !!details?.name?.trim() && !!details?.email?.trim(),
+          hasData: !!result.data?.name?.trim() && !!result.data?.email?.trim(),
+          error: result.warning || null,
         })
-      } catch (error) {
-        console.error('PersonalDetailsStore: save error:', error)
+        return { error: result.warning || null }
+      } else {
         set({
           loading: false,
           data: currentState.data,
+          error: result.error,
         })
+        return { error: result.error }
       }
     },
 
@@ -78,6 +89,10 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
     hasChanges: (newData) => {
       const currentData = get().data
       return JSON.stringify(currentData) !== JSON.stringify(newData)
+    },
+
+    clearError: () => {
+      set({ error: null })
     },
   })
 )

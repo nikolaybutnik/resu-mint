@@ -17,6 +17,7 @@ import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPoint as BulletPointType } from '@/lib/types/experience'
 import { v4 as uuidv4 } from 'uuid'
 import { extractExperienceFormData } from '@/lib/utils'
+import { toast } from '@/stores/toastStore'
 
 interface EditableExperienceBlockProps {
   data: ExperienceBlockData
@@ -50,7 +51,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         save
       ),
     {
-      errors: {},
+      fieldErrors: {},
       data,
     } as ExperienceFormState
   )
@@ -61,6 +62,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const [description, setDescription] = useState(state.data?.description || '')
   const [temporaryBullet, setTemporaryBullet] =
     useState<BulletPointType | null>(null)
+
+  useEffect(() => {
+    const notifications = state?.notifications
+    if (!notifications || notifications.length === 0) return
+
+    notifications.forEach((notification) => {
+      toast[notification.type](notification.message)
+    })
+  }, [state?.notifications])
 
   useEffect(() => {
     setIsCurrentlyWorking(state.data?.endDate?.isPresent || false)
@@ -196,13 +206,13 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='text'
             name={EXPERIENCE_FORM_DATA_KEYS.TITLE}
             className={`${styles.formInput} ${
-              state?.errors?.title ? styles.error : ''
+              state?.fieldErrors?.title ? styles.error : ''
             }`}
             defaultValue={state.data?.title}
             placeholder='Enter your job title'
           />
-          {state?.errors?.title && (
-            <span className={styles.formError}>{state.errors.title}</span>
+          {state?.fieldErrors?.title && (
+            <span className={styles.formError}>{state.fieldErrors.title}</span>
           )}
         </div>
 
@@ -215,13 +225,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='text'
             name={EXPERIENCE_FORM_DATA_KEYS.COMPANY_NAME}
             className={`${styles.formInput} ${
-              state?.errors?.companyName ? styles.error : ''
+              state?.fieldErrors?.companyName ? styles.error : ''
             }`}
             defaultValue={state.data?.companyName}
             placeholder='Enter the company name'
           />
-          {state?.errors?.companyName && (
-            <span className={styles.formError}>{state.errors.companyName}</span>
+          {state?.fieldErrors?.companyName && (
+            <span className={styles.formError}>
+              {state.fieldErrors.companyName}
+            </span>
           )}
         </div>
 
@@ -234,13 +246,15 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             type='text'
             name={EXPERIENCE_FORM_DATA_KEYS.LOCATION}
             className={`${styles.formInput} ${
-              state?.errors?.location ? styles.error : ''
+              state?.fieldErrors?.location ? styles.error : ''
             }`}
             defaultValue={state.data?.location}
             placeholder='Enter the location'
           />
-          {state?.errors?.location && (
-            <span className={styles.formError}>{state.errors.location}</span>
+          {state?.fieldErrors?.location && (
+            <span className={styles.formError}>
+              {state.fieldErrors.location}
+            </span>
           )}
         </div>
 
@@ -280,8 +294,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               }}
             />
           </div>
-          {state?.errors?.startDate && (
-            <span className={styles.formError}>{state.errors.startDate}</span>
+          {state?.fieldErrors?.startDate && (
+            <span className={styles.formError}>
+              {state.fieldErrors.startDate}
+            </span>
           )}
         </div>
 
@@ -338,8 +354,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
               Currently Working Here
             </label>
           </div>
-          {state?.errors?.endDate && (
-            <span className={styles.formError}>{state.errors.endDate}</span>
+          {state?.fieldErrors?.endDate && (
+            <span className={styles.formError}>
+              {state.fieldErrors.endDate}
+            </span>
           )}
         </div>
 
@@ -351,15 +369,17 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             className={styles.formTextarea}
             value={description}
             rows={4}
-            placeholder='Describe your experience in detail. Focus on listing your responsibilities, achievements, and the tools you used.'
+            placeholder='Describe your experience in detail. List your responsibilities, achievements, metrics, and the tools you used. We recommend you copy and paste the existing content of your LinkedIn or resume.'
             onChange={(e) => {
               const newValue = handleTextareaChange(e)
               setDescription(newValue)
             }}
             onInput={handleInput}
           />
-          {state?.errors?.description && (
-            <span className={styles.formError}>{state.errors.description}</span>
+          {state?.fieldErrors?.description && (
+            <span className={styles.formError}>
+              {state.fieldErrors.description}
+            </span>
           )}
         </div>
 

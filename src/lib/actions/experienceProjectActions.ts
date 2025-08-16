@@ -149,7 +149,7 @@ export const submitExperienceProject = (
   const result = isExperience
     ? submitExperience(
         {
-          errors: {},
+          fieldErrors: {},
           data: {
             id: data.id || uuidv4(),
             isIncluded: true,
@@ -169,7 +169,7 @@ export const submitExperienceProject = (
       )
     : submitProject(
         {
-          errors: {},
+          fieldErrors: {},
           data: {
             id: data.id || uuidv4(),
             isIncluded: true,
@@ -189,9 +189,9 @@ export const submitExperienceProject = (
       )
 
   return {
-    errors: result.errors,
+    errors: result.fieldErrors,
     data: data,
-    success: Object.keys(result.errors).length === 0,
+    success: Object.keys(result.fieldErrors).length === 0,
   }
 }
 

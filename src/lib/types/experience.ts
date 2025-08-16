@@ -1,3 +1,5 @@
+import { ToastMessage } from './toast'
+
 export type Month =
   | 'Jan'
   | 'Feb'
@@ -43,6 +45,7 @@ export interface ExperienceBlockData {
 }
 
 export interface ExperienceFormState {
-  errors: Record<string, string>
+  fieldErrors: Record<string, string>
   data?: ExperienceBlockData
+  notifications?: ToastMessage[]
 }

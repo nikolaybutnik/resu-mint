@@ -2,11 +2,7 @@ import { STORAGE_KEYS } from '../constants'
 import { EducationBlockData } from '../types/education'
 import { educationBlockSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import {
-  isAuthenticated,
-  isLocalStorageAvailable,
-  isQuotaExceededError,
-} from './dataUtils'
+import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
 
 const CACHE_KEYS = {
   EDUCATION_LOCAL: 'education-local',
@@ -91,10 +87,6 @@ class EducationManager {
         JSON.stringify(validation.data)
       )
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }

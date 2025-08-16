@@ -43,6 +43,6 @@ export interface ProjectBlockData {
 }
 
 export interface ProjectFormState {
-  errors: Record<string, string>
+  fieldErrors: Record<string, string>
   data?: ProjectBlockData
 }

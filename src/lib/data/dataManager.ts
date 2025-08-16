@@ -4,8 +4,8 @@ import { projectsManager } from './projectsManager'
 import { settingsManager } from './settingsManager'
 import { educationManager } from './educationManager'
 import { skillsManager } from './skillsManager'
-
 import type { PersonalDetails } from '../types/personalDetails'
+import type { Result } from '../types/errors'
 import type {
   ExperienceBlockData,
   BulletPoint as ExperienceBulletPoint,
@@ -27,7 +27,9 @@ class DataManager {
     return personalDetailsManager.get()
   }
 
-  async savePersonalDetails(data: PersonalDetails): Promise<void> {
+  async savePersonalDetails(
+    data: PersonalDetails
+  ): Promise<Result<PersonalDetails>> {
     return personalDetailsManager.save(data)
   }
 

@@ -8,6 +8,7 @@ export function getUserId(): string | null {
   return useAuthStore.getState().user?.id ?? null
 }
 
+// TODO: remove when db migration is completed
 export function isLocalStorageAvailable(): boolean {
   try {
     const test = '__storage_test__'
@@ -32,14 +33,6 @@ export function waitForAuthReady(): Promise<void> {
       }
     )
   })
-}
-
-export function isQuotaExceededError(error: unknown): boolean {
-  return (
-    error instanceof DOMException &&
-    (error.name === 'QuotaExceededError' ||
-      error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
-  )
 }
 
 export const nowIso = (): string => new Date().toISOString()

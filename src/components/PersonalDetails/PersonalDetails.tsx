@@ -1,7 +1,7 @@
 import styles from './PersonalDetails.module.scss'
-import { useActionState } from 'react'
+import { useActionState, useEffect } from 'react'
 import { useFormStatus } from 'react-dom'
-import { PersonalDetailsFormState } from '@/lib/types/personalDetails'
+import { PersonalDetailsFormState } from '@/lib/actions/personalDetailsActions'
 import { submitPersonalDetails } from '@/lib/actions/personalDetailsActions'
 import { PERSONAL_DETAILS_FORM_DATA_KEYS, FORM_IDS } from '@/lib/constants'
 import { usePersonalDetailsStore } from '@/stores'
@@ -80,40 +80,49 @@ const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
 const PersonalDetails: React.FC = () => {
   const {
     data: personalDetails,
-    save,
     initializing,
+    error: storeError,
+    save,
     hasChanges,
+    clearError,
   } = usePersonalDetailsStore()
 
   const [state, formAction] = useActionState(
     async (prevState: PersonalDetailsFormState, formData: FormData) => {
+      clearError()
       const result = await submitPersonalDetails(prevState, formData)
 
       if (Object.keys(result.fieldErrors).length === 0 && result.data) {
-        try {
-          if (!hasChanges(result.data)) {
-            toast.warning(
-              "You haven't made any changes to your personal details."
-            )
-
-            return {
-              fieldErrors: {},
-              data: result.data,
-            }
-          }
-
-          await save(result.data)
-
-          toast.success('Your personal details were updated.')
-        } catch {
-          toast.error(
-            'Failed to update your personal details. Please try again.'
+        if (!hasChanges(result.data)) {
+          toast.warning(
+            "You haven't made any changes to your personal details."
           )
-
           return {
             fieldErrors: {},
             data: result.data,
           }
+        }
+
+        const saveResult = await save(result.data)
+
+        if (saveResult.error) {
+          // Check if it's a sync warning (data saved locally) vs actual blocking error
+          if (
+            saveResult.error.code === 'NETWORK_ERROR' ||
+            saveResult.error.code === 'UNKNOWN_ERROR'
+          ) {
+            toast.success(
+              'Your personal details were saved locally and will sync when connection to database is restored.'
+            )
+          } else {
+            return {
+              fieldErrors: {},
+              data: result.data,
+              operationError: saveResult.error,
+            }
+          }
+        } else {
+          toast.success('Your personal details were updated.')
         }
       }
 
@@ -124,6 +133,28 @@ const PersonalDetails: React.FC = () => {
       data: personalDetails,
     } as PersonalDetailsFormState
   )
+
+  useEffect(() => {
+    if (storeError) {
+      console.log(storeError)
+      switch (storeError.code) {
+        case 'QUOTA_EXCEEDED':
+          toast.error(
+            'Storage space is full. Please free up space and try again.'
+          )
+          break
+        case 'NETWORK_ERROR':
+          break
+        case 'UNKNOWN_ERROR':
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        default:
+          toast.error('Failed to save your changes. Please try again.')
+      }
+    }
+  }, [storeError])
 
   const currentFormHasChanges = hasChanges(state.data || personalDetails)
 

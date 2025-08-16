@@ -3,11 +3,7 @@ import { DEFAULT_STATE_VALUES } from '../constants'
 import { JobDescriptionAnalysis } from '../types/jobDetails'
 import { JobDetails } from '../types/jobDetails'
 import { jobDetailsSchema } from '../validationSchemas'
-import {
-  isAuthenticated,
-  isLocalStorageAvailable,
-  isQuotaExceededError,
-} from './dataUtils'
+import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
 
 const CACHE_KEYS = {
   JOB_DETAILS_LOCAL: 'job-details-local',
@@ -90,10 +86,6 @@ class JobDetailsManager {
         JSON.stringify(validation.data)
       )
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }
@@ -134,10 +126,6 @@ class JobDetailsManager {
         JSON.stringify(validation.data)
       )
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }

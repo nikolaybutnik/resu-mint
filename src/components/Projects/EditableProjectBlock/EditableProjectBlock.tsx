@@ -42,7 +42,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     (prevState: ProjectFormState, formData: FormData): ProjectFormState =>
       submitProject(prevState, formData, projectData, data.bulletPoints, save),
     {
-      errors: {},
+      fieldErrors: {},
       data,
     } as ProjectFormState
   )
@@ -224,13 +224,13 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             type='text'
             name={PROJECT_FORM_DATA_KEYS.TITLE}
             className={`${styles.formInput} ${
-              state?.errors?.title ? styles.error : ''
+              state?.fieldErrors?.title ? styles.error : ''
             }`}
             defaultValue={state.data?.title}
             placeholder='Enter the name of your project'
           />
-          {state?.errors?.title && (
-            <span className={styles.formError}>{state.errors.title}</span>
+          {state?.fieldErrors?.title && (
+            <span className={styles.formError}>{state.fieldErrors.title}</span>
           )}
         </div>
 
@@ -240,13 +240,13 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             type='text'
             name={PROJECT_FORM_DATA_KEYS.LINK}
             className={`${styles.formInput} ${
-              state?.errors?.link ? styles.error : ''
+              state?.fieldErrors?.link ? styles.error : ''
             }`}
             defaultValue={state.data?.link}
             placeholder='Enter the URL of your project'
           />
-          {state?.errors?.link && (
-            <span className={styles.formError}>{state.errors.link}</span>
+          {state?.fieldErrors?.link && (
+            <span className={styles.formError}>{state.fieldErrors.link}</span>
           )}
         </div>
 
@@ -344,8 +344,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               }}
             />
           </div>
-          {state?.errors?.startDate && (
-            <span className={styles.formError}>{state.errors.startDate}</span>
+          {state?.fieldErrors?.startDate && (
+            <span className={styles.formError}>
+              {state.fieldErrors.startDate}
+            </span>
           )}
         </div>
 
@@ -402,8 +404,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
               Currently Working on this Project
             </label>
           </div>
-          {state?.errors?.endDate && (
-            <span className={styles.formError}>{state.errors.endDate}</span>
+          {state?.fieldErrors?.endDate && (
+            <span className={styles.formError}>
+              {state.fieldErrors.endDate}
+            </span>
           )}
         </div>
 
@@ -422,8 +426,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             }}
             onInput={handleInput}
           />
-          {state?.errors?.description && (
-            <span className={styles.formError}>{state.errors.description}</span>
+          {state?.fieldErrors?.description && (
+            <span className={styles.formError}>
+              {state.fieldErrors.description}
+            </span>
           )}
         </div>
 

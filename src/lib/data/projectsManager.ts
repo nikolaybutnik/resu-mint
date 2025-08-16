@@ -2,11 +2,7 @@ import { STORAGE_KEYS } from '../constants'
 import { ProjectBlockData, BulletPoint } from '../types/projects'
 import { projectBlockSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import {
-  isAuthenticated,
-  isLocalStorageAvailable,
-  isQuotaExceededError,
-} from './dataUtils'
+import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
 
 const CACHE_KEYS = {
   PROJECTS_LOCAL: 'projects-local',
@@ -91,10 +87,6 @@ class ProjectsManager {
         JSON.stringify(validation.data)
       )
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }
@@ -145,10 +137,6 @@ class ProjectsManager {
 
       this.invalidate()
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }
@@ -177,10 +165,6 @@ class ProjectsManager {
 
       this.invalidate()
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }
@@ -224,10 +208,6 @@ class ProjectsManager {
       )
       this.invalidate()
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }
@@ -265,10 +245,6 @@ class ProjectsManager {
       )
       this.invalidate()
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }
@@ -303,10 +279,6 @@ class ProjectsManager {
       )
       this.invalidate()
     } catch (error) {
-      if (isQuotaExceededError(error)) {
-        console.warn('Local Storage quota exceeded')
-        throw new Error('Storage quota exceeded. Please clear browser data.')
-      }
       throw error
     }
   }

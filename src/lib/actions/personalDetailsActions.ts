@@ -1,10 +1,9 @@
 import { personalDetailsSchema } from '../validationSchemas'
-import { zodErrorsToFormErrors } from '../types/errors'
-import {
-  PersonalDetails as PersonalDetailsType,
-  PersonalDetailsFormState,
-} from '@/lib/types/personalDetails'
+import { zodErrorsToFormErrors, FormStateBase } from '../types/errors'
+import { PersonalDetails as PersonalDetailsType } from '@/lib/types/personalDetails'
 import { extractPersonalDetailsFormData } from '../utils'
+
+export type PersonalDetailsFormState = FormStateBase<PersonalDetailsType>
 
 export const submitPersonalDetails = async (
   _previousState: PersonalDetailsFormState,

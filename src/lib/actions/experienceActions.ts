@@ -13,7 +13,7 @@ export const submitExperience = (
   workExperience: ExperienceBlockData[],
   currentBulletPoints: BulletPoint[] = [],
   onSave: (data: ExperienceBlockData[]) => void
-) => {
+): ExperienceFormState => {
   const experienceData: ExperienceBlockData = extractExperienceFormData(
     formData,
     {
@@ -43,7 +43,7 @@ export const submitExperience = (
   }
 
   return {
-    errors: validatedData.success
+    fieldErrors: validatedData.success
       ? {}
       : zodErrorsToFormErrors(validatedData.error),
     data: validatedData.success ? validatedData.data : experienceData,
