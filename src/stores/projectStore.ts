@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
+import { isEqual, omit } from 'lodash'
 
 interface ProjectStore {
   data: ProjectBlockData[]
@@ -12,6 +13,7 @@ interface ProjectStore {
   refresh: () => Promise<void>
   initialize: () => Promise<void>
   hasChanges: (newData: ProjectBlockData[]) => boolean
+  hasBlockChanges: (blockId: string, newBlockData: ProjectBlockData) => boolean
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
@@ -75,6 +77,19 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
 
   hasChanges: (newData: ProjectBlockData[]) => {
     const currentData = get().data
-    return JSON.stringify(currentData) !== JSON.stringify(newData)
+
+    return !isEqual(currentData, newData)
+  },
+
+  hasBlockChanges: (blockId: string, newBlockData: ProjectBlockData) => {
+    const currentData = get().data
+    const existingBlock = currentData.find((block) => block.id === blockId)
+
+    if (!existingBlock) return true
+
+    const existingFields = omit(existingBlock, ['bulletPoints', 'isIncluded'])
+    const newFields = omit(newBlockData, ['bulletPoints', 'isIncluded'])
+
+    return !isEqual(existingFields, newFields)
   },
 }))

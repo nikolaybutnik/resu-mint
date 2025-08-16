@@ -1,24 +1,21 @@
 import styles from './EditableProjectBlock.module.scss'
-import {
-  useActionState,
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-} from 'react'
+import { useActionState, useEffect, useMemo, useState, useRef } from 'react'
 import React from 'react'
 import { FaPlus, FaXmark } from 'react-icons/fa6'
-import { MONTHS, PROJECT_FORM_DATA_KEYS } from '@/lib/constants'
+import { FORM_IDS, MONTHS, PROJECT_FORM_DATA_KEYS } from '@/lib/constants'
 import { ProjectBlockData, ProjectFormState } from '@/lib/types/projects'
 import { KeywordData } from '@/lib/types/keywords'
 import { useAutoResizeTextarea } from '@/lib/hooks'
 import { submitProject } from '@/lib/actions/projectActions'
 import { useFormStatus } from 'react-dom'
-import { useProjectStore } from '@/stores'
-import { useAiStateStore } from '@/stores'
+import { useProjectStore, useAiStateStore, confirm } from '@/stores'
 import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPoint as BulletPointType } from '@/lib/types/projects'
 import { v4 as uuidv4 } from 'uuid'
+import { extractProjectFormData } from '@/lib/utils'
+
+const normalizeTechnology = (tech: string): string =>
+  tech.trim().toLowerCase().replace(/\s+/g, ' ')
 
 interface EditableProjectBlockProps {
   data: ProjectBlockData
@@ -31,7 +28,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   keywordData,
   onClose,
 }) => {
-  const { data: projectData, save, hasChanges } = useProjectStore()
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
+
+  const { data: projectData, save, hasBlockChanges } = useProjectStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
   const isNew = !projectData.some((block) => block.id === data.id)
@@ -46,11 +46,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
       data,
     } as ProjectFormState
   )
-
-  const updatedProjectData = projectData.map((block) =>
-    block.id === data.id ? state.data || data : block
-  )
-  const currentFormHasChanges = hasChanges(updatedProjectData)
 
   const [techInput, setTechInput] = useState('')
   const [technologies, setTechnologies] = useState<string[]>(
@@ -77,10 +72,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     handleInput,
   } = useAutoResizeTextarea(description)
 
-  const normalizeTechnology = useCallback((tech: string): string => {
-    return tech.trim().toLowerCase().replace(/\s+/g, ' ')
-  }, [])
-
   const isTechDuplicate = useMemo(() => {
     if (!techInput.trim()) return false
     return technologies.some(
@@ -88,41 +79,43 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     )
   }, [techInput, technologies, normalizeTechnology])
 
-  const handleAddTechnology = useCallback(() => {
+  const handleAddTechnology = () => {
     const trimmedTech = techInput.trim()
     if (!trimmedTech || isTechDuplicate) return
 
     setTechnologies((prev) => [...prev, trimmedTech])
     setTechInput('')
-  }, [techInput, isTechDuplicate])
+  }
 
-  const getDuplicateTechnology = useCallback(
-    (input: string, techList: string[]): string | null => {
-      if (!input.trim()) return null
-      const normalizedInput = normalizeTechnology(input)
-      return (
-        techList.find(
-          (tech) => normalizeTechnology(tech) === normalizedInput
-        ) || null
-      )
-    },
-    [normalizeTechnology]
-  )
+  const duplicateTechnology = useMemo(() => {
+    if (!techInput.trim()) return null
+    const normalizedInput = normalizeTechnology(techInput)
+    return (
+      technologies.find(
+        (tech) => normalizeTechnology(tech) === normalizedInput
+      ) || null
+    )
+  }, [techInput, technologies])
 
-  const duplicateTechnology = getDuplicateTechnology(techInput, technologies)
+  const handleDelete = async (): Promise<void> => {
+    const ok = await confirm({
+      title: 'Delete this project?',
+      message: 'This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      anchorEl: deleteButtonRef.current,
+      placement: 'left',
+      width: 260,
+    })
 
-  const handleDelete = (): void => {
-    if (
-      window.confirm(
-        'Are you sure you want to delete this project? This action cannot be undone.'
-      )
-    ) {
-      const updatedSections = projectData.filter(
-        (section) => section.id !== data.id
-      )
-      save(updatedSections)
-      onClose?.()
-    }
+    if (!ok) return
+
+    const updatedSections = projectData.filter(
+      (section) => section.id !== data.id
+    )
+
+    save(updatedSections)
+    onClose?.()
   }
 
   const handleBulletAdd = () => {
@@ -139,17 +132,40 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     setTemporaryBullet(null)
   }
 
-  const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
+  const handleFormClose = async (): Promise<void> => {
+    const form = document.querySelector(
+      `form[data-tab="${FORM_IDS.PROJECTS}"]`
+    ) as HTMLFormElement | null
+    let isDirty = false
+
+    if (form) {
+      const current = extractProjectFormData(form)
+      isDirty = hasBlockChanges(current.id, current)
+    }
+
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'You have unsaved changes',
+        message:
+          'If you leave without saving, you will lose your changes. Continue?',
+        confirmText: 'Yes',
+        cancelText: 'No',
+        anchorEl: closeButtonRef.current,
+        placement: 'right',
+        width: 260,
+      })
+
+      if (!ok) return
+    }
+
+    onClose?.()
+  }
+
+  const SubmitButton: React.FC = () => {
     const { pending } = useFormStatus()
 
-    const shouldDisable = hasChanges && pending
-
     return (
-      <button
-        type='submit'
-        className={styles.saveButton}
-        disabled={shouldDisable}
-      >
+      <button type='submit' className={styles.saveButton} disabled={pending}>
         Save
       </button>
     )
@@ -162,6 +178,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           <button
             type='button'
             className={styles.deleteButton}
+            ref={deleteButtonRef}
             onClick={handleDelete}
             disabled={isAnyBulletRegenerating}
           >
@@ -172,7 +189,8 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
           <button
             type='button'
             className={styles.closeButton}
-            onClick={onClose}
+            ref={closeButtonRef}
+            onClick={handleFormClose}
           >
             <FaXmark />
           </button>
@@ -184,13 +202,18 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         Indicates a required field
       </div>
 
-      <form action={formAction} className={styles.projectDetails}>
+      <form
+        action={formAction}
+        className={styles.projectDetails}
+        data-tab={FORM_IDS.PROJECTS}
+      >
         {/* Hidden input synced with technologies state to send technologies array to form action */}
         <input
           type='hidden'
           name={PROJECT_FORM_DATA_KEYS.TECHNOLOGIES}
           value={technologies.join(',')}
         />
+        <input type='hidden' name='id' value={data.id} />
 
         <div className={styles.formField}>
           <label className={styles.label}>
@@ -405,7 +428,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         </div>
 
         <div className={styles.actionButtons}>
-          <SubmitButton hasChanges={currentFormHasChanges} />
+          <SubmitButton />
         </div>
       </form>
 

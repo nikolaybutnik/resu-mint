@@ -24,6 +24,7 @@ import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 import {
   extractExperienceFormData,
   extractPersonalDetailsFormData,
+  extractProjectFormData,
 } from '@/lib/utils'
 import {
   FiDownload,
@@ -265,7 +266,13 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           isDirty = hasBlockChanges(current.id, current)
         }
       case Tabs.PROJECTS:
-        break
+        form = document.querySelector(`form[data-tab="${FORM_IDS.PROJECTS}"]`)
+
+        if (form) {
+          const current = extractProjectFormData(form)
+          const { hasBlockChanges } = useProjectStore.getState()
+          isDirty = hasBlockChanges(current.id, current)
+        }
       case Tabs.EDUCATION:
         break
     }

@@ -128,97 +128,70 @@ export const submitExperienceProject = (
     technologies:
       (formData.get(PROJECT_FORM_DATA_KEYS.TECHNOLOGIES) as string)?.trim() ||
       '',
-    startDate: experienceFormData.startDate,
-    endDate: experienceFormData.endDate,
-    description: experienceFormData.description,
+    startDate: {
+      month: experienceFormData.startDate.month || '',
+      year: experienceFormData.startDate.year || '',
+    },
+    endDate: {
+      month: experienceFormData.endDate.month || '',
+      year: experienceFormData.endDate.year || '',
+      isPresent: !!experienceFormData.endDate.isPresent,
+    },
+    description: experienceFormData.description || '',
   }
 
-  if (type === FormSelectionState.experience) {
-    if (!formData.has('id')) {
-      formData.append('id', data.id || uuidv4())
-    }
+  if (!formData.has('id')) {
+    formData.append('id', data.id || uuidv4())
+  }
 
-    const result = submitExperience(
-      {
-        errors: {},
-        data: {
-          id: data.id || uuidv4(),
-          isIncluded: true,
-          bulletPoints: [],
-          title: '',
-          companyName: '',
-          location: '',
-          startDate: { month: '', year: '' },
-          endDate: { month: '', year: '', isPresent: false },
-          description: '',
+  const isExperience = type === FormSelectionState.experience
+
+  const result = isExperience
+    ? submitExperience(
+        {
+          errors: {},
+          data: {
+            id: data.id || uuidv4(),
+            isIncluded: true,
+            bulletPoints: [],
+            title: '',
+            companyName: '',
+            location: '',
+            startDate: { month: '', year: '' },
+            endDate: { month: '', year: '', isPresent: false },
+            description: '',
+          },
         },
-      },
-      formData,
-      experienceData,
-      [],
-      saveExperience
-    )
-
-    return {
-      errors: result.errors,
-      data: data,
-      success: Object.keys(result.errors).length === 0,
-    } as ExperienceProjectFormState
-  } else {
-    const projectFormData = new FormData()
-    projectFormData.append(PROJECT_FORM_DATA_KEYS.TITLE, data.title)
-    projectFormData.append(PROJECT_FORM_DATA_KEYS.LINK, data.link || '')
-    projectFormData.append(
-      PROJECT_FORM_DATA_KEYS.TECHNOLOGIES,
-      data.technologies || ''
-    )
-    projectFormData.append(
-      PROJECT_FORM_DATA_KEYS.START_DATE_MONTH,
-      data.startDate.month
-    )
-    projectFormData.append(
-      PROJECT_FORM_DATA_KEYS.START_DATE_YEAR,
-      data.startDate.year
-    )
-    projectFormData.append(
-      PROJECT_FORM_DATA_KEYS.END_DATE_MONTH,
-      data.endDate.month
-    )
-    projectFormData.append(
-      PROJECT_FORM_DATA_KEYS.END_DATE_YEAR,
-      data.endDate.year
-    )
-    if (data.endDate.isPresent) {
-      projectFormData.append(PROJECT_FORM_DATA_KEYS.END_DATE_IS_PRESENT, 'true')
-    }
-    projectFormData.append(PROJECT_FORM_DATA_KEYS.DESCRIPTION, data.description)
-
-    const result = submitProject(
-      {
-        errors: {},
-        data: {
-          id: data.id || uuidv4(),
-          isIncluded: true,
-          bulletPoints: [],
-          title: '',
-          technologies: [],
-          startDate: { month: '', year: '' },
-          endDate: { month: '', year: '', isPresent: false },
-          link: '',
-          description: '',
+        formData,
+        experienceData,
+        [],
+        saveExperience
+      )
+    : submitProject(
+        {
+          errors: {},
+          data: {
+            id: data.id || uuidv4(),
+            isIncluded: true,
+            bulletPoints: [],
+            title: '',
+            technologies: [],
+            startDate: { month: '', year: '' },
+            endDate: { month: '', year: '', isPresent: false },
+            link: '',
+            description: '',
+          },
         },
-      },
-      projectFormData,
-      projectData,
-      [],
-      saveProject
-    )
+        formData,
+        projectData,
+        [],
+        saveProject
+      )
 
-    return {
-      errors: result.errors,
-      data: data,
-      success: Object.keys(result.errors).length === 0,
-    } as ExperienceProjectFormState
+  return {
+    errors: result.errors,
+    data: data,
+    success: Object.keys(result.errors).length === 0,
   }
 }
 

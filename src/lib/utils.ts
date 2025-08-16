@@ -2,9 +2,11 @@ import {
   STORAGE_KEYS,
   PERSONAL_DETAILS_FORM_DATA_KEYS,
   EXPERIENCE_FORM_DATA_KEYS,
+  PROJECT_FORM_DATA_KEYS,
 } from './constants'
-import { Month } from './types/experience'
-import { BulletPoint } from './types/projects'
+import { ExperienceBlockData, Month } from './types/experience'
+import { PersonalDetails } from './types/personalDetails'
+import { BulletPoint, ProjectBlockData } from './types/projects'
 
 /**
  * Sanitizes user input for UI display, preventing XSS and normalizing text
@@ -416,14 +418,13 @@ export const extractFormData = <T extends Record<string, string>>(
 
 /**
  * Extracts form data for personal details
- * Uses the PERSONAL_DETAILS_FORM_DATA_KEYS constants
  *
  * @param source - The HTMLFormElement or FormData containing personal details
  * @returns PersonalDetails object with extracted values
  */
 export const extractPersonalDetailsFormData = (
   source: HTMLFormElement | FormData
-) => {
+): PersonalDetails => {
   return extractFormData(source, {
     name: PERSONAL_DETAILS_FORM_DATA_KEYS.NAME,
     email: PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL,
@@ -445,7 +446,6 @@ export const extractPersonalDetailsFormData = (
 
 /**
  * Extracts form data for work experience
- * Uses the EXPERIENCE_FORM_DATA_KEYS constants and handles complex nested structure
  *
  * @param source - The HTMLFormElement or FormData containing experience data
  * @param preservedData - Optional data to preserve (isIncluded, bulletPoints)
@@ -457,7 +457,7 @@ export const extractExperienceFormData = (
     isIncluded?: boolean
     bulletPoints?: BulletPoint[]
   }
-) => {
+): ExperienceBlockData => {
   const formData = source instanceof FormData ? source : new FormData(source)
 
   return {
@@ -493,6 +493,58 @@ export const extractExperienceFormData = (
     },
     description:
       (formData.get(EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
+      '',
+  }
+}
+
+/**
+ * Extracts form data for projects
+ *
+ * @param source - The HTMLFormElement or FormData containing project data
+ * @param preservedData - Optional data to preserve (isIncluded, bulletPoints)
+ * @returns ProjectBlockData object with extracted values
+ */
+export const extractProjectFormData = (
+  source: HTMLFormElement | FormData,
+  preservedData?: {
+    isIncluded?: boolean
+    bulletPoints?: BulletPoint[]
+  }
+): ProjectBlockData => {
+  const formData = source instanceof FormData ? source : new FormData(source)
+
+  return {
+    id: (formData.get('id') as string) || '',
+    isIncluded: preservedData?.isIncluded || false,
+    bulletPoints: preservedData?.bulletPoints || [],
+    title: (formData.get(PROJECT_FORM_DATA_KEYS.TITLE) as string)?.trim() || '',
+    link: (formData.get(PROJECT_FORM_DATA_KEYS.LINK) as string)?.trim() || '',
+    technologies: (() => {
+      const techString =
+        (formData.get(PROJECT_FORM_DATA_KEYS.TECHNOLOGIES) as string) || ''
+      return techString
+        ? techString.split(',').filter((tech) => tech.trim() !== '')
+        : []
+    })(),
+    startDate: {
+      month:
+        (formData.get(PROJECT_FORM_DATA_KEYS.START_DATE_MONTH) as Month) || '',
+      year:
+        (
+          formData.get(PROJECT_FORM_DATA_KEYS.START_DATE_YEAR) as string
+        )?.trim() || '',
+    },
+    endDate: {
+      month:
+        (formData.get(PROJECT_FORM_DATA_KEYS.END_DATE_MONTH) as Month) || '',
+      year:
+        (
+          formData.get(PROJECT_FORM_DATA_KEYS.END_DATE_YEAR) as string
+        )?.trim() || '',
+      isPresent: !!formData.get(PROJECT_FORM_DATA_KEYS.END_DATE_IS_PRESENT),
+    },
+    description:
+      (formData.get(PROJECT_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
       '',
   }
 }
