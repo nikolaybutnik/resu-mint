@@ -114,45 +114,95 @@ export type Database = {
       }
       experience: {
         Row: {
-          bullet_points: Json | null
           company_name: string
           created_at: string | null
           description: string | null
-          end_date: Json | null
+          end_month: string | null
+          end_year: number | null
           id: string
+          is_included: boolean | null
+          is_present: boolean | null
           location: string
-          start_date: Json | null
+          position: number | null
+          start_month: string | null
+          start_year: number
           title: string
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
-          bullet_points?: Json | null
           company_name: string
           created_at?: string | null
           description?: string | null
-          end_date?: Json | null
+          end_month?: string | null
+          end_year?: number | null
           id?: string
+          is_included?: boolean | null
+          is_present?: boolean | null
           location: string
-          start_date?: Json | null
+          position?: number | null
+          start_month?: string | null
+          start_year: number
           title: string
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
-          bullet_points?: Json | null
           company_name?: string
           created_at?: string | null
           description?: string | null
-          end_date?: Json | null
+          end_month?: string | null
+          end_year?: number | null
           id?: string
+          is_included?: boolean | null
+          is_present?: boolean | null
           location?: string
-          start_date?: Json | null
+          position?: number | null
+          start_month?: string | null
+          start_year?: number
           title?: string
           updated_at?: string | null
           user_id?: string | null
         }
         Relationships: []
+      }
+      experience_bullets: {
+        Row: {
+          created_at: string | null
+          experience_id: string
+          id: string
+          is_locked: boolean | null
+          position: number
+          text: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          experience_id: string
+          id?: string
+          is_locked?: boolean | null
+          position?: number
+          text: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          experience_id?: string
+          id?: string
+          is_locked?: boolean | null
+          position?: number
+          text?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "experience_bullets_experience_id_fkey"
+            columns: ["experience_id"]
+            isOneToOne: false
+            referencedRelation: "experience"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       personal_details: {
         Row: {
@@ -196,41 +246,91 @@ export type Database = {
         }
         Relationships: []
       }
+      project_bullets: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_locked: boolean | null
+          position: number
+          project_id: string
+          text: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_locked?: boolean | null
+          position?: number
+          project_id: string
+          text: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_locked?: boolean | null
+          position?: number
+          project_id?: string
+          text?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_bullets_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
-          bullet_points: Json | null
           created_at: string | null
           description: string | null
-          end_date: Json | null
+          end_month: string | null
+          end_year: number | null
           id: string
+          is_included: boolean | null
+          is_present: boolean | null
           link: string | null
-          start_date: Json | null
+          position: number | null
+          start_month: string | null
+          start_year: number
           technologies: string[] | null
           title: string
           updated_at: string | null
           user_id: string | null
         }
         Insert: {
-          bullet_points?: Json | null
           created_at?: string | null
           description?: string | null
-          end_date?: Json | null
+          end_month?: string | null
+          end_year?: number | null
           id?: string
+          is_included?: boolean | null
+          is_present?: boolean | null
           link?: string | null
-          start_date?: Json | null
+          position?: number | null
+          start_month?: string | null
+          start_year: number
           technologies?: string[] | null
           title: string
           updated_at?: string | null
           user_id?: string | null
         }
         Update: {
-          bullet_points?: Json | null
           created_at?: string | null
           description?: string | null
-          end_date?: Json | null
+          end_month?: string | null
+          end_year?: number | null
           id?: string
+          is_included?: boolean | null
+          is_present?: boolean | null
           link?: string | null
-          start_date?: Json | null
+          position?: number | null
+          start_month?: string | null
+          start_year?: number
           technologies?: string[] | null
           title?: string
           updated_at?: string | null
