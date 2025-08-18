@@ -98,6 +98,7 @@ This project is public, with a custom license allowing personal use and forks fo
 
    ```env
    OPENAI_API_KEY=your_api_key_here
+   NEXT_PUBLIC_SITE_URL=http://localhost:3000
    
    # Local Supabase (from `supabase start` output)
    NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321

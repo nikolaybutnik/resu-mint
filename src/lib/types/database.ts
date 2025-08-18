@@ -373,6 +373,41 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_experience: {
+        Args: { e_ids: string[] }
+        Returns: string
+      }
+      delete_experience_bullets: {
+        Args: { b_ids: string[] }
+        Returns: string
+      }
+      upsert_experience: {
+        Args: {
+          e_company_name: string
+          e_description: string
+          e_end_month: string
+          e_end_year: number
+          e_id: string
+          e_is_included: boolean
+          e_is_present: boolean
+          e_location: string
+          e_position: number
+          e_start_month: string
+          e_start_year: number
+          e_title: string
+        }
+        Returns: string
+      }
+      upsert_experience_bullets: {
+        Args: {
+          b_experience_ids: string[]
+          b_ids: string[]
+          b_is_locked: boolean[]
+          b_positions: number[]
+          b_texts: string[]
+        }
+        Returns: string
+      }
       upsert_personal_details: {
         Args: {
           p_email: string
