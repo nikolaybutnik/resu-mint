@@ -33,7 +33,12 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
 
-  const { data: experienceData, save, hasBlockChanges } = useExperienceStore()
+  const {
+    data: experienceData,
+    save,
+    upsert,
+    hasBlockChanges,
+  } = useExperienceStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
   const isNew = !experienceData.some((block) => block.id === data.id)
@@ -42,14 +47,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
 
   const [state, formAction] = useActionState(
-    (prevState: ExperienceFormState, formData: FormData): ExperienceFormState =>
-      submitExperience(
-        prevState,
-        formData,
-        experienceData,
-        data.bulletPoints,
-        save
-      ),
+    async (
+      prevState: ExperienceFormState,
+      formData: FormData
+    ): Promise<ExperienceFormState> =>
+      submitExperience(prevState, formData, data.bulletPoints, upsert),
     {
       fieldErrors: {},
       data,

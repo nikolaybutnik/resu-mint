@@ -1,18 +1,18 @@
-import { submitExperience } from './experienceActions'
+// TODO: re-implement action once submit project is overhauled to support async operations
+// import { submitExperience } from './experienceActions'
 import { submitProject } from './projectActions'
-import { ExperienceBlockData } from '../types/experience'
+import { ExperienceBlockData, Month } from '../types/experience'
 import { ProjectBlockData } from '../types/projects'
 import { v4 as uuidv4 } from 'uuid'
 import { PROJECT_FORM_DATA_KEYS } from '../constants'
 import { SectionType } from '../types/api'
 import { extractExperienceFormData } from '../utils'
+import { OperationError } from '../types/errors'
 
 export const FormSelectionState = {
   experience: 'experience',
   project: 'project',
 } as const
-
-export type StoredDataItem = ExperienceBlockData | ProjectBlockData
 
 export type ExperienceProjectFormData = {
   type: SectionType
@@ -49,8 +49,9 @@ const initialState: ExperienceProjectFormState = {
 export const submitExperienceProject = (
   prevState: ExperienceProjectFormState,
   formData: FormData,
-  experienceData: ExperienceBlockData[],
-  saveExperience: (data: ExperienceBlockData[]) => void,
+  upsertExperience: (block: ExperienceBlockData) => Promise<{
+    error: OperationError | null
+  }>,
   projectData: ProjectBlockData[],
   saveProject: (data: ProjectBlockData[]) => void
 ): ExperienceProjectFormState => {
@@ -146,52 +147,66 @@ export const submitExperienceProject = (
 
   const isExperience = type === FormSelectionState.experience
 
-  const result = isExperience
-    ? submitExperience(
-        {
-          fieldErrors: {},
-          data: {
-            id: data.id || uuidv4(),
-            isIncluded: true,
-            bulletPoints: [],
-            title: '',
-            companyName: '',
-            location: '',
-            startDate: { month: '', year: '' },
-            endDate: { month: '', year: '', isPresent: false },
-            description: '',
-          },
+  if (isExperience) {
+    // Trigger the async operation through the callback
+    // but return the form state immediately
+    try {
+      upsertExperience({
+        id: data.id || uuidv4(),
+        isIncluded: true,
+        bulletPoints: [],
+        title: data.title,
+        companyName: data.companyName || '',
+        location: data.location || '',
+        startDate: {
+          month: data.startDate.month as Month,
+          year: data.startDate.year,
         },
-        formData,
-        experienceData,
-        [],
-        saveExperience
-      )
-    : submitProject(
-        {
-          fieldErrors: {},
-          data: {
-            id: data.id || uuidv4(),
-            isIncluded: true,
-            bulletPoints: [],
-            title: '',
-            technologies: [],
-            startDate: { month: '', year: '' },
-            endDate: { month: '', year: '', isPresent: false },
-            link: '',
-            description: '',
-          },
+        endDate: {
+          month: data.endDate.month as Month,
+          year: data.endDate.year,
+          isPresent: data.endDate.isPresent,
         },
-        formData,
-        projectData,
-        [],
-        saveProject
-      )
+        description: data.description || '',
+      })
+    } catch (error) {
+      // TODO: handle errors
+      console.error(error)
+    }
 
-  return {
-    errors: result.fieldErrors,
-    data: data,
-    success: Object.keys(result.fieldErrors).length === 0,
+    return {
+      errors: {},
+      data: data,
+      success: true,
+    }
+  } else {
+    // For projects, handle synchronously (until it becomes async)
+    const result = submitProject(
+      {
+        fieldErrors: {},
+        data: {
+          id: data.id || uuidv4(),
+          isIncluded: true,
+          bulletPoints: [],
+          title: '',
+          technologies: [],
+          startDate: { month: '', year: '' },
+          endDate: { month: '', year: '', isPresent: false },
+          link: '',
+          description: '',
+        },
+      },
+      formData,
+      projectData,
+      [],
+      saveProject
+    )
+
+    return {
+      errors: result.fieldErrors,
+      data: data,
+      success: Object.keys(result.fieldErrors).length === 0,
+    }
   }
 }
 

@@ -3,7 +3,8 @@ import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit } from 'lodash'
-import { OperationError } from '@/lib/types/errors'
+import { createUnknownError, OperationError } from '@/lib/types/errors'
+import { experienceManager } from '@/lib/data'
 
 interface ExperienceStore {
   data: ExperienceBlockData[]
@@ -13,6 +14,9 @@ interface ExperienceStore {
   error: OperationError | null
   save: (
     data: ExperienceBlockData[]
+  ) => Promise<{ error: OperationError | null }>
+  upsert: (
+    block: ExperienceBlockData
   ) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
@@ -47,6 +51,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
     }
   },
 
+  // TODO: phase out save as granular operations are being implemented.
   save: async (data: ExperienceBlockData[]) => {
     const currentState = get()
 
@@ -88,6 +93,55 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
     }
   },
 
+  upsert: async (block: ExperienceBlockData) => {
+    const currentState = get()
+
+    const existingBlock = currentState.data.find((item) => item.id === block.id)
+
+    if (existingBlock && !currentState.hasBlockChanges(block.id, block)) {
+      return { error: null }
+    }
+
+    const previousData = currentState.data
+    const previousError = currentState.error
+
+    // Optimistic UI update
+    const blockIndex = previousData.findIndex((item) => item.id === block.id)
+    const optimisticData =
+      blockIndex >= 0
+        ? previousData.map((item) => (item.id === block.id ? block : item))
+        : [...previousData, block]
+
+    set({ data: optimisticData, hasData: !!optimisticData.length, error: null })
+
+    try {
+      const result = await experienceManager.upsert(block)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+        return { error: result.warning || null }
+      } else {
+        set({
+          data: previousData,
+          hasData: !!previousData.length,
+          error: result.error,
+        })
+        return { error: result.error }
+      }
+    } catch (error) {
+      set({
+        data: previousData,
+        hasData: !!previousData.length,
+        error: previousError,
+      })
+      return { error: createUnknownError('Failed to upsert experience', error) }
+    }
+  },
+
   refresh: async () => {
     try {
       set({ loading: true })
@@ -116,8 +170,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
 
     if (!existingBlock) return true
 
-    const existingFields = omit(existingBlock, ['bulletPoints', 'isIncluded'])
-    const newFields = omit(newBlockData, ['bulletPoints', 'isIncluded'])
+    const existingFields = omit(existingBlock, ['bulletPoints'])
+    const newFields = omit(newBlockData, ['bulletPoints'])
 
     return !isEqual(existingFields, newFields)
   },

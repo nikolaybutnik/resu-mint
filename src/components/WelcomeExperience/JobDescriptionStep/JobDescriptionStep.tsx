@@ -107,6 +107,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
             (exp) => exp.id === sectionId
           )
           if (experienceSection) {
+            // TODO: update once db sync for bullets is integrated
             const { save: saveExperience } = useExperienceStore.getState()
             const updatedExperience = workExperience.map((exp) =>
               exp.id === sectionId ? { ...exp, bulletPoints: bullets } : exp

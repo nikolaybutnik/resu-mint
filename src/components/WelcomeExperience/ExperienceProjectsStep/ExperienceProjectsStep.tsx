@@ -1,16 +1,13 @@
 import styles from './ExperienceProjectsStep.module.scss'
 import { useState, useEffect, useActionState } from 'react'
-import { MONTHS, STORAGE_KEYS } from '@/lib/constants'
+import { MONTHS } from '@/lib/constants'
 import {
   submitExperienceProject,
   experienceProjectInitialState,
 } from '@/lib/actions/experienceProjectActions'
 import { EXPERIENCE_FORM_DATA_KEYS } from '@/lib/constants'
 import { useAutoResizeTextarea } from '@/lib/hooks/useAutoResizeTextarea'
-import {
-  FormSelectionState,
-  StoredDataItem,
-} from '@/lib/actions/experienceProjectActions'
+import { FormSelectionState } from '@/lib/actions/experienceProjectActions'
 import { useExperienceStore } from '@/stores'
 import { useProjectStore } from '@/stores'
 
@@ -21,7 +18,7 @@ interface ExperienceProjectsStepProps {
 export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   onContinue,
 }) => {
-  const { data: experienceData, save: saveExperience } = useExperienceStore()
+  const { upsert: upsertExperience } = useExperienceStore()
   const { data: projectData, save: saveProject } = useProjectStore()
 
   const [selectedOption, setSelectedOption] = useState<
@@ -36,8 +33,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
     return submitExperienceProject(
       prevState,
       formData,
-      experienceData,
-      saveExperience,
+      upsertExperience,
       projectData,
       saveProject
     )
@@ -90,18 +86,17 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   }
 
   const handleOptionSelect = (option: keyof typeof FormSelectionState) => {
-    const storageKey =
-      option === FormSelectionState.experience
-        ? STORAGE_KEYS.EXPERIENCE
-        : STORAGE_KEYS.PROJECTS
-    const existingData = localStorage.getItem(storageKey)
-    const hasExistingData = existingData && JSON.parse(existingData).length > 0
+    const { data: experienceData } = useExperienceStore.getState()
+    const { data: projectData } = useProjectStore.getState()
+
+    const existingData =
+      option === FormSelectionState.experience ? experienceData : projectData
+    const hasExistingData = existingData && existingData.length > 0
 
     setSelectedOption(option)
 
     if (hasExistingData) {
-      const parsedData = JSON.parse(existingData) as StoredDataItem[]
-      const latestEntry = parsedData[parsedData.length - 1]
+      const latestEntry = existingData[existingData.length - 1]
 
       // Timeout to ensure reset completes first
       setTimeout(() => {
@@ -122,14 +117,11 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   }, [state.success, onContinue])
 
   const renderSelectionPhase = () => {
-    const experienceData = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
-    const projectData = localStorage.getItem(STORAGE_KEYS.PROJECTS)
-    const hasExperience = experienceData
-      ? (JSON.parse(experienceData) as StoredDataItem[]).length > 0
-      : false
-    const hasProject = projectData
-      ? (JSON.parse(projectData) as StoredDataItem[]).length > 0
-      : false
+    const { data: experienceData } = useExperienceStore.getState()
+    const { data: projectData } = useProjectStore.getState()
+
+    const hasExperience = experienceData && experienceData.length > 0
+    const hasProject = projectData && projectData.length > 0
 
     if (hasExperience && hasProject) {
       return (

@@ -81,10 +81,12 @@ class PersonalDetailsManager {
 
         // If auth is still initializing, return local immediately (avoid blocking UI)
         const authLoading = useAuthStore.getState().loading
+
         if (authLoading) {
           resolve(localData)
-          return
         }
+
+        await waitForAuthReady()
 
         if (!isAuthenticated()) {
           resolve(localData)

@@ -50,7 +50,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
       const [temporaryBullet, setTemporaryBullet] =
         useState<BulletPointType | null>(null)
 
-      const { data: experienceData, save } = useExperienceStore()
+      const { data: experienceData, upsert } = useExperienceStore()
       const { attributes, listeners, setNodeRef, transform, isDragging } =
         useSortable({
           id: data.id,
@@ -112,12 +112,12 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
       )
 
       const handleSectionInclusionToggle = useCallback(() => {
-        const updatedSection = { ...data, isIncluded: !data.isIncluded }
-        const updatedData = experienceData.map((section) =>
-          section.id === data.id ? updatedSection : section
-        )
-        save(updatedData)
-      }, [data, experienceData, save])
+        const updatedSection: ExperienceBlockData = {
+          ...data,
+          isIncluded: !data.isIncluded,
+        }
+        upsert(updatedSection)
+      }, [data, experienceData, upsert])
 
       const handleBulletAdd = useCallback(() => {
         const newBullet: BulletPointType = {

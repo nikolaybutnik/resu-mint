@@ -20,7 +20,10 @@ import {
   createQuotaExceededError,
   isQuotaExceededError,
   OperationError,
+  isNetworkError,
+  createNetworkError,
 } from '../types/errors'
+import { supabase } from '../supabase/client'
 
 const CACHE_KEY = 'experience'
 
@@ -69,16 +72,16 @@ class ExperienceManager {
 
         const localData: ExperienceBlockData[] =
           localEnv?.data ?? DEFAULT_STATE_VALUES.EXPERIENCE
-        //TODO: use as db timestamp
         // const localUpdatedAt =
         //   localEnv?.meta?.updatedAt ?? '1970-01-01T00:00:00.000Z'
 
-        // If auth is still initializing, return local immediately (avoid blocking UI)
         const authLoading = useAuthStore.getState().loading
+
         if (authLoading) {
           resolve(localData)
-          return
         }
+
+        await waitForAuthReady()
 
         if (!isAuthenticated()) {
           resolve(localData)
@@ -101,6 +104,14 @@ class ExperienceManager {
         // )
         // return ordered
 
+        // try {
+        //   const { data, error } = await supabase.from('experience').select()
+        //   console.log('data', data)
+        //   console.log('error', error)
+        // } catch {
+        //   // fall through to local
+        // }
+
         resolve(localData)
       })
       this.cache.set(CACHE_KEY, promise)
@@ -117,6 +128,7 @@ class ExperienceManager {
     return allExperience
   }
 
+  // TODO: phase out save as granular operations are being implemented.
   // save(): optimistic local write; then DB (if authed)
   async save(
     data: ExperienceBlockData[]
@@ -146,22 +158,68 @@ class ExperienceManager {
 
       let syncWarning: OperationError | undefined
 
+      // Background DB sync
       await waitForAuthReady()
       if (isAuthenticated()) {
-        // TODO: Add database sync when experience table is ready
-        // For now, just log that sync would happen here
+        try {
+          // Save each experience block with positions
+          const withPositions = validation.data.map((block, i) => ({
+            ...block,
+            position: i,
+            bulletPoints: (block.bulletPoints || []).map((bp, j) => ({
+              ...bp,
+              position: j,
+            })),
+          }))
 
-        // Example of saving with positions:
-        // const withPositions = data.map((block, i) => ({
-        //   ...block,
-        //   position: i,
-        //   bulletPoints: (block.bulletPoints || []).map((bp, j) => ({ ...bp, position: j })),
-        // }))
-        // await dataManager.saveExperience(withPositions)
+          for (const block of withPositions) {
+            const { data: updatedAt, error } = await supabase.rpc(
+              'upsert_experience',
+              {
+                e_id: block.id,
+                e_title: block.title,
+                e_company_name: block.companyName,
+                e_location: block.location,
+                e_start_month: block.startDate.month ?? '',
+                e_start_year: Number(block.startDate.year),
+                e_end_month: block.endDate.month ?? '',
+                e_end_year: Number(block.endDate.year),
+                e_is_present: block.endDate.isPresent,
+                e_description: block.description || '',
+                e_is_included: block.isIncluded,
+                e_position: block.position || 0,
+              }
+            )
 
-        console.info(
-          'Experience data saved locally. DB sync will be implemented when experience table is ready.'
-        )
+            if (error) {
+              syncWarning = isNetworkError(error)
+                ? createNetworkError('Failed to sync with server', error)
+                : createUnknownError('Database sync failed', error)
+              console.warn(
+                'Database sync failed, but local save succeeded:',
+                error
+              )
+            } else {
+              // Sync succeeded - update local timestamp
+              writeLocalEnvelope(
+                STORAGE_KEYS.EXPERIENCE,
+                withPositions,
+                updatedAt ?? nowIso()
+              )
+            }
+          }
+
+          // TODO: Also save bullet points to experience_bullets table
+          // This would require another upsert function for bullets
+        } catch (error) {
+          syncWarning = isNetworkError(error)
+            ? createNetworkError('Failed to sync with server', error)
+            : createUnknownError('Database sync failed', error)
+          console.warn(
+            'Failed to sync to database, but local save succeeded:',
+            error
+          )
+        }
       }
 
       // Prime cache with saved value for immediate reads
@@ -170,6 +228,109 @@ class ExperienceManager {
       return Success(validation.data, syncWarning)
     } catch (error) {
       return Failure(createUnknownError('Unexpected error during save', error))
+    }
+  }
+
+  // upsert(): optimistic local write; then DB (if authed)
+  async upsert(
+    block: ExperienceBlockData
+  ): Promise<Result<ExperienceBlockData[]>> {
+    try {
+      const validation = experienceBlockSchema.safeParse(block)
+
+      if (!validation.success) {
+        return Failure(
+          createValidationError('Invalid experience data', validation.error)
+        )
+      }
+
+      const existingData = (await this.get()) as ExperienceBlockData[]
+      const blockIndex = existingData.findIndex((item) => item.id === block.id)
+
+      let updatedData: ExperienceBlockData[]
+      if (blockIndex >= 0) {
+        // Update existing
+        updatedData = existingData.map((item) =>
+          item.id === block.id ? validation.data : item
+        )
+      } else {
+        // Add new
+        updatedData = [...existingData, validation.data]
+      }
+
+      this.invalidate()
+
+      // Optimistic local write
+      try {
+        writeLocalEnvelope(STORAGE_KEYS.EXPERIENCE, updatedData, nowIso())
+      } catch (error) {
+        if (isQuotaExceededError(error)) {
+          return Failure(createQuotaExceededError(error))
+        }
+        return Failure(
+          createStorageError('Failed to save to local storage', error)
+        )
+      }
+
+      let syncWarning: OperationError | undefined
+
+      // Background DB sync
+      await waitForAuthReady()
+      if (isAuthenticated()) {
+        try {
+          const { data: updatedAt, error } = await supabase.rpc(
+            'upsert_experience',
+            {
+              e_id: block.id,
+              e_title: block.title,
+              e_company_name: block.companyName,
+              e_location: block.location,
+              e_start_month: block.startDate.month ?? '',
+              e_start_year: Number(block.startDate.year),
+              e_end_month: block.endDate.month ?? '',
+              e_end_year: Number(block.endDate.year),
+              e_is_present: block.endDate.isPresent,
+              e_description: block.description || '',
+              e_is_included: block.isIncluded,
+              e_position: block.position || 0,
+            }
+          )
+
+          if (error) {
+            syncWarning = isNetworkError(error)
+              ? createNetworkError('Failed to sync with server', error)
+              : createUnknownError('Database sync failed', error)
+            console.warn(
+              'Database sync failed, but local save succeeded:',
+              error
+            )
+          } else {
+            // Sync succeeded - update local timestamp
+            writeLocalEnvelope(
+              STORAGE_KEYS.EXPERIENCE,
+              updatedData,
+              updatedAt ?? nowIso()
+            )
+          }
+        } catch (error) {
+          syncWarning = isNetworkError(error)
+            ? createNetworkError('Failed to sync with server', error)
+            : createUnknownError('Database sync failed', error)
+          console.warn(
+            'Failed to sync to database, but local save succeeded:',
+            error
+          )
+        }
+      }
+
+      // Prime cache
+      this.cache.set(CACHE_KEY, Promise.resolve(updatedData))
+
+      return Success(updatedData, syncWarning)
+    } catch (error) {
+      return Failure(
+        createUnknownError('Unexpected error during upsert', error)
+      )
     }
   }
 

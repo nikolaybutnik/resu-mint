@@ -4,16 +4,17 @@ import {
   BulletPoint,
 } from '../types/experience'
 import { experienceBlockSchema } from '../validationSchemas'
-import { zodErrorsToFormErrors } from '../types/errors'
+import { OperationError, zodErrorsToFormErrors } from '../types/errors'
 import { extractExperienceFormData } from '../utils'
 
-export const submitExperience = (
+export const submitExperience = async (
   prevState: ExperienceFormState,
   formData: FormData,
-  workExperience: ExperienceBlockData[],
   currentBulletPoints: BulletPoint[] = [],
-  onSave: (data: ExperienceBlockData[]) => void
-): ExperienceFormState => {
+  upsert: (block: ExperienceBlockData) => Promise<{
+    error: OperationError | null
+  }>
+): Promise<ExperienceFormState> => {
   const experienceData: ExperienceBlockData = extractExperienceFormData(
     formData,
     {
@@ -24,22 +25,9 @@ export const submitExperience = (
 
   const validatedData = experienceBlockSchema.safeParse(experienceData)
 
+  // TODO: implement notifications
   if (validatedData.success) {
-    const existingItemIndex = workExperience.findIndex(
-      (item) => item.id === validatedData.data.id
-    )
-
-    let updatedWorkExperience: ExperienceBlockData[]
-
-    if (existingItemIndex !== -1) {
-      updatedWorkExperience = workExperience.map((item) =>
-        item.id === validatedData.data.id ? validatedData.data : item
-      )
-    } else {
-      updatedWorkExperience = [...workExperience, validatedData.data]
-    }
-
-    onSave(updatedWorkExperience)
+    await upsert(validatedData.data)
   }
 
   return {
