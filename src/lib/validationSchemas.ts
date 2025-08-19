@@ -88,6 +88,7 @@ const bulletPointSchema = z.object({
     .min(1, 'Bullet point cannot be empty')
     .max(500, 'Bullet point must be 500 characters or less'),
   isLocked: z.boolean().optional().default(false),
+  position: z.number().int().min(0).optional().default(0),
 })
 
 export const bulletTextValidationSchema = z
@@ -218,6 +219,8 @@ export const experienceBlockSchema = z
       .max(100, 'Location must be 100 characters or less'),
     bulletPoints: z.array(bulletPointSchema).optional().default([]),
     isIncluded: z.boolean().optional().default(true),
+    position: z.number().int().min(0).optional().default(0),
+    updatedAt: z.string().optional().default('1970-01-01T00:00:00.000Z'),
   })
   .superRefine((data, ctx) => {
     if (data.endDate.isPresent) {
