@@ -170,8 +170,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
 
     if (!existingBlock) return true
 
-    const existingFields = omit(existingBlock, ['bulletPoints'])
-    const newFields = omit(newBlockData, ['bulletPoints'])
+    const existingFields = omit(existingBlock, ['bulletPoints, updatedAt'])
+    const newFields = omit(newBlockData, ['bulletPoints, updatedAt'])
 
     return !isEqual(existingFields, newFields)
   },

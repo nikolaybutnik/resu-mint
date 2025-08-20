@@ -167,7 +167,7 @@ class ExperienceManager {
         // 3) Opportunistic upstream sync: Push local-only or modified blocks to DB
         if (isAuthenticated()) {
           try {
-            let updatedData = [...finalData]
+            const updatedData = [...finalData]
             let maxUpdatedAt = '1970-01-01T00:00:00.000Z'
             let didSync = false
 
