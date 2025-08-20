@@ -7,6 +7,7 @@ import {
   readLocalEnvelope,
   writeLocalEnvelope,
   nowIso,
+  getMostRecentTimestamp,
 } from '@/lib/data/dataUtils'
 import type {
   AuthChangeEvent,
@@ -14,6 +15,12 @@ import type {
   Subscription,
   User,
 } from '@supabase/supabase-js'
+import { experienceManager } from '@/lib/data'
+import { ExperienceBlockData } from '@/lib/types/experience'
+import {
+  pullExperienceDbRecordToLocal,
+  pushExperienceLocalRecordToDb,
+} from '@/lib/data/dbUtils'
 
 export type AuthResult = Promise<{
   error: { message: string; code?: string } | null
@@ -23,6 +30,7 @@ interface AuthStore {
   user: User | null
   loading: boolean
   hasSyncedPersonalDetails: boolean
+  hasSyncedExperience: boolean
   signIn: (email: string, password: string) => AuthResult
   signUp: (email: string, password: string) => AuthResult
   signOut: () => AuthResult
@@ -33,6 +41,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   loading: true,
   hasSyncedPersonalDetails: false,
+  hasSyncedExperience: false,
 
   signIn: async (email: string, password: string): AuthResult => {
     try {
@@ -55,6 +64,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ user: data.user, loading: false })
       // Kick off one-time post-login sync
       void syncPersonalDetailsOnce()
+      void syncExperienceOnce()
 
       return { error: null }
     } catch (error) {
@@ -81,6 +91,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       set({ user: data.user, loading: false })
       // Kick off one-time post-signup sync
       void syncPersonalDetailsOnce()
+      void syncExperienceOnce()
 
       return { error: null }
     } catch (error) {
@@ -109,9 +120,15 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
 
-      set({ user: null, loading: false, hasSyncedPersonalDetails: false })
+      set({
+        user: null,
+        loading: false,
+        hasSyncedPersonalDetails: false,
+        hasSyncedExperience: false,
+      })
       // Invalidate caches on logout so next read uses local-only path cleanly
       personalDetailsManager.invalidate()
+      experienceManager.invalidate()
 
       return { error: null }
     } catch (error) {
@@ -138,9 +155,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
         set({ user: session.user, loading: false })
         // Run sync once per session
         void syncPersonalDetailsOnce()
+        void syncExperienceOnce()
       } else {
-        set({ user: null, loading: false, hasSyncedPersonalDetails: false })
+        set({
+          user: null,
+          loading: false,
+          hasSyncedPersonalDetails: false,
+          hasSyncedExperience: false,
+        })
         personalDetailsManager.invalidate()
+        experienceManager.invalidate()
       }
 
       const {
@@ -156,6 +180,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
           if (session?.user) {
             set({ user: session.user, loading: false })
             void syncPersonalDetailsOnce()
+            void syncExperienceOnce()
           } else {
             set({ user: null, loading: false })
           }
@@ -174,6 +199,134 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 }))
+
+async function syncExperienceOnce(): Promise<void> {
+  try {
+    const { hasSyncedExperience } = useAuthStore.getState()
+    if (hasSyncedExperience) return
+
+    useAuthStore.setState({ hasSyncedExperience: true })
+
+    const localEnv = readLocalEnvelope<ExperienceBlockData[]>(
+      STORAGE_KEYS.EXPERIENCE
+    )
+    const localData = localEnv?.data || []
+
+    const { data: db, error } = await supabase
+      .from('experience')
+      .select(
+        'id, title, company_name, location, description, start_year, start_month, is_present, end_year, end_month, is_included, position, updated_at'
+      )
+
+    if (error) {
+      return
+    }
+
+    if (!db || db.length === 0) {
+      if (localData.length > 0) {
+        // Push local to DB
+        const updatedData: ExperienceBlockData[] = []
+        for (const block of localData) {
+          const { updatedAt, error } = await pushExperienceLocalRecordToDb(
+            block
+          )
+          if (!error) {
+            updatedData.push({ ...block, updatedAt })
+          } else {
+            // Keep original on error
+            updatedData.push(block)
+          }
+        }
+        const mostRecentTimestamp = updatedData
+          .map((b) => b.updatedAt || '1970-01-01T00:00:00.000Z')
+          .reduce(
+            (latest, current) =>
+              Date.parse(current) > Date.parse(latest) ? current : latest,
+            '1970-01-01T00:00:00.000Z'
+          )
+        writeLocalEnvelope(
+          STORAGE_KEYS.EXPERIENCE,
+          updatedData,
+          mostRecentTimestamp
+        )
+        experienceManager.invalidate()
+      }
+      return
+    }
+
+    if (db && !localData.length) {
+      // Pull DB to local
+      const dbData: ExperienceBlockData[] = await Promise.all(
+        db.map((block) => pullExperienceDbRecordToLocal(block))
+      )
+      const mostRecentTimestamp = getMostRecentTimestamp(dbData)
+      writeLocalEnvelope(STORAGE_KEYS.EXPERIENCE, dbData, mostRecentTimestamp)
+      experienceManager.invalidate()
+      return
+    }
+
+    if (db && localData.length) {
+      const mergedData: ExperienceBlockData[] = []
+
+      for (const localBlock of localData) {
+        const dbBlock = db.find((d) => d.id === localBlock.id)
+        if (!dbBlock) {
+          // Local-only: Push to DB
+          const { updatedAt, error } = await pushExperienceLocalRecordToDb(
+            localBlock
+          )
+          mergedData.push({
+            ...localBlock,
+            updatedAt: error ? localBlock.updatedAt || nowIso() : updatedAt,
+          })
+          continue
+        }
+
+        // Compare timestamps
+        const localTimestamp =
+          localBlock.updatedAt || '1970-01-01T00:00:00.000Z'
+        const dbTimestamp = dbBlock.updated_at || '1970-01-01T00:00:00.000Z'
+
+        if (Date.parse(localTimestamp) > Date.parse(dbTimestamp)) {
+          // Local fresher: Push to DB
+          const { updatedAt, error } = await pushExperienceLocalRecordToDb(
+            localBlock
+          )
+          mergedData.push({
+            ...localBlock,
+            updatedAt: error ? localBlock.updatedAt || nowIso() : updatedAt,
+          })
+        } else {
+          // DB fresher or equal: Pull to local
+          const pulledBlock = await pullExperienceDbRecordToLocal(
+            dbBlock,
+            localBlock.bulletPoints
+          )
+          mergedData.push(pulledBlock)
+        }
+      }
+
+      // DB-only records: Local-first, delete from DB
+      // for (const dbBlock of db) {
+      //   if (!localData.some((l) => l.id === dbBlock.id)) {
+      //     await supabase.from('experience').delete().eq('id', dbBlock.id)
+      //   }
+      // }
+
+      // Write merged data to local envelope
+      const mostRecentTimestamp = getMostRecentTimestamp(mergedData)
+      writeLocalEnvelope(
+        STORAGE_KEYS.EXPERIENCE,
+        mergedData,
+        mostRecentTimestamp
+      )
+      experienceManager.invalidate()
+    }
+  } catch (error) {
+    console.error('Experience sync failed:', error)
+    // Non-blocking sync, ignore errors
+  }
+}
 
 // One-time per session: reconcile personal_details between local envelope and DB
 async function syncPersonalDetailsOnce(): Promise<void> {
@@ -282,6 +435,9 @@ function setupStorageListener() {
   window.addEventListener('storage', (e: StorageEvent) => {
     if (e.key === STORAGE_KEYS.PERSONAL_DETAILS) {
       personalDetailsManager.invalidate()
+    }
+    if (e.key === STORAGE_KEYS.EXPERIENCE) {
+      experienceManager.invalidate()
     }
   })
   storageListenerAttached = true

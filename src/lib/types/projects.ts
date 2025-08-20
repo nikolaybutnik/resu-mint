@@ -40,6 +40,7 @@ export interface ProjectBlockData {
   bulletPoints: BulletPoint[]
   link: string
   isIncluded: boolean
+  updatedAt?: string
 }
 
 export interface ProjectFormState {

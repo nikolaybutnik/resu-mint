@@ -28,6 +28,10 @@ import {
   createNetworkError,
 } from '../types/errors'
 import { supabase } from '../supabase/client'
+import {
+  pullExperienceDbRecordToLocal,
+  pushExperienceLocalRecordToDb,
+} from './dbUtils'
 
 const CACHE_KEY = 'experience'
 
@@ -87,7 +91,6 @@ class ExperienceManager {
 
         if (authLoading) {
           resolve(localData)
-          return
         }
 
         await waitForAuthReady()
@@ -109,26 +112,9 @@ class ExperienceManager {
 
           if (!error && data) {
             dbDataRaw = data
-            const dbData: ExperienceBlockData[] = (data?.map((d) => ({
-              id: d.id,
-              title: d.title,
-              companyName: d.company_name,
-              location: d.location,
-              description: d.description,
-              startDate: {
-                year: d.start_year?.toString(),
-                month: d.start_month,
-              },
-              endDate: {
-                year: d.end_year?.toString(),
-                month: d.end_month,
-                isPresent: d.is_present,
-              },
-              isIncluded: d.is_included,
-              position: d.position,
-              bulletPoints: [],
-              updatedAt: d.updated_at,
-            })) ?? []) as ExperienceBlockData[]
+            const dbData: ExperienceBlockData[] = await Promise.all(
+              data.map((block) => pullExperienceDbRecordToLocal(block))
+            )
 
             const mergedData = localData.map((localItem) => {
               const dbItem = dbData.find((db) => db.id === localItem.id)
@@ -183,29 +169,14 @@ class ExperienceManager {
                 !dbMatch ||
                 Date.parse(localTimestamp) > Date.parse(dbTimestamp)
               ) {
-                const { data: serverUpdatedAt, error } = await supabase.rpc(
-                  'upsert_experience',
-                  {
-                    e_id: block.id,
-                    e_title: block.title,
-                    e_company_name: block.companyName,
-                    e_location: block.location,
-                    e_start_month: block.startDate.month ?? '',
-                    e_start_year: Number(block.startDate.year),
-                    e_end_month: block.endDate.month ?? '',
-                    e_end_year: Number(block.endDate.year),
-                    e_is_present: block.endDate.isPresent,
-                    e_description: block.description || '',
-                    e_is_included: block.isIncluded,
-                    e_position: block.position || 0,
-                  }
-                )
+                const { updatedAt, error } =
+                  await pushExperienceLocalRecordToDb(block)
 
                 if (error) {
                   // Continue to avoid blocking
                 } else {
                   didSync = true
-                  const newTimestamp = serverUpdatedAt ?? nowIso()
+                  const newTimestamp = updatedAt ?? nowIso()
                   updatedData[i] = { ...block, updatedAt: newTimestamp }
                   if (Date.parse(newTimestamp) > Date.parse(maxUpdatedAt)) {
                     maxUpdatedAt = newTimestamp
@@ -298,22 +269,8 @@ class ExperienceManager {
           }))
 
           for (const block of withPositions) {
-            const { data: updatedAt, error } = await supabase.rpc(
-              'upsert_experience',
-              {
-                e_id: block.id,
-                e_title: block.title,
-                e_company_name: block.companyName,
-                e_location: block.location,
-                e_start_month: block.startDate.month ?? '',
-                e_start_year: Number(block.startDate.year),
-                e_end_month: block.endDate.month ?? '',
-                e_end_year: Number(block.endDate.year),
-                e_is_present: block.endDate.isPresent,
-                e_description: block.description || '',
-                e_is_included: block.isIncluded,
-                e_position: block.position || 0,
-              }
+            const { updatedAt, error } = await pushExperienceLocalRecordToDb(
+              block
             )
 
             if (error) {
@@ -425,22 +382,8 @@ class ExperienceManager {
       await waitForAuthReady()
       if (isAuthenticated()) {
         try {
-          const { data: serverUpdatedAt, error } = await supabase.rpc(
-            'upsert_experience',
-            {
-              e_id: block.id,
-              e_title: block.title,
-              e_company_name: block.companyName,
-              e_location: block.location,
-              e_start_month: block.startDate.month ?? '',
-              e_start_year: Number(block.startDate.year),
-              e_end_month: block.endDate.month ?? '',
-              e_end_year: Number(block.endDate.year),
-              e_is_present: block.endDate.isPresent,
-              e_description: block.description || '',
-              e_is_included: block.isIncluded,
-              e_position: block.position || 0,
-            }
+          const { updatedAt, error } = await pushExperienceLocalRecordToDb(
+            block
           )
 
           if (error) {
@@ -452,7 +395,7 @@ class ExperienceManager {
               error
             )
           } else {
-            const newTimestamp = serverUpdatedAt ?? nowIso()
+            const newTimestamp = updatedAt ?? nowIso()
             const finalUpdatedData = updatedData.map((item) =>
               item.id === block.id ? { ...item, updatedAt: newTimestamp } : item
             )
@@ -488,6 +431,10 @@ class ExperienceManager {
         createUnknownError('Unexpected error during upsert', error)
       )
     }
+  }
+
+  async reorder() {
+    // TODO: implement
   }
 
   async saveBullet(
