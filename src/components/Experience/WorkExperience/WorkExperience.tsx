@@ -37,7 +37,7 @@ interface WorkExperienceProps {
 const WorkExperience: React.FC<WorkExperienceProps> = ({ keywordData }) => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { data: workExperience, save } = useExperienceStore()
+  const { data: workExperience, reorder } = useExperienceStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -149,13 +149,13 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({ keywordData }) => {
         )
         const newIndex = workExperience.findIndex((item) => item.id === over.id)
         const newOrder = arrayMove(workExperience, oldIndex, newIndex)
-        save(newOrder)
+        reorder(newOrder)
       }
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
-    [workExperience, save]
+    [workExperience, reorder]
   )
 
   const activeItem = useMemo(

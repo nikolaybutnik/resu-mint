@@ -12,6 +12,7 @@ import {
   readLocalEnvelope,
   writeLocalEnvelope,
   nowIso,
+  getMostRecentTimestamp,
 } from './dataUtils'
 import { useAuthStore } from '@/stores/authStore'
 import {
@@ -424,19 +425,10 @@ class ExperienceManager {
               item.id === block.id ? { ...item, updatedAt: newTimestamp } : item
             )
 
-            const allTimestamps = finalUpdatedData.map(
-              (b) => b.updatedAt || '1970-01-01T00:00:00.000Z'
-            )
-            const maxUpdatedAt = allTimestamps.reduce(
-              (latest, current) =>
-                Date.parse(current) > Date.parse(latest) ? current : latest,
-              '1970-01-01T00:00:00.000Z'
-            )
-
             writeLocalEnvelope(
               STORAGE_KEYS.EXPERIENCE,
               finalUpdatedData,
-              maxUpdatedAt
+              newTimestamp
             )
           }
         } catch (error) {
@@ -533,8 +525,86 @@ class ExperienceManager {
     }
   }
 
-  async reorder() {
-    // TODO: implement
+  async reorder(
+    data: ExperienceBlockData[]
+  ): Promise<Result<ExperienceBlockData[]>> {
+    try {
+      const validation = experienceBlockSchema.array().safeParse(data)
+
+      if (!validation.success) {
+        return Failure(
+          createValidationError('Invalid experience data', validation.error)
+        )
+      }
+
+      this.invalidate()
+
+      const reorderedData = validation.data.map((block, index) => ({
+        ...block,
+        position: index,
+        updatedAt: nowIso(),
+      }))
+      const latestTimestamp = getMostRecentTimestamp(reorderedData)
+
+      try {
+        writeLocalEnvelope(
+          STORAGE_KEYS.EXPERIENCE,
+          validation.data,
+          latestTimestamp
+        )
+      } catch (error) {
+        if (isQuotaExceededError(error)) {
+          return Failure(createQuotaExceededError(error))
+        }
+        return Failure(
+          createStorageError('Failed to save to local storage', error)
+        )
+      }
+
+      let syncWarning: OperationError | undefined
+
+      await waitForAuthReady()
+      if (isAuthenticated()) {
+        try {
+          for (const block of reorderedData) {
+            const { updatedAt, error } = await pushExperienceLocalRecordToDb(
+              block
+            )
+
+            if (error) {
+              syncWarning = isNetworkError(error)
+                ? createNetworkError(`Failed to sync block ${block.id}`, error)
+                : createUnknownError(
+                    `Database sync failed for block ${block.id}`,
+                    error
+                  )
+            } else {
+              writeLocalEnvelope(
+                STORAGE_KEYS.EXPERIENCE,
+                reorderedData,
+                updatedAt ?? nowIso()
+              )
+            }
+          }
+        } catch (error) {
+          syncWarning = isNetworkError(error)
+            ? createNetworkError(
+                'Failed to sync reordered data to server',
+                error
+              )
+            : createUnknownError('Database sync failed', error)
+          console.warn('Failed to sync reordered data to DB:', error)
+        }
+      }
+
+      this.cache.set(CACHE_KEY, Promise.resolve(reorderedData))
+
+      return Success(reorderedData, syncWarning)
+    } catch (error) {
+      return Failure(
+        createUnknownError('Unexpected error during reorder', error)
+      )
+    }
   }
 
   async saveBullet(

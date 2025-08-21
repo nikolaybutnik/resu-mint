@@ -23,6 +23,9 @@ interface ExperienceStore {
     block: ExperienceBlockData
   ) => Promise<{ error: OperationError | null }>
   delete: (blockId: string) => Promise<{ error: OperationError | null }>
+  reorder: (
+    data: ExperienceBlockData[]
+  ) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
   hasChanges: (newData: ExperienceBlockData[]) => boolean
@@ -188,6 +191,52 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
         error: previousError,
       })
       return { error: createUnknownError('Failed to delete experience', error) }
+    }
+  },
+
+  reorder: async (data: ExperienceBlockData[]) => {
+    const currentState = get()
+    const previousData = currentState.data
+    const previousError = currentState.error
+
+    const optimisticWithPositions = data.map((block, i) => ({
+      ...block,
+      position: i,
+    }))
+
+    set({
+      data: optimisticWithPositions,
+      hasData: !!optimisticWithPositions.length,
+      error: null,
+    })
+
+    try {
+      const result = await experienceManager.reorder(optimisticWithPositions)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+        return { error: result.warning || null }
+      } else {
+        set({
+          data: previousData,
+          hasData: !!previousData.length,
+          error: result.error,
+        })
+        return { error: result.error }
+      }
+    } catch (error) {
+      set({
+        data: previousData,
+        hasData: !!previousData.length,
+        error: previousError,
+      })
+      return {
+        error: createUnknownError('Failed to reorder experience blocks', error),
+      }
     }
   },
 
