@@ -306,13 +306,6 @@ async function syncExperienceOnce(): Promise<void> {
         }
       }
 
-      // DB-only records: Local-first, delete from DB
-      // for (const dbBlock of db) {
-      //   if (!localData.some((l) => l.id === dbBlock.id)) {
-      //     await supabase.from('experience').delete().eq('id', dbBlock.id)
-      //   }
-      // }
-
       // Write merged data to local envelope
       const mostRecentTimestamp = getMostRecentTimestamp(mergedData)
       writeLocalEnvelope(

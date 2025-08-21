@@ -35,7 +35,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
   const {
     data: experienceData,
-    save,
+    delete: deleteExperience,
     upsert,
     hasBlockChanges,
   } = useExperienceStore()
@@ -101,11 +101,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
     if (!ok) return
 
-    const updatedSections = experienceData.filter(
-      (section) => section.id !== data.id
-    )
-
-    save(updatedSections)
+    await deleteExperience(data.id)
     onClose?.()
   }
 

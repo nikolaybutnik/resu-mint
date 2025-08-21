@@ -104,11 +104,14 @@ class ExperienceManager {
         let finalData: ExperienceBlockData[] = localData
         let dbDataRaw: RawExperienceData[] | null = null
         try {
-          const { data, error } = await supabase
-            .from('experience')
-            .select(
-              'id, title, company_name, location, description, start_year, start_month, is_present, end_year, end_month, is_included, position, updated_at'
-            )
+          const { data, error } = await supabase.from('experience').select(`
+              id, title, company_name, location, description, 
+              start_year, start_month, is_present, end_year, end_month, 
+              is_included, position, updated_at,
+              experience_bullets(id, text, is_locked, position, updated_at)
+            `)
+
+          // TODO: handle the fetched experience_bullets
 
           if (!error && data) {
             dbDataRaw = data
@@ -125,7 +128,8 @@ class ExperienceManager {
                 }
               }
 
-              const localTimestamp = localItem.updatedAt ?? localUpdatedAt
+              const localTimestamp =
+                localItem.updatedAt || '1970-01-01T00:00:00.000Z'
               const dbTimestamp = dbItem.updatedAt || '1970-01-01T00:00:00.000Z'
 
               if (Date.parse(dbTimestamp) >= Date.parse(localTimestamp)) {
@@ -185,8 +189,28 @@ class ExperienceManager {
               }
             }
 
+            // Cleanup db records which have been deleted locally
+            for (const dbItem of dbDataRaw || []) {
+              if (!localData.some((local) => local.id === dbItem.id)) {
+                const result = await supabase
+                  .from('experience')
+                  .delete()
+                  .eq('id', dbItem.id)
+
+                if (result.status !== 204) {
+                  // Non-blocking error
+                  console.error(
+                    'Background cleanup of DB experience data failed: ',
+                    result.error
+                  )
+                }
+              }
+            }
+
             // Update localStorage if we synced anything
             if (didSync) {
+              this.invalidate()
+
               const allTimestamps = updatedData
                 .map((b) => b.updatedAt || '1970-01-01T00:00:00.000Z')
                 .concat(localUpdatedAt)
@@ -342,10 +366,9 @@ class ExperienceManager {
           item.id === block.id ? updatedBlock : item
         )
       } else {
-        const nextPosition = existingData.length
         const newBlock = {
           ...validation.data,
-          position: validation.data.position ?? nextPosition,
+          position: existingData.length,
         }
         updatedData = [...existingData, newBlock]
       }
@@ -382,9 +405,10 @@ class ExperienceManager {
       await waitForAuthReady()
       if (isAuthenticated()) {
         try {
-          const { updatedAt, error } = await pushExperienceLocalRecordToDb(
-            block
-          )
+          const { updatedAt, error } = await pushExperienceLocalRecordToDb({
+            ...block,
+            position: existingData.length,
+          })
 
           if (error) {
             syncWarning = isNetworkError(error)
@@ -429,6 +453,82 @@ class ExperienceManager {
     } catch (error) {
       return Failure(
         createUnknownError('Unexpected error during upsert', error)
+      )
+    }
+  }
+
+  async delete(blockId: string): Promise<Result<ExperienceBlockData[]>> {
+    try {
+      const existingData = (await this.get()) as ExperienceBlockData[]
+      const blockExists = existingData.find((item) => item.id === blockId)
+
+      if (!blockExists) {
+        return Failure(createValidationError('Experience block not found'))
+      }
+
+      const updatedData = existingData.filter((item) => item.id !== blockId)
+
+      this.invalidate()
+
+      // Optimistic local write
+      try {
+        writeLocalEnvelope(STORAGE_KEYS.EXPERIENCE, updatedData, nowIso())
+      } catch (error) {
+        if (isQuotaExceededError(error)) {
+          return Failure(createQuotaExceededError(error))
+        }
+        return Failure(
+          createStorageError('Failed to save to local storage', error)
+        )
+      }
+
+      let syncWarning: OperationError | undefined
+
+      // Background DB sync
+      await waitForAuthReady()
+      if (isAuthenticated()) {
+        try {
+          const { data: deletedAt, error } = await supabase.rpc(
+            'delete_experience',
+            {
+              e_ids: [blockId],
+            }
+          )
+
+          if (error) {
+            syncWarning = isNetworkError(error)
+              ? createNetworkError('Failed to sync with server', error)
+              : createUnknownError('Database sync failed', error)
+            console.warn(
+              'Database sync failed, but local delete succeeded:',
+              error
+            )
+          } else {
+            // Sync succeeded - update local timestamp
+            writeLocalEnvelope(
+              STORAGE_KEYS.EXPERIENCE,
+              updatedData,
+              deletedAt ?? nowIso()
+            )
+          }
+        } catch (error) {
+          syncWarning = isNetworkError(error)
+            ? createNetworkError('Failed to sync with server', error)
+            : createUnknownError('Database sync failed', error)
+          console.warn(
+            'Failed to sync delete to database, but local delete succeeded:',
+            error
+          )
+        }
+      }
+
+      // Prime cache
+      this.cache.set(CACHE_KEY, Promise.resolve(updatedData))
+
+      return Success(updatedData, syncWarning)
+    } catch (error) {
+      return Failure(
+        createUnknownError('Unexpected error during delete', error)
       )
     }
   }

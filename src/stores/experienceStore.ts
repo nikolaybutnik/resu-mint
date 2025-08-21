@@ -3,7 +3,11 @@ import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit } from 'lodash'
-import { createUnknownError, OperationError } from '@/lib/types/errors'
+import {
+  createUnknownError,
+  createValidationError,
+  OperationError,
+} from '@/lib/types/errors'
 import { experienceManager } from '@/lib/data'
 
 interface ExperienceStore {
@@ -18,6 +22,7 @@ interface ExperienceStore {
   upsert: (
     block: ExperienceBlockData
   ) => Promise<{ error: OperationError | null }>
+  delete: (blockId: string) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
   hasChanges: (newData: ExperienceBlockData[]) => boolean
@@ -139,6 +144,50 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => ({
         error: previousError,
       })
       return { error: createUnknownError('Failed to upsert experience', error) }
+    }
+  },
+
+  delete: async (blockId: string) => {
+    const currentState = get()
+
+    const existingBlock = currentState.data.find((item) => item.id === blockId)
+
+    if (!existingBlock) {
+      return { error: createValidationError('Experience block does not exist') }
+    }
+
+    const previousData = currentState.data
+    const previousError = currentState.error
+
+    const optimisticData = previousData.filter((block) => block.id !== blockId)
+
+    set({ data: optimisticData, hasData: !!optimisticData.length, error: null })
+
+    try {
+      const result = await experienceManager.delete(blockId)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+        return { error: result.warning || null }
+      } else {
+        set({
+          data: previousData,
+          hasData: !!previousData.length,
+          error: result.error,
+        })
+        return { error: result.error }
+      }
+    } catch (error) {
+      set({
+        data: previousData,
+        hasData: !!previousData.length,
+        error: previousError,
+      })
+      return { error: createUnknownError('Failed to delete experience', error) }
     }
   },
 
