@@ -28,6 +28,7 @@ export type AuthResult = Promise<{
 
 interface AuthStore {
   user: User | null
+  session: Session | null
   loading: boolean
   hasSyncedPersonalDetails: boolean
   hasSyncedExperience: boolean
@@ -39,6 +40,7 @@ interface AuthStore {
 
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
+  session: null,
   loading: true,
   hasSyncedPersonalDetails: false,
   hasSyncedExperience: false,
@@ -61,7 +63,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
 
-      set({ user: data.user, loading: false })
+      set({ user: data.user, session: data.session, loading: false })
       // Kick off one-time post-login sync
       void syncPersonalDetailsOnce()
       void syncExperienceOnce()
@@ -88,7 +90,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         return { error: { message: error.message, code: error.code } }
       }
 
-      set({ user: data.user, loading: false })
+      set({ user: data.user, session: data.session, loading: false })
       // Kick off one-time post-signup sync
       void syncPersonalDetailsOnce()
       void syncExperienceOnce()
@@ -122,6 +124,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       set({
         user: null,
+        session: null,
         loading: false,
         hasSyncedPersonalDetails: false,
         hasSyncedExperience: false,
@@ -152,7 +155,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       } = await supabase.auth.getSession()
 
       if (session?.user) {
-        set({ user: session.user, loading: false })
+        set({ user: session.user, session, loading: false })
         // Run sync once per session
         void syncPersonalDetailsOnce()
         void syncExperienceOnce()

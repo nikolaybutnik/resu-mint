@@ -6,6 +6,7 @@ export interface PersonalDetails {
   linkedin?: string
   github?: string
   website?: string
+  updatedAt?: string
 }
 
 export type PersonalDetailsFormState = {

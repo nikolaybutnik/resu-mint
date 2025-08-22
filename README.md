@@ -155,6 +155,9 @@ npx supabase migration new <name>
 
 # Regenerate types after schema changes (only needed if you modify the migration)
 npx supabase gen types typescript --local > src/lib/types/database.ts
+
+# Runs a local instance of electric attached to supabase 
+docker run -it -e "DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres" -e "ELECTRIC_INSECURE=true" -p 3001:3000 electricsql/electric:latest
 ```
 
 ## How to Use

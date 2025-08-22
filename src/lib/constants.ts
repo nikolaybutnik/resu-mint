@@ -28,6 +28,7 @@ export const API_ROUTES = {
   CATEGORIZE_USER_SKILLS: `${API_BASE_URL}/categorize-user-skills`,
   GENERATE_SKILL_SUGGESTIONS: `${API_BASE_URL}/generate-skill-suggestions`,
   TECTONIC_HEALTH: `${API_BASE_URL}/tectonic-health`,
+  SHAPE_PROXY: `${API_BASE_URL}/shape-proxy`,
 } as const
 
 // General
