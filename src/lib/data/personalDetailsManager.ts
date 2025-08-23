@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../constants'
-import { PersonalDetails } from '../types/personalDetails'
+import { PersonalDetails, PersonalDetailsRow } from '../types/personalDetails'
 import { personalDetailsSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
 import {
@@ -24,6 +24,8 @@ import {
   isNetworkError,
   OperationError,
 } from '../types/errors'
+import { API_ROUTES } from '../constants'
+import { ShapeStream, Shape } from '@electric-sql/client'
 
 const CACHE_KEY = 'personalDetails'
 
@@ -140,6 +142,36 @@ class PersonalDetailsManager {
     }
 
     return this.cache.get(CACHE_KEY)! as Promise<PersonalDetails>
+  }
+
+  async getStreamTest() {
+    const session = useAuthStore.getState().session
+
+    const shapeStream = new ShapeStream({
+      url: `${process.env.NEXT_PUBLIC_SITE_URL}${API_ROUTES.SHAPE_PROXY}`,
+      params: {
+        table: 'personal_details',
+        columns: [
+          'name',
+          'email',
+          'phone',
+          'location',
+          'linkedin',
+          'github',
+          'website',
+          'updated_at',
+        ],
+      },
+      headers: {
+        Authorization: `Bearer ${session?.access_token || ''}`,
+      },
+    })
+    shapeStream.subscribe((messages) => console.log('Shape data:', messages))
+
+    const shape = new Shape(shapeStream)
+    const [data] = (await shape.rows) as PersonalDetailsRow[]
+    console.log('Personal details data:', data)
+    return data as unknown as PersonalDetails
   }
 
   // save(): optimistic local write; then DB (if authed)

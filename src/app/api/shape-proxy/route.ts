@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from '@electric-sql/client'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { Message, isChangeMessage } from '@electric-sql/client'
+import { omit } from 'lodash'
 
 // Testing
 // With auth: curl http://localhost:3000/api/shape-proxy
@@ -9,7 +11,9 @@ import { cookies } from 'next/headers'
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
+  // TODO: dynamic url
   const originUrl = new URL('http://localhost:3001/v1/shape')
+  let includeIdInResponse = true
 
   // Forward Electric params from client
   // [ 'live', 'handle', 'offset', 'cursor' ]
@@ -19,8 +23,22 @@ export async function GET(req: NextRequest) {
     }
   })
 
-  // Set table explicitly (temporary for testing)
-  originUrl.searchParams.set('table', 'personal_details')
+  // Forward data parameters that Electric needs
+  if (url.searchParams.has('table')) {
+    originUrl.searchParams.set('table', url.searchParams.get('table')!)
+  }
+
+  if (url.searchParams.has('columns')) {
+    const clientColumns = url.searchParams.get('columns')
+
+    let electricColumns = clientColumns || ''
+    if (!clientColumns?.includes('id')) {
+      electricColumns = `id,${clientColumns}`
+      includeIdInResponse = false
+    }
+
+    originUrl.searchParams.set('columns', electricColumns)
+  }
 
   // offset is required
   if (!originUrl.searchParams.has('offset')) {
@@ -60,28 +78,42 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Add user_id filter or return empty shape
   if (userId) {
     originUrl.searchParams.set('where', `user_id = '${userId}'`)
   } else {
-    originUrl.searchParams.set('where', '1=0') // Empty shape for unauthenticated
+    originUrl.searchParams.set('where', '1=0') // Empty shape if unauthenticated
   }
 
   const response = await fetch(originUrl.toString())
 
   if (!response.ok) {
     const errorText = await response.text()
-
     return new NextResponse(JSON.stringify({ error: errorText }), {
       status: response.status,
       headers: { 'Content-Type': 'application/json' },
     })
   }
 
-  const body = await response.clone().text()
+  const bodyText = await response.text()
+  const data = JSON.parse(bodyText)
+  const newHeaders = new Headers(response.headers)
+  newHeaders.set('Content-Type', 'application/json')
 
-  return new NextResponse(body, {
+  const cleaned = Array.isArray(data)
+    ? data.map((msg: Message) => {
+        if (!includeIdInResponse && isChangeMessage(msg)) {
+          return {
+            ...msg,
+            value: omit(msg.value, ['id']),
+          }
+        }
+        return msg
+      })
+    : data
+
+  return NextResponse.json(cleaned, {
     status: response.status,
-    headers: { 'Content-Type': 'application/json' },
+    statusText: response.statusText,
+    headers: newHeaders,
   })
 }

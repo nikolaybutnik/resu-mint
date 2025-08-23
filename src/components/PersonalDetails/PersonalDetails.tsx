@@ -4,10 +4,11 @@ import { useFormStatus } from 'react-dom'
 import { PersonalDetailsFormState } from '@/lib/actions/personalDetailsActions'
 import { submitPersonalDetails } from '@/lib/actions/personalDetailsActions'
 import { PERSONAL_DETAILS_FORM_DATA_KEYS, FORM_IDS } from '@/lib/constants'
-import { usePersonalDetailsStore } from '@/stores'
+import { useAuthStore, usePersonalDetailsStore } from '@/stores'
 import { SkeletonInputField } from '@/components/shared/Skeleton/SkeletonInputField'
 import { SkeletonButton } from '@/components/shared/Skeleton/SkeletonButton'
 import { toast } from '@/stores/toastStore'
+import { personalDetailsManager } from '@/lib/data'
 
 const formFields = [
   {
@@ -86,6 +87,14 @@ const PersonalDetails: React.FC = () => {
     hasChanges,
     clearError,
   } = usePersonalDetailsStore()
+
+  useEffect(() => {
+    const get = async () => {
+      return await personalDetailsManager.getStreamTest()
+    }
+
+    get()
+  }, [])
 
   const [state, formAction] = useActionState(
     async (prevState: PersonalDetailsFormState, formData: FormData) => {
