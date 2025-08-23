@@ -23,6 +23,12 @@ importers:
       '@electric-sql/client':
         specifier: ^1.0.8
         version: 1.0.8
+      '@electric-sql/pglite':
+        specifier: ^0.3.7
+        version: 0.3.7
+      '@electric-sql/pglite-sync':
+        specifier: ^0.3.10
+        version: 0.3.10(@electric-sql/pglite@0.3.7)
       '@hookform/resolvers':
         specifier: ^5.0.1
         version: 5.0.1(react-hook-form@7.56.4(react@19.1.0))
@@ -148,8 +154,24 @@ packages:
     peerDependencies:
       react: '>=16.8.0'
 
+  '@electric-sql/client@1.0.0':
+    resolution: {integrity: sha512-kGiVbBIlMqc/CeJpWZuLjxNkm0836NWxeMtIWH2w5IUK8pUL13hyxg3ZkR7+FlTGhpKuZRiCP5nPOH9D6wbhPw==}
+
   '@electric-sql/client@1.0.8':
     resolution: {integrity: sha512-c+LvOsy9qnLf3lSD69PgIpmISJNNji64VQBqduk6HmZWap8ia2PS+d/Hk/czQ7Gw3OWbfpUnpqcjaIKn6RF6YA==}
+
+  '@electric-sql/experimental@1.0.0':
+    resolution: {integrity: sha512-wOKZyph3cvJ4J5fDwqDpR7nilPOHEFwAtbAM5X/PhV3JZCSzmkbosaQRWsxbHQ80MJv7gNFP960+TyqGAjqouQ==}
+    peerDependencies:
+      '@electric-sql/client': 1.0.0
+
+  '@electric-sql/pglite-sync@0.3.10':
+    resolution: {integrity: sha512-+1BWQrIpvbNhCQWeMlIeR8bpB+RpPuBxnV5RDIAurk7T+3jRwQKzBHbcpoCV4w6dYr1e1rUHZXGca3ZyqGvSMQ==}
+    peerDependencies:
+      '@electric-sql/pglite': 0.3.7
+
+  '@electric-sql/pglite@0.3.7':
+    resolution: {integrity: sha512-5c3mybVrhxu5s47zFZtIGdG8YHkKCBENOmqxnNBjY53ZoDhADY/c5UqBDl159b7qtkzNPtbbb893wL9zi1kAuw==}
 
   '@emnapi/core@1.4.3':
     resolution: {integrity: sha512-4m62DuCE07lw01soJwPiBGC0nAww0Q+RY70VZ+n49yDIO13yyinhbWCeNnaob0lakDtWQzSdtNWzJeOJt2ma+g==}
@@ -2306,11 +2328,29 @@ snapshots:
       react: 19.1.0
       tslib: 2.8.1
 
+  '@electric-sql/client@1.0.0':
+    optionalDependencies:
+      '@rollup/rollup-darwin-arm64': 4.47.1
+
   '@electric-sql/client@1.0.8':
     dependencies:
       '@microsoft/fetch-event-source': 2.0.1
     optionalDependencies:
       '@rollup/rollup-darwin-arm64': 4.47.1
+
+  '@electric-sql/experimental@1.0.0(@electric-sql/client@1.0.0)':
+    dependencies:
+      '@electric-sql/client': 1.0.0
+    optionalDependencies:
+      '@rollup/rollup-darwin-arm64': 4.47.1
+
+  '@electric-sql/pglite-sync@0.3.10(@electric-sql/pglite@0.3.7)':
+    dependencies:
+      '@electric-sql/client': 1.0.0
+      '@electric-sql/experimental': 1.0.0(@electric-sql/client@1.0.0)
+      '@electric-sql/pglite': 0.3.7
+
+  '@electric-sql/pglite@0.3.7': {}
 
   '@emnapi/core@1.4.3':
     dependencies:
