@@ -30,7 +30,7 @@ interface AuthStore {
   user: User | null
   session: Session | null
   loading: boolean
-  hasSyncedPersonalDetails: boolean
+  // hasSyncedPersonalDetails: boolean
   hasSyncedExperience: boolean
   signIn: (email: string, password: string) => AuthResult
   signUp: (email: string, password: string) => AuthResult
@@ -42,7 +42,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   session: null,
   loading: true,
-  hasSyncedPersonalDetails: false,
+  // hasSyncedPersonalDetails: false,
   hasSyncedExperience: false,
 
   signIn: async (email: string, password: string): AuthResult => {
@@ -65,7 +65,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       set({ user: data.user, session: data.session, loading: false })
       // Kick off one-time post-login sync
-      void syncPersonalDetailsOnce()
+      // void syncPersonalDetailsOnce()
       void syncExperienceOnce()
 
       return { error: null }
@@ -92,7 +92,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       set({ user: data.user, session: data.session, loading: false })
       // Kick off one-time post-signup sync
-      void syncPersonalDetailsOnce()
+      // void syncPersonalDetailsOnce()
       void syncExperienceOnce()
 
       return { error: null }
@@ -126,7 +126,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
         user: null,
         session: null,
         loading: false,
-        hasSyncedPersonalDetails: false,
+        // hasSyncedPersonalDetails: false,
         hasSyncedExperience: false,
       })
       // Invalidate caches on logout so next read uses local-only path cleanly
@@ -157,13 +157,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (session?.user) {
         set({ user: session.user, session, loading: false })
         // Run sync once per session
-        void syncPersonalDetailsOnce()
+        // void syncPersonalDetailsOnce()
         void syncExperienceOnce()
       } else {
         set({
           user: null,
           loading: false,
-          hasSyncedPersonalDetails: false,
+          // hasSyncedPersonalDetails: false,
           hasSyncedExperience: false,
         })
         personalDetailsManager.invalidate()
@@ -182,7 +182,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
           if (session?.user) {
             set({ user: session.user, loading: false })
-            void syncPersonalDetailsOnce()
+            // void syncPersonalDetailsOnce()
             void syncExperienceOnce()
           } else {
             set({ user: null, loading: false })
@@ -325,104 +325,104 @@ async function syncExperienceOnce(): Promise<void> {
 }
 
 // One-time per session: reconcile personal_details between local envelope and DB
-async function syncPersonalDetailsOnce(): Promise<void> {
-  try {
-    const { hasSyncedPersonalDetails } = useAuthStore.getState()
-    if (hasSyncedPersonalDetails) return
+// async function syncPersonalDetailsOnce(): Promise<void> {
+//   try {
+//     const { hasSyncedPersonalDetails } = useAuthStore.getState()
+//     if (hasSyncedPersonalDetails) return
 
-    // Mark as syncing to avoid races
-    useAuthStore.setState({ hasSyncedPersonalDetails: true })
+//     // Mark as syncing to avoid races
+//     useAuthStore.setState({ hasSyncedPersonalDetails: true })
 
-    const localEnv = readLocalEnvelope<PersonalDetails>(
-      STORAGE_KEYS.PERSONAL_DETAILS
-    )
-    const localData = localEnv?.data
-    const localUpdatedAt =
-      localEnv?.meta?.updatedAt ?? '1970-01-01T00:00:00.000Z'
+//     const localEnv = readLocalEnvelope<PersonalDetails>(
+//       STORAGE_KEYS.PERSONAL_DETAILS
+//     )
+//     const localData = localEnv?.data
+//     const localUpdatedAt =
+//       localEnv?.meta?.updatedAt ?? '1970-01-01T00:00:00.000Z'
 
-    const { data: db, error } = await supabase
-      .from('personal_details')
-      .select(
-        'name, email, phone, location, linkedin, github, website, updated_at'
-      )
-      .maybeSingle()
+//     const { data: db, error } = await supabase
+//       .from('personal_details')
+//       .select(
+//         'name, email, phone, location, linkedin, github, website, updated_at'
+//       )
+//       .maybeSingle()
 
-    if (error) return
+//     if (error) return
 
-    if (!db && localData) {
-      // Push local => DB
-      await supabase.rpc('upsert_personal_details', {
-        p_name: localData.name,
-        p_email: localData.email,
-        p_phone: localData.phone ?? '',
-        p_location: localData.location ?? '',
-        p_linkedin: localData.linkedin ?? '',
-        p_github: localData.github ?? '',
-        p_website: localData.website ?? '',
-      })
-      writeLocalEnvelope(STORAGE_KEYS.PERSONAL_DETAILS, localData, nowIso())
-      personalDetailsManager.invalidate()
-      return
-    }
+//     if (!db && localData) {
+//       // Push local => DB
+//       await supabase.rpc('upsert_personal_details', {
+//         p_name: localData.name,
+//         p_email: localData.email,
+//         p_phone: localData.phone ?? '',
+//         p_location: localData.location ?? '',
+//         p_linkedin: localData.linkedin ?? '',
+//         p_github: localData.github ?? '',
+//         p_website: localData.website ?? '',
+//       })
+//       writeLocalEnvelope(STORAGE_KEYS.PERSONAL_DETAILS, localData, nowIso())
+//       personalDetailsManager.invalidate()
+//       return
+//     }
 
-    if (db && !localData) {
-      // Pull DB => local
-      const dbData: PersonalDetails = {
-        name: db.name ?? '',
-        email: db.email ?? '',
-        phone: db.phone ?? '',
-        location: db.location ?? '',
-        linkedin: db.linkedin ?? '',
-        github: db.github ?? '',
-        website: db.website ?? '',
-      }
-      writeLocalEnvelope(
-        STORAGE_KEYS.PERSONAL_DETAILS,
-        dbData,
-        db.updated_at ?? nowIso()
-      )
-      personalDetailsManager.invalidate()
-      return
-    }
+//     if (db && !localData) {
+//       // Pull DB => local
+//       const dbData: PersonalDetails = {
+//         name: db.name ?? '',
+//         email: db.email ?? '',
+//         phone: db.phone ?? '',
+//         location: db.location ?? '',
+//         linkedin: db.linkedin ?? '',
+//         github: db.github ?? '',
+//         website: db.website ?? '',
+//       }
+//       writeLocalEnvelope(
+//         STORAGE_KEYS.PERSONAL_DETAILS,
+//         dbData,
+//         db.updated_at ?? nowIso()
+//       )
+//       personalDetailsManager.invalidate()
+//       return
+//     }
 
-    if (db && localData) {
-      const dbUpdatedAt = db.updated_at ?? '1970-01-01T00:00:00.000Z'
-      if (Date.parse(localUpdatedAt) > Date.parse(dbUpdatedAt)) {
-        // Local newer => push to DB
-        await supabase.rpc('upsert_personal_details', {
-          p_name: localData.name,
-          p_email: localData.email,
-          p_phone: localData.phone ?? '',
-          p_location: localData.location ?? '',
-          p_linkedin: localData.linkedin ?? '',
-          p_github: localData.github ?? '',
-          p_website: localData.website ?? '',
-        })
-        writeLocalEnvelope(STORAGE_KEYS.PERSONAL_DETAILS, localData, nowIso())
-      } else {
-        // DB newer => overwrite local
-        const dbData: PersonalDetails = {
-          name: db.name ?? '',
-          email: db.email ?? '',
-          phone: db.phone ?? '',
-          location: db.location ?? '',
-          linkedin: db.linkedin ?? '',
-          github: db.github ?? '',
-          website: db.website ?? '',
-        }
-        writeLocalEnvelope(
-          STORAGE_KEYS.PERSONAL_DETAILS,
-          dbData,
-          db.updated_at ?? nowIso()
-        )
-      }
-      personalDetailsManager.invalidate()
-    }
-  } catch (error) {
-    console.error('Db sync failed: ', error)
-    // Non-blocking sync, ignore errors
-  }
-}
+//     if (db && localData) {
+//       const dbUpdatedAt = db.updated_at ?? '1970-01-01T00:00:00.000Z'
+//       if (Date.parse(localUpdatedAt) > Date.parse(dbUpdatedAt)) {
+//         // Local newer => push to DB
+//         await supabase.rpc('upsert_personal_details', {
+//           p_name: localData.name,
+//           p_email: localData.email,
+//           p_phone: localData.phone ?? '',
+//           p_location: localData.location ?? '',
+//           p_linkedin: localData.linkedin ?? '',
+//           p_github: localData.github ?? '',
+//           p_website: localData.website ?? '',
+//         })
+//         writeLocalEnvelope(STORAGE_KEYS.PERSONAL_DETAILS, localData, nowIso())
+//       } else {
+//         // DB newer => overwrite local
+//         const dbData: PersonalDetails = {
+//           name: db.name ?? '',
+//           email: db.email ?? '',
+//           phone: db.phone ?? '',
+//           location: db.location ?? '',
+//           linkedin: db.linkedin ?? '',
+//           github: db.github ?? '',
+//           website: db.website ?? '',
+//         }
+//         writeLocalEnvelope(
+//           STORAGE_KEYS.PERSONAL_DETAILS,
+//           dbData,
+//           db.updated_at ?? nowIso()
+//         )
+//       }
+//       personalDetailsManager.invalidate()
+//     }
+//   } catch (error) {
+//     console.error('Db sync failed: ', error)
+//     // Non-blocking sync, ignore errors
+//   }
+// }
 
 // Cross-tab: invalidate caches when localStorage changes in other tabs
 let storageListenerAttached = false

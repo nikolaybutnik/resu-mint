@@ -25,12 +25,42 @@ import {
   OperationError,
 } from '../types/errors'
 import { API_ROUTES } from '../constants'
-import { ShapeStream, Shape } from '@electric-sql/client'
+import { ShapeStream, Shape, Row, isChangeMessage } from '@electric-sql/client'
 
 const CACHE_KEY = 'personalDetails'
 
 class PersonalDetailsManager {
+  private shape: Shape<Row<PersonalDetails>> | null = null
   private cache = new Map<string, Promise<unknown>>()
+
+  private getOrCreateShape(): Shape<Row<PersonalDetails>> {
+    if (!this.shape) {
+      const session = useAuthStore.getState().session
+
+      this.shape = new Shape(
+        new ShapeStream({
+          url: `${process.env.NEXT_PUBLIC_SITE_URL}${API_ROUTES.SHAPE_PROXY}`,
+          params: {
+            table: 'personal_details',
+            columns: [
+              'name',
+              'email',
+              'phone',
+              'location',
+              'linkedin',
+              'github',
+              'website',
+              'updated_at',
+            ],
+          },
+          headers: {
+            Authorization: `Bearer ${session?.access_token || ''}`,
+          },
+        })
+      )
+    }
+    return this.shape
+  }
 
   // get(): prefer local for fast reads, keep in sync with db
   async get(): Promise<PersonalDetails> {
@@ -145,33 +175,18 @@ class PersonalDetailsManager {
   }
 
   async getStreamTest() {
-    const session = useAuthStore.getState().session
+    // this created the table if not already existing.
+    // at this point, the table is empty
+    // await initializeDb()
 
-    const shapeStream = new ShapeStream({
-      url: `${process.env.NEXT_PUBLIC_SITE_URL}${API_ROUTES.SHAPE_PROXY}`,
-      params: {
-        table: 'personal_details',
-        columns: [
-          'name',
-          'email',
-          'phone',
-          'location',
-          'linkedin',
-          'github',
-          'website',
-          'updated_at',
-        ],
-      },
-      headers: {
-        Authorization: `Bearer ${session?.access_token || ''}`,
-      },
-    })
-    shapeStream.subscribe((messages) => console.log('Shape data:', messages))
+    // const localDB = await getLocalDB()
 
-    const shape = new Shape(shapeStream)
+    const shape = this.getOrCreateShape()
     const [data] = (await shape.rows) as PersonalDetailsRow[]
-    console.log('Personal details data:', data)
-    return data as unknown as PersonalDetails
+
+    if (data) {
+      console.log(data)
+    }
   }
 
   // save(): optimistic local write; then DB (if authed)

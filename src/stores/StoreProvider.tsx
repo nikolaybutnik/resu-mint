@@ -11,6 +11,7 @@ import {
   useEducationStore,
   useSkillsStore,
   useAuthStore,
+  useDbStore,
 } from './'
 import { Subscription } from '@supabase/supabase-js'
 
@@ -32,6 +33,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const initEducation = useEducationStore((state) => state.initialize)
   const initSkills = useSkillsStore((state) => state.initialize)
   const initUser = useAuthStore((state) => state.initialize)
+  const initDb = useDbStore((state) => state.initialize)
 
   useEffect(() => {
     let authSubscription: Subscription | null = null
@@ -58,6 +60,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
     initProject()
     initEducation()
     initSkills()
+    initDb()
   }, [
     initPersonalDetails,
     initSettings,
@@ -67,6 +70,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
     initProject,
     initEducation,
     initSkills,
+    initDb,
   ])
 
   return <>{children}</>
