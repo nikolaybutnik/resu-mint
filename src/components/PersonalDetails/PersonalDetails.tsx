@@ -8,7 +8,6 @@ import { usePersonalDetailsStore } from '@/stores'
 import { SkeletonInputField } from '@/components/shared/Skeleton/SkeletonInputField'
 import { SkeletonButton } from '@/components/shared/Skeleton/SkeletonButton'
 import { toast } from '@/stores/toastStore'
-import { useDbStore } from '@/stores'
 
 const formFields = [
   {
@@ -87,17 +86,6 @@ const PersonalDetails: React.FC = () => {
     hasChanges,
     clearError,
   } = usePersonalDetailsStore()
-  const { db } = useDbStore()
-
-  useEffect(() => {
-    const get = async () => {
-      return await db?.query('SELECT * FROM personal_details')
-    }
-
-    get().then((data) => {
-      console.log(data)
-    })
-  }, [])
 
   const [state, formAction] = useActionState(
     async (prevState: PersonalDetailsFormState, formData: FormData) => {

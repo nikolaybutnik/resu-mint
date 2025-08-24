@@ -1,5 +1,3 @@
-import { Row } from '@electric-sql/client'
-
 export interface PersonalDetails {
   id?: string
   name: string
@@ -11,8 +9,6 @@ export interface PersonalDetails {
   website?: string
   updatedAt?: string
 }
-
-export type PersonalDetailsRow = Row<PersonalDetails>
 
 export type PersonalDetailsFormState = {
   fieldErrors: Record<string, string>

@@ -1,5 +1,5 @@
 import { STORAGE_KEYS } from '../constants'
-import { PersonalDetails, PersonalDetailsRow } from '../types/personalDetails'
+import { PersonalDetails } from '../types/personalDetails'
 import { personalDetailsSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
 import {
@@ -25,7 +25,7 @@ import {
   OperationError,
 } from '../types/errors'
 import { API_ROUTES } from '../constants'
-import { ShapeStream, Shape, Row, isChangeMessage } from '@electric-sql/client'
+import { ShapeStream, Shape, Row } from '@electric-sql/client'
 
 const CACHE_KEY = 'personalDetails'
 
@@ -172,21 +172,6 @@ class PersonalDetailsManager {
     }
 
     return this.cache.get(CACHE_KEY)! as Promise<PersonalDetails>
-  }
-
-  async getStreamTest() {
-    // this created the table if not already existing.
-    // at this point, the table is empty
-    // await initializeDb()
-
-    // const localDB = await getLocalDB()
-
-    const shape = this.getOrCreateShape()
-    const [data] = (await shape.rows) as PersonalDetailsRow[]
-
-    if (data) {
-      console.log(data)
-    }
   }
 
   // save(): optimistic local write; then DB (if authed)

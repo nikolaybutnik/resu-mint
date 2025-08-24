@@ -7,8 +7,15 @@ import {
   SyncShapesToTablesOptions,
   SyncShapesToTablesResult,
 } from '@electric-sql/pglite-sync'
-import { Row, ShapeStreamInterface } from '@electric-sql/client'
+import {
+  Row,
+  ShapeStreamInterface,
+  Message,
+  isChangeMessage,
+} from '@electric-sql/client'
 import { API_ROUTES } from '@/lib/constants'
+import { useAuthStore } from './authStore'
+import { Session } from '@supabase/supabase-js'
 
 type ElectricDb = PGlite & {
   electric: {
@@ -28,7 +35,6 @@ interface TableSyncConfig {
   columns: string[]
   primaryKey: string[]
   shapeKey: string
-  onDataChange?: (messages: unknown[]) => void
 }
 
 interface DbStore {
@@ -40,7 +46,7 @@ interface DbStore {
   activeStreams: Map<string, SyncShapeToTableResult>
   tableConfigs: Map<string, TableSyncConfig>
   initialize: () => Promise<void>
-  startSync: () => Promise<void>
+  startSync: (session: Session, tableNames?: string[]) => Promise<void>
   stopSync: () => Promise<void>
   close: () => void
   registerTable: (config: TableSyncConfig) => void
@@ -60,12 +66,10 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
       'github',
       'website',
       'updated_at',
+      'created_at',
     ],
     primaryKey: ['id'],
     shapeKey: 'personal_details',
-    onDataChange: (messages) => {
-      console.log('Personal details updated:', messages)
-    },
   },
 }
 
@@ -79,8 +83,8 @@ const initializePersonalDetailsQuery = `
         linkedin TEXT,
         github TEXT,
         website TEXT,
-        updated_at TEXT,
-        created_at TEXT
+        updated_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ
     );
 `
 
@@ -113,9 +117,13 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       set({ db, initializing: false })
 
+      const session = useAuthStore.getState().session
+
       // TODO: implement timed retry for sync
       // Need way to see if connection exists to avoid spamming requests
-      await get().startSync()
+      if (session) {
+        await get().startSync(session)
+      }
     } catch (error) {
       console.error('Database initialization failed:', error)
       set({ initializing: false, syncState: 'error' })
@@ -128,7 +136,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     }))
   },
 
-  startSync: async (tableNames?: string[]) => {
+  startSync: async (session: Session, tableNames?: string[]) => {
     const { db, activeStreams, tableConfigs } = get()
     if (!db) return
 
@@ -142,17 +150,12 @@ export const useDbStore = create<DbStore>((set, get) => ({
       for (const tableName of tablesToSync) {
         const config = tableConfigs.get(tableName)
         if (!config) {
-          console.warn(`Table config not found for: ${tableName}`)
           continue
         }
 
-        // Skip if already syncing
         if (activeStreams.has(tableName)) {
-          console.log(`Already syncing table: ${tableName}`)
           continue
         }
-
-        console.log(`Starting sync for table: ${tableName}`)
 
         const syncResult = await db.electric.syncShapeToTable({
           shape: {
@@ -161,28 +164,31 @@ export const useDbStore = create<DbStore>((set, get) => ({
               table: config.table,
               columns: config.columns,
             },
+            headers: {
+              Authorization: `Bearer ${session?.access_token || ''}`,
+            },
           },
           table: config.table,
           primaryKey: config.primaryKey,
           shapeKey: config.shapeKey,
         })
 
-        // Subscribe to stream changes
-        syncResult.stream.subscribe((messages) => {
-          console.log(`Sync messages for ${tableName}:`, messages)
+        syncResult.stream.subscribe(
+          async (messages: Message<Row<unknown>>[]) => {
+            messages.forEach((msg) => {
+              if (isChangeMessage(msg)) {
+                console.log('Data updated: ', msg?.value)
+              } else console.log('No changes: ', msg)
+            })
 
-          // Call table-specific change handler
-          config.onDataChange?.(messages)
+            set({
+              connectionState: 'connected',
+              syncState: 'syncing',
+              isOnline: true,
+            })
+          }
+        )
 
-          // Update global sync state
-          set({
-            connectionState: 'connected',
-            syncState: 'syncing',
-            isOnline: true,
-          })
-        })
-
-        // Track the sync result
         activeStreams.set(tableName, syncResult)
       }
 
@@ -205,13 +211,11 @@ export const useDbStore = create<DbStore>((set, get) => ({
   stopSync: async (tableNames?: string[]) => {
     const { activeStreams } = get()
 
-    // Determine which tables to stop syncing
     const tablesToStop = tableNames || Array.from(activeStreams.keys())
 
     for (const tableName of tablesToStop) {
       const syncResult = activeStreams.get(tableName)
       if (syncResult) {
-        console.log(`Stopping sync for table: ${tableName}`)
         syncResult.unsubscribe()
         activeStreams.delete(tableName)
       }
