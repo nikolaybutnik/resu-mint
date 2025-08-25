@@ -425,22 +425,23 @@ export const extractFormData = <T extends Record<string, string>>(
 export const extractPersonalDetailsFormData = (
   source: HTMLFormElement | FormData
 ): PersonalDetails => {
-  return extractFormData(source, {
-    name: PERSONAL_DETAILS_FORM_DATA_KEYS.NAME,
-    email: PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL,
-    phone: PERSONAL_DETAILS_FORM_DATA_KEYS.PHONE,
-    location: PERSONAL_DETAILS_FORM_DATA_KEYS.LOCATION,
-    linkedin: PERSONAL_DETAILS_FORM_DATA_KEYS.LINKEDIN,
-    github: PERSONAL_DETAILS_FORM_DATA_KEYS.GITHUB,
-    website: PERSONAL_DETAILS_FORM_DATA_KEYS.WEBSITE,
-  }) as {
-    name: string
-    email: string
-    phone: string
-    location: string
-    linkedin: string
-    github: string
-    website: string
+  const formData = source instanceof FormData ? source : new FormData(source)
+
+  return {
+    id: (formData.get('id') as string) || '',
+    name: (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.NAME) as string) || '',
+    email:
+      (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL) as string) || '',
+    phone:
+      (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.PHONE) as string) || '',
+    location:
+      (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.LOCATION) as string) || '',
+    linkedin:
+      (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.LINKEDIN) as string) || '',
+    github:
+      (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.GITHUB) as string) || '',
+    website:
+      (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.WEBSITE) as string) || '',
   }
 }
 

@@ -111,9 +111,10 @@ const PersonalDetails: React.FC = () => {
             saveResult.error.code === 'NETWORK_ERROR' ||
             saveResult.error.code === 'UNKNOWN_ERROR'
           ) {
-            toast.success(
-              'Your personal details were saved locally and will sync when connection to database is restored.'
-            )
+            // TODO: redo toast conditions
+            // toast.success(
+            //   'Your personal details were saved locally and will sync when connection to database is restored.'
+            // )
           } else {
             return {
               fieldErrors: {},
@@ -136,7 +137,6 @@ const PersonalDetails: React.FC = () => {
 
   useEffect(() => {
     if (storeError) {
-      console.log(storeError)
       switch (storeError.code) {
         case 'QUOTA_EXCEEDED':
           toast.error(
@@ -176,6 +176,7 @@ const PersonalDetails: React.FC = () => {
           Indicates a required field
         </div>
 
+        <input type='hidden' name='id' value={personalDetails.id} />
         {formFields.map((field) => (
           <div key={field.name} className={styles.formField}>
             <label className={styles.label}>

@@ -130,6 +130,7 @@ const monthLabels = [
 ] as const
 
 export const personalDetailsSchema = z.object({
+  id: z.string().uuid(),
   name: z.string().min(1, 'Full name is required'),
   email: z.string().email('Valid email address is required'),
   phone: z

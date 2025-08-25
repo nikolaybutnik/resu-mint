@@ -33,29 +33,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const initSkills = useSkillsStore((state) => state.initialize)
   const initDb = useDbStore((state) => state.initialize)
 
+  const { db, initializing } = useDbStore()
+
   useAuthListener()
 
   useEffect(() => {
-    initPersonalDetails()
-    initSettings()
-    initExperience()
-    initJobDetails()
-    initAiState()
-    initProject()
-    initEducation()
-    initSkills()
     initDb()
-  }, [
-    initPersonalDetails,
-    initSettings,
-    initExperience,
-    initJobDetails,
-    initAiState,
-    initProject,
-    initEducation,
-    initSkills,
-    initDb,
-  ])
+  }, [initDb])
+
+  useEffect(() => {
+    if (!initializing && db) {
+      initPersonalDetails()
+      initSettings()
+      initExperience()
+      initJobDetails()
+      initAiState()
+      initProject()
+      initEducation()
+      initSkills()
+    }
+  }, [db, initializing])
 
   return <>{children}</>
 }
