@@ -96,6 +96,10 @@ const initializeTables = async (db: PGlite) => {
   }
 }
 
+// TODO: need to handle a case of a different user loggining (aka, session doesn't match remote db user)
+// In that case, we would reset the local db.
+// Could tap into existing user tracking in page.tsx
+
 export const useDbStore = create<DbStore>((set, get) => ({
   db: null,
   initializing: false,

@@ -36,6 +36,8 @@ interface AuthStore {
   initialize: () => Promise<Subscription | undefined>
 }
 
+// TODO: get rid of all manual experience sync logic when eletric sync is in place.
+
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   session: null,
@@ -165,13 +167,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange(
-        (event: AuthChangeEvent, session: Session | null) => {
-          console.info(
-            `Auth event: ${event} - User: ${
-              session?.user ? 'Found' : 'None'
-            } - ID: ${session?.user?.id || 'N/A'}`
-          )
-
+        (_event: AuthChangeEvent, session: Session | null) => {
           if (session?.user) {
             set({ user: session.user, loading: false })
             void syncExperienceOnce()
@@ -180,11 +176,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
           }
         }
       )
-
-      // Attach cross-tab listener once per app lifecycle
-      if (typeof window !== 'undefined') {
-        setupStorageListener()
-      }
 
       return subscription
     } catch (error) {
@@ -313,19 +304,4 @@ async function syncExperienceOnce(): Promise<void> {
     console.error('Experience sync failed:', error)
     // Non-blocking sync, ignore errors
   }
-}
-
-// Cross-tab: invalidate caches when localStorage changes in other tabs
-let storageListenerAttached = false
-function setupStorageListener() {
-  if (storageListenerAttached) return
-  window.addEventListener('storage', (e: StorageEvent) => {
-    if (e.key === STORAGE_KEYS.PERSONAL_DETAILS) {
-      personalDetailsManager.invalidate()
-    }
-    if (e.key === STORAGE_KEYS.EXPERIENCE) {
-      experienceManager.invalidate()
-    }
-  })
-  storageListenerAttached = true
 }

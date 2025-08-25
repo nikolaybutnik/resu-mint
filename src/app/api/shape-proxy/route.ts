@@ -10,8 +10,7 @@ import { createError, createErrorResponse } from '@/lib/types/errors'
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
-  // TODO: dynamic url
-  const originUrl = new URL('http://localhost:3001/v1/shape')
+  const originUrl = new URL(`${process.env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`)
 
   // Forward Electric params from client
   // [ 'live', 'handle', 'offset', 'cursor' ]

@@ -10,10 +10,9 @@ import {
   useProjectStore,
   useEducationStore,
   useSkillsStore,
-  useAuthStore,
   useDbStore,
 } from './'
-import { Subscription } from '@supabase/supabase-js'
+import { useAuthListener } from '@/lib/hooks'
 
 /**
  * StoreProvider - Initializes all Zustand stores when the app starts
@@ -32,24 +31,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   const initProject = useProjectStore((state) => state.initialize)
   const initEducation = useEducationStore((state) => state.initialize)
   const initSkills = useSkillsStore((state) => state.initialize)
-  const initUser = useAuthStore((state) => state.initialize)
   const initDb = useDbStore((state) => state.initialize)
 
-  useEffect(() => {
-    let authSubscription: Subscription | null = null
-
-    const initAuth = async () => {
-      authSubscription = (await initUser()) || null
-    }
-
-    initAuth()
-
-    return () => {
-      if (authSubscription) {
-        authSubscription.unsubscribe()
-      }
-    }
-  }, [])
+  useAuthListener()
 
   useEffect(() => {
     initPersonalDetails()
