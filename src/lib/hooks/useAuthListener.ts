@@ -34,6 +34,7 @@ export function useAuthListener() {
             case 'INITIAL_SESSION':
             case 'SIGNED_IN':
             case 'TOKEN_REFRESHED':
+              await stopSync()
               await startSync(session)
               break
             case 'SIGNED_OUT':

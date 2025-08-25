@@ -14,8 +14,9 @@ import {
   isChangeMessage,
 } from '@electric-sql/client'
 import { API_ROUTES } from '@/lib/constants'
-import { useAuthStore } from './authStore'
 import { Session } from '@supabase/supabase-js'
+import { initializePersonalDetailsQuery } from '@/lib/sql'
+import { useAuthStore } from './authStore'
 
 type ElectricDb = PGlite & {
   electric: {
@@ -73,21 +74,6 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
   },
 }
 
-const initializePersonalDetailsQuery = `
-    CREATE TABLE IF NOT EXISTS personal_details (
-        id UUID PRIMARY KEY,
-        name TEXT,
-        email TEXT,
-        phone TEXT,
-        location TEXT,
-        linkedin TEXT,
-        github TEXT,
-        website TEXT,
-        updated_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ
-    );
-`
-
 const initializeTables = async (db: PGlite) => {
   try {
     await db.query(initializePersonalDetailsQuery)
@@ -123,8 +109,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       const session = useAuthStore.getState().session
 
-      // TODO: implement timed retry for sync
-      // Need way to see if connection exists to avoid spamming requests
       if (session) {
         await get().startSync(session)
       }
@@ -175,15 +159,23 @@ export const useDbStore = create<DbStore>((set, get) => ({
           table: config.table,
           primaryKey: config.primaryKey,
           shapeKey: config.shapeKey,
+          onMustRefetch: async (tx) => {
+            await tx.query(`DELETE FROM ${config.table}`)
+            console.info(`Local table ${config.table} was cleared`)
+          },
         })
 
         syncResult.stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
-            messages.forEach((msg) => {
-              if (isChangeMessage(msg)) {
-                console.log('Data updated: ', msg?.value)
-              } else console.log('No changes: ', msg)
-            })
+            if (Array.isArray(messages) && messages.length) {
+              messages.forEach(async (msg) => {
+                if (isChangeMessage(msg)) {
+                  console.info(
+                    `Table ${config.table} was synced with remote server`
+                  )
+                }
+              })
+            }
 
             set({
               connectionState: 'connected',

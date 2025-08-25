@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from '@electric-sql/client'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
-import { createError, createErrorResponse } from '@/lib/types/errors'
 
 // Testing
 // With auth: curl http://localhost:3000/api/shape-proxy
@@ -81,22 +80,15 @@ export async function GET(req: NextRequest) {
     originUrl.searchParams.set('where', '1=0') // Empty shape if unauthenticated
   }
 
+  // Don't handle errors here, handle within stream on client side
   const response = await fetch(originUrl.toString())
-
-  if (!response.ok) {
-    return NextResponse.json(
-      createErrorResponse([
-        createError('server', 'Electric server responded with an error.'),
-      ]),
-      { status: 500 }
-    )
-  }
 
   const newHeaders = new Headers(response.headers)
   newHeaders.set('Content-Type', 'application/json')
 
   return new NextResponse(response.body, {
     status: response.status,
+    statusText: response.statusText,
     headers: newHeaders,
   })
 }
