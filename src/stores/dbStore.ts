@@ -15,7 +15,10 @@ import {
 } from '@electric-sql/client'
 import { API_ROUTES } from '@/lib/constants'
 import { Session } from '@supabase/supabase-js'
-import { initializePersonalDetailsQuery } from '@/lib/sql'
+import {
+  initializePersonalDetailsChangelogQuery,
+  initializePersonalDetailsQuery,
+} from '@/lib/sql'
 import { useAuthStore } from './authStore'
 
 type ElectricDb = PGlite & {
@@ -72,11 +75,18 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'personal_details',
   },
+  personal_details_changes: {
+    table: 'personal_details_changes',
+    columns: ['id', 'operation', 'value', 'write_id', 'timestamp'],
+    primaryKey: ['id'],
+    shapeKey: 'personal_details_changes',
+  },
 }
 
 const initializeTables = async (db: PGlite) => {
   try {
     await db.query(initializePersonalDetailsQuery)
+    await db.query(initializePersonalDetailsChangelogQuery)
   } catch (error) {
     console.error('Failed to initialize DB tables:', error)
   }
@@ -168,8 +178,10 @@ export const useDbStore = create<DbStore>((set, get) => ({
         syncResult.stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
+              console.log('syncing table: ', config.table)
               messages.forEach(async (msg) => {
                 if (isChangeMessage(msg)) {
+                  // TODO: update app state with new data
                   console.info(
                     `Table ${config.table} was synced with remote server`
                   )

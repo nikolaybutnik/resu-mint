@@ -1,31 +1,21 @@
-import { STORAGE_KEYS } from '../constants'
 import { PersonalDetails } from '../types/personalDetails'
 import { personalDetailsSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import {
-  isAuthenticated,
-  waitForAuthReady,
-  readLocalEnvelope,
-  writeLocalEnvelope,
-  nowIso,
-} from './dataUtils'
-import { supabase } from '../supabase/client'
-import { useAuthStore } from '@/stores/authStore'
+import { nowIso } from './dataUtils'
 import {
   Result,
   Success,
   Failure,
-  createNetworkError,
-  createStorageError,
   createValidationError,
   createUnknownError,
-  createQuotaExceededError,
-  isQuotaExceededError,
-  isNetworkError,
-  OperationError,
 } from '../types/errors'
 import { useDbStore } from '@/stores'
-import { getPersonalDetailsQuery, upsertPersonalDetailsQuery } from '../sql'
+import {
+  getPersonalDetailsQuery,
+  insertPersonalDetailsChangelogQuery,
+  upsertPersonalDetailsQuery,
+} from '../sql'
+import { v4 as uuidv4 } from 'uuid'
 
 const CACHE_KEY = 'personalDetails'
 
@@ -46,22 +36,22 @@ class PersonalDetailsManager {
     return storedData
   }
 
-  // TODO: write to remote db?
   async save(data: PersonalDetails): Promise<Result<PersonalDetails>> {
+    const validation = personalDetailsSchema.safeParse(data)
+
+    if (!validation.success) {
+      return Failure(
+        createValidationError('Invalid personal details data', validation.error)
+      )
+    }
+
+    console.log('validated', validation)
+
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+
     try {
-      const validation = personalDetailsSchema.safeParse(data)
-
-      if (!validation.success) {
-        return Failure(
-          createValidationError(
-            'Invalid personal details data',
-            validation.error
-          )
-        )
-      }
-
-      const { db } = useDbStore.getState()
-
       await db?.query(upsertPersonalDetailsQuery, [
         data.id,
         data.name,
@@ -71,13 +61,22 @@ class PersonalDetailsManager {
         data.linkedin ?? '',
         data.github ?? '',
         data.website ?? '',
-        nowIso(),
+        timestamp,
       ])
 
-      return Success(validation.data)
+      await db?.query(insertPersonalDetailsChangelogQuery, [
+        'update',
+        JSON.stringify(data),
+        writeId,
+        timestamp,
+      ])
     } catch (error) {
-      return Failure(createUnknownError('Unexpected error during save', error))
+      return Failure(
+        createUnknownError('Failed to save personal details', error)
+      )
     }
+
+    return Success(validation.data)
   }
 
   invalidate() {
