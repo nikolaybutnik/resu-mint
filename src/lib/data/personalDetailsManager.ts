@@ -45,8 +45,6 @@ class PersonalDetailsManager {
       )
     }
 
-    console.log('validated', validation)
-
     const writeId = uuidv4()
     const timestamp = nowIso()
     const { db } = useDbStore.getState()

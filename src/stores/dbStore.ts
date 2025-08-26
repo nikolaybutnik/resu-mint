@@ -12,6 +12,7 @@ import {
   ShapeStreamInterface,
   Message,
   isChangeMessage,
+  ChangeMessage,
 } from '@electric-sql/client'
 import { API_ROUTES } from '@/lib/constants'
 import { Session } from '@supabase/supabase-js'
@@ -19,7 +20,30 @@ import {
   initializePersonalDetailsChangelogQuery,
   initializePersonalDetailsQuery,
 } from '@/lib/sql'
-import { useAuthStore } from './authStore'
+import { PersonalDetails } from '@/lib/types/personalDetails'
+import { useAuthStore, usePersonalDetailsStore } from './'
+
+const handlePersonalDetailsChange = (
+  msg: ChangeMessage<Row<unknown>>
+): void => {
+  // TODO: figure out how to update the form? if we have the form open during update,
+  // the UI updates, but form doesn't.
+  const setter = usePersonalDetailsStore.setState
+  switch (msg?.headers?.operation) {
+    case 'insert':
+      const insertedData = msg?.value as unknown as PersonalDetails
+      setter({ data: insertedData, hasData: !!insertedData })
+    case 'update':
+      const updatedData = msg?.value as unknown as Partial<PersonalDetails>
+      const currentState = usePersonalDetailsStore.getState()
+      const mergedData = { ...currentState.data, ...updatedData }
+      setter({ data: mergedData, hasData: !!mergedData })
+      break
+    case 'delete':
+      // TODO: handle delete scenario
+      break
+  }
+}
 
 type ElectricDb = PGlite & {
   electric: {
@@ -52,9 +76,9 @@ interface DbStore {
   initialize: () => Promise<void>
   startSync: (session: Session, tableNames?: string[]) => Promise<void>
   stopSync: () => Promise<void>
-  close: () => void
   registerTable: (config: TableSyncConfig) => void
   getStream: (tableName: string) => ShapeStreamInterface<Row<unknown>> | null
+  close: () => void
 }
 
 const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
@@ -178,13 +202,11 @@ export const useDbStore = create<DbStore>((set, get) => ({
         syncResult.stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
-              console.log('syncing table: ', config.table)
-              messages.forEach(async (msg) => {
+              messages.forEach((msg) => {
                 if (isChangeMessage(msg)) {
-                  // TODO: update app state with new data
-                  console.info(
-                    `Table ${config.table} was synced with remote server`
-                  )
+                  if (config.table === 'personal_details') {
+                    handlePersonalDetailsChange(msg)
+                  }
                 }
               })
             }

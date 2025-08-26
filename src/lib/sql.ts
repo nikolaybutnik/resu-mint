@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS personal_details_changes (
     operation TEXT NOT NULL, 
     value JSONB NOT NULL,
     write_id TEXT NOT NULL,
-    timestamp TEXT NOT NULL
+    timestamp TEXT NOT NULL,
+    synced BOOLEAN DEFAULT FALSE
 )
 `
 
