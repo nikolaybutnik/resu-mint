@@ -191,7 +191,9 @@ const PersonalDetails: React.FC = () => {
               className={`${styles.formInput} ${
                 state?.fieldErrors?.[field.name] ? styles.error : ''
               }`}
-              defaultValue={state.data?.[field.name] || ''}
+              defaultValue={
+                state.data?.[field.name] || personalDetails?.[field.name] || ''
+              }
               placeholder={field.placeholder}
             />
             {state?.fieldErrors?.[field.name] && (

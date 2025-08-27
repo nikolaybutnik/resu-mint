@@ -499,23 +499,25 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
               }`}
               ref={pdfContainerRef}
             >
-              <pdfComponents.Document
-                file={pdfBlob}
-                options={pdfComponents.options}
-                onLoadSuccess={onDocumentLoadSuccess}
-                onLoadError={onDocumentLoadError}
-                loading={
-                  <LoadingSpinner size='lg' text='Loading PDF viewer...' />
-                }
-              >
-                <pdfComponents.Page
-                  key={`page_${currentPage}`}
-                  pageNumber={currentPage}
-                  scale={zoom}
-                  renderTextLayer={false}
-                  renderAnnotationLayer={false}
-                />
-              </pdfComponents.Document>
+              {pdfComponents?.Document && pdfComponents?.Page && (
+                <pdfComponents.Document
+                  file={pdfBlob}
+                  options={pdfComponents.options}
+                  onLoadSuccess={onDocumentLoadSuccess}
+                  onLoadError={onDocumentLoadError}
+                  loading={
+                    <LoadingSpinner size='lg' text='Loading PDF viewer...' />
+                  }
+                >
+                  <pdfComponents.Page
+                    key={`page_${currentPage}`}
+                    pageNumber={currentPage}
+                    scale={zoom}
+                    renderTextLayer={false}
+                    renderAnnotationLayer={false}
+                  />
+                </pdfComponents.Document>
+              )}
             </div>
           )}
 

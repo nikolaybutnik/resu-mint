@@ -68,6 +68,11 @@ class PersonalDetailsManager {
         writeId,
         timestamp,
       ])
+
+      const writtenData = await db?.query(
+        'SELECT * FROM personal_details_changes'
+      )
+      console.log('written data: ', writtenData?.rows)
     } catch (error) {
       return Failure(
         createUnknownError('Failed to save personal details', error)

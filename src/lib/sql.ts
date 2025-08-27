@@ -8,8 +8,8 @@ CREATE TABLE IF NOT EXISTS personal_details (
     linkedin TEXT,
     github TEXT,
     website TEXT,
-    updated_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE
 );
 `
 
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS personal_details_changes (
     operation TEXT NOT NULL, 
     value JSONB NOT NULL,
     write_id TEXT NOT NULL,
-    timestamp TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
     synced BOOLEAN DEFAULT FALSE
 )
 `
@@ -38,9 +38,11 @@ SELECT id, name, email, phone, location, linkedin, github, website, updated_at
 
 export const upsertPersonalDetailsQuery = `
 INSERT INTO personal_details (id, name, email, phone, location, linkedin, github, website, updated_at)
-    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::timestamptz)
     ON CONFLICT (id) DO UPDATE 
-    SET name=$2, email=$3, phone=$4, location=$5, linkedin=$6, github=$7, website=$8, updated_at=$9
+    SET name=EXCLUDED.name, email=EXCLUDED.email, phone=EXCLUDED.phone, 
+        location=EXCLUDED.location, linkedin=EXCLUDED.linkedin, github=EXCLUDED.github, 
+        website=EXCLUDED.website, updated_at=EXCLUDED.updated_at
 `
 
 export const insertPersonalDetailsChangelogQuery = `

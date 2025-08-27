@@ -20,28 +20,22 @@ import {
   initializePersonalDetailsChangelogQuery,
   initializePersonalDetailsQuery,
 } from '@/lib/sql'
-import { PersonalDetails } from '@/lib/types/personalDetails'
-import { useAuthStore, usePersonalDetailsStore } from './'
-import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
+import { useAuthStore } from './'
+import {
+  pullRemoteChangesToLocal,
+  pushLocalChangesToRemote,
+} from '@/lib/data/dbUtils'
+import { dataManager } from '@/lib/data'
 
+// TODO: figure out why form is empty when initializing with fresh local db
 const handlePersonalDetailsChange = (
   msg: ChangeMessage<Row<unknown>>
 ): void => {
-  // TODO: figure out how to update the form? if we have the form open during update,
-  // the UI updates, but form doesn't.
-  const setter = usePersonalDetailsStore.setState
   switch (msg?.headers?.operation) {
     case 'insert':
-      const insertedData = msg?.value as unknown as PersonalDetails
-      setter({ data: insertedData, hasData: !!insertedData })
     case 'update':
-      const updatedData = msg?.value as unknown as Partial<PersonalDetails>
-      const currentState = usePersonalDetailsStore.getState()
-      const mergedData = { ...currentState.data, ...updatedData }
-      setter({ data: mergedData, hasData: !!mergedData })
-      break
     case 'delete':
-      // TODO: handle delete scenario
+      dataManager.getPersonalDetails()
       break
   }
 }
@@ -75,6 +69,7 @@ interface DbStore {
   activeStreams: Map<string, SyncShapeToTableResult>
   tableConfigs: Map<string, TableSyncConfig>
   pushSyncTimer: NodeJS.Timeout | null
+  pullSyncTimer: NodeJS.Timeout | null
   initialize: () => Promise<void>
   startSync: (session: Session, tableNames?: string[]) => Promise<void>
   stopSync: () => Promise<void>
@@ -83,6 +78,8 @@ interface DbStore {
   close: () => void
   startPushSync: (intervalMs?: number) => void
   stopPushSync: () => void
+  startPullSync: (intervalMs?: number) => void
+  stopPullSync: () => void
 }
 
 const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
@@ -102,12 +99,6 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     ],
     primaryKey: ['id'],
     shapeKey: 'personal_details',
-  },
-  personal_details_changes: {
-    table: 'personal_details_changes',
-    columns: ['id', 'operation', 'value', 'write_id', 'timestamp'],
-    primaryKey: ['id'],
-    shapeKey: 'personal_details_changes',
   },
 }
 
@@ -133,6 +124,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
   activeStreams: new Map(),
   tableConfigs: new Map(Object.entries(TABLE_CONFIGS)),
   pushSyncTimer: null,
+  pullSyncTimer: null,
 
   initialize: async () => {
     set({ initializing: true })
@@ -151,10 +143,12 @@ export const useDbStore = create<DbStore>((set, get) => ({
       if (session) {
         await get().startSync(session)
         get().startPushSync()
+        get().startPullSync()
       }
     } catch (error) {
       console.error('Database initialization failed:', error)
       set({ initializing: false, syncState: 'error' })
+      // TODO: If initialization fails, should we wipe the local db?
     }
   },
 
@@ -272,9 +266,9 @@ export const useDbStore = create<DbStore>((set, get) => ({
   },
 
   startPushSync: (intervalMs = 5000) => {
-    const currentInterval = get().pushSyncTimer
-    if (currentInterval) {
-      clearTimeout(currentInterval)
+    const currentTimer = get().pushSyncTimer
+    if (currentTimer) {
+      clearTimeout(currentTimer)
     }
 
     const scheduleNextSync = () => {
@@ -282,11 +276,11 @@ export const useDbStore = create<DbStore>((set, get) => ({
         try {
           await pushLocalChangesToRemote()
           set({ syncState: 'syncing' })
-          scheduleNextSync()
+          setTimeout(() => scheduleNextSync(), intervalMs)
         } catch (err) {
           console.error('Push sync error:', err)
           set({ syncState: 'error' })
-          setTimeout(scheduleNextSync, intervalMs)
+          setTimeout(() => scheduleNextSync(), intervalMs)
         }
       }, intervalMs)
 
@@ -300,6 +294,38 @@ export const useDbStore = create<DbStore>((set, get) => ({
     if (get().pushSyncTimer) {
       clearTimeout(get().pushSyncTimer!)
       set({ pushSyncTimer: null, syncState: 'idle' })
+    }
+  },
+
+  startPullSync: (intervalMs = 5000) => {
+    const currentTimer = get().pullSyncTimer
+    if (currentTimer) {
+      clearTimeout(currentTimer)
+    }
+
+    const scheduleNextSync = () => {
+      const timer = setTimeout(async () => {
+        try {
+          await pullRemoteChangesToLocal()
+          set({ syncState: 'syncing' })
+          setTimeout(() => scheduleNextSync(), intervalMs)
+        } catch (err) {
+          console.error('Push sync error:', err)
+          set({ syncState: 'error' })
+          setTimeout(() => scheduleNextSync(), intervalMs)
+        }
+      }, intervalMs)
+
+      set({ pullSyncTimer: timer })
+    }
+
+    scheduleNextSync()
+  },
+
+  stopPullSync: () => {
+    if (get().pullSyncTimer) {
+      clearTimeout(get().pullSyncTimer!)
+      set({ pullSyncTimer: null, syncState: 'idle' })
     }
   },
 
