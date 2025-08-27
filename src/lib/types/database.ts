@@ -246,6 +246,36 @@ export type Database = {
         }
         Relationships: []
       }
+      personal_details_changes: {
+        Row: {
+          id: number
+          operation: string
+          synced: boolean | null
+          timestamp: string | null
+          user_id: string | null
+          value: Json
+          write_id: string
+        }
+        Insert: {
+          id?: number
+          operation: string
+          synced?: boolean | null
+          timestamp?: string | null
+          user_id?: string | null
+          value: Json
+          write_id: string
+        }
+        Update: {
+          id?: number
+          operation?: string
+          synced?: boolean | null
+          timestamp?: string | null
+          user_id?: string | null
+          value?: Json
+          write_id?: string
+        }
+        Relationships: []
+      }
       project_bullets: {
         Row: {
           created_at: string | null

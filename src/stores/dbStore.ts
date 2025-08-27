@@ -22,6 +22,7 @@ import {
 } from '@/lib/sql'
 import { PersonalDetails } from '@/lib/types/personalDetails'
 import { useAuthStore, usePersonalDetailsStore } from './'
+import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
 
 const handlePersonalDetailsChange = (
   msg: ChangeMessage<Row<unknown>>
@@ -73,12 +74,15 @@ interface DbStore {
   connectionState: 'disconnected' | 'connecting' | 'connected' | 'error'
   activeStreams: Map<string, SyncShapeToTableResult>
   tableConfigs: Map<string, TableSyncConfig>
+  pushSyncTimer: NodeJS.Timeout | null
   initialize: () => Promise<void>
   startSync: (session: Session, tableNames?: string[]) => Promise<void>
   stopSync: () => Promise<void>
   registerTable: (config: TableSyncConfig) => void
   getStream: (tableName: string) => ShapeStreamInterface<Row<unknown>> | null
   close: () => void
+  startPushSync: (intervalMs?: number) => void
+  stopPushSync: () => void
 }
 
 const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
@@ -128,6 +132,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
   connectionState: 'disconnected',
   activeStreams: new Map(),
   tableConfigs: new Map(Object.entries(TABLE_CONFIGS)),
+  pushSyncTimer: null,
 
   initialize: async () => {
     set({ initializing: true })
@@ -145,6 +150,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       if (session) {
         await get().startSync(session)
+        get().startPushSync()
       }
     } catch (error) {
       console.error('Database initialization failed:', error)
@@ -265,9 +271,45 @@ export const useDbStore = create<DbStore>((set, get) => ({
     return syncResult?.stream || null
   },
 
+  startPushSync: (intervalMs = 5000) => {
+    const currentInterval = get().pushSyncTimer
+    if (currentInterval) {
+      clearTimeout(currentInterval)
+    }
+
+    const scheduleNextSync = () => {
+      const timer = setTimeout(async () => {
+        try {
+          await pushLocalChangesToRemote()
+          set({ syncState: 'syncing' })
+          scheduleNextSync()
+        } catch (err) {
+          console.error('Push sync error:', err)
+          set({ syncState: 'error' })
+          setTimeout(scheduleNextSync, intervalMs)
+        }
+      }, intervalMs)
+
+      set({ pushSyncTimer: timer })
+    }
+
+    scheduleNextSync()
+  },
+
+  stopPushSync: () => {
+    if (get().pushSyncTimer) {
+      clearTimeout(get().pushSyncTimer!)
+      set({ pushSyncTimer: null, syncState: 'idle' })
+    }
+  },
+
   close: async () => {
-    const { db } = get()
+    const { db, pushSyncTimer: pushSyncInterval } = get()
     if (!db) return
+
+    if (pushSyncInterval) {
+      clearTimeout(pushSyncInterval)
+    }
 
     try {
       await db.close()

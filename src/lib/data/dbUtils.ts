@@ -7,6 +7,7 @@ import type {
 } from '@/lib/types/experience'
 import { RawExperienceData } from '@/lib/types/experience'
 import { PostgrestError } from '@supabase/supabase-js'
+import { useDbStore } from '@/stores'
 
 export async function pullExperienceDbRecordToLocal(
   dbRecord: RawExperienceData,
@@ -72,6 +73,57 @@ export async function pushExperienceLocalRecordToDb(
         error instanceof Error
           ? error.message
           : new Error('Unknown error').message,
+    }
+  }
+}
+
+interface PersonalDetailsChange {
+  id: number
+  operation: string
+  value: Record<string, any>
+  write_id: string
+  timestamp: string
+  synced: boolean
+}
+
+// TODO: extend for other tables
+export const pushLocalChangesToRemote = async () => {
+  const { db } = useDbStore.getState()
+  if (!db) throw new Error('Local DB not initialized')
+
+  const unsyncedRows = await db.query<PersonalDetailsChange>(
+    `SELECT * FROM personal_details_changes WHERE synced = FALSE ORDER BY id ASC`
+  )
+
+  if (!unsyncedRows?.rows?.length) {
+    console.log('No new rows to sync')
+    return
+  }
+
+  for (const row of unsyncedRows.rows) {
+    try {
+      const { error } = await supabase.from('personal_details_changes').upsert(
+        {
+          user_id: (await supabase.auth.getUser()).data.user?.id,
+          operation: row.operation,
+          value: row.value,
+          write_id: row.write_id,
+          timestamp: row.timestamp,
+        },
+        { onConflict: 'write_id' }
+      )
+
+      if (error) {
+        console.error('Failed to push change to remote:', error)
+        continue
+      }
+
+      await db.query(
+        `UPDATE personal_details_changes SET synced = TRUE WHERE write_id = $1`,
+        [row.write_id]
+      )
+    } catch (err) {
+      console.error('Unexpected error pushing change:', err)
     }
   }
 }
