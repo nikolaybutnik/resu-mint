@@ -22,9 +22,11 @@ export default function Home() {
   const [isClient, setIsClient] = useState(false)
   const [previousUser, setPreviousUser] = useState<typeof user>(null)
 
+  // TODO: re-enable welcome experience when sync mechanism is completed
   useEffect(() => {
     setIsClient(true)
-    const state = shouldShowWelcomeExperience()
+    //   const state = shouldShowWelcomeExperience()
+    const state = { shouldShow: false, startStep: 0, completedSteps: [] }
     setWelcomeState(state)
   }, [])
 

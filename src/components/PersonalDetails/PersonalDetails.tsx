@@ -176,7 +176,7 @@ const PersonalDetails: React.FC = () => {
           Indicates a required field
         </div>
 
-        <input type='hidden' name='id' value={personalDetails.id} />
+        <input type='hidden' name='id' value={personalDetails.id || ''} />
         {formFields.map((field) => (
           <div key={field.name} className={styles.formField}>
             <label className={styles.label}>
@@ -191,9 +191,8 @@ const PersonalDetails: React.FC = () => {
               className={`${styles.formInput} ${
                 state?.fieldErrors?.[field.name] ? styles.error : ''
               }`}
-              defaultValue={
-                state.data?.[field.name] || personalDetails?.[field.name] || ''
-              }
+              key={`${field.name}-${personalDetails.id || 'empty'}`}
+              defaultValue={personalDetails?.[field.name] ?? ''}
               placeholder={field.placeholder}
             />
             {state?.fieldErrors?.[field.name] && (

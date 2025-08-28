@@ -8,6 +8,8 @@ import type {
 import { RawExperienceData } from '@/lib/types/experience'
 import { PostgrestError } from '@supabase/supabase-js'
 import { useDbStore } from '@/stores'
+import type { PersonalDetails } from '@/lib/types/personalDetails'
+import type { Json } from '@/lib/types/database'
 
 export async function pullExperienceDbRecordToLocal(
   dbRecord: RawExperienceData,
@@ -79,8 +81,8 @@ export async function pushExperienceLocalRecordToDb(
 
 interface PersonalDetailsChange {
   id: number
-  operation: string
-  value: Record<string, any>
+  operation: 'insert' | 'update' | 'delete'
+  value: PersonalDetails
   write_id: string
   timestamp: string
   synced: boolean
@@ -95,10 +97,7 @@ export const pushLocalChangesToRemote = async () => {
     'SELECT * FROM personal_details_changes WHERE synced = FALSE ORDER BY id ASC'
   )
 
-  if (!unsyncedRows?.rows?.length) {
-    // console.log('No new rows to sync')
-    return
-  }
+  if (!unsyncedRows?.rows?.length) return
 
   for (const row of unsyncedRows.rows) {
     try {
@@ -106,7 +105,7 @@ export const pushLocalChangesToRemote = async () => {
         {
           user_id: (await supabase.auth.getUser()).data.user?.id,
           operation: row.operation,
-          value: row.value,
+          value: row.value as unknown as Json,
           write_id: row.write_id,
           timestamp: row.timestamp,
         },
@@ -130,6 +129,14 @@ export const pushLocalChangesToRemote = async () => {
 }
 
 // TODO: extend for other tables
+// TODO: BUG - this onyl works if I'm logged in in both browsers.
+// If I update some data in one browser without other active connections:
+// 1. Data is written to local db
+// 2. Data is written to local changelog
+// 3. Changelog is pushed up to remote db and marked synced locally
+// 4. Changelog is pulled down. Since the write originated locally, the remote change is marked synced.
+// 5. Local changelog row is deleted.
+// PROBLEM: personal_details is NEVER UPDATED. Remote db is out of date.
 export const pullRemoteChangesToLocal = async () => {
   const { db } = useDbStore.getState()
   if (!db) throw new Error('Local DB not initialized')
@@ -142,77 +149,80 @@ export const pullRemoteChangesToLocal = async () => {
       ascending: true,
     })
 
-  const localRows = await db.query<PersonalDetailsChange>(
-    'SELECT * FROM personal_details_changes ORDER BY id ASC'
+  if (error) {
+    console.error('Failed to pull remote changes:', error)
+    return
+  }
+
+  if (!remoteUnsyncedRows?.length) return
+
+  // local write_ids are used to identify "our" locally-originated writes
+  const localWriteIdsRes = await db.query<{ write_id: string }>(
+    'SELECT write_id FROM personal_details_changes'
   )
-  const markedLocalRowsForDeletion: string[] = []
-  const markedRemoteRowsForDeletion: string[] = []
+  const localWriteIds = new Set(localWriteIdsRes.rows.map((r) => r.write_id))
 
-  if (remoteUnsyncedRows) {
-    for (const remoteRow of remoteUnsyncedRows) {
-      try {
-        // if local rows contain any number of entries with same write_id as remote row,
-        // mark all the local rows for deletion. Mark remote row for deletion
-        // const syncedLocalRows = localRows?.rows.filter(
-        //   (localRow) => localRow.write_id === remoteRow.write_id
-        // )
+  const ourWrites: string[] = []
+  const foreignWrites: string[] = []
 
-        // TODO: i can probably get rid of synced in the personal_details_changes
-        // since i don't plan to keep a record of them.
-        // alternatively, i could keep it, marked the rows as synced,
-        // and do a periodic cleanup of the remote table.
-        const { syncedLocalRows, remainingLocalRows } = localRows?.rows.reduce(
-          (acc, localRow) => {
-            if (localRow.write_id === remoteRow.write_id) {
-              acc.syncedLocalRows.push(localRow)
-            } else {
-              acc.remainingLocalRows.push(localRow)
-            }
-            return acc
-          },
-          {
-            syncedLocalRows: [] as PersonalDetailsChange[],
-            remainingLocalRows: [] as PersonalDetailsChange[],
-          }
-        )
+  for (const remote of remoteUnsyncedRows) {
+    if (localWriteIds.has(remote.write_id)) {
+      ourWrites.push(remote.write_id)
+    } else {
+      foreignWrites.push(remote.write_id)
+    }
+  }
 
-        // TODO: remainingLocalRows should be written as an update
-        console.log('syncedLocalRows', syncedLocalRows)
-        console.log('remainingLocalRows', remainingLocalRows)
+  if (ourWrites.length) {
+    const placeholders = ourWrites.map((_, i) => `$${i + 1}`).join(',')
 
-        if (syncedLocalRows.length) {
-          markedLocalRowsForDeletion.push(remoteRow.write_id)
-          markedRemoteRowsForDeletion.push(remoteRow.write_id)
-        }
-      } catch (error) {
-        console.error('Unexpected error pulling change:', error)
-      }
+    try {
+      await db.query(
+        `DELETE FROM personal_details_changes WHERE write_id IN (${placeholders})`,
+        ourWrites
+      )
+    } catch (error) {
+      console.error('Failed to delete local queued rows: ', error)
     }
 
-    if (markedLocalRowsForDeletion.length) {
-      console.log('delete local rows: ', markedLocalRowsForDeletion)
-      try {
-        const placeholders = markedLocalRowsForDeletion
-          .map((_, i) => `$${i + 1}`)
-          .join(',')
-        await db.query(
-          `DELETE FROM personal_details_changes WHERE write_id IN (${placeholders})`,
-          markedLocalRowsForDeletion
-        )
-      } catch (error) {
-        console.error('Failed to delete local rows: ', error)
-      }
+    // TODO: delete synced rows later?
+    const { error: upstreamError } = await supabase
+      .from('personal_details_changes')
+      .update({ synced: true })
+      .in('write_id', ourWrites)
+
+    if (upstreamError) {
+      console.error('Failed to synchronize with remote server: ', upstreamError)
+    }
+  }
+
+  if (foreignWrites.length) {
+    const { error: upstreamError } = await supabase
+      .from('personal_details_changes')
+      .update({ synced: true })
+      .in('write_id', foreignWrites)
+
+    if (upstreamError) {
+      console.error('Failed to synchronize with remote server: ', upstreamError)
     }
 
-    if (markedRemoteRowsForDeletion.length) {
-      console.log('delete remote rows: ', markedRemoteRowsForDeletion)
-      const { error } = await supabase
-        .from('personal_details_changes')
-        .delete()
-        .in('write_id', markedRemoteRowsForDeletion)
+    const foreignDataToInsert = remoteUnsyncedRows
+      .filter((row) => foreignWrites.includes(row.write_id))
+      .map((row) => row.value) as unknown as PersonalDetails[]
+    // Write to remote, Electric will sync down from there
+    for (const entry of foreignDataToInsert) {
+      const { error } = await supabase.rpc('upsert_personal_details', {
+        p_name: entry.name,
+        p_email: entry.email,
+        p_github: entry.github || '',
+        p_linkedin: entry.linkedin || '',
+        p_location: entry.location || '',
+        p_phone: entry.phone || '',
+        p_website: entry.website || '',
+      })
 
       if (error) {
-        console.error('Failed to delete remote rows: ', error)
+        console.error('Failed to write new data to remote server: ', error)
       }
     }
   }

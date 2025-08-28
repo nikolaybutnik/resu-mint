@@ -5,7 +5,26 @@ import { AuthChangeEvent, Session, Subscription } from '@supabase/supabase-js'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
-  const { startSync, stopSync } = useDbStore()
+  const {
+    startSync,
+    stopSync,
+    startPullSync,
+    stopPullSync,
+    startPushSync,
+    stopPushSync,
+  } = useDbStore()
+
+  const startAllServices = async (session: Session) => {
+    await startSync(session)
+    startPullSync()
+    startPushSync()
+  }
+
+  const stopAllServices = async () => {
+    await stopSync()
+    stopPullSync()
+    stopPushSync()
+  }
 
   useEffect(() => {
     let authSubscription: Subscription | null = null
@@ -22,7 +41,7 @@ export function useAuthListener() {
       async (event: AuthChangeEvent, session: Session | null) => {
         try {
           if (!session) {
-            stopSync()
+            await stopAllServices()
             return
           }
 
@@ -34,11 +53,11 @@ export function useAuthListener() {
             case 'INITIAL_SESSION':
             case 'SIGNED_IN':
             case 'TOKEN_REFRESHED':
-              await stopSync()
-              await startSync(session)
+              await stopAllServices()
+              await startAllServices(session)
               break
             case 'SIGNED_OUT':
-              stopSync()
+              await stopAllServices()
               break
           }
         } catch (error) {
@@ -51,14 +70,22 @@ export function useAuthListener() {
       if (authSubscription) authSubscription.unsubscribe()
       subscription.unsubscribe()
     }
-  }, [initUser, startSync, stopSync])
+  }, [
+    initUser,
+    startSync,
+    stopSync,
+    startPullSync,
+    stopPullSync,
+    startPushSync,
+    stopPushSync,
+  ])
 
   // Clean up sync when tab/window closes
   useEffect(() => {
-    const handleUnload = () => stopSync()
+    const handleUnload = () => stopAllServices()
     window.addEventListener('beforeunload', handleUnload)
     return () => window.removeEventListener('beforeunload', handleUnload)
-  }, [stopSync])
+  }, [stopAllServices])
 
   return null
 }

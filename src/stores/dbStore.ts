@@ -25,17 +25,18 @@ import {
   pullRemoteChangesToLocal,
   pushLocalChangesToRemote,
 } from '@/lib/data/dbUtils'
-import { dataManager } from '@/lib/data'
+import { usePersonalDetailsStore } from './'
 
 // TODO: figure out why form is empty when initializing with fresh local db
 const handlePersonalDetailsChange = (
-  msg: ChangeMessage<Row<unknown>>
+  msg: ChangeMessage<Row<unknown>>,
+  callback: () => Promise<void>
 ): void => {
   switch (msg?.headers?.operation) {
     case 'insert':
     case 'update':
     case 'delete':
-      dataManager.getPersonalDetails()
+      callback()
       break
   }
 }
@@ -160,6 +161,8 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
   startSync: async (session: Session, tableNames?: string[]) => {
     const { db, activeStreams, tableConfigs } = get()
+    const { refresh: refreshPersonalDetails } =
+      usePersonalDetailsStore.getState()
     if (!db) return
 
     set({ connectionState: 'connecting' })
@@ -205,7 +208,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
               messages.forEach((msg) => {
                 if (isChangeMessage(msg)) {
                   if (config.table === 'personal_details') {
-                    handlePersonalDetailsChange(msg)
+                    handlePersonalDetailsChange(msg, refreshPersonalDetails)
                   }
                 }
               })

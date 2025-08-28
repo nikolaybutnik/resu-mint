@@ -23,7 +23,7 @@ class PersonalDetailsManager {
   private cache = new Map<string, Promise<unknown>>()
 
   async get(): Promise<PersonalDetails> {
-    let { db } = useDbStore.getState()
+    const { db } = useDbStore.getState()
 
     const data = await db?.query<PersonalDetails>(getPersonalDetailsQuery)
 
@@ -68,11 +68,6 @@ class PersonalDetailsManager {
         writeId,
         timestamp,
       ])
-
-      const writtenData = await db?.query(
-        'SELECT * FROM personal_details_changes'
-      )
-      console.log('written data: ', writtenData?.rows)
     } catch (error) {
       return Failure(
         createUnknownError('Failed to save personal details', error)
