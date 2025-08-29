@@ -1,0 +1,1 @@
+DROP TABLE IF EXISTS personal_details_changes

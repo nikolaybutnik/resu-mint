@@ -5,24 +5,15 @@ import { AuthChangeEvent, Session, Subscription } from '@supabase/supabase-js'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
-  const {
-    startSync,
-    stopSync,
-    startPullSync,
-    stopPullSync,
-    startPushSync,
-    stopPushSync,
-  } = useDbStore()
+  const { startSync, stopSync, startPushSync, stopPushSync } = useDbStore()
 
   const startAllServices = async (session: Session) => {
     await startSync(session)
-    startPullSync()
     startPushSync()
   }
 
   const stopAllServices = async () => {
     await stopSync()
-    stopPullSync()
     stopPushSync()
   }
 
@@ -45,16 +36,15 @@ export function useAuthListener() {
             return
           }
 
-          // Avoid double-starting sync if already online
           const dbState = useDbStore.getState()
-          if (dbState.isOnline) return
 
           switch (event) {
             case 'INITIAL_SESSION':
             case 'SIGNED_IN':
             case 'TOKEN_REFRESHED':
-              await stopAllServices()
-              await startAllServices(session)
+              if (!dbState.isOnline) {
+                await startAllServices(session)
+              }
               break
             case 'SIGNED_OUT':
               await stopAllServices()
@@ -70,15 +60,7 @@ export function useAuthListener() {
       if (authSubscription) authSubscription.unsubscribe()
       subscription.unsubscribe()
     }
-  }, [
-    initUser,
-    startSync,
-    stopSync,
-    startPullSync,
-    stopPullSync,
-    startPushSync,
-    stopPushSync,
-  ])
+  }, [initUser, startSync, stopSync, startPushSync, stopPushSync])
 
   // Clean up sync when tab/window closes
   useEffect(() => {
