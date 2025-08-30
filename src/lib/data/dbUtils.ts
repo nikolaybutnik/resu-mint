@@ -11,6 +11,7 @@ import { useDbStore } from '@/stores'
 import type { PersonalDetails } from '@/lib/types/personalDetails'
 import { ElectricDb } from '@/stores/dbStore'
 import {
+  cleanUpSyncedChangelogEntriesQuery,
   selectUnsyncedRowsQuery,
   updatePersonalDetailChangelogQuery,
 } from '../sql'
@@ -83,6 +84,10 @@ export async function pushExperienceLocalRecordToDb(
   }
 }
 
+// TODO: there's a problem with this approach.
+// If the user make rapid changes, the database takes a bit of time to update, and the
+// updated timestamp comes back as being more recent than some of the local changes,
+// causing the local changes to be discarded, although technically they're newer.
 const syncWithAtomicity = async (
   db: ElectricDb | null,
   row: PersonalDetailsChange
@@ -93,6 +98,29 @@ const syncWithAtomicity = async (
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
+      const { data: serverData } = await supabase
+        .from('personal_details')
+        .select('updated_at')
+        .single()
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(row.timestamp || 0).getTime()
+
+        // If local data is NOT newer than server, delete it (server is source of truth)
+        if (serverTime >= localTime) {
+          console.info('Local data is stale, removing from changelog')
+          // TODO: notify client via toast
+          await db.query(updatePersonalDetailChangelogQuery, [
+            true,
+            row.write_id,
+          ])
+          return
+        }
+      } else {
+        console.info('No server data found, proceeding with local changes')
+      }
+
       const { error: pushError } = await supabase.rpc(
         'upsert_personal_details',
         {
@@ -162,4 +190,7 @@ export const pushLocalChangesToRemote = async () => {
       console.error('Failed to sync row:', row.write_id, error)
     }
   }
+
+  // TODO: Create a daily job for cleanup?
+  await db.query(cleanUpSyncedChangelogEntriesQuery)
 }

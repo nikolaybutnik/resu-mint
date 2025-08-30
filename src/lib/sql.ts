@@ -55,5 +55,9 @@ UPDATE personal_details_changes SET synced = $1 WHERE write_id = $2
 `
 
 export const selectUnsyncedRowsQuery = `
-SELECT * FROM personal_details_changes WHERE synced = FALSE ORDER BY id ASC
+SELECT * FROM personal_details_changes WHERE synced = FALSE ORDER BY timestamp ASC
+`
+
+export const cleanUpSyncedChangelogEntriesQuery = `
+DELETE FROM personal_details_changes WHERE synced = TRUE AND timestamp < NOW() - INTERVAL '7 days'
 `

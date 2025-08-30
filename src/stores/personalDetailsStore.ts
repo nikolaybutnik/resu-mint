@@ -73,7 +73,6 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
     refresh: async () => {
       try {
         set({ loading: true })
-        dataManager.invalidatePersonalDetails()
         const data = await dataManager.getPersonalDetails()
         set({
           data,

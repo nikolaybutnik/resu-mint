@@ -126,7 +126,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
         hasSyncedExperience: false,
       })
       // Invalidate caches on logout so next read uses local-only path cleanly
-      personalDetailsManager.invalidate()
       experienceManager.invalidate()
 
       return { error: null }
@@ -160,7 +159,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
           loading: false,
           hasSyncedExperience: false,
         })
-        personalDetailsManager.invalidate()
         experienceManager.invalidate()
       }
 

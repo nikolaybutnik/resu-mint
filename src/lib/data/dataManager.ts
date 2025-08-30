@@ -33,10 +33,6 @@ class DataManager {
     return personalDetailsManager.save(data)
   }
 
-  invalidatePersonalDetails() {
-    personalDetailsManager.invalidate()
-  }
-
   // Job Details
   async getJobDetails(): Promise<JobDetails> {
     return jobDetailsManager.get()

@@ -16,12 +16,7 @@ import {
   upsertPersonalDetailsQuery,
 } from '../sql'
 import { v4 as uuidv4 } from 'uuid'
-
-const CACHE_KEY = 'personalDetails'
-
 class PersonalDetailsManager {
-  private cache = new Map<string, Promise<unknown>>()
-
   async get(): Promise<PersonalDetails> {
     const { db } = useDbStore.getState()
 
@@ -75,10 +70,6 @@ class PersonalDetailsManager {
     }
 
     return Success(validation.data)
-  }
-
-  invalidate() {
-    this.cache.delete(CACHE_KEY)
   }
 }
 

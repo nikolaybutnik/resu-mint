@@ -12,7 +12,6 @@ import {
   ShapeStreamInterface,
   Message,
   isChangeMessage,
-  ChangeMessage,
 } from '@electric-sql/client'
 import { API_ROUTES } from '@/lib/constants'
 import { Session } from '@supabase/supabase-js'
@@ -23,23 +22,6 @@ import {
 import { useAuthStore } from './'
 import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
 import { usePersonalDetailsStore } from './'
-
-const handlePersonalDetailsChange = (
-  msg: ChangeMessage<Row<unknown>>,
-  callback: () => Promise<void>,
-  syncResult: SyncShapeToTableResult
-): void => {
-  console.log('sync result', syncResult)
-  switch (msg?.headers?.operation) {
-    case 'insert':
-    case 'update':
-    case 'delete':
-      setTimeout(() => {
-        callback()
-      }, 200)
-      break
-  }
-}
 
 export type ElectricDb = PGlite & {
   electric: {
@@ -205,13 +187,8 @@ export const useDbStore = create<DbStore>((set, get) => ({
             if (Array.isArray(messages) && messages.length) {
               messages.forEach((msg) => {
                 if (isChangeMessage(msg)) {
-                  console.log(msg)
                   if (config.table === 'personal_details') {
-                    handlePersonalDetailsChange(
-                      msg,
-                      refreshPersonalDetails,
-                      syncResult
-                    )
+                    setTimeout(() => refreshPersonalDetails(), 200)
                   }
                 }
               })
@@ -271,7 +248,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     return syncResult?.stream || null
   },
 
-  startPushSync: (intervalMs = 5000) => {
+  startPushSync: (intervalMs = 10000) => {
     const currentTimer = get().pushSyncTimer
     if (currentTimer) {
       clearTimeout(currentTimer)
