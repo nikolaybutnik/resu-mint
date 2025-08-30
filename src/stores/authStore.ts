@@ -1,6 +1,5 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
-import { personalDetailsManager } from '@/lib/data/personalDetailsManager'
 import { STORAGE_KEYS } from '@/lib/constants'
 import {
   readLocalEnvelope,

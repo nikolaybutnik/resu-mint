@@ -95,6 +95,7 @@ const syncWithAtomicity = async (
   if (!db) throw new Error('Local DB not initialized')
 
   const maxRetries = 3
+  const TOLERANCE_MS = 30000 // 30 seconds tolerance between client and server
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -106,16 +107,22 @@ const syncWithAtomicity = async (
       if (serverData?.updated_at) {
         const serverTime = new Date(serverData.updated_at).getTime()
         const localTime = new Date(row.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
 
-        // If local data is NOT newer than server, delete it (server is source of truth)
-        if (serverTime >= localTime) {
-          console.info('Local data is stale, removing from changelog')
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          console.info(
+            'Local data is stale (beyond tolerance), removing from changelog'
+          )
           // TODO: notify client via toast
           await db.query(updatePersonalDetailChangelogQuery, [
             true,
             row.write_id,
           ])
           return
+        } else if (serverTime > localTime && timeDiff <= TOLERANCE_MS) {
+          console.info(
+            'Server slightly ahead within tolerance - pushing local changes'
+          )
         }
       } else {
         console.info('No server data found, proceeding with local changes')
