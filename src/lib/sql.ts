@@ -49,3 +49,11 @@ export const insertPersonalDetailsChangelogQuery = `
 INSERT INTO personal_details_changes (operation, value, write_id, timestamp)
     VALUES ($1, $2, $3, $4)
 `
+
+export const updatePersonalDetailChangelogQuery = `
+UPDATE personal_details_changes SET synced = $1 WHERE write_id = $2
+`
+
+export const selectUnsyncedRowsQuery = `
+SELECT * FROM personal_details_changes WHERE synced = FALSE ORDER BY id ASC
+`

@@ -9,6 +9,11 @@ import { RawExperienceData } from '@/lib/types/experience'
 import { PostgrestError } from '@supabase/supabase-js'
 import { useDbStore } from '@/stores'
 import type { PersonalDetails } from '@/lib/types/personalDetails'
+import { ElectricDb } from '@/stores/dbStore'
+import {
+  selectUnsyncedRowsQuery,
+  updatePersonalDetailChangelogQuery,
+} from '../sql'
 
 export async function pullExperienceDbRecordToLocal(
   dbRecord: RawExperienceData,
@@ -78,6 +83,52 @@ export async function pushExperienceLocalRecordToDb(
   }
 }
 
+const syncWithAtomicity = async (
+  db: ElectricDb | null,
+  row: PersonalDetailsChange
+): Promise<void> => {
+  if (!db) throw new Error('Local DB not initialized')
+
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const { error: pushError } = await supabase.rpc(
+        'upsert_personal_details',
+        {
+          p_name: row.value.name,
+          p_email: row.value.email,
+          p_phone: row.value.phone || '',
+          p_location: row.value.location || '',
+          p_linkedin: row.value.linkedin || '',
+          p_github: row.value.github || '',
+          p_website: row.value.website || '',
+        }
+      )
+
+      if (pushError) throw pushError
+
+      await db.query(updatePersonalDetailChangelogQuery, [true, row.write_id])
+
+      return
+    } catch (error) {
+      console.error(`Sync attempt ${attempt + 1} failed:`, error)
+
+      if (attempt === maxRetries - 1) {
+        await db.query(updatePersonalDetailChangelogQuery, [
+          false,
+          row.write_id,
+        ])
+        throw error
+      }
+
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 interface PersonalDetailsChange {
   id: number
   operation: 'insert' | 'update' | 'delete'
@@ -97,37 +148,18 @@ export const pushLocalChangesToRemote = async () => {
   }
 
   const unsyncedRows = await db.query<PersonalDetailsChange>(
-    'SELECT * FROM personal_details_changes WHERE synced = FALSE ORDER BY id ASC'
+    selectUnsyncedRowsQuery
   )
 
   if (!unsyncedRows?.rows?.length) return
 
   for (const row of unsyncedRows.rows) {
-    if (row.operation !== 'update') return
+    if (row.operation !== 'update') continue
 
     try {
-      const { error } = await supabase.rpc('upsert_personal_details', {
-        p_name: row.value.name,
-        p_email: row.value.email,
-        p_phone: row.value.phone || '',
-        p_location: row.value.location || '',
-        p_linkedin: row.value.linkedin || '',
-        p_github: row.value.github || '',
-        p_website: row.value.website || '',
-      })
-
-      if (error) {
-        console.error('Failed to push change to remote:', error)
-        // Don't mark as synced if there was an error
-        continue
-      }
-
-      await db.query(
-        `UPDATE personal_details_changes SET synced = TRUE WHERE write_id = $1`,
-        [row.write_id]
-      )
+      await syncWithAtomicity(db, row)
     } catch (error) {
-      console.error('Unexpected error during data sync:', error)
+      console.error('Failed to sync row:', row.write_id, error)
     }
   }
 }

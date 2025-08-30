@@ -41,7 +41,7 @@ const handlePersonalDetailsChange = (
   }
 }
 
-type ElectricDb = PGlite & {
+export type ElectricDb = PGlite & {
   electric: {
     initMetadataTables: () => Promise<void>
     syncShapesToTables: (
