@@ -3,13 +3,9 @@ import { ELECTRIC_PROTOCOL_QUERY_PARAMS } from '@electric-sql/client'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// Testing
-// With auth: curl http://localhost:3000/api/shape-proxy
-// Straight to electric: curl "http://localhost:3001/v1/shape?table=personal_details&offset=-1"
-
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
-  const originUrl = new URL(`${process.env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`)
+  const originUrl = new URL(`${process.env.ELECTRIC_HTTP_BASE}/v1/shape`)
 
   // Forward Electric params from client
   // [ 'live', 'handle', 'offset', 'cursor' ]
@@ -81,7 +77,12 @@ export async function GET(req: NextRequest) {
   }
 
   // Don't handle errors here, handle within stream on client side
-  const response = await fetch(originUrl.toString())
+  const response = await fetch(originUrl.toString(), {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${process.env.ELECTRIC_SECRET}`,
+    },
+  })
 
   const newHeaders = new Headers(response.headers)
   newHeaders.set('Content-Type', 'application/json')
