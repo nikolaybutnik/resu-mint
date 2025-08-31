@@ -84,10 +84,6 @@ export async function pushExperienceLocalRecordToDb(
   }
 }
 
-// TODO: there's a problem with this approach.
-// If the user make rapid changes, the database takes a bit of time to update, and the
-// updated timestamp comes back as being more recent than some of the local changes,
-// causing the local changes to be discarded, although technically they're newer.
 const syncWithAtomicity = async (
   db: ElectricDb | null,
   row: PersonalDetailsChange

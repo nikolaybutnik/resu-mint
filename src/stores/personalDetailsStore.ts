@@ -3,6 +3,7 @@ import { dataManager } from '@/lib/data/dataManager'
 import { PersonalDetails } from '@/lib/types/personalDetails'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { OperationError } from '@/lib/types/errors'
+import { debounce, isEqual } from 'lodash'
 
 interface PersonalDetailsStore {
   data: PersonalDetails
@@ -15,83 +16,110 @@ interface PersonalDetailsStore {
   initialize: () => Promise<void>
   hasChanges: (newData: PersonalDetails) => boolean
   clearError: () => void
+  cleanup: () => void
 }
 
+let debouncedSave: ReturnType<typeof debounce> | null = null
+
 export const usePersonalDetailsStore = create<PersonalDetailsStore>(
-  (set, get) => ({
-    data: DEFAULT_STATE_VALUES.PERSONAL_DETAILS,
-    loading: false,
-    initializing: true,
-    hasData: false,
-    error: null,
+  (set, get) => {
+    if (!debouncedSave) {
+      debouncedSave = debounce(async (details: PersonalDetails) => {
+        const currentState = get()
 
-    initialize: async () => {
-      set({ loading: true })
-      try {
-        const data = await dataManager.getPersonalDetails()
-        set({
-          data,
-          loading: false,
-          initializing: false,
-          hasData: !!data?.name?.trim() && !!data?.email?.trim(),
-        })
-      } catch (error) {
-        console.error('PersonalDetailsStore: initialization error:', error)
-        set({ loading: false, initializing: false })
-      }
-    },
+        set({ loading: true, error: null })
 
-    save: async (details) => {
-      const currentState = get()
+        const result = await dataManager.savePersonalDetails(details)
 
-      if (!currentState.hasChanges(details)) {
-        return { error: null }
-      }
+        if (result.success) {
+          set({
+            data: result.data,
+            loading: false,
+            hasData:
+              !!result.data?.name?.trim() && !!result.data?.email?.trim(),
+            error: result.warning || null,
+          })
+        } else {
+          set({
+            loading: false,
+            data: currentState.data,
+            error: result.error,
+          })
+        }
+      }, 1000)
+    }
 
-      set({ loading: true, error: null })
+    return {
+      data: DEFAULT_STATE_VALUES.PERSONAL_DETAILS,
+      loading: false,
+      initializing: true,
+      hasData: false,
+      error: null,
 
-      const result = await dataManager.savePersonalDetails(details)
-
-      if (result.success) {
-        set({
-          data: result.data,
-          loading: false,
-          hasData: !!result.data?.name?.trim() && !!result.data?.email?.trim(),
-          error: result.warning || null,
-        })
-        return { error: result.warning || null }
-      } else {
-        set({
-          loading: false,
-          data: currentState.data,
-          error: result.error,
-        })
-        return { error: result.error }
-      }
-    },
-
-    refresh: async () => {
-      try {
+      initialize: async () => {
         set({ loading: true })
-        const data = await dataManager.getPersonalDetails()
+        try {
+          const data = await dataManager.getPersonalDetails()
+          set({
+            data,
+            loading: false,
+            initializing: false,
+            hasData: !!data?.name?.trim() && !!data?.email?.trim(),
+          })
+        } catch (error) {
+          console.error('PersonalDetailsStore: initialization error:', error)
+          set({ loading: false, initializing: false })
+        }
+      },
+
+      save: async (details) => {
+        const currentState = get()
+
+        if (!currentState.hasChanges(details)) {
+          return { error: null }
+        }
+
+        // Optimistic UI update
         set({
-          data,
-          loading: false,
-          hasData: !!data?.name?.trim() && !!data?.email?.trim(),
+          data: details,
+          hasData: !!details?.name?.trim() && !!details?.email?.trim(),
+          error: null,
         })
-      } catch (error) {
-        console.error('PersonalDetailsStore: refresh error:', error)
-        set({ loading: false })
-      }
-    },
 
-    hasChanges: (newData) => {
-      const currentData = get().data
-      return JSON.stringify(currentData) !== JSON.stringify(newData)
-    },
+        debouncedSave?.(details)
 
-    clearError: () => {
-      set({ error: null })
-    },
-  })
+        return { error: null }
+      },
+
+      refresh: async () => {
+        try {
+          set({ loading: true })
+          const data = await dataManager.getPersonalDetails()
+          set({
+            data,
+            loading: false,
+            hasData: !!data?.name?.trim() && !!data?.email?.trim(),
+          })
+        } catch (error) {
+          console.error('PersonalDetailsStore: refresh error:', error)
+          set({ loading: false })
+        }
+      },
+
+      hasChanges: (newData) => {
+        const currentData = get().data
+        return !isEqual(currentData, newData)
+      },
+
+      clearError: () => {
+        set({ error: null })
+      },
+
+      cleanup: () => {
+        if (debouncedSave?.cancel) {
+          debouncedSave.cancel()
+        }
+      },
+    }
+  }
 )

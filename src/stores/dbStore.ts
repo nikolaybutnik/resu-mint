@@ -170,7 +170,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
               Authorization: `Bearer ${session?.access_token || ''}`,
             },
             onError: (error) => {
-              console.log('Electric error:', error)
+              console.error('Electric error:', error)
             },
           },
           table: config.table,

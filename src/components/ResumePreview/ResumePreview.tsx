@@ -492,14 +492,16 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
         />
 
         <div className={styles.previewContent} ref={previewContentRef}>
-          {pdfBlob && pdfjsReady && pdfComponents && (
-            <div
-              className={`${styles.pdfContainer} ${
-                fitToWidth ? styles.fitToWidth : ''
-              }`}
-              ref={pdfContainerRef}
-            >
-              {pdfComponents?.Document && pdfComponents?.Page && (
+          {pdfBlob &&
+            pdfjsReady &&
+            pdfComponents?.Document &&
+            pdfComponents?.Page && (
+              <div
+                className={`${styles.pdfContainer} ${
+                  fitToWidth ? styles.fitToWidth : ''
+                }`}
+                ref={pdfContainerRef}
+              >
                 <pdfComponents.Document
                   file={pdfBlob}
                   options={pdfComponents.options}
@@ -517,9 +519,8 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
                     renderAnnotationLayer={false}
                   />
                 </pdfComponents.Document>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
           {!pdfjsReady && !error && (
             <div className={styles.emptyState}>

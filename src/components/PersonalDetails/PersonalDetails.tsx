@@ -77,8 +77,6 @@ const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
   )
 }
 
-// TODO: debounce form submission to prevent hammering of pglite db.
-
 const PersonalDetails: React.FC = () => {
   const {
     data: personalDetails,
@@ -87,6 +85,7 @@ const PersonalDetails: React.FC = () => {
     save,
     hasChanges,
     clearError,
+    cleanup,
   } = usePersonalDetailsStore()
 
   const [state, formAction] = useActionState(
@@ -157,6 +156,12 @@ const PersonalDetails: React.FC = () => {
       }
     }
   }, [storeError])
+
+  useEffect(() => {
+    return () => {
+      cleanup()
+    }
+  }, [cleanup])
 
   const currentFormHasChanges = hasChanges(state.data || personalDetails)
 
