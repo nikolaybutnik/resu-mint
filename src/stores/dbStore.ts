@@ -161,7 +161,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
         const syncResult = await db.electric.syncShapeToTable({
           shape: {
-            url: `${process.env.NEXT_PUBLIC_SITE_URL}${API_ROUTES.SHAPE_PROXY}`,
+            url: `${window.location.origin}${API_ROUTES.SHAPE_PROXY}`,
             params: {
               table: config.table,
               columns: config.columns,
