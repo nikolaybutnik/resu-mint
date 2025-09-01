@@ -87,12 +87,9 @@ export async function GET(req: NextRequest) {
     credentials: 'omit',
   })
 
-  const newHeaders = new Headers(response.headers)
-  newHeaders.set('Content-Type', 'application/json')
-
   return new NextResponse(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: newHeaders,
+    headers: response.headers,
   })
 }
