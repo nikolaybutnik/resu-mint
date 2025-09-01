@@ -1,9 +1,5 @@
 import { STORAGE_KEYS } from '../constants'
-import {
-  ExperienceBlockData,
-  BulletPoint,
-  RawExperienceData,
-} from '../types/experience'
+import { ExperienceBlockData, BulletPoint } from '../types/experience'
 import { experienceBlockSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
 import {
@@ -103,7 +99,7 @@ class ExperienceManager {
 
         // 2) Try DB fetch and merge (downstream sync)
         let finalData: ExperienceBlockData[] = localData
-        let dbDataRaw: RawExperienceData[] | null = null
+        // let dbDataRaw: RawExperienceData[] | null = null
         try {
           const { data, error } = await supabase.from('experience').select(`
               id, title, company_name, location, description, 
@@ -115,7 +111,7 @@ class ExperienceManager {
           // TODO: handle the fetched experience_bullets
 
           if (!error && data) {
-            dbDataRaw = data
+            // dbDataRaw = data
             const dbData: ExperienceBlockData[] = await Promise.all(
               data.map((block) => pullExperienceDbRecordToLocal(block))
             )
@@ -156,82 +152,74 @@ class ExperienceManager {
         }
 
         // 3) Opportunistic upstream sync: Push local-only or modified blocks to DB
-        if (isAuthenticated()) {
-          try {
-            const updatedData = [...finalData]
-            let maxUpdatedAt = '1970-01-01T00:00:00.000Z'
-            let didSync = false
-
-            for (let i = 0; i < updatedData.length; i++) {
-              const block = updatedData[i]
-              const dbMatch = dbDataRaw?.find((d) => d.id === block.id)
-              const localTimestamp = block.updatedAt ?? localUpdatedAt
-              const dbTimestamp =
-                dbMatch?.updated_at || '1970-01-01T00:00:00.000Z'
-
-              // Sync if: local-only (no DB match) or local-modified (local timestamp newer)
-              if (
-                !dbMatch ||
-                Date.parse(localTimestamp) > Date.parse(dbTimestamp)
-              ) {
-                const { updatedAt, error } =
-                  await pushExperienceLocalRecordToDb(block)
-
-                if (error) {
-                  // Continue to avoid blocking
-                } else {
-                  didSync = true
-                  const newTimestamp = updatedAt ?? nowIso()
-                  updatedData[i] = { ...block, updatedAt: newTimestamp }
-                  if (Date.parse(newTimestamp) > Date.parse(maxUpdatedAt)) {
-                    maxUpdatedAt = newTimestamp
-                  }
-                }
-              }
-            }
-
-            // Cleanup db records which have been deleted locally
-            for (const dbItem of dbDataRaw || []) {
-              if (!localData.some((local) => local.id === dbItem.id)) {
-                const result = await supabase
-                  .from('experience')
-                  .delete()
-                  .eq('id', dbItem.id)
-
-                if (result.status !== 204) {
-                  // Non-blocking error
-                  console.error(
-                    'Background cleanup of DB experience data failed: ',
-                    result.error
-                  )
-                }
-              }
-            }
-
-            // Update localStorage if we synced anything
-            if (didSync) {
-              this.invalidate()
-
-              const allTimestamps = updatedData
-                .map((b) => b.updatedAt || '1970-01-01T00:00:00.000Z')
-                .concat(localUpdatedAt)
-              const mostRecentTimestamp = allTimestamps.reduce(
-                (latest, current) =>
-                  Date.parse(current) > Date.parse(latest) ? current : latest,
-                '1970-01-01T00:00:00.000Z'
-              )
-
-              writeLocalEnvelope(
-                STORAGE_KEYS.EXPERIENCE,
-                updatedData,
-                mostRecentTimestamp
-              )
-              finalData = updatedData
-            }
-          } catch {
-            // Non-blocking
-          }
-        }
+        // if (isAuthenticated()) {
+        //   try {
+        // const updatedData = [...finalData]
+        // let maxUpdatedAt = '1970-01-01T00:00:00.000Z'
+        // let didSync = false
+        // for (let i = 0; i < updatedData.length; i++) {
+        // const block = updatedData[i]
+        // const dbMatch = dbDataRaw?.find((d) => d.id === block.id)
+        // const localTimestamp = block.updatedAt ?? localUpdatedAt
+        // const dbTimestamp =
+        //   dbMatch?.updated_at || '1970-01-01T00:00:00.000Z'
+        // Sync if: local-only (no DB match) or local-modified (local timestamp newer)
+        // if (
+        //   !dbMatch ||
+        //   Date.parse(localTimestamp) > Date.parse(dbTimestamp)
+        // ) {
+        //   const { updatedAt, error } =
+        //     await pushExperienceLocalRecordToDb(block)
+        //   if (error) {
+        //     // Continue to avoid blocking
+        //   } else {
+        //     didSync = true
+        //     const newTimestamp = updatedAt ?? nowIso()
+        //     updatedData[i] = { ...block, updatedAt: newTimestamp }
+        //     if (Date.parse(newTimestamp) > Date.parse(maxUpdatedAt)) {
+        //       maxUpdatedAt = newTimestamp
+        //     }
+        //   }
+        // }
+        // }
+        // Cleanup db records which have been deleted locally
+        // for (const dbItem of dbDataRaw || []) {
+        //   if (!localData.some((local) => local.id === dbItem.id)) {
+        //     const result = await supabase
+        //       .from('experience')
+        //       .delete()
+        //       .eq('id', dbItem.id)
+        //     if (result.status !== 204) {
+        //       // Non-blocking error
+        //       console.error(
+        //         'Background cleanup of DB experience data failed: ',
+        //         result.error
+        //       )
+        //     }
+        //   }
+        // }
+        // Update localStorage if we synced anything
+        // if (didSync) {
+        //   this.invalidate()
+        //   const allTimestamps = updatedData
+        //     .map((b) => b.updatedAt || '1970-01-01T00:00:00.000Z')
+        //     .concat(localUpdatedAt)
+        //   const mostRecentTimestamp = allTimestamps.reduce(
+        //     (latest, current) =>
+        //       Date.parse(current) > Date.parse(latest) ? current : latest,
+        //     '1970-01-01T00:00:00.000Z'
+        //   )
+        //   writeLocalEnvelope(
+        //     STORAGE_KEYS.EXPERIENCE,
+        //     updatedData,
+        //     mostRecentTimestamp
+        //   )
+        //   finalData = updatedData
+        // }
+        // } catch {
+        //   // Non-blocking
+        // }
+        // }
 
         resolve(finalData)
       })

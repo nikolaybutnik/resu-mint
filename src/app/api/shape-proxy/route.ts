@@ -76,12 +76,15 @@ export async function GET(req: NextRequest) {
     originUrl.searchParams.set('where', '1=0') // Empty shape if unauthenticated
   }
 
+  originUrl.searchParams.set('secret', process.env.ELECTRIC_SECRET!)
   // Don't handle errors here, handle within stream on client side
   const response = await fetch(originUrl.toString(), {
+    method: 'GET',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${process.env.ELECTRIC_SECRET}`,
     },
+    cache: 'no-store',
+    credentials: 'omit',
   })
 
   const newHeaders = new Headers(response.headers)
