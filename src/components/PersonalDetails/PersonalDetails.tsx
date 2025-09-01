@@ -198,7 +198,9 @@ const PersonalDetails: React.FC = () => {
               className={`${styles.formInput} ${
                 state?.fieldErrors?.[field.name] ? styles.error : ''
               }`}
-              key={`${field.name}-${personalDetails?.id || 'empty'}`}
+              key={`${field.name}-${personalDetails?.id || 'empty'}-${
+                personalDetails?.updatedAt || Date.now()
+              }`}
               defaultValue={personalDetails?.[field.name] || ''}
               placeholder={field.placeholder}
             />

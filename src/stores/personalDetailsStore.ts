@@ -3,7 +3,7 @@ import { dataManager } from '@/lib/data/dataManager'
 import { PersonalDetails } from '@/lib/types/personalDetails'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { OperationError } from '@/lib/types/errors'
-import { debounce, isEqual } from 'lodash'
+import { debounce, isEqual, omit } from 'lodash'
 
 interface PersonalDetailsStore {
   data: PersonalDetails
@@ -107,7 +107,7 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
       },
 
       hasChanges: (newData) => {
-        const currentData = get().data
+        const currentData = omit(get().data, ['updatedAt'])
         return !isEqual(currentData, newData)
       },
 

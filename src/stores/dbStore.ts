@@ -185,8 +185,12 @@ export const useDbStore = create<DbStore>((set, get) => ({
         syncResult.stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
-              messages.forEach((msg) => {
-                console.log('Electric message: ', msg)
+              messages.forEach(async (msg) => {
+                console.log('electric msg: ', msg)
+                console.log(
+                  'local data: ',
+                  await db?.query('SELECT * FROM personal_details')
+                )
                 if (isChangeMessage(msg)) {
                   if (config.table === 'personal_details') {
                     setTimeout(() => refreshPersonalDetails(), 200)
@@ -249,7 +253,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     return syncResult?.stream || null
   },
 
-  startPushSync: (intervalMs = 10000) => {
+  startPushSync: (intervalMs = 5000) => {
     const currentTimer = get().pushSyncTimer
     if (currentTimer) {
       clearTimeout(currentTimer)

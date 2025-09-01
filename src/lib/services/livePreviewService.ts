@@ -1,6 +1,7 @@
 import { CreatePdfRequest } from '@/lib/types/api'
 import { LIVE_PREVIEW, API_ROUTES } from '@/lib/constants'
 import { api, ResponseType } from '@/lib/services/api'
+import { omit } from 'lodash'
 
 interface LivePreviewOptions {
   debounceMs?: number
@@ -53,7 +54,7 @@ export class LivePreviewService {
    */
   private generateHash(data: CreatePdfRequest): string {
     const hashData = {
-      personal: data.personalDetails,
+      personal: omit(data.personalDetails, ['updatedAt']),
       experience: data.experienceSection
         .filter((exp) => exp.isIncluded)
         .map((exp) => ({

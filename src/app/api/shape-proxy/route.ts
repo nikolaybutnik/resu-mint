@@ -94,28 +94,6 @@ export async function GET(req: NextRequest) {
     credentials: 'omit',
   })
 
-  // Handle Electric SQL 409 "must-refetch" responses specially
-  // if (response.status === 409) {
-  //   const responseClone = response.clone()
-  //   const responseText = await responseClone.text()
-
-  //   if (!responseText.trim()) {
-  //     // Provide the expected "must-refetch" control message format
-  //     const controlMessage = '[{"headers":{"control":"must-refetch"}}]\n'
-
-  //     return new Response(controlMessage, {
-  //       status: 409,
-  //       statusText: response.statusText,
-  //       headers: {
-  //         'content-type': 'application/x-ndjson',
-  //         'cache-control': 'no-cache, no-store, must-revalidate',
-  //         connection: 'keep-alive',
-  //         ...Object.fromEntries(response.headers.entries()),
-  //       },
-  //     })
-  //   }
-  // }
-
   // For normal streaming responses, preserve the exact response
   const responseHeaders = new Headers(response.headers)
 

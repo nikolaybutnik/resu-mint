@@ -31,8 +31,9 @@ CREATE TABLE IF NOT EXISTS personal_details_changes (
 `
 
 export const getPersonalDetailsQuery = `
-SELECT id, name, email, phone, location, linkedin, github, website, updated_at 
-    FROM personal_details 
+SELECT id, name, email, phone, location, linkedin, github, website, updated_at AS "updatedAt"
+    FROM personal_details
+    ORDER BY updated_at DESC
     LIMIT 1
 `
 
