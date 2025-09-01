@@ -7,6 +7,7 @@ import {
 import { ExperienceBlockData, Month } from './types/experience'
 import { PersonalDetails } from './types/personalDetails'
 import { BulletPoint, ProjectBlockData } from './types/projects'
+import { v4 as uuidv4 } from 'uuid'
 
 /**
  * Sanitizes user input for UI display, preventing XSS and normalizing text
@@ -428,7 +429,7 @@ export const extractPersonalDetailsFormData = (
   const formData = source instanceof FormData ? source : new FormData(source)
 
   return {
-    id: (formData.get('id') as string) || '',
+    id: (formData.get('id') as string) || uuidv4(),
     name: (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.NAME) as string) || '',
     email:
       (formData.get(PERSONAL_DETAILS_FORM_DATA_KEYS.EMAIL) as string) || '',

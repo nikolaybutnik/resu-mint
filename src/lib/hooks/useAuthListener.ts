@@ -38,6 +38,7 @@ export function useAuthListener() {
 
           const dbState = useDbStore.getState()
 
+          // TODO: handle start services on signup
           switch (event) {
             case 'INITIAL_SESSION':
             case 'SIGNED_IN':

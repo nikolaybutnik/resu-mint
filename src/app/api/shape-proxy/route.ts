@@ -78,25 +78,61 @@ export async function GET(req: NextRequest) {
 
   originUrl.searchParams.set('secret', process.env.ELECTRIC_SECRET!)
 
-  const headers: Record<string, string> = {
+  const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
   }
 
   if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
-    headers['x-vercel-protection-bypass'] =
+    requestHeaders['x-vercel-protection-bypass'] =
       process.env.VERCEL_AUTOMATION_BYPASS_SECRET
   }
 
   const response = await fetch(originUrl.toString(), {
     method: 'GET',
-    headers,
+    headers: requestHeaders,
     cache: 'no-store',
     credentials: 'omit',
   })
 
-  return new NextResponse(response.body, {
+  // Handle Electric SQL 409 "must-refetch" responses specially
+  // if (response.status === 409) {
+  //   const responseClone = response.clone()
+  //   const responseText = await responseClone.text()
+
+  //   if (!responseText.trim()) {
+  //     // Provide the expected "must-refetch" control message format
+  //     const controlMessage = '[{"headers":{"control":"must-refetch"}}]\n'
+
+  //     return new Response(controlMessage, {
+  //       status: 409,
+  //       statusText: response.statusText,
+  //       headers: {
+  //         'content-type': 'application/x-ndjson',
+  //         'cache-control': 'no-cache, no-store, must-revalidate',
+  //         connection: 'keep-alive',
+  //         ...Object.fromEntries(response.headers.entries()),
+  //       },
+  //     })
+  //   }
+  // }
+
+  // For normal streaming responses, preserve the exact response
+  const responseHeaders = new Headers(response.headers)
+
+  // Remove compression headers - let the client handle raw streaming
+  responseHeaders.delete('content-encoding')
+  responseHeaders.delete('vary')
+
+  // Electric SQL streaming should be treated as NDJSON, not regular JSON
+  responseHeaders.set('content-type', 'application/x-ndjson')
+
+  // Ensure no caching for live streaming
+  responseHeaders.set('cache-control', 'no-cache, no-store, must-revalidate')
+  responseHeaders.set('connection', 'keep-alive')
+
+  return new Response(response.body, {
     status: response.status,
     statusText: response.statusText,
-    headers: response.headers,
+    headers: responseHeaders,
   })
 }
