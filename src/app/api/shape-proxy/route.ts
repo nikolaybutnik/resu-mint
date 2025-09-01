@@ -77,12 +77,19 @@ export async function GET(req: NextRequest) {
   }
 
   originUrl.searchParams.set('secret', process.env.ELECTRIC_SECRET!)
-  // Don't handle errors here, handle within stream on client side
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+
+  if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+    headers['x-vercel-protection-bypass'] =
+      process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+  }
+
   const response = await fetch(originUrl.toString(), {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers,
     cache: 'no-store',
     credentials: 'omit',
   })
