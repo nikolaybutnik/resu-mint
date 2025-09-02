@@ -177,6 +177,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
           primaryKey: config.primaryKey,
           shapeKey: config.shapeKey,
           onMustRefetch: async (tx) => {
+            console.log('Refetch triggered')
             await tx.query(`DELETE FROM ${config.table}`)
             console.info(`Local table ${config.table} was cleared`)
           },
@@ -184,6 +185,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
         syncResult.stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
+            console.log('Electric messages: ', messages)
             if (Array.isArray(messages) && messages.length) {
               messages.forEach(async (msg) => {
                 console.log('electric msg: ', msg)

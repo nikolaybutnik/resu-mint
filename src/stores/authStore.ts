@@ -6,7 +6,7 @@ import type {
   Subscription,
   User,
 } from '@supabase/supabase-js'
-import { experienceManager } from '@/lib/data'
+import { OperationError } from '@/lib/types/errors'
 
 export type AuthResult = Promise<{
   error: { message: string; code?: string } | null
@@ -16,24 +16,22 @@ interface AuthStore {
   user: User | null
   session: Session | null
   loading: boolean
-  hasSyncedExperience: boolean
+  error: OperationError | null
   signIn: (email: string, password: string) => AuthResult
   signUp: (email: string, password: string) => AuthResult
   signOut: () => AuthResult
   initialize: () => Promise<Subscription | undefined>
 }
 
-// TODO: get rid of all manual experience sync logic when eletric sync is in place.
-
 export const useAuthStore = create<AuthStore>((set) => ({
   user: null,
   session: null,
   loading: true,
-  hasSyncedExperience: false,
+  error: null,
 
   signIn: async (email: string, password: string): AuthResult => {
     try {
-      set({ loading: true })
+      set({ loading: true, error: null })
 
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -41,6 +39,12 @@ export const useAuthStore = create<AuthStore>((set) => ({
       })
 
       if (error) {
+        const operationError = {
+          code: 'AUTH_ERROR' as const,
+          message: error.message,
+          originalError: error,
+        }
+        set({ loading: false, error: operationError })
         return {
           error: {
             message: error.message,
@@ -49,13 +53,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
 
-      set({ user: data.user, session: data.session, loading: false })
-      // Kick off one-time post-login sync
-      // void syncExperienceOnce()
+      set({
+        user: data.user,
+        session: data.session,
+        loading: false,
+        error: null,
+      })
 
       return { error: null }
     } catch (error) {
-      set({ loading: false })
+      const operationError = {
+        code: 'NETWORK_ERROR' as const,
+        message: 'There was an error signing you in. Please try again later.',
+        originalError: error,
+      }
+      set({ loading: false, error: operationError })
       console.error('Sign in error: ', error)
       return {
         error: {
@@ -67,21 +79,35 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   signUp: async (email: string, password: string): AuthResult => {
     try {
-      set({ loading: true })
+      set({ loading: true, error: null })
 
       const { data, error } = await supabase.auth.signUp({ email, password })
 
       if (error) {
+        const operationError = {
+          code: 'AUTH_ERROR' as const,
+          message: error.message,
+          originalError: error,
+        }
+        set({ loading: false, error: operationError })
         return { error: { message: error.message, code: error.code } }
       }
 
-      set({ user: data.user, session: data.session, loading: false })
-      // Kick off one-time post-signup sync
-      // void syncExperienceOnce()
+      set({
+        user: data.user,
+        session: data.session,
+        loading: false,
+        error: null,
+      })
 
       return { error: null }
     } catch (error) {
-      set({ loading: false })
+      const operationError = {
+        code: 'NETWORK_ERROR' as const,
+        message: 'There was an error during sign up. Please try again later.',
+        originalError: error,
+      }
+      set({ loading: false, error: operationError })
       console.error('Sign up error: ', error)
       return {
         error: {
@@ -93,11 +119,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   signOut: async (): AuthResult => {
     try {
-      set({ loading: true })
+      set({ loading: true, error: null })
 
       const { error } = await supabase.auth.signOut()
 
       if (error) {
+        const operationError = {
+          code: 'AUTH_ERROR' as const,
+          message: error.message,
+          originalError: error,
+        }
+        set({ loading: false, error: operationError })
         return {
           error: {
             message: error.message,
@@ -110,14 +142,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
         user: null,
         session: null,
         loading: false,
-        hasSyncedExperience: false,
+        error: null,
       })
-      // Invalidate caches on logout so next read uses local-only path cleanly
-      experienceManager.invalidate()
 
       return { error: null }
     } catch (error) {
-      set({ loading: false })
+      const operationError = {
+        code: 'NETWORK_ERROR' as const,
+        message: 'There was an error signing you out. Please try again later.',
+        originalError: error,
+      }
+      set({ loading: false, error: operationError })
       console.error('Sign out error: ', error)
       return {
         error: {
@@ -130,23 +165,26 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
   initialize: async (): Promise<Subscription | undefined> => {
     try {
-      set({ loading: true })
+      set({ loading: true, error: null })
 
       const {
         data: { session },
       } = await supabase.auth.getSession()
 
       if (session?.user) {
-        set({ user: session.user, session, loading: false })
-        // Run sync once per session
-        // void syncExperienceOnce()
+        set({
+          user: session.user,
+          session,
+          loading: false,
+          error: null,
+        })
       } else {
         set({
           user: null,
+          session: null,
           loading: false,
-          hasSyncedExperience: false,
+          error: null,
         })
-        experienceManager.invalidate()
       }
 
       const {
@@ -154,17 +192,31 @@ export const useAuthStore = create<AuthStore>((set) => ({
       } = supabase.auth.onAuthStateChange(
         (_event: AuthChangeEvent, session: Session | null) => {
           if (session?.user) {
-            set({ user: session.user, loading: false })
-            // void syncExperienceOnce()
+            set({
+              user: session.user,
+              session,
+              loading: false,
+              error: null,
+            })
           } else {
-            set({ user: null, loading: false })
+            set({
+              user: null,
+              session: null,
+              loading: false,
+              error: null,
+            })
           }
         }
       )
 
       return subscription
     } catch (error) {
-      set({ user: null, loading: false })
+      const operationError = {
+        code: 'NETWORK_ERROR' as const,
+        message: 'Failed to initialize authentication.',
+        originalError: error,
+      }
+      set({ user: null, loading: false, error: operationError })
       console.error('Auth initialization error: ', error)
     }
   },

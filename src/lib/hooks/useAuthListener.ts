@@ -37,6 +37,31 @@ export function useAuthListener() {
           }
 
           const dbState = useDbStore.getState()
+          switch (event) {
+            case 'INITIAL_SESSION':
+              console.log('Auth event: INITIAL_SESSION')
+              break
+            case 'SIGNED_IN':
+              console.log('Auth event: SIGNED_IN')
+              break
+            case 'SIGNED_OUT':
+              console.log('Auth event: SIGNED_OUT')
+              break
+            case 'TOKEN_REFRESHED':
+              console.log('Auth event: TOKEN_REFRESHED')
+              break
+            case 'USER_UPDATED':
+              console.log('Auth event: USER_UPDATED')
+              break
+            case 'PASSWORD_RECOVERY':
+              console.log('Auth event: PASSWORD_RECOVERY')
+              break
+            case 'MFA_CHALLENGE_VERIFIED':
+              console.log('Auth event: MFA_CHALLENGE_VERIFIED')
+              break
+            default:
+              console.log('Auth event: UNKNOWN', event)
+          }
 
           // TODO: handle start services on signup
           switch (event) {
