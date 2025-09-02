@@ -94,19 +94,9 @@ export async function GET(req: NextRequest) {
     credentials: 'omit',
   })
 
-  // For normal streaming responses, preserve the exact response
   const responseHeaders = new Headers(response.headers)
-
-  // Remove compression headers - let the client handle raw streaming
-  responseHeaders.delete('content-encoding')
-  responseHeaders.delete('vary')
-
-  // Electric SQL streaming should be treated as NDJSON, not regular JSON
-  responseHeaders.set('content-type', 'application/x-ndjson')
-
-  // Ensure no caching for live streaming
-  responseHeaders.set('cache-control', 'no-cache, no-store, must-revalidate')
-  responseHeaders.set('connection', 'keep-alive')
+  responseHeaders.delete(`content-encoding`)
+  responseHeaders.delete(`content-length`)
 
   return new Response(response.body, {
     status: response.status,
