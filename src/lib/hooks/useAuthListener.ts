@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { supabase } from '../supabase/client'
 import { useAuthStore, useDbStore } from '@/stores'
-import { AuthChangeEvent, Session, Subscription } from '@supabase/supabase-js'
+import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
@@ -18,12 +18,7 @@ export function useAuthListener() {
   }
 
   useEffect(() => {
-    let authSubscription: Subscription | null = null
-
-    const initAuth = async () => {
-      authSubscription = (await initUser()) || null
-    }
-
+    const initAuth = async () => await initUser()
     initAuth()
 
     const {
@@ -36,32 +31,23 @@ export function useAuthListener() {
             return
           }
 
-          const dbState = useDbStore.getState()
-          switch (event) {
-            case 'INITIAL_SESSION':
-              console.log('Auth event: INITIAL_SESSION')
-              break
-            case 'SIGNED_IN':
-              console.log('Auth event: SIGNED_IN')
-              break
-            case 'SIGNED_OUT':
-              console.log('Auth event: SIGNED_OUT')
-              break
-            case 'TOKEN_REFRESHED':
-              console.log('Auth event: TOKEN_REFRESHED')
-              break
-            case 'USER_UPDATED':
-              console.log('Auth event: USER_UPDATED')
-              break
-            case 'PASSWORD_RECOVERY':
-              console.log('Auth event: PASSWORD_RECOVERY')
-              break
-            case 'MFA_CHALLENGE_VERIFIED':
-              console.log('Auth event: MFA_CHALLENGE_VERIFIED')
-              break
-            default:
-              console.log('Auth event: UNKNOWN', event)
+          if (session?.user) {
+            useAuthStore.setState({
+              user: session.user,
+              session,
+              loading: false,
+              error: null,
+            })
+          } else {
+            useAuthStore.setState({
+              user: null,
+              session: null,
+              loading: false,
+              error: null,
+            })
           }
+
+          const dbState = useDbStore.getState()
 
           // TODO: handle start services on signup
           switch (event) {
@@ -82,9 +68,23 @@ export function useAuthListener() {
       }
     )
 
+    // Poll every 30s for session validity
+    const interval = setInterval(async () => {
+      const { data } = await supabase.auth.getSession()
+      if (!data.session) {
+        await stopAllServices()
+        useAuthStore.setState({
+          user: null,
+          session: null,
+          loading: false,
+          error: null,
+        })
+      }
+    }, 30_000)
+
     return () => {
-      if (authSubscription) authSubscription.unsubscribe()
       subscription.unsubscribe()
+      clearInterval(interval)
     }
   }, [initUser, startSync, stopSync, startPushSync, stopPushSync])
 

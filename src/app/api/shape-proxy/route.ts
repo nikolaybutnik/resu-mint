@@ -70,10 +70,10 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  if (userId) {
-    originUrl.searchParams.set('where', `user_id = '${userId}'`)
+  if (!userId) {
+    return new Response('User not found', { status: 401 })
   } else {
-    originUrl.searchParams.set('where', '1=0') // Empty shape if unauthenticated
+    originUrl.searchParams.set('where', `user_id = '${userId}'`)
   }
 
   originUrl.searchParams.set('secret', process.env.ELECTRIC_SECRET!)

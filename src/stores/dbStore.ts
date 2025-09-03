@@ -22,6 +22,7 @@ import {
 import { useAuthStore } from './'
 import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
 import { usePersonalDetailsStore } from './'
+import { toast } from './toastStore'
 
 export type ElectricDb = PGlite & {
   electric: {
@@ -169,16 +170,15 @@ export const useDbStore = create<DbStore>((set, get) => ({
             headers: {
               Authorization: `Bearer ${session?.access_token || ''}`,
             },
-            onError: (error) => {
-              console.error('Electric error:', error)
-            },
           },
           table: config.table,
           primaryKey: config.primaryKey,
           shapeKey: config.shapeKey,
           onMustRefetch: async (tx) => {
             await tx.query(`DELETE FROM ${config.table}`)
-            console.info(`Local table ${config.table} was cleared`)
+            toast.warning(
+              'Local data is out of sync with the server. Your cache has been cleared.'
+            )
           },
         })
 
@@ -186,8 +186,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
               messages.forEach(async (msg) => {
-                console.log('electric msg: ', msg)
-
                 if (isChangeMessage(msg)) {
                   if (config.table === 'personal_details') {
                     setTimeout(() => refreshPersonalDetails(), 200)
@@ -201,6 +199,16 @@ export const useDbStore = create<DbStore>((set, get) => ({
               syncState: 'syncing',
               isOnline: true,
             })
+          },
+          (error) => {
+            if (error?.message?.includes('401')) {
+              toast.warning('Your session expired.')
+              useAuthStore.getState().signOut()
+            } else {
+              toast.error(
+                'There was an unexpected error while synchronizing your data with the cloud.'
+              )
+            }
           }
         )
 

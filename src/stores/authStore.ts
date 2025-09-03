@@ -1,11 +1,6 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
-import type {
-  AuthChangeEvent,
-  Session,
-  Subscription,
-  User,
-} from '@supabase/supabase-js'
+import type { Session, User } from '@supabase/supabase-js'
 import { OperationError } from '@/lib/types/errors'
 
 export type AuthResult = Promise<{
@@ -20,7 +15,7 @@ interface AuthStore {
   signIn: (email: string, password: string) => AuthResult
   signUp: (email: string, password: string) => AuthResult
   signOut: () => AuthResult
-  initialize: () => Promise<Subscription | undefined>
+  initialize: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -163,7 +158,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     }
   },
 
-  initialize: async (): Promise<Subscription | undefined> => {
+  initialize: async (): Promise<void> => {
     try {
       set({ loading: true, error: null })
 
@@ -186,30 +181,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
           error: null,
         })
       }
-
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange(
-        (_event: AuthChangeEvent, session: Session | null) => {
-          if (session?.user) {
-            set({
-              user: session.user,
-              session,
-              loading: false,
-              error: null,
-            })
-          } else {
-            set({
-              user: null,
-              session: null,
-              loading: false,
-              error: null,
-            })
-          }
-        }
-      )
-
-      return subscription
     } catch (error) {
       const operationError = {
         code: 'NETWORK_ERROR' as const,
