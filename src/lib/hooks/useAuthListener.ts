@@ -1,11 +1,14 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { supabase } from '../supabase/client'
 import { useAuthStore, useDbStore } from '@/stores'
+import { toast } from '@/stores/toastStore'
 import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
   const { startSync, stopSync, startPushSync, stopPushSync } = useDbStore()
+  const hasShownLoginToast = useRef(false)
+  const lastUserId = useRef<string | null>(null)
 
   const startAllServices = async (session: Session) => {
     await startSync(session)
@@ -27,6 +30,19 @@ export function useAuthListener() {
       async (event: AuthChangeEvent, session: Session | null) => {
         try {
           if (!session) {
+            useAuthStore.setState({
+              user: null,
+              session: null,
+              loading: false,
+              error: null,
+            })
+
+            if (event === 'SIGNED_OUT') {
+              toast.success('You have been signed out successfully.')
+            }
+
+            hasShownLoginToast.current = false
+            lastUserId.current = null
             await stopAllServices()
             return
           }
@@ -38,22 +54,15 @@ export function useAuthListener() {
               loading: false,
               error: null,
             })
-          } else {
-            useAuthStore.setState({
-              user: null,
-              session: null,
-              loading: false,
-              error: null,
-            })
           }
 
           const dbState = useDbStore.getState()
 
-          // TODO: handle start services on signup
           switch (event) {
             case 'INITIAL_SESSION':
-            case 'SIGNED_IN':
-            case 'TOKEN_REFRESHED':
+              hasShownLoginToast.current = true
+              lastUserId.current = session.user?.id || null
+
               if (
                 dbState.syncState === 'idle' ||
                 dbState.syncState === 'error'
@@ -61,8 +70,49 @@ export function useAuthListener() {
                 await startAllServices(session)
               }
               break
-            case 'SIGNED_OUT':
-              await stopAllServices()
+            case 'SIGNED_IN':
+              const currentUserId = session.user?.id
+              const isNewLogin =
+                !hasShownLoginToast.current ||
+                lastUserId.current !== currentUserId
+
+              if (isNewLogin) {
+                hasShownLoginToast.current = true
+                lastUserId.current = currentUserId || null
+
+                // Check if new user (created within last 10 seconds)
+                if (session.user?.created_at && session.user?.updated_at) {
+                  const createdAt = new Date(session.user.created_at)
+                  const updatedAt = new Date(session.user.updated_at)
+                  const timeDiffSeconds =
+                    Math.abs(updatedAt.getTime() - createdAt.getTime()) / 1000
+
+                  if (timeDiffSeconds <= 10) {
+                    toast.success(
+                      'Welcome to ResuMint! Your account has been created successfully.'
+                    )
+                  } else {
+                    toast.success('Login successful, welcome back to ResuMint!')
+                  }
+                } else {
+                  toast.success('Login successful, welcome back to ResuMint!')
+                }
+              }
+
+              if (
+                dbState.syncState === 'idle' ||
+                dbState.syncState === 'error'
+              ) {
+                await startAllServices(session)
+              }
+              break
+            case 'TOKEN_REFRESHED':
+              if (
+                dbState.syncState === 'idle' ||
+                dbState.syncState === 'error'
+              ) {
+                await startAllServices(session)
+              }
               break
           }
         } catch (error) {

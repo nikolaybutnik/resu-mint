@@ -1,7 +1,14 @@
 import { create } from 'zustand'
 import { supabase } from '@/lib/supabase/client'
 import type { Session, User } from '@supabase/supabase-js'
-import { OperationError } from '@/lib/types/errors'
+import {
+  OperationError,
+  createAuthError,
+  createNetworkError,
+  createUnknownError,
+  isNetworkError,
+} from '@/lib/types/errors'
+import { toast } from './toastStore'
 
 export type AuthResult = Promise<{
   error: { message: string; code?: string } | null
@@ -34,11 +41,10 @@ export const useAuthStore = create<AuthStore>((set) => ({
       })
 
       if (error) {
-        const operationError = {
-          code: 'AUTH_ERROR' as const,
-          message: error.message,
-          originalError: error,
-        }
+        const operationError = createAuthError(error.message, error)
+
+        toast.error('There was an error signing you in. Please try again.')
+
         set({ loading: false, error: operationError })
         return {
           error: {
@@ -57,16 +63,23 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       return { error: null }
     } catch (error) {
-      const operationError = {
-        code: 'NETWORK_ERROR' as const,
-        message: 'There was an error signing you in. Please try again later.',
-        originalError: error,
-      }
+      const err = error as Error
+      console.error('Sign in error:', err)
+
+      const operationError = isNetworkError(err)
+        ? createNetworkError('Network error during sign in', err)
+        : createUnknownError(
+            'There was an error signing you in. Please try again later.',
+            err
+          )
+
+      toast.error('There was an error signing you in. Please try again.')
+
       set({ loading: false, error: operationError })
-      console.error('Sign in error: ', error)
+
       return {
         error: {
-          message: 'There was an error signing you in. Please try again later.',
+          message: 'An unexpected error occired during sign in.',
         },
       }
     }
@@ -79,13 +92,20 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const { data, error } = await supabase.auth.signUp({ email, password })
 
       if (error) {
-        const operationError = {
-          code: 'AUTH_ERROR' as const,
-          message: error.message,
-          originalError: error,
-        }
+        const operationError = createAuthError(error.message, error)
+
+        toast.error(
+          'There was an error during sign up. Please try again later.'
+        )
+
         set({ loading: false, error: operationError })
+
         return { error: { message: error.message, code: error.code } }
+      }
+
+      // TODO: implement email confirmation requirement.
+      if (data.user && !data.session) {
+        toast.success('Please check your email to confirm your account.')
       }
 
       set({
@@ -97,13 +117,17 @@ export const useAuthStore = create<AuthStore>((set) => ({
 
       return { error: null }
     } catch (error) {
-      const operationError = {
-        code: 'NETWORK_ERROR' as const,
-        message: 'There was an error during sign up. Please try again later.',
-        originalError: error,
-      }
+      const err = error as Error
+      console.error('Sign up error:', err)
+
+      const operationError = isNetworkError(err)
+        ? createNetworkError('Network error during sign up', err)
+        : createUnknownError('Unexpected error during sign up', err)
+
+      toast.error('There was an error during sign up. Please try again later.')
+
       set({ loading: false, error: operationError })
-      console.error('Sign up error: ', error)
+
       return {
         error: {
           message: 'There was an error during sign up. Please try again later.',
@@ -119,12 +143,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
       const { error } = await supabase.auth.signOut()
 
       if (error) {
-        const operationError = {
-          code: 'AUTH_ERROR' as const,
-          message: error.message,
-          originalError: error,
-        }
+        const operationError = createAuthError(error.message, error)
+
+        toast.error(
+          'There was an error signing you out. Please try again later.'
+        )
+
         set({ loading: false, error: operationError })
+
         return {
           error: {
             message: error.message,
@@ -133,22 +159,21 @@ export const useAuthStore = create<AuthStore>((set) => ({
         }
       }
 
-      set({
-        user: null,
-        session: null,
-        loading: false,
-        error: null,
-      })
+      set({ loading: false, error: null })
 
       return { error: null }
     } catch (error) {
-      const operationError = {
-        code: 'NETWORK_ERROR' as const,
-        message: 'There was an error signing you out. Please try again later.',
-        originalError: error,
-      }
+      const err = error as Error
+      console.error('Sign out error:', err)
+
+      const operationError = isNetworkError(err)
+        ? createNetworkError('Network error during sign out', err)
+        : createUnknownError('Unexpected error signing you out.', err)
+
+      toast.error('There was an error signing you out. Please try again later.')
+
       set({ loading: false, error: operationError })
-      console.error('Sign out error: ', error)
+
       return {
         error: {
           message:
@@ -182,13 +207,16 @@ export const useAuthStore = create<AuthStore>((set) => ({
         })
       }
     } catch (error) {
-      const operationError = {
-        code: 'NETWORK_ERROR' as const,
-        message: 'Failed to initialize authentication.',
-        originalError: error,
-      }
+      const err = error as Error
+      console.error('Auth initialization error:', err)
+
+      const operationError = isNetworkError(err)
+        ? createNetworkError('Failed to initialize authentication', err)
+        : createUnknownError('Failed to initialize authentication', err)
+
+      toast.error('Failed to load your session. Please log in again.')
+
       set({ user: null, loading: false, error: operationError })
-      console.error('Auth initialization error: ', error)
     }
   },
 }))
