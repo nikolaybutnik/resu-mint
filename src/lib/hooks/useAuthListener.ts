@@ -54,7 +54,10 @@ export function useAuthListener() {
             case 'INITIAL_SESSION':
             case 'SIGNED_IN':
             case 'TOKEN_REFRESHED':
-              if (!dbState.isOnline) {
+              if (
+                dbState.syncState === 'idle' ||
+                dbState.syncState === 'error'
+              ) {
                 await startAllServices(session)
               }
               break

@@ -23,6 +23,18 @@ import { useAuthStore } from './'
 import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
 import { usePersonalDetailsStore } from './'
 import { toast } from './toastStore'
+import {
+  OperationError,
+  createAuthError,
+  createNetworkError,
+  createQuotaExceededError,
+  createSchemaError,
+  createStorageError,
+  createUnknownError,
+  createValidationError,
+  isNetworkError,
+  isQuotaExceededError,
+} from '@/lib/types/errors'
 
 export type ElectricDb = PGlite & {
   electric: {
@@ -47,12 +59,11 @@ interface TableSyncConfig {
 interface DbStore {
   db: ElectricDb | null
   initializing: boolean
-  isOnline: boolean
-  syncState: 'idle' | 'syncing' | 'error' | 'offline'
-  connectionState: 'disconnected' | 'connecting' | 'connected' | 'error'
+  syncState: 'idle' | 'connecting' | 'syncing' | 'error' | 'offline'
   activeStreams: Map<string, SyncShapeToTableResult>
   tableConfigs: Map<string, TableSyncConfig>
   pushSyncTimer: NodeJS.Timeout | null
+  error: OperationError | null
   initialize: () => Promise<void>
   startSync: (session: Session, tableNames?: string[]) => Promise<void>
   stopSync: () => Promise<void>
@@ -99,15 +110,14 @@ const initializeTables = async (db: PGlite) => {
 export const useDbStore = create<DbStore>((set, get) => ({
   db: null,
   initializing: false,
-  isOnline: false,
   syncState: 'idle',
-  connectionState: 'disconnected',
   activeStreams: new Map(),
   tableConfigs: new Map(Object.entries(TABLE_CONFIGS)),
   pushSyncTimer: null,
+  error: null,
 
   initialize: async () => {
-    set({ initializing: true })
+    set({ initializing: true, error: null })
 
     try {
       const db = (await PGlite.create('idb://resumint-local', {
@@ -125,25 +135,114 @@ export const useDbStore = create<DbStore>((set, get) => ({
         get().startPushSync()
       }
     } catch (error) {
-      console.error('Database initialization failed:', error)
-      set({ initializing: false, syncState: 'error' })
-      // TODO: If initialization fails, should we wipe the local db?
+      const err = error as Error
+      console.error('DB init failed:', err)
+
+      if (
+        err.message?.includes('already exists') ||
+        err.message?.includes('does not exist') ||
+        err.message?.includes('duplicate key') ||
+        err.message?.includes('violates')
+      ) {
+        try {
+          console.warn('Schema conflict detected, attempting recovery...')
+          await PGlite.create('idb://resumint-local', {
+            extensions: { electric: electricSync() },
+          })
+          // Retry init once
+          return await get().initialize()
+        } catch (retryError) {
+          console.error('Schema recovery failed:', retryError)
+          toast.error(
+            'Database setup failed. Please refresh the page to try again.'
+          )
+          set({
+            initializing: false,
+            syncState: 'error',
+            error: createSchemaError(
+              'Failed to recover from schema conflict',
+              retryError
+            ),
+          })
+          return
+        }
+      }
+
+      if (isQuotaExceededError(err)) {
+        toast.error(
+          'Storage space is full. Please free up space in your browser or clear old data.'
+        )
+        set({
+          initializing: false,
+          syncState: 'error',
+          error: createQuotaExceededError(err),
+        })
+        return
+      }
+
+      if (isNetworkError(err)) {
+        set({
+          initializing: false,
+          syncState: 'error',
+          error: createNetworkError(
+            'Network error while initializing database',
+            err
+          ),
+        })
+        return
+      }
+
+      toast.error(
+        'Failed to initialize local database. Please refresh the page.'
+      )
+      set({
+        initializing: false,
+        syncState: 'error',
+        error: createStorageError('Database initialization failed', err),
+      })
     }
   },
 
   registerTable: (config: TableSyncConfig) => {
-    set((state) => ({
-      tableConfigs: new Map(state.tableConfigs).set(config.table, config),
-    }))
+    try {
+      if (
+        !config.table ||
+        !config.primaryKey?.length ||
+        !config.columns?.length
+      ) {
+        set({
+          error: createValidationError(
+            'Invalid table configuration: missing required fields'
+          ),
+        })
+        return
+      }
+
+      set((state) => ({
+        tableConfigs: new Map(state.tableConfigs).set(config.table, config),
+        error: null,
+      }))
+    } catch (error) {
+      const err = error as Error
+      console.error('Failed to register table:', err)
+      set({
+        error: createValidationError('Failed to register table', err),
+      })
+    }
   },
 
   startSync: async (session: Session, tableNames?: string[]) => {
     const { db, activeStreams, tableConfigs } = get()
     const { refresh: refreshPersonalDetails } =
       usePersonalDetailsStore.getState()
-    if (!db) return
+    if (!db) {
+      set({
+        error: createStorageError('Database not initialized'),
+      })
+      return
+    }
 
-    set({ connectionState: 'connecting' })
+    set({ syncState: 'connecting', error: null })
 
     try {
       await db.electric.initMetadataTables()
@@ -153,6 +252,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
       for (const tableName of tablesToSync) {
         const config = tableConfigs.get(tableName)
         if (!config) {
+          console.warn(`No config found for table: ${tableName}`)
           continue
         }
 
@@ -195,19 +295,31 @@ export const useDbStore = create<DbStore>((set, get) => ({
             }
 
             set({
-              connectionState: 'connected',
               syncState: 'syncing',
-              isOnline: true,
             })
           },
           (error) => {
-            if (error?.message?.includes('401')) {
+            const err = error as Error
+            if (err?.message?.includes('401')) {
               toast.warning('Your session expired.')
               useAuthStore.getState().signOut()
+              set({
+                error: createAuthError('User authentication failed', err),
+              })
             } else {
               toast.error(
                 'There was an unexpected error while synchronizing your data with the cloud.'
               )
+
+              if (isNetworkError(err)) {
+                set({
+                  error: createNetworkError('Sync stream error', err),
+                })
+              } else {
+                set({
+                  error: createUnknownError('Sync stream error', err),
+                })
+              }
             }
           }
         )
@@ -217,39 +329,55 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       set({
         activeStreams,
-        connectionState: 'connected',
         syncState: 'syncing',
-        isOnline: true,
+        error: null,
       })
     } catch (error) {
-      console.error('Sync failed:', error)
-      set({
-        connectionState: 'error',
-        syncState: 'error',
-        isOnline: false,
-      })
+      const err = error as Error
+      console.error('Sync failed:', err)
+
+      toast.error('Failed to start data synchronization.')
+
+      if (isNetworkError(err)) {
+        set({
+          syncState: 'error',
+          error: createNetworkError('Failed to start sync', err),
+        })
+      } else {
+        set({
+          syncState: 'error',
+          error: createUnknownError('Sync initialization failed', err),
+        })
+      }
     }
   },
 
   stopSync: async (tableNames?: string[]) => {
     const { activeStreams } = get()
 
-    const tablesToStop = tableNames || Array.from(activeStreams.keys())
+    try {
+      const tablesToStop = tableNames || Array.from(activeStreams.keys())
 
-    for (const tableName of tablesToStop) {
-      const syncResult = activeStreams.get(tableName)
-      if (syncResult) {
-        syncResult.unsubscribe()
-        activeStreams.delete(tableName)
+      for (const tableName of tablesToStop) {
+        const syncResult = activeStreams.get(tableName)
+        if (syncResult) {
+          syncResult.unsubscribe()
+          activeStreams.delete(tableName)
+        }
       }
-    }
 
-    set({
-      activeStreams,
-      connectionState: activeStreams.size > 0 ? 'connected' : 'disconnected',
-      syncState: activeStreams.size > 0 ? 'syncing' : 'idle',
-      isOnline: activeStreams.size > 0,
-    })
+      set({
+        activeStreams,
+        syncState: activeStreams.size > 0 ? 'syncing' : 'idle',
+        error: null,
+      })
+    } catch (error) {
+      const err = error as Error
+      console.error('Failed to stop sync:', err)
+      set({
+        error: createUnknownError('Failed to stop sync', err),
+      })
+    }
   },
 
   getStream: (tableName: string): ShapeStreamInterface<Row<unknown>> | null => {
@@ -278,15 +406,30 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
           const { db: finalDb } = get()
           if (!finalDb) {
+            set({
+              error: createStorageError('Database not available for data sync'),
+            })
             return
           }
         }
 
         await pushLocalChangesToRemote()
-        set({ syncState: 'syncing' })
+        set({ syncState: 'syncing', error: null })
       } catch (err) {
-        console.error('Push sync error:', err)
-        set({ syncState: 'error' })
+        const error = err as Error
+        console.error('Push sync error:', error)
+
+        if (isNetworkError(error)) {
+          set({
+            syncState: 'error',
+            error: createNetworkError('Push sync network error', error),
+          })
+        } else {
+          set({
+            syncState: 'error',
+            error: createUnknownError('Push sync failed', error),
+          })
+        }
       }
     }
 
@@ -303,8 +446,23 @@ export const useDbStore = create<DbStore>((set, get) => ({
             scheduleNextSync(true)
           }
         } catch (error) {
-          console.error('Push sync error:', error)
-          set({ syncState: 'error' })
+          const err = error as Error
+          console.error('Push sync error:', err)
+
+          if (isNetworkError(err)) {
+            set({
+              syncState: 'error',
+              error: createNetworkError(
+                'Recurring push sync network error',
+                err
+              ),
+            })
+          } else {
+            set({
+              syncState: 'error',
+              error: createUnknownError('Recurring push sync failed', err),
+            })
+          }
 
           // Only schedule next sync if push sync is still active
           if (get().pushSyncTimer) {
@@ -320,26 +478,49 @@ export const useDbStore = create<DbStore>((set, get) => ({
   },
 
   stopPushSync: () => {
-    const currentTimer = get().pushSyncTimer
-    if (currentTimer) {
-      clearTimeout(currentTimer)
-      set({ pushSyncTimer: null, syncState: 'idle' })
+    try {
+      const currentTimer = get().pushSyncTimer
+      if (currentTimer) {
+        clearTimeout(currentTimer)
+        set({ pushSyncTimer: null, syncState: 'idle', error: null })
+      }
+    } catch (error) {
+      const err = error as Error
+      console.error('Failed to stop push sync:', err)
+      set({
+        error: createUnknownError('Failed to stop push sync', err),
+      })
     }
   },
 
   close: async () => {
     const { db, pushSyncTimer: pushSyncInterval } = get()
-    if (!db) return
-
-    if (pushSyncInterval) {
-      clearTimeout(pushSyncInterval)
+    if (!db) {
+      set({
+        error: createStorageError('Database instance does not exist'),
+      })
+      return
     }
 
     try {
+      if (pushSyncInterval) {
+        clearTimeout(pushSyncInterval)
+      }
+
       await db.close()
-      set({ db: null, isOnline: false, syncState: 'idle' })
+      set({
+        db: null,
+        syncState: 'idle',
+        error: null,
+        activeStreams: new Map(),
+        pushSyncTimer: null,
+      })
     } catch (error) {
-      console.error('Error closing local db connection: ', error)
+      const err = error as Error
+      console.error('Error closing local db connection:', err)
+      set({
+        error: createStorageError('Failed to close database connection', err),
+      })
     }
   },
 }))

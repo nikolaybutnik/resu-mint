@@ -30,13 +30,13 @@ export type ErrorCode =
   | 'AUTH_ERROR'
   | 'NOT_FOUND'
   | 'QUOTA_EXCEEDED'
+  | 'SCHEMA_ERROR'
   | 'UNKNOWN_ERROR'
 
 export interface OperationError {
   code: ErrorCode
   message: string
   originalError?: unknown
-  retryable?: boolean
 }
 
 // ========================================
@@ -62,41 +62,38 @@ export const Failure = (error: OperationError): Result<never> => ({
 // OPERATION ERROR FACTORIES
 // ========================================
 
-export const createOperationError = (
+const createOperationError = (
   code: ErrorCode,
   message: string,
-  originalError?: unknown,
-  retryable = false
+  originalError?: unknown
 ): OperationError => ({
   code,
   message,
   originalError,
-  retryable,
 })
 
 export const createNetworkError = (
   message: string,
   originalError?: unknown
 ): OperationError =>
-  createOperationError('NETWORK_ERROR', message, originalError, true)
+  createOperationError('NETWORK_ERROR', message, originalError)
 
 export const createStorageError = (
   message: string,
   originalError?: unknown
 ): OperationError =>
-  createOperationError('STORAGE_ERROR', message, originalError, false)
+  createOperationError('STORAGE_ERROR', message, originalError)
 
 export const createAuthError = (
   message: string,
   originalError?: unknown
-): OperationError =>
-  createOperationError('AUTH_ERROR', message, originalError, false)
+): OperationError => createOperationError('AUTH_ERROR', message, originalError)
 
 export const createValidationError = (
   message: string,
   originalError?: unknown
 ): OperationError =>
-  createOperationError('VALIDATION_ERROR', message, originalError, false)
+  createOperationError('VALIDATION_ERROR', message, originalError)
 
 export const createQuotaExceededError = (
   originalError?: unknown
@@ -104,15 +101,20 @@ export const createQuotaExceededError = (
   createOperationError(
     'QUOTA_EXCEEDED',
     'Storage quota exceeded',
-    originalError,
-    false
+    originalError
   )
 
 export const createUnknownError = (
   message: string,
   originalError?: unknown
 ): OperationError =>
-  createOperationError('UNKNOWN_ERROR', message, originalError, false)
+  createOperationError('UNKNOWN_ERROR', message, originalError)
+
+export const createSchemaError = (
+  message: string,
+  originalError?: unknown
+): OperationError =>
+  createOperationError('SCHEMA_ERROR', message, originalError)
 
 // ========================================
 // ERROR UTILITIES
@@ -138,8 +140,15 @@ export const isNetworkError = (error: unknown): boolean => {
     (err.name === 'TypeError' &&
       typeof err.message === 'string' &&
       err.message.includes('fetch')) ||
+    err.name === 'NetworkError' ||
     (typeof err.code === 'string' &&
-      ['NETWORK_ERROR', 'ECONNREFUSED', 'ENOTFOUND'].includes(err.code))
+      ['NETWORK_ERROR', 'ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT'].includes(
+        err.code
+      )) ||
+    (typeof err.message === 'string' &&
+      (err.message.includes('Failed to fetch') ||
+        err.message.includes('Network request failed') ||
+        err.message.includes('ERR_NETWORK')))
   )
 }
 
