@@ -288,13 +288,19 @@ export const useDbStore = create<DbStore>((set, get) => ({
         syncResult.stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
+              let hasPersonalDetailsChanges = false
+
               messages.forEach(async (msg) => {
                 if (isChangeMessage(msg)) {
                   if (config.table === 'personal_details') {
-                    setTimeout(() => refreshPersonalDetails(), 200)
+                    hasPersonalDetailsChanges = true
                   }
                 }
               })
+
+              if (hasPersonalDetailsChanges) {
+                setTimeout(() => refreshPersonalDetails(), 200)
+              }
             }
 
             set({

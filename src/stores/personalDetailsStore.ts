@@ -20,6 +20,7 @@ interface PersonalDetailsStore {
 }
 
 let debouncedSave: ReturnType<typeof debounce> | null = null
+let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
 export const usePersonalDetailsStore = create<PersonalDetailsStore>(
   (set, get) => {
@@ -47,6 +48,23 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
           })
         }
       }, 1000)
+    }
+
+    if (!debouncedRefresh) {
+      debouncedRefresh = debounce(async () => {
+        try {
+          set({ loading: true })
+          const data = await dataManager.getPersonalDetails()
+          set({
+            data,
+            loading: false,
+            hasData: !!data?.name?.trim() && !!data?.email?.trim(),
+          })
+        } catch (error) {
+          console.error('PersonalDetailsStore: refresh error:', error)
+          set({ loading: false })
+        }
+      }, 300)
     }
 
     return {
@@ -91,31 +109,8 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
         return { error: null }
       },
 
-      // TODO: this happens when i log out and log into another account.
-      // This happens because dozens of electric messages come in from the server, and overload the app.
-      // This also cause the flive preview service to get hammered:
-      // (57 calls) livePreviewService.ts:391 Using in-memory cached PDF
-      /*
-      personalDetailsStore.ts:104 PersonalDetailsStore: refresh error: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
-      at refresh (personalDetailsStore.ts:96:11)
-      at eval (dbStore.ts:294:38)
-      refresh	@	personalDetailsStore.ts:104
-      eval	@	dbStore.ts:294
-      */
-
       refresh: async () => {
-        try {
-          set({ loading: true })
-          const data = await dataManager.getPersonalDetails()
-          set({
-            data,
-            loading: false,
-            hasData: !!data?.name?.trim() && !!data?.email?.trim(),
-          })
-        } catch (error) {
-          console.error('PersonalDetailsStore: refresh error:', error)
-          set({ loading: false })
-        }
+        debouncedRefresh?.()
       },
 
       hasChanges: (newData) => {
@@ -130,6 +125,9 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
       cleanup: () => {
         if (debouncedSave?.cancel) {
           debouncedSave.cancel()
+        }
+        if (debouncedRefresh?.cancel) {
+          debouncedRefresh.cancel()
         }
       },
     }
