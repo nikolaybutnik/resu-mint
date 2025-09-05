@@ -13,6 +13,8 @@ export function useAuthListener() {
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
   const startAllServices = async (session: Session): Promise<void> => {
+    if (!session) return
+
     await startSync(session)
     startPushSync()
   }
@@ -53,6 +55,7 @@ export function useAuthListener() {
             hasShownLoginToast.current = false
             lastUserId.current = null
             await stopAllServices()
+            stopPolling()
             return
           }
 
