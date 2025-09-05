@@ -43,7 +43,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (error) {
         const operationError = createAuthError(error.message, error)
 
-        toast.error('There was an error signing you in. Please try again.')
+        if (error.code === 'invalid_credentials') {
+          toast.error('Incorrect email or password.')
+        } else {
+          toast.error('There was an error signing you in. Please try again.')
+        }
 
         set({ loading: false, error: operationError })
         return {
@@ -94,9 +98,13 @@ export const useAuthStore = create<AuthStore>((set) => ({
       if (error) {
         const operationError = createAuthError(error.message, error)
 
-        toast.error(
-          'There was an error during sign up. Please try again later.'
-        )
+        if (error.code === 'user_already_exists') {
+          toast.error('User with this email already exists.')
+        } else {
+          toast.error(
+            'There was an error during sign up. Please try again later.'
+          )
+        }
 
         set({ loading: false, error: operationError })
 

@@ -91,6 +91,18 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
         return { error: null }
       },
 
+      // TODO: this happens when i log out and log into another account.
+      // This happens because dozens of electric messages come in from the server, and overload the app.
+      // This also cause the flive preview service to get hammered:
+      // (57 calls) livePreviewService.ts:391 Using in-memory cached PDF
+      /*
+      personalDetailsStore.ts:104 PersonalDetailsStore: refresh error: Error: Maximum update depth exceeded. This can happen when a component repeatedly calls setState inside componentWillUpdate or componentDidUpdate. React limits the number of nested updates to prevent infinite loops.
+      at refresh (personalDetailsStore.ts:96:11)
+      at eval (dbStore.ts:294:38)
+      refresh	@	personalDetailsStore.ts:104
+      eval	@	dbStore.ts:294
+      */
+
       refresh: async () => {
         try {
           set({ loading: true })

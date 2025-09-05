@@ -11,6 +11,8 @@ import { supabase } from '../supabase/client'
 import type { AuthFormState } from '../types/auth'
 import type { AuthResult } from '../../stores/authStore'
 
+// TODO:  move password reset notifications to authStore when functionality is in place.
+
 export const login = async (
   formData: FormData,
   signIn: (email: string, password: string) => AuthResult
@@ -33,28 +35,9 @@ export const login = async (
   const { error } = await signIn(loginFormData.email, loginFormData.password)
 
   if (error) {
-    if (error.code === 'invalid_credentials') {
-      return {
-        formErrors: {},
-        data: loginFormData,
-        notifications: [
-          {
-            type: 'error',
-            message: 'Incorrect email or password.',
-          },
-        ],
-      }
-    }
-
     return {
       formErrors: {},
       data: loginFormData,
-      notifications: [
-        {
-          type: 'error',
-          message: 'Login failed. Please try again.',
-        },
-      ],
     }
   } else redirect(ROUTES.HOME)
 }
@@ -84,28 +67,9 @@ export const signup = async (
   const { error } = await signUp(signupFormData.email, signupFormData.password)
 
   if (error) {
-    if (error.code === 'user_already_exists') {
-      return {
-        formErrors: {},
-        data: signupFormData,
-        notifications: [
-          {
-            type: 'error',
-            message: 'User with this email already exists.',
-          },
-        ],
-      }
-    }
-
     return {
       formErrors: {},
       data: signupFormData,
-      notifications: [
-        {
-          type: 'error',
-          message: 'Account creation failed. Please try again.',
-        },
-      ],
     }
   } else redirect(ROUTES.HOME)
 

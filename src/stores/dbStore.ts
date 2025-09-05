@@ -13,7 +13,7 @@ import {
   Message,
   isChangeMessage,
 } from '@electric-sql/client'
-import { API_ROUTES } from '@/lib/constants'
+import { API_ROUTES, DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { Session } from '@supabase/supabase-js'
 import {
   initializePersonalDetailsChangelogQuery,
@@ -275,6 +275,9 @@ export const useDbStore = create<DbStore>((set, get) => ({
           primaryKey: config.primaryKey,
           shapeKey: config.shapeKey,
           onMustRefetch: async (tx) => {
+            usePersonalDetailsStore.setState({
+              data: DEFAULT_STATE_VALUES.PERSONAL_DETAILS,
+            })
             await tx.query(`DELETE FROM ${config.table}`)
             toast.warning(
               'Local data is out of sync with the server. Your cache has been cleared.'

@@ -7,17 +7,26 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
   const { startSync, stopSync, startPushSync, stopPushSync } = useDbStore()
+
   const hasShownLoginToast = useRef(false)
   const lastUserId = useRef<string | null>(null)
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const startAllServices = async (session: Session) => {
+  const startAllServices = async (session: Session): Promise<void> => {
     await startSync(session)
     startPushSync()
   }
 
-  const stopAllServices = async () => {
+  const stopAllServices = async (): Promise<void> => {
     await stopSync()
     stopPushSync()
+  }
+
+  const stopPolling = (): void => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current)
+      pollingIntervalRef.current = null
+    }
   }
 
   useEffect(() => {
@@ -80,14 +89,14 @@ export function useAuthListener() {
                 hasShownLoginToast.current = true
                 lastUserId.current = currentUserId || null
 
-                // Check if new user (created within last 10 seconds)
                 if (session.user?.created_at && session.user?.updated_at) {
                   const createdAt = new Date(session.user.created_at)
-                  const updatedAt = new Date(session.user.updated_at)
-                  const timeDiffSeconds =
-                    Math.abs(updatedAt.getTime() - createdAt.getTime()) / 1000
+                  const now = new Date()
 
-                  if (timeDiffSeconds <= 10) {
+                  const timeSinceCreation =
+                    (now.getTime() - createdAt.getTime()) / 1000
+
+                  if (timeSinceCreation <= 10) {
                     toast.success(
                       'Welcome to ResuMint! Your account has been created successfully.'
                     )
@@ -122,31 +131,48 @@ export function useAuthListener() {
     )
 
     // Poll every 30s for session validity
-    const interval = setInterval(async () => {
-      const { data } = await supabase.auth.getSession()
-      if (!data.session) {
-        await stopAllServices()
-        useAuthStore.setState({
-          user: null,
-          session: null,
-          loading: false,
-          error: null,
-        })
-      }
-    }, 30_000)
+    const startPolling = () => {
+      if (pollingIntervalRef.current) return
+
+      pollingIntervalRef.current = setInterval(async () => {
+        const { data } = await supabase.auth.getSession()
+        if (!data.session) {
+          await stopAllServices()
+          stopPolling()
+          useAuthStore.setState({
+            user: null,
+            session: null,
+            loading: false,
+            error: null,
+          })
+        }
+      }, 30_000)
+    }
+
+    startPolling()
 
     return () => {
       subscription.unsubscribe()
-      clearInterval(interval)
+      stopPolling()
     }
-  }, [initUser, startSync, stopSync, startPushSync, stopPushSync])
+  }, [
+    initUser,
+    startSync,
+    stopSync,
+    startPushSync,
+    stopPushSync,
+    stopAllServices,
+  ])
 
-  // Clean up sync when tab/window closes
+  // Clean up sync and polling when tab/window closes
   useEffect(() => {
-    const handleUnload = () => stopAllServices()
+    const handleUnload = () => {
+      stopAllServices()
+      stopPolling()
+    }
     window.addEventListener('beforeunload', handleUnload)
     return () => window.removeEventListener('beforeunload', handleUnload)
-  }, [stopAllServices])
+  }, [stopAllServices, stopPolling])
 
   return null
 }

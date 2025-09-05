@@ -199,9 +199,17 @@ const PersonalDetails: React.FC = () => {
                 state?.fieldErrors?.[field.name] ? styles.error : ''
               }`}
               key={`${field.name}-${personalDetails?.id || 'empty'}-${
-                personalDetails?.updatedAt || Date.now()
+                Object.keys(state.fieldErrors).length === 0
+                  ? personalDetails?.updatedAt || 'initial'
+                  : 'validation-error'
               }`}
-              defaultValue={personalDetails?.[field.name] || ''}
+              defaultValue={
+                // Use form state data if there are validation errors (preserves user input)
+                // Otherwise use store data (reflects Electric sync updates)
+                Object.keys(state.fieldErrors).length > 0 && state.data
+                  ? state.data[field.name] || ''
+                  : personalDetails?.[field.name] || ''
+              }
               placeholder={field.placeholder}
             />
             {state?.fieldErrors?.[field.name] && (
