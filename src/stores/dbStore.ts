@@ -360,6 +360,10 @@ export const useDbStore = create<DbStore>((set, get) => ({
   stopSync: async (tableNames?: string[]) => {
     const { activeStreams } = get()
 
+    if (activeStreams.size === 0) {
+      return
+    }
+
     try {
       const tablesToStop = tableNames || Array.from(activeStreams.keys())
 
@@ -372,7 +376,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
       }
 
       set({
-        activeStreams,
+        activeStreams: new Map(activeStreams),
         syncState: activeStreams.size > 0 ? 'syncing' : 'idle',
         error: null,
       })

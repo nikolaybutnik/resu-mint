@@ -17,32 +17,11 @@ export function useAuthListener() {
 
     await startSync(session)
     startPushSync()
-    startPolling()
   }
 
   const stopAllServices = async (): Promise<void> => {
     await stopSync()
     stopPushSync()
-    stopPolling()
-  }
-
-  const startPolling = (): void => {
-    if (pollingIntervalRef.current) return
-
-    pollingIntervalRef.current = setInterval(async () => {
-      const { data } = await supabase.auth.getSession()
-      if (!data.session) {
-        await stopAllServices()
-        useAuthStore.setState({
-          user: null,
-          session: null,
-          loading: false,
-          error: null,
-        })
-        hasShownLoginToast.current = false
-        lastUserId.current = null
-      }
-    }, 30_000)
   }
 
   const stopPolling = (): void => {
@@ -76,6 +55,7 @@ export function useAuthListener() {
             hasShownLoginToast.current = false
             lastUserId.current = null
             await stopAllServices()
+            stopPolling()
             return
           }
 
@@ -153,9 +133,30 @@ export function useAuthListener() {
       }
     )
 
+    // Poll every 30s for session validity
+    const startPolling = () => {
+      if (pollingIntervalRef.current) return
+
+      pollingIntervalRef.current = setInterval(async () => {
+        const { data } = await supabase.auth.getSession()
+        if (!data.session) {
+          await stopAllServices()
+          stopPolling()
+          useAuthStore.setState({
+            user: null,
+            session: null,
+            loading: false,
+            error: null,
+          })
+        }
+      }, 30_000)
+    }
+
+    startPolling()
+
     return () => {
       subscription.unsubscribe()
-      stopAllServices()
+      stopPolling()
     }
   }, [
     initUser,
@@ -170,10 +171,11 @@ export function useAuthListener() {
   useEffect(() => {
     const handleUnload = () => {
       stopAllServices()
+      stopPolling()
     }
     window.addEventListener('beforeunload', handleUnload)
     return () => window.removeEventListener('beforeunload', handleUnload)
-  }, [stopAllServices])
+  }, [stopAllServices, stopPolling])
 
   return null
 }
