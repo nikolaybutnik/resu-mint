@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   sassOptions: {
     // Silence specific Dart Sass deprecations that clutter the console
     // See: https://sass-lang.com/d/import and https://sass-lang.com/d/mixed-decls
-    silenceDeprecations: ['mixed-decls', 'import'],
+    silenceDeprecations: ['legacy-js-api'],
     // Don't surface deprecations coming from dependencies
     quietDeps: true,
   },
@@ -48,6 +48,21 @@ const nextConfig: NextConfig = {
 
   // Transpile tiktoken for serverless compatibility
   transpilePackages: ['tiktoken'],
+
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: [
+      'react',
+      'lodash',
+      'react-icons',
+      'zod',
+      'zustand',
+      '@dnd-kit/core',
+      '@dnd-kit/sortable',
+      '@dnd-kit/utilities',
+      '@dnd-kit/modifiers',
+    ],
+  },
 }
 
 export default nextConfig
