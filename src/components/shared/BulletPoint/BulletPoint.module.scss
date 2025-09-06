@@ -1,37 +1,40 @@
-@import '../../../styles/variables.scss';
-@import '../../../styles/mixins';
+@use '../../../styles/variables' as vars;
+@use '../../../styles/mixins' as mixins;
+
+$hover-bg-bullet: rgba(vars.$color-primary, 0.1);
+$disabled-color: rgba(vars.$color-disabled, 0.5);
 
 .bulletContainer {
   position: relative;
-  background: $color-action-item-background;
+  background: vars.$color-action-item-background;
   padding: 6px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
   border-radius: 4px;
   touch-action: pan-y;
+}
 
-  &:hover {
-    background: rgba($color-primary, 0.1);
-  }
+.bulletContainer:hover {
+  background: $hover-bg-bullet;
+}
 
-  &.regenerating {
-    opacity: 0.8;
-    pointer-events: none;
+.bulletContainer.regenerating {
+  opacity: 0.8;
+  pointer-events: none;
 
-    &::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-      background: linear-gradient(
-        110deg,
-        rgba(241, 245, 249, 0.8) 8%,
-        rgba(147, 197, 253, 0.3) 18%,
-        rgba(241, 245, 249, 0.8) 33%
-      );
-      background-size: 250% 100%;
-      animation: shimmer 1.3s linear infinite;
-      border-radius: 4px;
-    }
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    background: linear-gradient(
+      110deg,
+      rgba(241, 245, 249, 0.8) 8%,
+      rgba(147, 197, 253, 0.3) 18%,
+      rgba(241, 245, 249, 0.8) 33%
+    );
+    background-size: 250% 100%;
+    animation: shimmer 1.3s linear infinite;
+    border-radius: 4px;
   }
 }
 
@@ -52,92 +55,70 @@
   gap: 8px;
 }
 
-.deleteButton {
-  @include icon-button-small;
+// Buttons with hover styles
+$btn-hover-colors: (
+  deleteButton: vars.$color-error,
+  editButton: vars.$color-primary,
+  saveButton: vars.$color-transformative,
+  regenerateButton: vars.$color-regenerate,
+  cancelButton: vars.$color-primary,
+);
 
-  &:hover {
-    background: $color-error;
-    color: $color-background;
-    border-color: $color-error;
+@each $btn, $color in $btn-hover-colors {
+  .#{$btn} {
+    @include mixins.icon-button-small;
+  }
+
+  .#{$btn}:hover {
+    background: $color;
+    color: vars.$color-background;
+    border-color: $color;
   }
 }
 
-.editButton {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-primary;
-    color: $color-background;
-    border-color: $color-primary;
-  }
-}
-
-.saveButton {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-transformative;
-    color: $color-background;
-    border-color: $color-transformative;
-  }
-}
-
-.regenerateButton {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-regenerate;
-    color: $color-background;
-    border-color: $color-regenerate;
-  }
-}
-
-.cancelButton {
-  @include icon-button-small;
-
-  &:hover {
-    background: $color-primary;
-    color: $color-background;
-    border-color: $color-primary;
-  }
-}
-
+// Lock button special states
 .lockButton {
-  @include icon-button-small;
+  @include mixins.icon-button-small;
 
   &.locked {
     svg {
-      color: $color-badge-red;
+      color: vars.$color-badge-red;
     }
 
     &:hover {
-      background: $color-badge-green-background;
-      border-color: $color-badge-green;
+      background: vars.$color-badge-green-background;
+      border-color: vars.$color-badge-green;
 
       svg {
-        color: $color-disabled;
+        color: vars.$color-disabled;
       }
     }
   }
 
   &.unlocked:hover {
-    background: $color-badge-red-background;
-    border-color: $color-badge-red;
+    background: vars.$color-badge-red-background;
+    border-color: vars.$color-badge-red;
   }
 }
 
-.deleteButton:disabled,
-.editButton:disabled,
-.regenerateButton:disabled,
-.saveButton:disabled,
-.cancelButton:disabled,
-.lockButton:disabled {
-  background: $color-background;
-  color: rgba($color-disabled, 0.5);
-  border: 1px solid $color-border;
-  opacity: 0.7;
-  pointer-events: none;
-  transform: none;
+$disabled-buttons: (
+  deleteButton,
+  editButton,
+  regenerateButton,
+  saveButton,
+  cancelButton,
+  lockButton
+);
+
+@each $btn in $disabled-buttons {
+  .#{$btn}:disabled {
+    background: vars.$color-background;
+    color: $disabled-color;
+    border: 1px solid vars.$color-border;
+    opacity: 0.7;
+    pointer-events: none;
+    transform: none;
+  }
 }
 
 .contentArea {
@@ -146,18 +127,18 @@
 }
 
 .keywordHighlight {
-  @include keyword-highlight;
+  @include mixins.keyword-highlight;
 }
 
 .bulletText {
   font-size: 14px;
   line-height: 1.5;
-  color: $color-text;
+  color: vars.$color-text;
   margin: 0;
   min-height: 80px;
   padding: 8px;
   border-radius: 4px;
-  background: $color-background;
+  background: vars.$color-background;
   transition: opacity 1s;
   opacity: 1;
 
@@ -186,14 +167,14 @@
 }
 
 .bulletInputArea {
-  font-family: $font-family-base;
+  font-family: vars.$font-family-base;
   font-size: 14px;
   line-height: 1.5;
   padding: 8px;
-  border: 1.5px solid $color-primary;
+  border: 1.5px solid vars.$color-primary;
   border-radius: 4px;
-  background: $color-background;
-  color: $color-text;
+  background: vars.$color-background;
+  color: vars.$color-text;
   outline: none;
   resize: vertical;
   min-height: 80px;
@@ -201,13 +182,13 @@
   touch-action: manipulation;
 
   &:focus {
-    box-shadow: 0 0 0 2px rgba($color-primary, 0.2);
+    box-shadow: 0 0 0 2px rgba(vars.$color-primary, 0.2);
   }
 
   &:disabled {
-    background: $color-background;
-    color: $color-disabled;
-    border-color: $color-border;
+    background: vars.$color-background;
+    color: $disabled-color;
+    border-color: vars.$color-border;
     opacity: 0.7;
     pointer-events: none;
   }
@@ -218,24 +199,24 @@
 }
 
 .characterCount {
-  @include character-count;
+  @include mixins.character-count;
 }
 
 .characterCountWarning {
-  @include character-count;
-  @include flash-warning;
+  @include mixins.character-count;
+  @include mixins.flash-warning;
 }
 
 .characterCountExceeded {
-  @include character-count;
-  color: $color-error;
+  @include mixins.character-count;
+  color: vars.$color-error;
   font-weight: 600;
 }
 
 .formError {
-  @include form-error;
+  @include mixins.form-error;
 }
 
 .flashWarning {
-  @include flash-warning;
+  @include mixins.flash-warning;
 }

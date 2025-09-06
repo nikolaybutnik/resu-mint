@@ -1,5 +1,5 @@
 @use 'sass:color';
-@import './variables';
+@use './variables' as vars;
 
 // ========================================
 // BREAKPOINTS
@@ -29,7 +29,7 @@
 
 // Main section container (Skills, Projects, Education, etc.)
 @mixin section-container {
-  background: $color-background;
+  background: vars.$color-background;
   width: 100%;
   padding-bottom: 80px;
 
@@ -43,7 +43,7 @@
   font-size: 24px;
   font-weight: 600;
   margin-bottom: 24px;
-  color: $color-text;
+  color: vars.$color-text;
 
   @include breakpoint(tablet) {
     font-size: 22px;
@@ -61,7 +61,7 @@
   font-size: 18px;
   font-weight: 600;
   margin-bottom: 16px;
-  color: $color-primary;
+  color: vars.$color-primary;
 }
 
 // Empty state styling (for empty chips containers, etc.)
@@ -75,7 +75,7 @@
 
 @mixin empty-message {
   font-size: 14px;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   text-align: center;
   font-style: italic;
   line-height: 1.4;
@@ -84,9 +84,9 @@
 
 // Card container for editable blocks
 @mixin card-container {
-  background: $color-background;
+  background: vars.$color-background;
   width: 100%;
-  border: 1px solid rgba($color-primary, 0.2);
+  border: 1px solid rgba(vars.$color-primary, 0.2);
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 16px;
@@ -100,9 +100,9 @@
 // Draggable container base styling
 @mixin draggable-container {
   position: relative;
-  border: 1px solid rgba($color-primary, 0.4);
+  border: 1px solid rgba(vars.$color-primary, 0.4);
   border-radius: 6px;
-  background-color: $color-background;
+  background-color: vars.$color-background;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease,
     background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
@@ -111,11 +111,11 @@
   touch-action: manipulation;
 
   &.isDragging {
-    background-color: $color-action-item-background;
+    background-color: vars.$color-action-item-background;
     opacity: 0.95;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
     cursor: grabbing !important;
-    border-color: $color-primary;
+    border-color: vars.$color-primary;
     transform: scale(1.02);
     touch-action: none;
     user-select: none;
@@ -127,14 +127,14 @@
 
   &.excluded {
     opacity: 0.7;
-    background-color: $color-action-item-background;
-    border-color: rgba($color-disabled, 0.4);
+    background-color: vars.$color-action-item-background;
+    border-color: rgba(vars.$color-disabled, 0.4);
   }
 
   &.isDragging.excluded {
     opacity: 0.95;
-    background-color: $color-action-item-background;
-    border-color: $color-primary;
+    background-color: vars.$color-action-item-background;
+    border-color: vars.$color-primary;
   }
 }
 
@@ -158,7 +158,7 @@
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: $color-text;
+  color: vars.$color-text;
   display: flex;
   align-items: center;
 
@@ -175,7 +175,7 @@
 
 // Required field indicator (red asterisk before label)
 @mixin required-field-indicator {
-  color: $color-error;
+  color: vars.$color-error;
   font-weight: 700;
   font-size: 16px;
   line-height: 1;
@@ -185,7 +185,7 @@
 // Required fields note (explanatory text at top of forms)
 @mixin required-fields-note {
   font-size: 13px;
-  color: $color-error;
+  color: vars.$color-error;
   margin-bottom: 20px;
   font-style: italic;
   display: flex;
@@ -204,9 +204,9 @@
   gap: 8px;
   min-height: 40px;
   padding: 8px;
-  border: 1px solid rgba($color-primary, 0.2);
+  border: 1px solid rgba(vars.$color-primary, 0.2);
   border-radius: 6px;
-  background-color: rgba($color-primary, 0.02);
+  background-color: rgba(vars.$color-primary, 0.02);
 }
 
 // Individual chip/tag styling
@@ -214,41 +214,41 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  background: rgba($color-primary, 0.1);
-  color: $color-primary;
+  background: rgba(vars.$color-primary, 0.1);
+  color: vars.$color-primary;
   font-size: 14px;
   font-weight: 500;
   padding: 6px 10px;
   border-radius: 6px;
-  border: 1px solid rgba($color-primary, 0.3);
-  box-shadow: 0 1px 3px rgba($color-primary, 0.1);
+  border: 1px solid rgba(vars.$color-primary, 0.3);
+  box-shadow: 0 1px 3px rgba(vars.$color-primary, 0.1);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   user-select: none;
 
   &:hover {
-    border-color: rgba($color-primary, 0.5);
-    box-shadow: 0 2px 6px rgba($color-primary, 0.15);
+    border-color: rgba(vars.$color-primary, 0.5);
+    box-shadow: 0 2px 6px rgba(vars.$color-primary, 0.15);
     transform: translateY(-1px) scale(1.02);
   }
 
   &.duplicate {
-    background: rgba($color-regenerate, 0.15);
-    border-color: rgba($color-regenerate, 0.5);
-    color: $color-regenerate;
+    background: rgba(vars.$color-regenerate, 0.15);
+    border-color: rgba(vars.$color-regenerate, 0.5);
+    color: vars.$color-regenerate;
     animation: duplicateHighlight 0.5s ease-in-out;
 
     .skillText {
-      color: $color-regenerate;
+      color: vars.$color-regenerate;
       font-weight: 600;
     }
 
     .removeButton,
     .removeChip {
-      color: rgba($color-regenerate, 0.8);
+      color: rgba(vars.$color-regenerate, 0.8);
 
       &:hover {
-        background-color: rgba($color-regenerate, 0.2);
-        color: $color-regenerate;
+        background-color: rgba(vars.$color-regenerate, 0.2);
+        color: vars.$color-regenerate;
       }
     }
   }
@@ -256,18 +256,18 @@
 
 // Simple tag styling (for tech tags, skill tags without interaction)
 @mixin simple-tag {
-  background: rgba($color-primary, 0.1);
-  color: $color-primary;
+  background: rgba(vars.$color-primary, 0.1);
+  color: vars.$color-primary;
   font-size: 12px;
   padding: 4px 8px;
   border-radius: 4px;
   display: inline-block;
-  border: 1px solid rgba($color-primary, 0.3);
+  border: 1px solid rgba(vars.$color-primary, 0.3);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 
   &:hover {
-    border-color: rgba($color-primary, 0.4);
-    box-shadow: 0 1px 3px rgba($color-primary, 0.1);
+    border-color: rgba(vars.$color-primary, 0.4);
+    box-shadow: 0 1px 3px rgba(vars.$color-primary, 0.1);
     transform: translateY(-1px) scale(1.01);
   }
 }
@@ -287,7 +287,7 @@
   cursor: pointer;
   padding: 2px;
   border-radius: 50%;
-  color: rgba($color-primary, 0.7);
+  color: rgba(vars.$color-primary, 0.7);
   transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 
   svg {
@@ -296,8 +296,8 @@
   }
 
   &:hover {
-    background-color: rgba($color-primary, 0.2);
-    color: $color-primary;
+    background-color: rgba(vars.$color-primary, 0.2);
+    color: vars.$color-primary;
     transform: scale(1.1);
   }
 
@@ -358,29 +358,29 @@
   gap: 8px;
   width: 100%;
   padding: 8px 12px;
-  border: 1px solid rgba($color-primary, 0.4);
+  border: 1px solid rgba(vars.$color-primary, 0.4);
   border-radius: 6px;
-  background-color: $color-background;
+  background-color: vars.$color-background;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   font-size: 16px;
   font-weight: 500;
-  color: $color-primary;
+  color: vars.$color-primary;
   margin-bottom: 16px;
 
   svg {
     height: 12px;
     width: 12px;
-    color: $color-primary;
+    color: vars.$color-primary;
   }
 
   &:hover {
-    background-color: rgba($color-primary, 0.1);
-    border-color: $color-primary;
+    background-color: rgba(vars.$color-primary, 0.1);
+    border-color: vars.$color-primary;
     transform: scale(1.02);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 
     svg {
-      color: $color-primary;
+      color: vars.$color-primary;
     }
   }
 
@@ -389,15 +389,15 @@
   }
 
   &:disabled {
-    background-color: $color-action-item-background;
-    border-color: $color-border;
-    color: $color-disabled;
+    background-color: vars.$color-action-item-background;
+    border-color: vars.$color-border;
+    color: vars.$color-disabled;
     opacity: 0.7;
     pointer-events: none;
     box-shadow: none;
 
     svg {
-      color: $color-disabled;
+      color: vars.$color-disabled;
     }
   }
 }
@@ -408,41 +408,41 @@
 
 // Base input field styling mixin
 @mixin form-input-base {
-  font-family: $font-family-base;
+  font-family: vars.$font-family-base;
   font-size: 16px;
   line-height: 1.5;
   padding: 12px 16px;
-  border: 1px solid rgba($color-primary, 0.4);
+  border: 1px solid rgba(vars.$color-primary, 0.4);
   border-radius: 6px;
-  background: $color-background;
-  color: $color-text;
+  background: vars.$color-background;
+  color: vars.$color-text;
   outline: none;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 
   &:focus {
-    border-color: $color-primary;
-    box-shadow: 0 0 0 3px rgba($color-primary, 0.1);
+    border-color: vars.$color-primary;
+    box-shadow: 0 0 0 3px rgba(vars.$color-primary, 0.1);
   }
 
   &::placeholder {
-    color: $color-placeholder;
+    color: vars.$color-placeholder;
     opacity: 0.7;
   }
 
   &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
+    background: vars.$color-action-item-background;
+    color: vars.$color-disabled;
+    border-color: vars.$color-border;
     opacity: 0.6;
     cursor: not-allowed;
     user-select: none;
   }
 
   &.error {
-    border-color: $color-error;
+    border-color: vars.$color-error;
 
     &:focus {
-      box-shadow: 0 0 0 3px rgba($color-error, 0.1);
+      box-shadow: 0 0 0 3px rgba(vars.$color-error, 0.1);
     }
   }
 
@@ -501,7 +501,7 @@
 
 // Base button styling - common to all buttons
 @mixin button-base {
-  font-family: $font-family-base;
+  font-family: vars.$font-family-base;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -515,11 +515,11 @@
 // Close button (X button, typically round)
 @mixin close-button {
   @include button-base;
-  background: $color-action-item-background;
+  background: vars.$color-action-item-background;
   border-radius: 50%;
   width: 32px;
   height: 32px;
-  color: $color-text;
+  color: vars.$color-text;
 
   svg {
     height: 18px;
@@ -527,7 +527,7 @@
   }
 
   &:hover {
-    background: $color-primary;
+    background: vars.$color-primary;
     color: white;
     transform: scale(1.05);
   }
@@ -537,15 +537,15 @@
 @mixin delete-button {
   @include button-base;
   background: transparent;
-  border: 1.5px solid $color-error;
+  border: 1.5px solid vars.$color-error;
   border-radius: 4px;
   padding: 6px 12px;
   font-size: 14px;
-  color: $color-error;
+  color: vars.$color-error;
   margin-right: auto;
 
   &:hover {
-    background: $color-error;
+    background: vars.$color-error;
     color: white;
     transform: scale(1.02);
   }
@@ -556,11 +556,11 @@
   @include button-base;
   width: $size;
   height: $size;
-  background: $color-background;
-  border: 1px solid $color-border;
+  background: vars.$color-background;
+  border: 1px solid vars.$color-border;
   border-radius: 4px;
   font-size: 12px;
-  color: $color-disabled;
+  color: vars.$color-disabled;
 
   svg {
     height: 12px;
@@ -576,16 +576,16 @@
   svg {
     height: 14px;
     width: 14px;
-    color: $color-text;
+    color: vars.$color-text;
   }
 
   &:hover {
-    background: $color-primary;
-    border-color: $color-primary;
+    background: vars.$color-primary;
+    border-color: vars.$color-primary;
     transform: scale(1.05);
 
     svg {
-      color: $color-background;
+      color: vars.$color-background;
     }
   }
 }
@@ -599,10 +599,10 @@
   bottom: 6px;
   margin: auto 0;
   padding: 6px;
-  border: 1px solid rgba($color-primary, 0.4);
+  border: 1px solid rgba(vars.$color-primary, 0.4);
   border-radius: 4px;
-  background-color: $color-background;
-  color: $color-primary;
+  background-color: vars.$color-background;
+  color: vars.$color-primary;
   height: 36px;
   width: 36px;
   z-index: 2;
@@ -611,12 +611,12 @@
   svg {
     height: 12px;
     width: 12px;
-    color: $color-primary;
+    color: vars.$color-primary;
   }
 
   &:hover:not(:disabled) {
-    background-color: rgba($color-primary, 0.1);
-    border-color: $color-primary;
+    background-color: rgba(vars.$color-primary, 0.1);
+    border-color: vars.$color-primary;
     transform: scale(1.05);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
@@ -626,16 +626,16 @@
   }
 
   &:disabled {
-    background-color: $color-action-item-background;
-    border-color: $color-border;
-    color: $color-disabled;
+    background-color: vars.$color-action-item-background;
+    border-color: vars.$color-border;
+    color: vars.$color-disabled;
     cursor: not-allowed !important;
     box-shadow: none;
     z-index: 3;
     pointer-events: auto;
 
     svg {
-      color: $color-disabled;
+      color: vars.$color-disabled;
     }
   }
 
@@ -671,16 +671,16 @@
 // Secondary add button
 @mixin add-button {
   @include button-base;
-  background: $color-action-item-background;
-  color: $color-text;
+  background: vars.$color-action-item-background;
+  color: vars.$color-text;
   border-radius: 4px;
   width: 60px;
   height: 36px;
   font-size: 14px;
 
   &:hover {
-    background: rgba($color-primary, 0.2);
-    color: $color-primary;
+    background: rgba(vars.$color-primary, 0.2);
+    color: vars.$color-primary;
   }
 
   svg {
@@ -695,41 +695,41 @@
   @include edit-button;
 
   &.included {
-    background: $color-primary;
-    border-color: $color-primary;
+    background: vars.$color-primary;
+    border-color: vars.$color-primary;
 
     svg {
-      color: $color-background;
+      color: vars.$color-background;
     }
   }
 
   &.excluded {
-    background: $color-background;
-    border-color: $color-border;
+    background: vars.$color-background;
+    border-color: vars.$color-border;
 
     svg {
-      color: $color-disabled;
+      color: vars.$color-disabled;
     }
   }
 
   &:hover {
     &.included {
-      background: color.adjust($color-primary, $lightness: -5%);
-      border-color: $color-primary;
+      background: color.adjust(vars.$color-primary, $lightness: -5%);
+      border-color: vars.$color-primary;
       transform: scale(1.05);
 
       svg {
-        color: $color-background;
+        color: vars.$color-background;
       }
     }
 
     &.excluded {
-      background: $color-primary;
-      border-color: $color-primary;
+      background: vars.$color-primary;
+      border-color: vars.$color-primary;
       transform: scale(1.05);
 
       svg {
-        color: $color-background;
+        color: vars.$color-background;
       }
     }
   }
@@ -737,19 +737,19 @@
 
 // Add bullet button (full width, subtle)
 @mixin add-bullet-button {
-  font-family: $font-family-base;
+  font-family: vars.$font-family-base;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
   cursor: pointer;
   font-weight: 500;
-  background: rgba($color-primary, 0.12);
-  border-top: 1px solid rgba($color-primary, 0.2);
+  background: rgba(vars.$color-primary, 0.12);
+  border-top: 1px solid rgba(vars.$color-primary, 0.2);
   border-radius: 0 0 6px 6px;
   width: 100%;
   padding: 4px 0;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   height: 24px;
   transition: background 0.2s ease, color 0.2s ease;
 
@@ -760,19 +760,19 @@
   }
 
   &:hover {
-    background: $color-primary;
-    color: $color-text;
+    background: vars.$color-primary;
+    color: vars.$color-text;
     border-radius: 0 0 6px 6px;
 
     svg {
-      color: $color-background;
+      color: vars.$color-background;
     }
   }
 
   &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
+    background: vars.$color-action-item-background;
+    color: vars.$color-disabled;
+    border-color: vars.$color-border;
     border-radius: 0 0 6px 6px;
     pointer-events: none;
     opacity: 0.6;
@@ -798,32 +798,38 @@
   }
 
   &.lock-all {
-    background: $color-badge-red-background;
-    border: 1px solid rgba($color-badge-red, 0.3);
-    color: $color-badge-red;
+    background: vars.$color-badge-red-background;
+    border: 1px solid rgba(vars.$color-badge-red, 0.3);
+    color: vars.$color-badge-red;
 
     svg {
-      color: $color-badge-red;
+      color: vars.$color-badge-red;
     }
 
     &:hover {
-      background: color.adjust($color-badge-red-background, $lightness: -3%);
-      border-color: $color-badge-red;
+      background: color.adjust(
+        vars.$color-badge-red-background,
+        $lightness: -3%
+      );
+      border-color: vars.$color-badge-red;
     }
   }
 
   &.unlock-all {
-    background: $color-badge-green-background;
-    border: 1px solid rgba($color-badge-green, 0.3);
-    color: $color-badge-green;
+    background: vars.$color-badge-green-background;
+    border: 1px solid rgba(vars.$color-badge-green, 0.3);
+    color: vars.$color-badge-green;
 
     svg {
-      color: $color-badge-green;
+      color: vars.$color-badge-green;
     }
 
     &:hover {
-      background: color.adjust($color-badge-green-background, $lightness: -3%);
-      border-color: $color-badge-green;
+      background: color.adjust(
+        vars.$color-badge-green-background,
+        $lightness: -3%
+      );
+      border-color: vars.$color-badge-green;
     }
   }
 }
@@ -835,7 +841,7 @@
 
   @if $variant == 'primary' {
     // Primary button - completely self-contained
-    background: $color-primary;
+    background: vars.$color-primary;
     color: white;
     border-radius: 4px;
     padding: 10px 20px;
@@ -843,20 +849,20 @@
     border: none;
 
     &:hover {
-      background: $color-primary-hover;
+      background: vars.$color-primary-hover;
     }
 
     &:active {
-      background: $color-primary-hover;
+      background: vars.$color-primary-hover;
     }
 
     &:focus-visible {
-      outline: 2px solid $color-primary;
+      outline: 2px solid vars.$color-primary;
       outline-offset: 2px;
     }
 
     &:disabled {
-      background: $color-primary;
+      background: vars.$color-primary;
       cursor: not-allowed;
     }
   } @else if $variant == 'onboarding' {
@@ -888,15 +894,15 @@
   } @else if $variant == 'secondary' {
     // Secondary button (transparent with border)
     background: transparent;
-    color: $color-primary;
-    border: 2px solid $color-primary;
+    color: vars.$color-primary;
+    border: 2px solid vars.$color-primary;
     padding: 14px 32px;
     min-height: 48px;
     font-weight: 400;
 
     &:hover {
-      background: color.adjust($color-primary, $lightness: 45%);
-      border-color: $color-primary;
+      background: color.adjust(vars.$color-primary, $lightness: 45%);
+      border-color: vars.$color-primary;
       transform: translateY(-1px);
     }
 
@@ -906,7 +912,7 @@
   } @else if $variant == 'text' {
     // Text button (minimal style for navigation)
     background: transparent;
-    color: $color-disabled;
+    color: vars.$color-disabled;
     border: none;
     padding: 12px 16px;
     min-height: 36px;
@@ -917,7 +923,7 @@
     border-radius: 8px;
 
     &:hover {
-      color: $color-text;
+      color: vars.$color-text;
       transform: translateX(-2px);
     }
 
@@ -927,7 +933,7 @@
   } @else if $variant == 'skip' {
     // Skip button (optional action with underline)
     background: transparent;
-    color: $color-disabled;
+    color: vars.$color-disabled;
     border: none;
     padding: 12px 24px;
     font-weight: 400;
@@ -935,7 +941,7 @@
     border-radius: 8px;
 
     &:hover {
-      background: color.adjust($color-border, $lightness: 8%);
+      background: color.adjust(vars.$color-border, $lightness: 8%);
       text-decoration: none;
       transform: translateY(-1px);
     }
@@ -981,7 +987,7 @@
 
   p {
     font-size: 16px;
-    color: $color-text;
+    color: vars.$color-text;
     margin-bottom: 24px;
     line-height: 1.5;
 
@@ -1023,7 +1029,7 @@
   h3 {
     font-size: 20px;
     font-weight: 600;
-    color: $color-text;
+    color: vars.$color-text;
     margin: 12px 0 8px 0;
 
     @include breakpoint(tablet) {
@@ -1033,7 +1039,7 @@
 
   p {
     font-size: 16px;
-    color: $color-disabled;
+    color: vars.$color-disabled;
     line-height: 1.5;
     margin: 0;
 
@@ -1058,14 +1064,14 @@
 @mixin welcome-skip-section {
   margin-top: 32px;
   padding-top: 32px;
-  border-top: 1px solid $color-border;
+  border-top: 1px solid vars.$color-border;
   text-align: center;
 }
 
 // Welcome skip text styling
 @mixin welcome-skip-text {
   font-size: 14px;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   margin-bottom: 16px;
 
   @include breakpoint(tablet) {
@@ -1080,7 +1086,7 @@
 // Welcome required fields note
 @mixin welcome-required-note {
   font-size: 14px;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   margin-bottom: 24px;
   text-align: center;
 }
@@ -1091,18 +1097,18 @@
   justify-content: center;
   align-items: center;
   padding: 32px 0;
-  background: $color-action-item-background;
+  background: vars.$color-action-item-background;
   border-radius: 8px;
-  border: 1px solid $color-border;
+  border: 1px solid vars.$color-border;
 }
 
 // Welcome analysis success message
 @mixin welcome-analysis-success {
   padding: 16px;
-  background: rgba($color-transformative, 0.1);
-  border: 1px solid rgba($color-transformative, 0.3);
+  background: rgba(vars.$color-transformative, 0.1);
+  border: 1px solid rgba(vars.$color-transformative, 0.3);
   border-radius: 8px;
-  color: $color-transformative;
+  color: vars.$color-transformative;
   font-weight: 500;
   text-align: center;
   font-size: 15px;
@@ -1149,7 +1155,7 @@
 @mixin form-error {
   font-size: 13px;
   font-weight: 500;
-  color: $color-error;
+  color: vars.$color-error;
   margin: 6px 0;
   opacity: 0;
   transform: translateX(-8px);
@@ -1160,23 +1166,23 @@
 
 // Flash warning message styling
 @mixin flash-warning {
-  color: $color-warning;
+  color: vars.$color-warning;
   animation: slideIn 0.3s ease-out forwards;
 }
 
 // Character count base styling
 @mixin character-count {
   font-size: 12px;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   display: block;
   margin-bottom: 4px;
 
   &.warning {
-    color: $color-warning;
+    color: vars.$color-warning;
   }
 
   &.exceeded {
-    color: $color-error !important;
+    color: vars.$color-error !important;
     font-weight: 600 !important;
   }
 }
@@ -1184,7 +1190,7 @@
 // Character count exceeded state (use this for exceeded classes)
 @mixin character-count-exceeded {
   @include character-count;
-  color: $color-error !important;
+  color: vars.$color-error !important;
   font-weight: 600 !important;
 }
 
@@ -1198,15 +1204,15 @@
     appearance: none;
     width: 18px;
     height: 18px;
-    border: 1.5px solid $color-border;
+    border: 1.5px solid vars.$color-border;
     border-radius: 4px;
     cursor: pointer;
     position: relative;
     transition: border-color 0.2s ease, background 0.2s ease;
 
     &:checked {
-      background: $color-primary;
-      border-color: $color-primary;
+      background: vars.$color-primary;
+      border-color: vars.$color-primary;
     }
 
     &:checked::after {
@@ -1221,7 +1227,7 @@
     }
 
     &:focus {
-      outline: 2px solid rgba($color-primary, 0.2);
+      outline: 2px solid rgba(vars.$color-primary, 0.2);
       outline-offset: 2px;
     }
   }
@@ -1230,7 +1236,7 @@
     font-size: 14px;
     margin-left: 8px;
     cursor: pointer;
-    color: $color-text;
+    color: vars.$color-text;
   }
 }
 
@@ -1256,7 +1262,7 @@
   width: 100%;
   height: 6px;
   border-radius: 3px;
-  background: $color-border;
+  background: vars.$color-border;
   outline: none;
   transition: background 0.2s ease;
 
@@ -1265,14 +1271,14 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: $color-primary;
+    background: vars.$color-primary;
     cursor: pointer;
-    border: 2px solid $color-background;
+    border: 2px solid vars.$color-background;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
-      background: $color-primary-hover;
+      background: vars.$color-primary-hover;
       transform: scale(1.1);
       box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
     }
@@ -1282,14 +1288,14 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: $color-primary;
+    background: vars.$color-primary;
     cursor: pointer;
-    border: 2px solid $color-background;
+    border: 2px solid vars.$color-background;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 
     &:hover {
-      background: $color-primary-hover;
+      background: vars.$color-primary-hover;
       transform: scale(1.1);
       box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
     }
@@ -1299,7 +1305,7 @@
     width: 100%;
     height: 6px;
     cursor: pointer;
-    background: $color-border;
+    background: vars.$color-border;
     border-radius: 3px;
   }
 
@@ -1307,24 +1313,24 @@
     width: 100%;
     height: 6px;
     cursor: pointer;
-    background: $color-border;
+    background: vars.$color-border;
     border-radius: 3px;
     border: none;
   }
 
   &:hover {
-    background: color.adjust($color-border, $lightness: 5%);
+    background: color.adjust(vars.$color-border, $lightness: 5%);
   }
 
   &:focus {
-    background: color.adjust($color-border, $lightness: 5%);
+    background: color.adjust(vars.$color-border, $lightness: 5%);
     &::-webkit-slider-thumb {
-      background: $color-primary-hover;
+      background: vars.$color-primary-hover;
       transform: scale(1.15);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
     &::-moz-range-thumb {
-      background: $color-primary-hover;
+      background: vars.$color-primary-hover;
       transform: scale(1.15);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
@@ -1333,15 +1339,15 @@
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background: $color-border;
+    background: vars.$color-border;
     &::-webkit-slider-thumb {
-      background: $color-disabled;
-      border-color: $color-background;
+      background: vars.$color-disabled;
+      border-color: vars.$color-background;
       box-shadow: none;
     }
     &::-moz-range-thumb {
-      background: $color-disabled;
-      border-color: $color-background;
+      background: vars.$color-disabled;
+      border-color: vars.$color-background;
       box-shadow: none;
     }
   }
@@ -1359,7 +1365,7 @@
     font-size: 18px;
     font-weight: 700;
     margin: 0;
-    color: $color-text;
+    color: vars.$color-text;
   }
 }
 
@@ -1385,11 +1391,11 @@
   justify-content: center;
   width: 100%;
   padding: 4px 0;
-  background: rgba($color-primary, 0.12);
+  background: rgba(vars.$color-primary, 0.12);
   border: none;
-  border-top: 1px solid rgba($color-primary, 0.4);
+  border-top: 1px solid rgba(vars.$color-primary, 0.4);
   cursor: pointer;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   border-radius: 0 0 6px 6px;
   transition: color 0.2s ease, border-radius 0.2s ease-in-out,
     border-bottom 0.2s ease-in-out;
@@ -1403,10 +1409,10 @@
   }
 
   &:hover {
-    background: $color-primary;
-    color: $color-text;
+    background: vars.$color-primary;
+    color: vars.$color-text;
     svg {
-      color: $color-background;
+      color: vars.$color-background;
     }
   }
 
@@ -1415,19 +1421,19 @@
   }
 
   &.disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
+    background: vars.$color-action-item-background;
+    color: vars.$color-disabled;
+    border-color: vars.$color-border;
     opacity: 0.7;
     pointer-events: none;
     &:hover {
-      background: $color-action-item-background;
-      color: $color-disabled;
+      background: vars.$color-action-item-background;
+      color: vars.$color-disabled;
     }
   }
 
   &.expanded {
-    border-bottom: 1px solid rgba($color-primary, 0.4);
+    border-bottom: 1px solid rgba(vars.$color-primary, 0.4);
   }
 }
 
@@ -1454,17 +1460,17 @@
 
 // Keyword highlight styling
 @mixin keyword-highlight {
-  background-color: rgba($color-primary, 0.15);
-  color: $color-primary;
+  background-color: rgba(vars.$color-primary, 0.15);
+  color: vars.$color-primary;
   font-weight: 600;
   padding: 1px 3px;
   border-radius: 3px;
-  border: 1px solid rgba($color-primary, 0.2);
+  border: 1px solid rgba(vars.$color-primary, 0.2);
   transition: all 0.2s ease;
 
   &:hover {
-    background-color: rgba($color-primary, 0.25);
-    border-color: rgba($color-primary, 0.4);
+    background-color: rgba(vars.$color-primary, 0.25);
+    border-color: rgba(vars.$color-primary, 0.4);
   }
 }
 
@@ -1530,11 +1536,11 @@
 @keyframes pulseGlow {
   0%,
   100% {
-    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    box-shadow: 0 2px 8px rgba(vars.$color-regenerate, 0.3);
     transform: scale(1.05);
   }
   50% {
-    box-shadow: 0 4px 12px rgba($color-regenerate, 0.6);
+    box-shadow: 0 4px 12px rgba(vars.$color-regenerate, 0.6);
     transform: scale(1.1);
   }
 }
@@ -1635,8 +1641,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: $color-regenerate;
-  border: 1px solid $color-regenerate;
+  background: vars.$color-regenerate;
+  border: 1px solid vars.$color-regenerate;
   border-radius: 4px;
   cursor: pointer;
   padding: 4px;
@@ -1649,13 +1655,13 @@
   svg {
     height: 14px;
     width: 14px;
-    color: $color-background;
+    color: vars.$color-background;
     z-index: 3;
   }
 
   &:hover {
-    border-color: $color-regenerate;
-    box-shadow: 0 2px 8px rgba($color-regenerate, 0.3);
+    border-color: vars.$color-regenerate;
+    box-shadow: 0 2px 8px rgba(vars.$color-regenerate, 0.3);
     transform: scale(1.05);
     animation: pulseGlow 1.2s ease-in-out infinite;
   }
@@ -1665,14 +1671,14 @@
   }
 
   &:disabled {
-    background: $color-action-item-background;
-    color: $color-disabled;
-    border-color: $color-border;
+    background: vars.$color-action-item-background;
+    color: vars.$color-disabled;
+    border-color: vars.$color-border;
     opacity: 0.7;
     pointer-events: none;
 
     svg {
-      color: rgba($color-disabled, 0.5);
+      color: rgba(vars.$color-disabled, 0.5);
     }
   }
 }
@@ -1685,7 +1691,7 @@
   width: 20px;
   height: 20px;
   background-color: transparent;
-  border: 3px solid rgba($color-regenerate, 0.8);
+  border: 3px solid rgba(vars.$color-regenerate, 0.8);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -1715,7 +1721,7 @@
 
   &.longPressing {
     transition: all 0.1s ease;
-    border-color: $color-primary;
+    border-color: vars.$color-primary;
   }
 }
 
@@ -1732,7 +1738,7 @@
 @mixin block-header {
   font-size: 16px;
   font-weight: 600;
-  color: $color-primary;
+  color: vars.$color-primary;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -1742,7 +1748,7 @@
 // Block date styling
 @mixin block-date {
   font-size: 13px;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -1760,7 +1766,7 @@
 // Excluded block text
 @mixin excluded-block-text {
   font-size: 12px;
-  color: $color-disabled;
+  color: vars.$color-disabled;
   margin: 0;
   white-space: wrap;
   overflow: hidden;

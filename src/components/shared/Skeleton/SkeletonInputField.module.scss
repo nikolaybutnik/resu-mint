@@ -1,24 +1,25 @@
-@import '../../../styles/mixins';
+@use '../../../styles/variables' as vars;
+@use '../../../styles/mixins' as mixins;
 
 .skeletonFormField {
-  @include form-field;
+  @include mixins.form-field;
 }
 
 .skeletonFormLabel {
-  @include form-label;
-  @include skeleton-shimmer;
+  @include mixins.form-label;
+  @include mixins.skeleton-shimmer;
   border-radius: 4px;
 }
 
 .skeletonFormInput {
-  @include form-input-base;
-  @include skeleton-shimmer;
+  @include mixins.form-input-base;
+  @include mixins.skeleton-shimmer;
 
   border: none;
 
   // Remove focus states for skeleton
   &:focus {
-    border-color: rgba($color-primary, 0.4);
+    border-color: rgba(vars.$color-primary, 0.4);
     box-shadow: none;
   }
 }
