@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useCallback } from 'react'
 import { supabase } from '../supabase/client'
 import { useAuthStore, useDbStore } from '@/stores'
 import { toast } from '@/stores/toastStore'
@@ -6,30 +6,34 @@ import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
-  const { startSync, stopSync, startPushSync, stopPushSync } = useDbStore()
 
   const hasShownLoginToast = useRef(false)
   const lastUserId = useRef<string | null>(null)
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null)
 
-  const startAllServices = async (session: Session): Promise<void> => {
-    if (!session) return
+  const startAllServices = useCallback(
+    async (session: Session): Promise<void> => {
+      if (!session) return
 
-    await startSync(session)
-    startPushSync()
-  }
+      const { startSync, startPushSync } = useDbStore.getState()
+      await startSync(session)
+      startPushSync()
+    },
+    []
+  )
 
-  const stopAllServices = async (): Promise<void> => {
+  const stopAllServices = useCallback(async (): Promise<void> => {
+    const { stopSync, stopPushSync } = useDbStore.getState()
     await stopSync()
     stopPushSync()
-  }
+  }, [])
 
-  const stopPolling = (): void => {
+  const stopPolling = useCallback((): void => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current)
       pollingIntervalRef.current = null
     }
-  }
+  }, [])
 
   useEffect(() => {
     const initAuth = async () => await initUser()
@@ -158,14 +162,7 @@ export function useAuthListener() {
       subscription.unsubscribe()
       stopPolling()
     }
-  }, [
-    initUser,
-    startSync,
-    stopSync,
-    startPushSync,
-    stopPushSync,
-    stopAllServices,
-  ])
+  }, [initUser, startAllServices, stopAllServices, stopPolling])
 
   // Clean up sync and polling when tab/window closes
   useEffect(() => {

@@ -55,10 +55,19 @@ export const updatePersonalDetailChangelogQuery = `
 UPDATE personal_details_changes SET synced = $1 WHERE write_id = $2
 `
 
-export const selectUnsyncedRowsQuery = `
-SELECT * FROM personal_details_changes WHERE synced = FALSE ORDER BY timestamp ASC
+export const markPreviousPersonalDetailsChangesAsSyncedQuery = `
+UPDATE personal_details_changes SET synced = TRUE
+WHERE synced = FALSE AND operation = 'update' AND timestamp <= $1
+`
+
+export const selectLatestUnsyncedPersonalDetailsChangeQuery = `
+SELECT * FROM personal_details_changes
+WHERE synced = FALSE AND operation = 'update'
+ORDER BY timestamp DESC LIMIT 1
 `
 
 export const cleanUpSyncedChangelogEntriesQuery = `
-DELETE FROM personal_details_changes WHERE synced = TRUE AND timestamp < NOW() - INTERVAL '7 days'
+DELETE FROM personal_details_changes 
+WHERE synced = TRUE 
+AND timestamp < NOW() - INTERVAL '3 days'
 `

@@ -7,13 +7,14 @@ import type {
 } from '@/lib/types/experience'
 import { RawExperienceData } from '@/lib/types/experience'
 import { PostgrestError } from '@supabase/supabase-js'
-import { useDbStore } from '@/stores'
+import { useAuthStore, useDbStore } from '@/stores'
 import type { PersonalDetails } from '@/lib/types/personalDetails'
 import { ElectricDb } from '@/stores/dbStore'
 import {
   cleanUpSyncedChangelogEntriesQuery,
-  selectUnsyncedRowsQuery,
   updatePersonalDetailChangelogQuery,
+  selectLatestUnsyncedPersonalDetailsChangeQuery,
+  markPreviousPersonalDetailsChangesAsSyncedQuery,
 } from '../sql'
 
 export async function pullExperienceDbRecordToLocal(
@@ -170,28 +171,38 @@ interface PersonalDetailsChange {
 }
 
 export const pushLocalChangesToRemote = async () => {
+  const { user } = useAuthStore.getState()
   const { db } = useDbStore.getState()
   if (!db) throw new Error('Local DB not initialized')
+
+  // TODO: implement user_id into changes table and write/read only records matching user_id
+  console.log('USER ID: ', user?.id)
 
   await waitForAuthReady()
   if (!isAuthenticated()) {
     return
   }
 
-  const unsyncedRows = await db.query<PersonalDetailsChange>(
-    selectUnsyncedRowsQuery
+  const latestChange = await db.query<PersonalDetailsChange>(
+    selectLatestUnsyncedPersonalDetailsChangeQuery
   )
 
-  if (!unsyncedRows?.rows?.length) return
+  if (!latestChange?.rows?.length) {
+    await db.query(cleanUpSyncedChangelogEntriesQuery)
+    return
+  }
 
-  for (const row of unsyncedRows.rows) {
-    if (row.operation !== 'update') continue
+  const [row] = latestChange.rows
 
-    try {
-      await syncWithAtomicity(db, row)
-    } catch (error) {
-      console.error('Failed to sync row:', row.write_id, error)
-    }
+  try {
+    await syncWithAtomicity(db, row)
+
+    await db.query(markPreviousPersonalDetailsChangesAsSyncedQuery, [
+      row.timestamp,
+    ])
+  } catch (error) {
+    console.error('Failed to sync latest personal details change:', error)
+    // Don't mark as synced if push failed - will retry on next push attempt
   }
 
   // TODO: Create a daily job for cleanup?

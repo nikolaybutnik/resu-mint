@@ -94,6 +94,8 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
   },
 }
 
+let firstSyncFlag = true
+
 const initializeTables = async (db: PGlite) => {
   try {
     await db.query(initializePersonalDetailsQuery)
@@ -445,7 +447,10 @@ export const useDbStore = create<DbStore>((set, get) => ({
     const scheduleNextSync = (isRecurring = false) => {
       if (isRecurring && !get().pushSyncTimer) return
 
-      runPush()
+      if (firstSyncFlag) {
+        runPush()
+        firstSyncFlag = false
+      }
 
       const timer = setTimeout(async () => {
         try {
