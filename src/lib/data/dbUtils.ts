@@ -168,6 +168,7 @@ interface PersonalDetailsChange {
   write_id: string
   timestamp: string
   synced: boolean
+  user_id: string | null
 }
 
 export const pushLocalChangesToRemote = async () => {
@@ -175,20 +176,18 @@ export const pushLocalChangesToRemote = async () => {
   const { db } = useDbStore.getState()
   if (!db) throw new Error('Local DB not initialized')
 
-  // TODO: implement user_id into changes table and write/read only records matching user_id
-  console.log('USER ID: ', user?.id)
-
   await waitForAuthReady()
   if (!isAuthenticated()) {
     return
   }
 
   const latestChange = await db.query<PersonalDetailsChange>(
-    selectLatestUnsyncedPersonalDetailsChangeQuery
+    selectLatestUnsyncedPersonalDetailsChangeQuery,
+    [user?.id]
   )
 
   if (!latestChange?.rows?.length) {
-    await db.query(cleanUpSyncedChangelogEntriesQuery)
+    await db.query(cleanUpSyncedChangelogEntriesQuery, [user?.id])
     return
   }
 
@@ -199,6 +198,7 @@ export const pushLocalChangesToRemote = async () => {
 
     await db.query(markPreviousPersonalDetailsChangesAsSyncedQuery, [
       row.timestamp,
+      user?.id,
     ])
   } catch (error) {
     console.error('Failed to sync latest personal details change:', error)
@@ -206,5 +206,5 @@ export const pushLocalChangesToRemote = async () => {
   }
 
   // TODO: Create a daily job for cleanup?
-  await db.query(cleanUpSyncedChangelogEntriesQuery)
+  await db.query(cleanUpSyncedChangelogEntriesQuery, [user?.id])
 }

@@ -3,6 +3,8 @@ import { supabase } from '../supabase/client'
 import { useAuthStore, useDbStore } from '@/stores'
 import { toast } from '@/stores/toastStore'
 import { AuthChangeEvent, Session } from '@supabase/supabase-js'
+import { getLastKnownUserId, setLastKnownUserId } from '../utils'
+import { transferAnonymousPersonalDetailsToUser } from '../sql'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
@@ -35,6 +37,17 @@ export function useAuthListener() {
     }
   }, [])
 
+  const transferAnonymousChanges = useCallback(async (newUserId: string) => {
+    const { db } = useDbStore.getState()
+    if (!db) return
+
+    try {
+      await db.query(transferAnonymousPersonalDetailsToUser, [newUserId])
+    } catch (error) {
+      console.error('Failed to transfer anonymous changes:', error)
+    }
+  }, [])
+
   useEffect(() => {
     const initAuth = async () => await initUser()
     initAuth()
@@ -64,6 +77,16 @@ export function useAuthListener() {
           }
 
           if (session?.user) {
+            const lastKnownUserId = getLastKnownUserId()
+            const currentUserId = session.user.id
+
+            // If no lastKnownUserId exists, transfer anonymous changes to this user
+            if (!lastKnownUserId) {
+              await transferAnonymousChanges(currentUserId)
+            }
+
+            setLastKnownUserId(currentUserId)
+
             useAuthStore.setState({
               user: session.user,
               session,

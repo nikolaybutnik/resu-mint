@@ -26,7 +26,8 @@ CREATE TABLE IF NOT EXISTS personal_details_changes (
     value JSONB NOT NULL,
     write_id TEXT NOT NULL,
     timestamp TIMESTAMPTZ,
-    synced BOOLEAN DEFAULT FALSE
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
 )
 `
 
@@ -47,8 +48,8 @@ INSERT INTO personal_details (id, name, email, phone, location, linkedin, github
 `
 
 export const insertPersonalDetailsChangelogQuery = `
-INSERT INTO personal_details_changes (operation, value, write_id, timestamp)
-    VALUES ($1, $2, $3, $4)
+INSERT INTO personal_details_changes (operation, value, write_id, timestamp, user_id)
+    VALUES ($1, $2, $3, $4, $5)
 `
 
 export const updatePersonalDetailChangelogQuery = `
@@ -57,12 +58,15 @@ UPDATE personal_details_changes SET synced = $1 WHERE write_id = $2
 
 export const markPreviousPersonalDetailsChangesAsSyncedQuery = `
 UPDATE personal_details_changes SET synced = TRUE
-WHERE synced = FALSE AND operation = 'update' AND timestamp <= $1
+WHERE synced = FALSE AND operation = 'update' 
+AND timestamp <= $1 
+AND user_id = $2
 `
 
 export const selectLatestUnsyncedPersonalDetailsChangeQuery = `
 SELECT * FROM personal_details_changes
 WHERE synced = FALSE AND operation = 'update'
+AND user_id = $1
 ORDER BY timestamp DESC LIMIT 1
 `
 
@@ -70,4 +74,11 @@ export const cleanUpSyncedChangelogEntriesQuery = `
 DELETE FROM personal_details_changes 
 WHERE synced = TRUE 
 AND timestamp < NOW() - INTERVAL '3 days'
+AND user_id = $1
+`
+
+export const transferAnonymousPersonalDetailsToUser = `
+UPDATE personal_details_changes
+SET user_id = $1
+WHERE user_id IS NULL
 `

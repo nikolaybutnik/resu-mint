@@ -671,3 +671,17 @@ export const shouldShowWelcomeExperience = (): WelcomeExperienceState => {
     return { shouldShow: true, startStep: 0, completedSteps: [] }
   }
 }
+
+const USER_ID_KEY = 'resu-mint-last-user-id'
+
+export const getLastKnownUserId = (): string | null => {
+  return localStorage.getItem(USER_ID_KEY)
+}
+
+export const setLastKnownUserId = (userId: string | null): void => {
+  if (userId) {
+    localStorage.setItem(USER_ID_KEY, userId)
+  } else {
+    localStorage.removeItem(USER_ID_KEY)
+  }
+}

@@ -9,13 +9,14 @@ import {
   createValidationError,
   createUnknownError,
 } from '../types/errors'
-import { useDbStore } from '@/stores'
+import { useAuthStore, useDbStore } from '@/stores'
 import {
   getPersonalDetailsQuery,
   insertPersonalDetailsChangelogQuery,
   upsertPersonalDetailsQuery,
 } from '../sql'
 import { v4 as uuidv4 } from 'uuid'
+import { getLastKnownUserId } from '../utils'
 class PersonalDetailsManager {
   async get(): Promise<PersonalDetails> {
     const { db } = useDbStore.getState()
@@ -43,6 +44,8 @@ class PersonalDetailsManager {
     const writeId = uuidv4()
     const timestamp = nowIso()
     const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
       await db?.query(upsertPersonalDetailsQuery, [
@@ -62,6 +65,7 @@ class PersonalDetailsManager {
         JSON.stringify(data),
         writeId,
         timestamp,
+        userId,
       ])
     } catch (error) {
       return Failure(
