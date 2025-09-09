@@ -9,11 +9,10 @@ This project is public, with a custom license allowing personal use and forks fo
 ## Key Features
 
 ### Authentication & Data Management
-- **Dual-Path Data System**: Authenticated users get database storage, unauthenticated users get localStorage
-- **Secure Authentication**: Email/password signup and login with Supabase Auth
-- **Row Level Security**: Database policies ensure users only access their own data
-- **Session Management**: Automatic session persistence and middleware-based route protection
-- **Password Security**: Comprehensive validation with requirements for security and special characters
+- **Local-First Architecture**: PGlite local database with ElectricSQL real-time sync to Supabase
+- **User-Scoped Data Isolation**: Changelog-based sync with user ID filtering prevents cross-user contamination
+- **Secure Authentication**: Email/password with Supabase Auth, Row Level Security, and session persistence
+- **Anonymous User Support**: Logged-out editing with automatic data transfer on first login
 
 ### AI-Powered Resume Creation
 - **Intelligent Bullet Generation**: Creates tailored bullet points matching job descriptions using OpenAI's GPT models
@@ -37,23 +36,25 @@ This project is public, with a custom license allowing personal use and forks fo
 - **Skills Management**: Automatic skill extraction from descriptions, intelligent categorization, and manual curation with suggestion system
 
 ### Smart User Experience
-- **Welcome Experience**: Guided 5-step onboarding flow with personalized content and smart progress tracking
-- **Drag-and-Drop Interface**: Easily arrange sections with dnd-kit, or hide sections entirely
-- **Mobile-Responsive**: Optimized input and preview modes for all devices (work in progress)
-- **Intelligent Messaging**: Context-aware status updates and requirement guidance
-- **Skeleton Loading**: Consistent loading states using design system mixins for seamless UX
-- **Data Persistence**: Zustand-based global state management with intelligent localStorage caching
+- **Instant Responsiveness**: Local-first data storage with background cloud sync
+- **Drag-and-Drop Interface**: Easily arrange or hide sections with dnd-kit
+- **Mobile-Responsive**: Optimized input and preview modes (work in progress)
+- **Skeleton Loading**: Design system mixins for consistent loading states
+- **Global State Management**: Zustand stores with PGlite integration
 
 ## Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript, SASS
 - **Authentication**: Supabase Auth with Row Level Security (RLS)
-- **Database**: Supabase PostgreSQL with TypeScript type generation
+- **Database**: 
+  - **Local**: PGlite (in-browser PostgreSQL) for local-first storage
+  - **Remote**: Supabase PostgreSQL with TypeScript type generation
+  - **Sync**: ElectricSQL for real-time read-path synchronization
 - **AI Integration**: OpenAI API (GPT-4o mini, GPT-4) with tiktoken for token management
 - **PDF Generation**: LaTeX with Tectonic for professional resume output  
 - **UI Components**: dnd-kit for drag-and-drop, react-pdf for preview, react-icons
 - **Validation**: Zod schemas for type-safe form validation
-- **State Management**: Zustand for global state with dual-path data persistence (Database + localStorage)
+- **State Management**: Zustand for global state with PGlite local database persistence
 - **Loading States**: Mixin-based skeleton system integrated with design tokens
 
 ## Getting Started
@@ -104,32 +105,55 @@ This project is public, with a custom license allowing personal use and forks fo
    NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_anon_key_here
    SUPABASE_SECRET_KEY=your_service_role_key_here
+   
+   # ElectricSQL Configuration
+   ELECTRIC_HTTP_BASE=http://localhost:3001
+   ELECTRIC_SECRET=your_generated_secret_here_or_leave_empty_for_insecure
    ```
 
-5. Start the development server:
+5. Start ElectricSQL sync service:
+
+   **Option A: With Authentication (Recommended)**
+   ```bash
+   # Generate a secure secret (save this for your .env.local)
+   openssl rand -base64 32
+   
+   # Run ElectricSQL with authentication
+   docker run -it \
+     -e "DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres" \
+     -e "ELECTRIC_SECRET=YOUR_GENERATED_SECRET_HERE" \
+     -p 3001:3000 \
+     electricsql/electric:latest
+   ```
+
+   **Option B: Without Authentication (Development Only)**
+   ```bash
+   docker run -it \
+     -e "DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres" \
+     -e "ELECTRIC_INSECURE=true" \
+     -p 3001:3000 \
+     electricsql/electric:latest
+   ```
+
+6. Start the development server:
 
    ```bash
    npm run dev
    ```
 
-6. Open [http://localhost:3000](http://localhost:3000) to view the app.
+7. Open [http://localhost:3000](http://localhost:3000) to view the app.
 
 ### Database Management
 
-The app uses a **dual-path data management system**:
-
-- **Authenticated Users**: Data is stored in Supabase PostgreSQL with Row Level Security
-- **Unauthenticated Users**: Data is stored in browser localStorage for immediate use
+The app uses **ElectricSQL local-first architecture** with PGlite (in-browser PostgreSQL) for instant access and real-time sync to Supabase. User-scoped changelog tables prevent cross-user data contamination, and anonymous users get automatic data transfer on first login.
 
 #### Database Schema
 
-The database includes tables for:
-- **`personal_details`** - Contact information and professional profiles
-- **`experience`** - Work history with AI-generated bullet points
-- **`projects`** - Project showcase with technology highlighting
-- **`education`** - Academic background and certifications
-- **`skills`** - Extracted and categorized skills
-- **`app_settings`** - User preferences and AI model settings
+**Cloud Tables (Supabase):**
+- `personal_details`, `experience`, `projects`, `education`, `skills`, `app_settings`
+
+**Local Tables (PGlite):**
+- `personal_details_changes` - Changelog for user-scoped sync with conflict resolution
 
 #### Local Development Commands
 
@@ -156,14 +180,17 @@ npx supabase migration new <name>
 # Regenerate types after schema changes (only needed if you modify the migration)
 npx supabase gen types typescript --local > src/lib/types/database.ts
 
-# Runs a local instance of electric attached to supabase 
-docker run -it -e "DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres" -e "ELECTRIC_INSECURE=true" -p 3001:3000 electricsql/electric:latest
+# Start ElectricSQL sync service (see installation steps above for detailed options)
+# With auth: docker run -it -e "DATABASE_URL=..." -e "ELECTRIC_SECRET=..." -p 3001:3000 electricsql/electric:latest
+# Without auth: docker run -it -e "DATABASE_URL=..." -e "ELECTRIC_INSECURE=true" -p 3001:3000 electricsql/electric:latest
 ```
 
 ## How to Use
 
 ### Welcome Experience (First-Time Users)
-New users are guided through a 5-step onboarding process with personalized content:
+*Note: Welcome experience is temporarily disabled during ElectricSQL migration completion.*
+
+The guided 5-step onboarding process includes:
 1. **Welcome Screen**: Introduction to ResuMint's features
 2. **Personal Details**: Name and email
 3. **Experience & Projects**: Add initial work experience or project
@@ -198,7 +225,7 @@ ResuMint uses a modern, scalable Next.js architecture with intelligent caching a
 
 ### State Management Architecture
 
-ResuMint uses a modern Zustand-based architecture that eliminates prop drilling and provides clean separation of concerns:
+ResuMint uses local-first architecture with ElectricSQL sync and Zustand state management for clean separation of concerns:
 
 #### **Clean Data Flow Pattern**
 ```
@@ -208,22 +235,15 @@ UI Layer → Action Layer → Store Layer → Persistence Layer
 - **UI Layer**: Components handle user interaction and presentation
 - **Action Layer**: Pure validation functions with no side effects
 - **Store Layer**: Global state management with smart loading states
-- **Persistence Layer**: Data caching and localStorage operations
+- **Persistence Layer**: PGlite local database with ElectricSQL cloud sync
 
 #### **Zustand Store Features**
-- **Single Source of Truth**: Each data type has one global store (personalDetails, settings, etc.)
-- **Smart Loading States**: 
-  - `initializing: boolean` - Shows skeleton during first load only
-  - `loading: boolean` - Shows subtle feedback during operations
+- **Single Source of Truth**: Each data type has one global store with smart loading states
 - **Error Recovery**: Automatic state restoration on save failures
-- **Cache Integration**: Seamless integration with dataManager for persistence
-- **Direct Access**: No prop drilling - any component can access stores directly
+- **PGlite Integration**: Direct local database queries with ElectricSQL sync
 
 #### **Store Provider Pattern**
-- **Centralized Initialization**: All stores initialized in root layout via `StoreProvider`
-- **Automatic Setup**: Stores auto-initialize on app start
-- **Performance Optimized**: Stores only load data when first accessed
-- **Type Safety**: Full TypeScript support with proper type inference
+- **Centralized Initialization**: All stores initialized in root layout with auto-setup and TypeScript support
 
 #### **Migration Pattern for New Data Types**
 Adding new data types follows a consistent pattern:
@@ -250,7 +270,7 @@ Here's how data flows through the architecture when a user submits personal deta
 1. **UI Layer**: `PersonalDetails.tsx` handles form submission
 2. **Action Layer**: `personalDetailsActions.ts` validates form data (pure function)
 3. **Store Layer**: `personalDetailsStore.ts` manages state and calls persistence
-4. **Persistence Layer**: `dataManager.ts` handles caching and localStorage operations
+4. **Persistence Layer**: `personalDetailsManager.ts` handles PGlite database operations with ElectricSQL sync
 
 ```typescript
 // Component orchestrates the flow
@@ -270,9 +290,9 @@ This pattern ensures:
 - **Testability**: Pure functions and clear interfaces
 
 ### User Experience Layer
-- **Welcome Experience**: Progressive onboarding with smart step navigation and completion tracking
-- **Loading States**: Skeleton components using design system mixins for consistent shimmer effects
-- **Data Management**: Zustand stores with intelligent loading states for seamless UX
+- **Instant Responsiveness**: Local-first data storage with background cloud sync
+- **Loading States**: Skeleton components with design system mixins
+- **Real-Time Sync**: Background synchronization with conflict resolution
 
 ### AI & Processing Pipeline
 - **Job Analysis**: Extracts keywords, skills, and requirements from job descriptions
@@ -330,8 +350,8 @@ ResuMint implements a multi-tier caching system to minimize PDF generation laten
 - **Cache Warming**: Automated package download during build with fresh cache creation
 - **Environment Adaptation**: Cache size varies by environment (local vs production) for optimal resource usage
 - **Deployment Integration**: Cache included in deployment via Next.js `outputFileTracingIncludes`
-- **Skeleton Loading**: Mixin-based loading states automatically sync with design system changes
-- **Zustand State Management**: Global stores eliminate prop drilling
+- **Skeleton Loading**: Design system mixins for consistent loading states
+- **ElectricSQL Sync**: Real-time database synchronization with conflict resolution
 
 ## API Endpoints
 
@@ -342,6 +362,7 @@ ResuMint implements a multi-tier caching system to minimize PDF generation laten
 - **POST /api/categorize-user-skills** - Intelligently categorizes skills based on job requirements
 - **POST /api/generate-skill-suggestions** - Suggests relevant skills based on user experience and job analysis
 - **GET/POST /api/tectonic-health** - System health monitoring and cache management
+- **GET/POST /api/shape-proxy** - ElectricSQL shape proxy for real-time database synchronization
 
 ## Admin Dashboard
 
@@ -353,9 +374,9 @@ Access `/admin/dashboard` for system monitoring including:
 ## Future Enhancements
 
 ### Data & Storage
-- **Data Migration Tools**: Migrate localStorage data to database for new authenticated users
-- **Version History**: Track and restore previous resume versions
-- **Data Export/Import**: Allow users to export/import their data
+- **Complete ElectricSQL Migration**: Finish migrating all data types to local-first architecture
+- **Version History**: Track and restore previous resume versions using changelog system
+- **Enhanced Conflict Resolution**: Better handling for complex sync scenarios
 
 ### Premium Features
 - **Multiple Templates**: Professional resume layouts and themes, optimized for ATS readability
