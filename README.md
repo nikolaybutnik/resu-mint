@@ -17,10 +17,7 @@ This project is public, with a custom license allowing personal use and forks fo
 ### AI-Powered Resume Creation
 - **Intelligent Bullet Generation**: Creates tailored bullet points matching job descriptions using OpenAI's GPT models
 - **Job Description Analysis**: Extracts key skills, requirements, and context from job postings
-- **Skill Extraction & Categorization**: Automatically extracts skills from user content and intelligently categorizes them based on job requirements
-- **Skill Suggestion System**: Suggests relevant skills based on user experience and job analysis
-- **Keyword Prioritization**: Analyzes keyword usage across resume sections to prioritize underused skills
-- **Skill Alignment Tracking**: Monitors alignment between job requirements and resume content
+- **Smart Skill Management**: Automatic extraction, intelligent categorization, suggestion system, and keyword prioritization
 
 ### PDF Generation & Preview
 - **Automatic Preview**: PDF preview with debounced updates during editing
@@ -29,17 +26,11 @@ This project is public, with a custom license allowing personal use and forks fo
 - **Queue Management**: Handles multiple concurrent requests efficiently
 
 ### Comprehensive Resume Sections
-- **Personal Details**: Contact information and professional profiles
-- **Work Experience**: Drag-and-drop interface with AI-generated bullet points
-- **Projects**: Project showcase with drag-and-drop interface, technology highlighting, and AI-generated bullet points
-- **Education**: Academic background and certifications
-- **Skills Management**: Automatic skill extraction from descriptions, intelligent categorization, and manual curation with suggestion system
+- **Complete Resume Builder**: Personal details, work experience, projects, education, and skills with drag-and-drop organization and AI-generated content
 
 ### Smart User Experience
 - **Instant Responsiveness**: Local-first data storage with background cloud sync
-- **Drag-and-Drop Interface**: Easily arrange or hide sections with dnd-kit
-- **Mobile-Responsive**: Optimized input and preview modes (work in progress)
-- **Skeleton Loading**: Design system mixins for consistent loading states
+- **Modern Interface**: Drag-and-drop organization, mobile-responsive design, and consistent loading states
 - **Global State Management**: Zustand stores with PGlite integration
 
 ## Tech Stack
@@ -199,19 +190,9 @@ The guided 5-step onboarding process includes:
 
 ### Building Your Resume
 1. **Enter Job Description**: Paste a job posting for AI analysis and keyword extraction
-2. **Input Personal Details**: Add contact information and professional profiles  
-3. **Build Your Resume**: Add work experience, projects, and education with drag-and-drop organization
-
-### AI-Powered Features
-4. **Automatic Skill Detection**: Skills are extracted from your experience and projects, and intelligently categorized based on job requirements
-5. **Skill Suggestions**: AI suggests relevant skills based on your experience and job analysis
-6. **Keyword Optimization**: The system tracks keyword usage and prioritizes underused skills (In development)
-7. **Smart Bullet Generation**: AI creates targeted bullet points emphasizing relevant keywords
-
-### Customization & Export
-1. **Real-time Preview**: Watch your resume update automatically as you make changes
-2. **Customize Settings**: Adjust bullet point counts, character limits, and AI model preferences, and order of resume sections
-3.  **Download PDF**: Generate and save your optimized resume
+2. **Build Content**: Add personal details, work experience, projects, and education with drag-and-drop organization
+3. **AI Enhancement**: Automatic skill detection, suggestions, and smart bullet generation with keyword optimization
+4. **Customize & Export**: Real-time preview, adjustable settings, and professional PDF generation
 
 ## Architecture
 
@@ -289,16 +270,9 @@ This pattern ensures:
 - **Error isolation**: Failures are contained and handled at appropriate layers
 - **Testability**: Pure functions and clear interfaces
 
-### User Experience Layer
-- **Instant Responsiveness**: Local-first data storage with background cloud sync
-- **Loading States**: Skeleton components with design system mixins
-- **Real-Time Sync**: Background synchronization with conflict resolution
-
-### AI & Processing Pipeline
-- **Job Analysis**: Extracts keywords, skills, and requirements from job descriptions
-- **Keyword Management**: Tracks usage statistics and prioritizes underused skills
-- **Bullet Generation**: Context-aware AI prompting with keyword prioritization
-- **Skill Processing**: Automatic skill extraction, intelligent categorization, and AI-powered skill suggestions
+### User Experience & AI Pipeline
+- **Instant Responsiveness**: Local-first data storage with background cloud sync and real-time synchronization
+- **AI Processing**: Job analysis, skill extraction, keyword management, and context-aware bullet generation
 
 ### Performance Optimizations
 
@@ -344,14 +318,9 @@ ResuMint implements a multi-tier caching system to minimize PDF generation laten
 
 #### Additional Optimizations
 
-- **Live Preview Service**: Debounced PDF generation with multi-tier caching
-- **Request Queue Management**: Handles concurrent requests with intelligent deduplication
-- **Local Storage Caching**: Persistent PDF caching for improved performance (utilizing blob size strategies)
-- **Cache Warming**: Automated package download during build with fresh cache creation
-- **Environment Adaptation**: Cache size varies by environment (local vs production) for optimal resource usage
-- **Deployment Integration**: Cache included in deployment via Next.js `outputFileTracingIncludes`
-- **Skeleton Loading**: Design system mixins for consistent loading states
-- **ElectricSQL Sync**: Real-time database synchronization with conflict resolution
+- **Live Preview**: Debounced PDF generation with request queue management and local storage caching
+- **Smart Caching**: Automated cache warming, environment adaptation, and deployment integration
+- **Real-Time Sync**: ElectricSQL database synchronization with conflict resolution
 
 ## API Endpoints
 
