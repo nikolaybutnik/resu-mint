@@ -2,13 +2,12 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
-import { isEqual, omit } from 'lodash'
+import { isEqual, omit, debounce } from 'lodash'
 import {
   createUnknownError,
   createValidationError,
   OperationError,
 } from '@/lib/types/errors'
-import { experienceManager } from '@/lib/data'
 
 interface ExperienceStore {
   data: ExperienceBlockData[]
@@ -16,9 +15,7 @@ interface ExperienceStore {
   initializing: boolean
   hasData: boolean
   error: OperationError | null
-  save: (
-    data: ExperienceBlockData[]
-  ) => Promise<{ error: OperationError | null }>
+  initialize: () => Promise<void>
   upsert: (
     block: ExperienceBlockData
   ) => Promise<{ error: OperationError | null }>
@@ -26,265 +23,201 @@ interface ExperienceStore {
   reorder: (
     data: ExperienceBlockData[]
   ) => Promise<{ error: OperationError | null }>
-  refresh: () => Promise<void>
-  initialize: () => Promise<void>
   hasChanges: (newData: ExperienceBlockData[]) => boolean
   hasBlockChanges: (
     blockId: string,
     newBlockData: ExperienceBlockData
   ) => boolean
+  refresh: () => Promise<void>
   clearError: () => void
 }
 
-export const useExperienceStore = create<ExperienceStore>((set, get) => ({
-  data: DEFAULT_STATE_VALUES.EXPERIENCE,
-  loading: false,
-  initializing: true,
-  hasData: false,
-  error: null,
+let debouncedSave: ReturnType<typeof debounce> | null = null
+let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
-  initialize: async () => {
-    set({ loading: true })
-    try {
-      const data = (await dataManager.getExperience()) as ExperienceBlockData[]
-      set({
-        data,
-        loading: false,
-        initializing: false,
-        hasData: !!data?.length,
-      })
-    } catch (error) {
-      console.error('ExperienceStore: initialization error:', error)
-      set({ loading: false, initializing: false })
-    }
-  },
+export const useExperienceStore = create<ExperienceStore>((set, get) => {
+  if (!debouncedSave) {
+    debouncedSave = debounce(async (experience: ExperienceBlockData[]) => {
+      const currentState = get()
 
-  // TODO: phase out save as granular operations are being implemented.
-  save: async (data: ExperienceBlockData[]) => {
-    const currentState = get()
+      set({ loading: true, error: null })
 
-    if (!currentState.hasChanges(data)) {
-      return { error: null }
-    }
-
-    const previousData = get().data
-    const previousError = get().error
-
-    // Optimistically update UI
-    set({ data, hasData: !!data?.length, error: null })
-
-    try {
-      const result = await dataManager.saveExperience(data)
+      const result = await dataManager.saveExperience(experience)
 
       if (result.success) {
         set({
           data: result.data,
+          loading: false,
           hasData: !!result.data?.length,
           error: result.warning || null,
         })
-        return { error: result.warning || null }
       } else {
         set({
-          data: previousData,
-          hasData: !!previousData?.length,
+          loading: false,
+          data: currentState.data,
           error: result.error,
         })
-        return { error: result.error }
       }
-    } catch {
-      set({
-        data: previousData,
-        hasData: !!previousData?.length,
-        error: previousError,
-      })
-      return { error: previousError }
-    }
-  },
+    }, 1000)
+  }
 
-  upsert: async (block: ExperienceBlockData) => {
-    const currentState = get()
-
-    const existingBlock = currentState.data.find((item) => item.id === block.id)
-
-    if (existingBlock && !currentState.hasBlockChanges(block.id, block)) {
-      return { error: null }
-    }
-
-    const previousData = currentState.data
-    const previousError = currentState.error
-
-    // Optimistic UI update
-    const blockIndex = previousData.findIndex((item) => item.id === block.id)
-    const optimisticData =
-      blockIndex >= 0
-        ? previousData.map((item) => (item.id === block.id ? block : item))
-        : [...previousData, block]
-
-    set({ data: optimisticData, hasData: !!optimisticData.length, error: null })
-
-    try {
-      const result = await experienceManager.upsert(block)
-
-      if (result.success) {
+  if (!debouncedRefresh) {
+    debouncedRefresh = debounce(async () => {
+      try {
+        set({ loading: true })
+        const data =
+          (await dataManager.getExperience()) as ExperienceBlockData[]
         set({
-          data: result.data,
-          hasData: !!result.data.length,
-          error: result.warning || null,
+          data,
+          loading: false,
+          hasData: !!data?.length,
         })
-        return { error: result.warning || null }
-      } else {
-        set({
-          data: previousData,
-          hasData: !!previousData.length,
-          error: result.error,
-        })
-        return { error: result.error }
+      } catch (error) {
+        console.error('ExperienceStore: refresh error:', error)
+        set({ loading: false })
       }
-    } catch (error) {
-      set({
-        data: previousData,
-        hasData: !!previousData.length,
-        error: previousError,
-      })
-      return { error: createUnknownError('Failed to upsert experience', error) }
-    }
-  },
+    }, 300)
+  }
 
-  delete: async (blockId: string) => {
-    const currentState = get()
+  return {
+    data: DEFAULT_STATE_VALUES.EXPERIENCE,
+    loading: false,
+    initializing: true,
+    hasData: false,
+    error: null,
 
-    const existingBlock = currentState.data.find((item) => item.id === blockId)
-
-    if (!existingBlock) {
-      return { error: createValidationError('Experience block does not exist') }
-    }
-
-    const previousData = currentState.data
-    const previousError = currentState.error
-
-    const optimisticData = previousData.filter((block) => block.id !== blockId)
-
-    set({ data: optimisticData, hasData: !!optimisticData.length, error: null })
-
-    try {
-      const result = await experienceManager.delete(blockId)
-
-      if (result.success) {
-        set({
-          data: result.data,
-          hasData: !!result.data.length,
-          error: result.warning || null,
-        })
-        return { error: result.warning || null }
-      } else {
-        set({
-          data: previousData,
-          hasData: !!previousData.length,
-          error: result.error,
-        })
-        return { error: result.error }
-      }
-    } catch (error) {
-      set({
-        data: previousData,
-        hasData: !!previousData.length,
-        error: previousError,
-      })
-      return { error: createUnknownError('Failed to delete experience', error) }
-    }
-  },
-
-  reorder: async (data: ExperienceBlockData[]) => {
-    const currentState = get()
-    const previousData = currentState.data
-    const previousError = currentState.error
-
-    const optimisticWithPositions = data.map((block, i) => ({
-      ...block,
-      position: i,
-    }))
-
-    set({
-      data: optimisticWithPositions,
-      hasData: !!optimisticWithPositions.length,
-      error: null,
-    })
-
-    try {
-      const result = await experienceManager.reorder(optimisticWithPositions)
-
-      if (result.success) {
-        set({
-          data: result.data,
-          hasData: !!result.data.length,
-          error: result.warning || null,
-        })
-        return { error: result.warning || null }
-      } else {
-        set({
-          data: previousData,
-          hasData: !!previousData.length,
-          error: result.error,
-        })
-        return { error: result.error }
-      }
-    } catch (error) {
-      set({
-        data: previousData,
-        hasData: !!previousData.length,
-        error: previousError,
-      })
-      return {
-        error: createUnknownError('Failed to reorder experience blocks', error),
-      }
-    }
-  },
-
-  refresh: async () => {
-    try {
+    initialize: async () => {
       set({ loading: true })
-      dataManager.invalidateExperience()
-      const data = (await dataManager.getExperience()) as ExperienceBlockData[]
+
+      try {
+        const data =
+          (await dataManager.getExperience()) as ExperienceBlockData[]
+
+        set({
+          data,
+          loading: false,
+          initializing: false,
+          hasData: !!data?.length,
+        })
+      } catch (error) {
+        console.error('ExperienceStore: initialization error:', error)
+
+        set({ loading: false, initializing: false })
+      }
+    },
+
+    upsert: async (block: ExperienceBlockData) => {
+      const currentState = get()
+
+      const existingBlock = currentState.data.find(
+        (item) => item.id === block.id
+      )
+
+      if (existingBlock && !currentState.hasBlockChanges(block.id, block)) {
+        return { error: null }
+      }
+
+      // Optimistic UI update
+      const blockIndex = currentState.data.findIndex(
+        (item) => item.id === block.id
+      )
+      const optimisticData =
+        blockIndex >= 0
+          ? currentState.data.map((item) =>
+              item.id === block.id ? block : item
+            )
+          : [...currentState.data, block]
+
       set({
-        data,
-        loading: false,
-        hasData: !!data?.length,
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
       })
-    } catch (error) {
-      console.error('ExperienceStore: refresh error:', error)
-      set({ loading: false })
-    }
-  },
 
-  hasChanges: (newData: ExperienceBlockData[]) => {
-    const currentData = get().data
+      debouncedSave?.(optimisticData)
 
-    return !isEqual(currentData, newData)
-  },
+      return { error: null }
+    },
 
-  hasBlockChanges: (blockId: string, newBlockData: ExperienceBlockData) => {
-    const currentData = get().data
-    const existingBlock = currentData.find((block) => block.id === blockId)
+    delete: async (blockId: string) => {
+      const currentState = get()
 
-    if (!existingBlock) return true
+      const existingBlock = currentState.data.find(
+        (item) => item.id === blockId
+      )
 
-    const existingFields = omit(existingBlock, [
-      'bulletPoints',
-      'updatedAt',
-      'isIncluded',
-      'position',
-    ])
-    const newFields = omit(newBlockData, [
-      'bulletPoints',
-      'updatedAt',
-      'isIncluded',
-      'position',
-    ])
+      if (!existingBlock) {
+        return {
+          error: createValidationError('Experience block does not exist'),
+        }
+      }
 
-    return !isEqual(existingFields, newFields)
-  },
+      const optimisticData = currentState.data.filter(
+        (block) => block.id !== blockId
+      )
 
-  clearError: () => {
-    set({ error: null })
-  },
-}))
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      debouncedSave?.(optimisticData)
+
+      return { error: null }
+    },
+
+    reorder: async (data: ExperienceBlockData[]) => {
+      const optimisticWithPositions = data.map((block, i) => ({
+        ...block,
+        position: i,
+      }))
+
+      set({
+        data: optimisticWithPositions,
+        hasData: !!optimisticWithPositions.length,
+        error: null,
+      })
+
+      debouncedSave?.(optimisticWithPositions)
+
+      return { error: null }
+    },
+
+    hasChanges: (newData: ExperienceBlockData[]) => {
+      const currentData = get().data
+
+      return !isEqual(currentData, newData)
+    },
+
+    hasBlockChanges: (blockId: string, newBlockData: ExperienceBlockData) => {
+      const currentData = get().data
+      const existingBlock = currentData.find((block) => block.id === blockId)
+
+      if (!existingBlock) return true
+
+      const existingFields = omit(existingBlock, [
+        'bulletPoints',
+        'updatedAt',
+        'isIncluded',
+        'position',
+      ])
+      const newFields = omit(newBlockData, [
+        'bulletPoints',
+        'updatedAt',
+        'isIncluded',
+        'position',
+      ])
+
+      return !isEqual(existingFields, newFields)
+    },
+
+    refresh: async () => {
+      debouncedRefresh?.()
+    },
+
+    clearError: () => {
+      set({ error: null })
+    },
+  }
+})

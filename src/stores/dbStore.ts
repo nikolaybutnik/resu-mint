@@ -16,6 +16,8 @@ import {
 import { API_ROUTES, DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { Session } from '@supabase/supabase-js'
 import {
+  initializeExperienceChangelogQuery,
+  initializeExperienceQuery,
   initializePersonalDetailsChangelogQuery,
   initializePersonalDetailsQuery,
 } from '@/lib/sql'
@@ -92,6 +94,12 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'personal_details',
   },
+  // experience: {
+  //   table: 'experience',
+  //   columns: ['id'],
+  //   primaryKey: ['id'],
+  //   shapeKey: 'experience',
+  // },
 }
 
 let firstSyncFlag = true
@@ -100,6 +108,8 @@ const initializeTables = async (db: PGlite) => {
   try {
     await db.query(initializePersonalDetailsQuery)
     await db.query(initializePersonalDetailsChangelogQuery)
+    await db.query(initializeExperienceQuery)
+    await db.query(initializeExperienceChangelogQuery)
   } catch (error) {
     console.error('Failed to initialize DB tables:', error)
   }
