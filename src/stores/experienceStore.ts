@@ -3,11 +3,7 @@ import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit, debounce } from 'lodash'
-import {
-  createUnknownError,
-  createValidationError,
-  OperationError,
-} from '@/lib/types/errors'
+import { createValidationError, OperationError } from '@/lib/types/errors'
 
 interface ExperienceStore {
   data: ExperienceBlockData[]
@@ -162,9 +158,22 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         error: null,
       })
 
-      debouncedSave?.(optimisticData)
+      const result = await dataManager.deleteExperience(blockId)
 
-      return { error: null }
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
     },
 
     reorder: async (data: ExperienceBlockData[]) => {

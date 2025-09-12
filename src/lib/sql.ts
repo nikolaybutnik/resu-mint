@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS personal_details (
     github TEXT,
     website TEXT,
     updated_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 `
 
@@ -46,7 +46,7 @@ CREATE TABLE IF NOT EXISTS experience (
     is_included BOOLEAN DEFAULT TRUE,
     position INTEGER DEFAULT 0,
     updated_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 `
 
@@ -176,8 +176,14 @@ export const upsertExperienceQuery = `
 INSERT INTO experience (
     id, title, company_name, location, description,
     start_month, start_year, end_month, end_year,
-    is_present, is_included, position, updated_at, created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+    is_present, is_included, position, updated_at
+) VALUES (
+    $1, $2, $3, $4, $5, $6,
+    $7::smallint,
+    CASE WHEN $10 THEN NULL ELSE $8 END,
+    CASE WHEN $10 THEN NULL ELSE CASE WHEN $9 = '' THEN NULL ELSE $9::smallint END END,
+    $10, $11, $12, $13::timestamptz
+)
 ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
     company_name = EXCLUDED.company_name,
@@ -185,8 +191,8 @@ ON CONFLICT (id) DO UPDATE SET
     description = EXCLUDED.description,
     start_month = EXCLUDED.start_month,
     start_year = EXCLUDED.start_year,
-    end_month = EXCLUDED.end_month,
-    end_year = EXCLUDED.end_year,
+    end_month = CASE WHEN EXCLUDED.is_present THEN NULL ELSE EXCLUDED.end_month END,
+    end_year = CASE WHEN EXCLUDED.is_present THEN NULL ELSE EXCLUDED.end_year END,
     is_present = EXCLUDED.is_present,
     is_included = EXCLUDED.is_included,
     position = EXCLUDED.position,

@@ -53,14 +53,15 @@ export interface RawExperienceData {
   company_name: string
   location: string
   description: string | null
-  start_year: number | null
   start_month: string | null
-  is_present: boolean | null
-  end_year: number | null
+  start_year: number | null
   end_month: string | null
+  end_year: number | null
+  is_present: boolean | null
   is_included: boolean | null
   position: number | null
-  updated_at: string | null
+  updatedAt: string | null
+  createdAt: string | null
 }
 
 export interface ExperienceFormState {

@@ -1,16 +1,19 @@
 import { STORAGE_KEYS } from '../constants'
-import { ExperienceBlockData, BulletPoint } from '../types/experience'
+import {
+  ExperienceBlockData,
+  BulletPoint,
+  RawExperienceData,
+  Month,
+} from '../types/experience'
 import { experienceBlockSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
 import {
   isAuthenticated,
   waitForAuthReady,
-  readLocalEnvelope,
   writeLocalEnvelope,
   nowIso,
   getMostRecentTimestamp,
 } from './dataUtils'
-import { useAuthStore } from '@/stores/authStore'
 import {
   Result,
   Success,
@@ -24,217 +27,65 @@ import {
   isNetworkError,
   createNetworkError,
 } from '../types/errors'
-import { supabase } from '../supabase/client'
+import { pushExperienceLocalRecordToDb } from './dbUtils'
+import { useAuthStore, useDbStore } from '@/stores'
 import {
-  pullExperienceDbRecordToLocal,
-  pushExperienceLocalRecordToDb,
-} from './dbUtils'
+  getExperienceQuery,
+  insertExperienceChangelogQuery,
+  upsertExperienceQuery,
+  deleteExperienceQuery,
+} from '../sql'
+import { v4 as uuidv4 } from 'uuid'
+import { getLastKnownUserId } from '../utils'
 
 const CACHE_KEY = 'experience'
 
 class ExperienceManager {
   private cache = new Map<string, Promise<unknown>>()
 
-  // get(): prefer local for fast reads, keep in sync with db
+  private transformRawExperience(raw: RawExperienceData): ExperienceBlockData {
+    return {
+      id: raw.id,
+      title: raw.title,
+      companyName: raw.company_name,
+      location: raw.location,
+      description: raw.description || undefined,
+      startDate: {
+        month: (raw.start_month as Month | '' | undefined) || undefined,
+        year: raw.start_year?.toString() || '',
+      },
+      endDate: {
+        month: (raw.end_month as Month | '' | undefined) || undefined,
+        year: raw.end_year?.toString() || '',
+        isPresent: raw.is_present || false,
+      },
+      bulletPoints: [], // TODO: Load from experience_bullets table
+      isIncluded: raw.is_included ?? true,
+      position: raw.position ?? 0,
+      updatedAt: raw.updatedAt || undefined,
+    }
+  }
+
   async get(
     sectionId?: string
   ): Promise<ExperienceBlockData | ExperienceBlockData[] | undefined> {
-    if (!this.cache.has(CACHE_KEY)) {
-      const promise = new Promise<ExperienceBlockData[]>(async (resolve) => {
-        // 1) Read local first (fast path)
-        let localEnv = readLocalEnvelope<ExperienceBlockData[]>(
-          STORAGE_KEYS.EXPERIENCE
-        )
+    const { db } = useDbStore.getState()
 
-        // Migration: support legacy flat shape by wrapping it into an envelope once
-        if (!localEnv && typeof window !== 'undefined') {
-          try {
-            const raw = localStorage.getItem(STORAGE_KEYS.EXPERIENCE)
-            if (raw) {
-              const parsed = JSON.parse(raw)
-              if (Array.isArray(parsed) && !('meta' in parsed)) {
-                const validation = experienceBlockSchema
-                  .array()
-                  .safeParse(parsed)
-                if (validation.success) {
-                  const migratedAt = nowIso()
-                  const migratedData = validation.data.map((block) => ({
-                    ...block,
-                    updatedAt: migratedAt,
-                  }))
-                  writeLocalEnvelope(
-                    STORAGE_KEYS.EXPERIENCE,
-                    migratedData,
-                    migratedAt
-                  )
-                  localEnv = {
-                    data: migratedData,
-                    meta: { updatedAt: migratedAt },
-                  }
-                }
-              }
-            }
-          } catch {
-            // ignore invalid JSON
-          }
-        }
+    const data = await db?.query(getExperienceQuery)
 
-        const localData: ExperienceBlockData[] =
-          localEnv?.data ?? DEFAULT_STATE_VALUES.EXPERIENCE
-        const localUpdatedAt =
-          localEnv?.meta?.updatedAt ?? '1970-01-01T00:00:00.000Z'
-
-        const authLoading = useAuthStore.getState().loading
-
-        if (authLoading) {
-          resolve(localData)
-        }
-
-        await waitForAuthReady()
-
-        if (!isAuthenticated()) {
-          resolve(localData)
-          return
-        }
-
-        // 2) Try DB fetch and merge (downstream sync)
-        let finalData: ExperienceBlockData[] = localData
-        // let dbDataRaw: RawExperienceData[] | null = null
-        try {
-          const { data, error } = await supabase.from('experience').select(`
-              id, title, company_name, location, description, 
-              start_year, start_month, is_present, end_year, end_month, 
-              is_included, position, updated_at,
-              experience_bullets(id, text, is_locked, position, updated_at)
-            `)
-
-          // TODO: handle the fetched experience_bullets
-
-          if (!error && data) {
-            // dbDataRaw = data
-            const dbData: ExperienceBlockData[] = await Promise.all(
-              data.map((block) => pullExperienceDbRecordToLocal(block))
-            )
-
-            const mergedData = localData.map((localItem) => {
-              const dbItem = dbData.find((db) => db.id === localItem.id)
-              if (!dbItem) {
-                return {
-                  ...localItem,
-                  updatedAt: localItem.updatedAt ?? localUpdatedAt,
-                }
-              }
-
-              const localTimestamp =
-                localItem.updatedAt || '1970-01-01T00:00:00.000Z'
-              const dbTimestamp = dbItem.updatedAt || '1970-01-01T00:00:00.000Z'
-
-              if (Date.parse(dbTimestamp) >= Date.parse(localTimestamp)) {
-                return dbItem
-              } else {
-                return { ...localItem, updatedAt: localTimestamp }
-              }
-            })
-
-            const newDbItems = dbData.filter(
-              (dbItem) =>
-                !localData.some((localItem) => localItem.id === dbItem.id)
-            )
-
-            finalData = [...mergedData, ...newDbItems]
-
-            finalData = finalData
-              .slice()
-              .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-          }
-        } catch {
-          // Fall through to local data
-        }
-
-        // 3) Opportunistic upstream sync: Push local-only or modified blocks to DB
-        // if (isAuthenticated()) {
-        //   try {
-        // const updatedData = [...finalData]
-        // let maxUpdatedAt = '1970-01-01T00:00:00.000Z'
-        // let didSync = false
-        // for (let i = 0; i < updatedData.length; i++) {
-        // const block = updatedData[i]
-        // const dbMatch = dbDataRaw?.find((d) => d.id === block.id)
-        // const localTimestamp = block.updatedAt ?? localUpdatedAt
-        // const dbTimestamp =
-        //   dbMatch?.updated_at || '1970-01-01T00:00:00.000Z'
-        // Sync if: local-only (no DB match) or local-modified (local timestamp newer)
-        // if (
-        //   !dbMatch ||
-        //   Date.parse(localTimestamp) > Date.parse(dbTimestamp)
-        // ) {
-        //   const { updatedAt, error } =
-        //     await pushExperienceLocalRecordToDb(block)
-        //   if (error) {
-        //     // Continue to avoid blocking
-        //   } else {
-        //     didSync = true
-        //     const newTimestamp = updatedAt ?? nowIso()
-        //     updatedData[i] = { ...block, updatedAt: newTimestamp }
-        //     if (Date.parse(newTimestamp) > Date.parse(maxUpdatedAt)) {
-        //       maxUpdatedAt = newTimestamp
-        //     }
-        //   }
-        // }
-        // }
-        // Cleanup db records which have been deleted locally
-        // for (const dbItem of dbDataRaw || []) {
-        //   if (!localData.some((local) => local.id === dbItem.id)) {
-        //     const result = await supabase
-        //       .from('experience')
-        //       .delete()
-        //       .eq('id', dbItem.id)
-        //     if (result.status !== 204) {
-        //       // Non-blocking error
-        //       console.error(
-        //         'Background cleanup of DB experience data failed: ',
-        //         result.error
-        //       )
-        //     }
-        //   }
-        // }
-        // Update localStorage if we synced anything
-        // if (didSync) {
-        //   this.invalidate()
-        //   const allTimestamps = updatedData
-        //     .map((b) => b.updatedAt || '1970-01-01T00:00:00.000Z')
-        //     .concat(localUpdatedAt)
-        //   const mostRecentTimestamp = allTimestamps.reduce(
-        //     (latest, current) =>
-        //       Date.parse(current) > Date.parse(latest) ? current : latest,
-        //     '1970-01-01T00:00:00.000Z'
-        //   )
-        //   writeLocalEnvelope(
-        //     STORAGE_KEYS.EXPERIENCE,
-        //     updatedData,
-        //     mostRecentTimestamp
-        //   )
-        //   finalData = updatedData
-        // }
-        // } catch {
-        //   // Non-blocking
-        // }
-        // }
-
-        resolve(finalData)
-      })
-      this.cache.set(CACHE_KEY, promise)
+    if (!data?.rows?.length) {
+      return sectionId ? undefined : DEFAULT_STATE_VALUES.EXPERIENCE
     }
 
-    const allExperience = (await (this.cache.get(CACHE_KEY)! as Promise<
-      ExperienceBlockData[]
-    >)) as ExperienceBlockData[]
+    const transformedData = (data.rows as RawExperienceData[]).map((row) =>
+      this.transformRawExperience(row)
+    )
 
     if (sectionId) {
-      return allExperience.find((block) => block.id === sectionId)
+      return transformedData.find((item) => item.id === sectionId)
     }
 
-    return allExperience
+    return transformedData
   }
 
   // TODO: phase out save as granular operations are being implemented.
@@ -326,118 +177,73 @@ class ExperienceManager {
     }
   }
 
-  // upsert(): optimistic local write; then DB (if authed)
   async upsert(
-    block: ExperienceBlockData
+    data: ExperienceBlockData[]
   ): Promise<Result<ExperienceBlockData[]>> {
-    try {
-      const validation = experienceBlockSchema.safeParse(block)
+    const validation = experienceBlockSchema.array().safeParse(data)
 
-      if (!validation.success) {
-        return Failure(
-          createValidationError('Invalid experience data', validation.error)
-        )
-      }
-
-      // Fetch current full data (leverages cache/merge/sync from get())
-      const existingData = (await this.get()) as ExperienceBlockData[]
-      const blockIndex = existingData.findIndex((item) => item.id === block.id)
-
-      let updatedData: ExperienceBlockData[]
-      if (blockIndex >= 0) {
-        const updatedBlock = {
-          ...validation.data,
-          position:
-            validation.data.position ?? existingData[blockIndex].position ?? 0,
-          updatedAt: validation.data.updatedAt,
-        }
-        updatedData = existingData.map((item) =>
-          item.id === block.id ? updatedBlock : item
-        )
-      } else {
-        const newBlock = {
-          ...validation.data,
-          position: existingData.length,
-        }
-        updatedData = [...existingData, newBlock]
-      }
-
-      updatedData = updatedData
-        .slice()
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-
-      this.invalidate()
-
-      // Optimistic local write
-      const tempTimestamp = nowIso()
-      const tempUpdatedData = updatedData.map((item) =>
-        item.id === block.id ? { ...item, updatedAt: tempTimestamp } : item
-      )
-
-      try {
-        writeLocalEnvelope(
-          STORAGE_KEYS.EXPERIENCE,
-          tempUpdatedData,
-          tempTimestamp
-        )
-      } catch (error) {
-        if (isQuotaExceededError(error)) {
-          return Failure(createQuotaExceededError(error))
-        }
-        return Failure(
-          createStorageError('Failed to save to local storage', error)
-        )
-      }
-
-      let syncWarning: OperationError | undefined
-
-      await waitForAuthReady()
-      if (isAuthenticated()) {
-        try {
-          const { updatedAt, error } = await pushExperienceLocalRecordToDb({
-            ...block,
-            position: existingData.length,
-          })
-
-          if (error) {
-            syncWarning = isNetworkError(error)
-              ? createNetworkError('Failed to sync with server', error)
-              : createUnknownError('Database sync failed', error)
-            console.warn(
-              'Database sync failed, but local save succeeded:',
-              error
-            )
-          } else {
-            const newTimestamp = updatedAt ?? nowIso()
-            const finalUpdatedData = updatedData.map((item) =>
-              item.id === block.id ? { ...item, updatedAt: newTimestamp } : item
-            )
-
-            writeLocalEnvelope(
-              STORAGE_KEYS.EXPERIENCE,
-              finalUpdatedData,
-              newTimestamp
-            )
-          }
-        } catch (error) {
-          syncWarning = isNetworkError(error)
-            ? createNetworkError('Failed to sync with server', error)
-            : createUnknownError('Database sync failed', error)
-        }
-      }
-
-      // Prime cache
-      this.cache.set(CACHE_KEY, Promise.resolve(updatedData))
-
-      return Success(updatedData, syncWarning)
-    } catch (error) {
+    if (!validation.success) {
       return Failure(
-        createUnknownError('Unexpected error during upsert', error)
+        createValidationError('Invalid experience data', validation.error)
       )
+    }
+
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      const [blockToUpsert] = data
+
+      await db?.query(upsertExperienceQuery, [
+        blockToUpsert.id,
+        blockToUpsert.title,
+        blockToUpsert.companyName,
+        blockToUpsert.location,
+        blockToUpsert.description,
+        blockToUpsert.startDate.month,
+        blockToUpsert.startDate.year,
+        blockToUpsert.endDate.month,
+        blockToUpsert.endDate.year,
+        blockToUpsert.endDate.isPresent,
+        blockToUpsert.isIncluded,
+        blockToUpsert.position,
+        timestamp,
+      ])
+
+      // TODO: save bullets to experience_bullets table
+
+      await db?.query(insertExperienceChangelogQuery, [
+        'upsert',
+        JSON.stringify(blockToUpsert),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getExperienceQuery)
+      console.log('RESULT: ', result)
+      console.log(
+        'CHANGELOG: ',
+        await db?.query('select * from experience_changes')
+      )
+
+      return Success(validation.data)
+    } catch (error) {
+      console.log(error)
+      return Failure(createUnknownError('Failed to save experience', error))
     }
   }
 
   async delete(blockId: string): Promise<Result<ExperienceBlockData[]>> {
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
     try {
       const existingData = (await this.get()) as ExperienceBlockData[]
       const blockExists = existingData.find((item) => item.id === blockId)
@@ -448,68 +254,19 @@ class ExperienceManager {
 
       const updatedData = existingData.filter((item) => item.id !== blockId)
 
-      this.invalidate()
+      await db?.query(deleteExperienceQuery, [blockId])
 
-      // Optimistic local write
-      try {
-        writeLocalEnvelope(STORAGE_KEYS.EXPERIENCE, updatedData, nowIso())
-      } catch (error) {
-        if (isQuotaExceededError(error)) {
-          return Failure(createQuotaExceededError(error))
-        }
-        return Failure(
-          createStorageError('Failed to save to local storage', error)
-        )
-      }
+      await db?.query(insertExperienceChangelogQuery, [
+        'delete',
+        JSON.stringify({ id: blockId }),
+        writeId,
+        timestamp,
+        userId,
+      ])
 
-      let syncWarning: OperationError | undefined
-
-      // Background DB sync
-      await waitForAuthReady()
-      if (isAuthenticated()) {
-        try {
-          const { data: deletedAt, error } = await supabase.rpc(
-            'delete_experience',
-            {
-              e_ids: [blockId],
-            }
-          )
-
-          if (error) {
-            syncWarning = isNetworkError(error)
-              ? createNetworkError('Failed to sync with server', error)
-              : createUnknownError('Database sync failed', error)
-            console.warn(
-              'Database sync failed, but local delete succeeded:',
-              error
-            )
-          } else {
-            // Sync succeeded - update local timestamp
-            writeLocalEnvelope(
-              STORAGE_KEYS.EXPERIENCE,
-              updatedData,
-              deletedAt ?? nowIso()
-            )
-          }
-        } catch (error) {
-          syncWarning = isNetworkError(error)
-            ? createNetworkError('Failed to sync with server', error)
-            : createUnknownError('Database sync failed', error)
-          console.warn(
-            'Failed to sync delete to database, but local delete succeeded:',
-            error
-          )
-        }
-      }
-
-      // Prime cache
-      this.cache.set(CACHE_KEY, Promise.resolve(updatedData))
-
-      return Success(updatedData, syncWarning)
+      return Success(updatedData)
     } catch (error) {
-      return Failure(
-        createUnknownError('Unexpected error during delete', error)
-      )
+      return Failure(createUnknownError('Failed to delete experience', error))
     }
   }
 

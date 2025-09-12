@@ -60,7 +60,13 @@ class DataManager {
   async saveExperience(
     data: ExperienceBlockData[]
   ): Promise<Result<ExperienceBlockData[]>> {
-    return experienceManager.save(data)
+    return experienceManager.upsert(data)
+  }
+
+  async deleteExperience(
+    blockId: string
+  ): Promise<Result<ExperienceBlockData[]>> {
+    return experienceManager.delete(blockId)
   }
 
   async saveExperienceBullet(
