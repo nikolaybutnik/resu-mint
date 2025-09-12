@@ -153,11 +153,11 @@ WHERE user_id IS NULL
 
 // Read Operations
 export const getExperienceQuery = `
-SELECT 
+SELECT
     e.id, e.title, e.company_name, e.location, e.description,
-    e.start_month, e.start_year, e.end_month, e.end_year, 
+    e.start_month, e.start_year, e.end_month, e.end_year,
     e.is_present, e.is_included, e.position,
-    e.updated_at AS "updatedAt", e.created_at AS "createdAt"
+    e.updated_at, e.created_at
 FROM experience e
 ORDER BY e.position ASC, e.created_at DESC
 `

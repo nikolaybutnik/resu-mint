@@ -43,7 +43,7 @@ const CACHE_KEY = 'experience'
 class ExperienceManager {
   private cache = new Map<string, Promise<unknown>>()
 
-  private transformRawExperience(raw: RawExperienceData): ExperienceBlockData {
+  private translateRawExperience(raw: RawExperienceData): ExperienceBlockData {
     return {
       id: raw.id,
       title: raw.title,
@@ -62,7 +62,7 @@ class ExperienceManager {
       bulletPoints: [], // TODO: Load from experience_bullets table
       isIncluded: raw.is_included ?? true,
       position: raw.position ?? 0,
-      updatedAt: raw.updatedAt || undefined,
+      updatedAt: raw.updated_at || undefined,
     }
   }
 
@@ -77,15 +77,15 @@ class ExperienceManager {
       return sectionId ? undefined : DEFAULT_STATE_VALUES.EXPERIENCE
     }
 
-    const transformedData = (data.rows as RawExperienceData[]).map((row) =>
-      this.transformRawExperience(row)
+    const translatedData = (data.rows as RawExperienceData[]).map((row) =>
+      this.translateRawExperience(row)
     )
 
     if (sectionId) {
-      return transformedData.find((item) => item.id === sectionId)
+      return translatedData.find((item) => item.id === sectionId)
     }
 
-    return transformedData
+    return translatedData
   }
 
   // TODO: phase out save as granular operations are being implemented.

@@ -107,12 +107,12 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
             (exp) => exp.id === sectionId
           )
           if (experienceSection) {
-            // TODO: update once db sync for bullets is integrated
-            const { save: saveExperience } = useExperienceStore.getState()
-            const updatedExperience = workExperience.map((exp) =>
-              exp.id === sectionId ? { ...exp, bulletPoints: bullets } : exp
-            )
-            await saveExperience(updatedExperience)
+            // TODO: Rework when experienc is migrated to local-first architecture
+            // const { save: saveExperience } = useExperienceStore.getState()
+            // const updatedExperience = workExperience.map((exp) =>
+            //   exp.id === sectionId ? { ...exp, bulletPoints: bullets } : exp
+            // )
+            // await saveExperience(updatedExperience)
             continue
           }
 

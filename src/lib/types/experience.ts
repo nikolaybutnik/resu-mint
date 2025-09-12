@@ -60,8 +60,8 @@ export interface RawExperienceData {
   is_present: boolean | null
   is_included: boolean | null
   position: number | null
-  updatedAt: string | null
-  createdAt: string | null
+  updated_at: string | null
+  created_at: string | null
 }
 
 export interface ExperienceFormState {
