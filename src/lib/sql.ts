@@ -157,7 +157,7 @@ SELECT
     e.id, e.title, e.company_name, e.location, e.description,
     e.start_month, e.start_year, e.end_month, e.end_year,
     e.is_present, e.is_included, e.position,
-    e.updated_at, e.created_at
+    e.updated_at::text, e.created_at::text
 FROM experience e
 ORDER BY e.position ASC, e.created_at DESC
 `
@@ -178,9 +178,11 @@ INSERT INTO experience (
     start_month, start_year, end_month, end_year,
     is_present, is_included, position, updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6,
+    $1, $2, $3, $4,
+    CASE WHEN $5::text = 'undefined' THEN NULL ELSE $5 END,
+    CASE WHEN $6::text = 'undefined' THEN NULL ELSE $6 END,
     $7::smallint,
-    CASE WHEN $10 THEN NULL ELSE $8 END,
+    CASE WHEN $10 THEN NULL ELSE CASE WHEN $8::text = 'undefined' THEN NULL ELSE $8 END END,
     CASE WHEN $10 THEN NULL ELSE CASE WHEN $9 = '' THEN NULL ELSE $9::smallint END END,
     $10, $11, $12, $13::timestamptz
 )
@@ -188,10 +190,10 @@ ON CONFLICT (id) DO UPDATE SET
     title = EXCLUDED.title,
     company_name = EXCLUDED.company_name,
     location = EXCLUDED.location,
-    description = EXCLUDED.description,
-    start_month = EXCLUDED.start_month,
+    description = CASE WHEN EXCLUDED.description::text = 'undefined' THEN NULL ELSE EXCLUDED.description END,
+    start_month = CASE WHEN EXCLUDED.start_month::text = 'undefined' THEN NULL ELSE EXCLUDED.start_month END,
     start_year = EXCLUDED.start_year,
-    end_month = CASE WHEN EXCLUDED.is_present THEN NULL ELSE EXCLUDED.end_month END,
+    end_month = CASE WHEN EXCLUDED.is_present THEN NULL ELSE CASE WHEN EXCLUDED.end_month::text = 'undefined' THEN NULL ELSE EXCLUDED.end_month END END,
     end_year = CASE WHEN EXCLUDED.is_present THEN NULL ELSE EXCLUDED.end_year END,
     is_present = EXCLUDED.is_present,
     is_included = EXCLUDED.is_included,
@@ -216,6 +218,12 @@ DELETE FROM experience WHERE id = $1
 
 export const deleteExperienceBulletQuery = `
 DELETE FROM experience_bullets WHERE id = $1
+`
+
+export const updateExperiencePositionQuery = `
+UPDATE experience 
+SET position = $2, updated_at = $3::timestamptz
+WHERE id = $1
 `
 
 // Changelog Operations

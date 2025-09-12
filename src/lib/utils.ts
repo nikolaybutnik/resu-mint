@@ -478,7 +478,7 @@ export const extractExperienceFormData = (
     startDate: {
       month:
         (formData.get(EXPERIENCE_FORM_DATA_KEYS.START_DATE_MONTH) as Month) ||
-        '',
+        undefined,
       year:
         (
           formData.get(EXPERIENCE_FORM_DATA_KEYS.START_DATE_YEAR) as string
@@ -486,7 +486,8 @@ export const extractExperienceFormData = (
     },
     endDate: {
       month:
-        (formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH) as Month) || '',
+        (formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_MONTH) as Month) ||
+        undefined,
       year:
         (
           formData.get(EXPERIENCE_FORM_DATA_KEYS.END_DATE_YEAR) as string
@@ -495,7 +496,7 @@ export const extractExperienceFormData = (
     },
     description:
       (formData.get(EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
-      '',
+      undefined,
   }
 }
 

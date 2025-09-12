@@ -58,9 +58,15 @@ class DataManager {
   }
 
   async saveExperience(
-    data: ExperienceBlockData[]
+    data: ExperienceBlockData
   ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.upsert(data)
+  }
+
+  async reorderExperience(
+    data: ExperienceBlockData[]
+  ): Promise<Result<ExperienceBlockData[]>> {
+    return experienceManager.reorder(data)
   }
 
   async deleteExperience(

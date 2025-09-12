@@ -12,7 +12,6 @@ import {
   waitForAuthReady,
   writeLocalEnvelope,
   nowIso,
-  getMostRecentTimestamp,
 } from './dataUtils'
 import {
   Result,
@@ -34,6 +33,7 @@ import {
   insertExperienceChangelogQuery,
   upsertExperienceQuery,
   deleteExperienceQuery,
+  updateExperiencePositionQuery,
 } from '../sql'
 import { v4 as uuidv4 } from 'uuid'
 import { getLastKnownUserId } from '../utils'
@@ -178,9 +178,9 @@ class ExperienceManager {
   }
 
   async upsert(
-    data: ExperienceBlockData[]
+    data: ExperienceBlockData
   ): Promise<Result<ExperienceBlockData[]>> {
-    const validation = experienceBlockSchema.array().safeParse(data)
+    const validation = experienceBlockSchema.safeParse(data)
 
     if (!validation.success) {
       return Failure(
@@ -195,7 +195,16 @@ class ExperienceManager {
     const userId = currentUser?.id || getLastKnownUserId()
 
     try {
-      const [blockToUpsert] = data
+      const blockToUpsert = validation.data
+
+      const currentData = ((await this.get()) as ExperienceBlockData[]) || []
+      const existingBlock = currentData.find(
+        (block) => block.id === blockToUpsert.id
+      )
+
+      const position = existingBlock
+        ? existingBlock.position
+        : currentData.length
 
       await db?.query(upsertExperienceQuery, [
         blockToUpsert.id,
@@ -209,11 +218,9 @@ class ExperienceManager {
         blockToUpsert.endDate.year,
         blockToUpsert.endDate.isPresent,
         blockToUpsert.isIncluded,
-        blockToUpsert.position,
+        position,
         timestamp,
       ])
-
-      // TODO: save bullets to experience_bullets table
 
       await db?.query(insertExperienceChangelogQuery, [
         'upsert',
@@ -224,15 +231,12 @@ class ExperienceManager {
       ])
 
       const result = await db?.query(getExperienceQuery)
-      console.log('RESULT: ', result)
-      console.log(
-        'CHANGELOG: ',
-        await db?.query('select * from experience_changes')
+      const translatedResult = (result?.rows as RawExperienceData[]).map(
+        (row) => this.translateRawExperience(row)
       )
 
-      return Success(validation.data)
+      return Success(translatedResult)
     } catch (error) {
-      console.log(error)
       return Failure(createUnknownError('Failed to save experience', error))
     }
   }
@@ -252,8 +256,6 @@ class ExperienceManager {
         return Failure(createValidationError('Experience block not found'))
       }
 
-      const updatedData = existingData.filter((item) => item.id !== blockId)
-
       await db?.query(deleteExperienceQuery, [blockId])
 
       await db?.query(insertExperienceChangelogQuery, [
@@ -264,7 +266,12 @@ class ExperienceManager {
         userId,
       ])
 
-      return Success(updatedData)
+      const result = await db?.query(getExperienceQuery)
+      const translatedResult = (result?.rows as RawExperienceData[]).map(
+        (row) => this.translateRawExperience(row)
+      )
+
+      return Success(translatedResult)
     } catch (error) {
       return Failure(createUnknownError('Failed to delete experience', error))
     }
@@ -273,82 +280,46 @@ class ExperienceManager {
   async reorder(
     data: ExperienceBlockData[]
   ): Promise<Result<ExperienceBlockData[]>> {
-    try {
-      const validation = experienceBlockSchema.array().safeParse(data)
+    const validation = experienceBlockSchema.array().safeParse(data)
 
-      if (!validation.success) {
-        return Failure(
-          createValidationError('Invalid experience data', validation.error)
-        )
-      }
-
-      this.invalidate()
-
-      const reorderedData = validation.data.map((block, index) => ({
-        ...block,
-        position: index,
-        updatedAt: nowIso(),
-      }))
-      const latestTimestamp = getMostRecentTimestamp(reorderedData)
-
-      try {
-        writeLocalEnvelope(
-          STORAGE_KEYS.EXPERIENCE,
-          validation.data,
-          latestTimestamp
-        )
-      } catch (error) {
-        if (isQuotaExceededError(error)) {
-          return Failure(createQuotaExceededError(error))
-        }
-        return Failure(
-          createStorageError('Failed to save to local storage', error)
-        )
-      }
-
-      let syncWarning: OperationError | undefined
-
-      await waitForAuthReady()
-      if (isAuthenticated()) {
-        try {
-          for (const block of reorderedData) {
-            const { updatedAt, error } = await pushExperienceLocalRecordToDb(
-              block
-            )
-
-            if (error) {
-              syncWarning = isNetworkError(error)
-                ? createNetworkError(`Failed to sync block ${block.id}`, error)
-                : createUnknownError(
-                    `Database sync failed for block ${block.id}`,
-                    error
-                  )
-            } else {
-              writeLocalEnvelope(
-                STORAGE_KEYS.EXPERIENCE,
-                reorderedData,
-                updatedAt ?? nowIso()
-              )
-            }
-          }
-        } catch (error) {
-          syncWarning = isNetworkError(error)
-            ? createNetworkError(
-                'Failed to sync reordered data to server',
-                error
-              )
-            : createUnknownError('Database sync failed', error)
-          console.warn('Failed to sync reordered data to DB:', error)
-        }
-      }
-
-      this.cache.set(CACHE_KEY, Promise.resolve(reorderedData))
-
-      return Success(reorderedData, syncWarning)
-    } catch (error) {
+    if (!validation.success) {
       return Failure(
-        createUnknownError('Unexpected error during reorder', error)
+        createValidationError('Invalid experience data', validation.error)
       )
+    }
+
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      for (let index = 0; index < validation.data.length; index++) {
+        const block = validation.data[index]
+        await db?.query(updateExperiencePositionQuery, [
+          block.id,
+          index,
+          timestamp,
+        ])
+      }
+
+      await db?.query(insertExperienceChangelogQuery, [
+        'reorder',
+        JSON.stringify(validation.data),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getExperienceQuery)
+      const translatedResult = (result?.rows as RawExperienceData[]).map(
+        (row) => this.translateRawExperience(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to reorder experience', error))
     }
   }
 

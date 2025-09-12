@@ -33,12 +33,12 @@ let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
 export const useExperienceStore = create<ExperienceStore>((set, get) => {
   if (!debouncedSave) {
-    debouncedSave = debounce(async (experience: ExperienceBlockData[]) => {
+    debouncedSave = debounce(async (block: ExperienceBlockData) => {
       const currentState = get()
 
       set({ loading: true, error: null })
 
-      const result = await dataManager.saveExperience(experience)
+      const result = await dataManager.saveExperience(block)
 
       if (result.success) {
         set({
@@ -130,7 +130,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         error: null,
       })
 
-      debouncedSave?.(optimisticData)
+      debouncedSave?.(block)
 
       return { error: null }
     },
@@ -188,9 +188,25 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         error: null,
       })
 
-      debouncedSave?.(optimisticWithPositions)
+      const result = await dataManager.reorderExperience(
+        optimisticWithPositions
+      )
 
-      return { error: null }
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+      } else {
+        const currentState = get()
+        set({
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
     },
 
     hasChanges: (newData: ExperienceBlockData[]) => {
