@@ -2,7 +2,14 @@
 
 import styles from './ResumePreview.module.scss'
 import { CreatePdfRequest } from '@/lib/types/api'
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  Component,
+  ErrorInfo,
+} from 'react'
 import { livePreviewService } from '@/lib/services/livePreviewService'
 import { LIVE_PREVIEW } from '@/lib/constants'
 import LoadingSpinner from '@/components/shared/LoadingSpinner/LoadingSpinner'
@@ -33,7 +40,13 @@ interface PdfOptions {
 interface PdfComponents {
   Document: React.ComponentType<DocumentProps>
   Page: React.ComponentType<PageProps>
-  pdfjs: typeof import('pdfjs-dist')
+  pdfjs: {
+    version: string
+    GlobalWorkerOptions: {
+      workerSrc: string
+      workerPort?: Worker | null
+    }
+  }
   options: PdfOptions
 }
 
@@ -74,11 +87,55 @@ const DEFAULT_ZOOM = 1
 const MIN_ZOOM = 0.5
 const MAX_ZOOM = 3
 
+class PdfErrorBoundary extends Component<
+  { children: React.ReactNode; onError: (error: Error) => void },
+  { hasError: boolean }
+> {
+  constructor(props: {
+    children: React.ReactNode
+    onError: (error: Error) => void
+  }) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError(_: Error): { hasError: boolean } {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    console.error('PDF Error Boundary caught error:', error, errorInfo)
+
+    if (
+      error.message?.includes('sendWithPromise') ||
+      error.toString().includes('sendWithPromise') ||
+      error.stack?.includes('sendWithPromise')
+    ) {
+      this.props.onError(error)
+    }
+  }
+
+  render(): React.ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div className={styles.emptyState}>
+          <h3>PDF Rendering Error</h3>
+          <p>Regenerating PDF preview...</p>
+          <LoadingSpinner size='lg' text='Clearing cache and regenerating...' />
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   const [pdfBlob, setPdfBlob] = useState<Blob | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isDebouncing, setIsDebouncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [errorBoundaryKey, setErrorBoundaryKey] = useState(0)
 
   const { data: experienceData } = useExperienceStore()
   const { data: projectsData } = useProjectStore()
@@ -121,6 +178,26 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   const onDocumentLoadError = (error: Error): void => {
     console.error('PDF load error:', error)
     setError('Failed to load PDF preview')
+  }
+
+  const handlePdfError = (error: Error): void => {
+    console.error(
+      'Handling PDF error - clearing cache and regenerating...',
+      error
+    )
+
+    livePreviewService.clearAllCache()
+
+    setPdfBlob(null)
+    setNumPages(null)
+    setCurrentPage(1)
+    setError(null)
+
+    setErrorBoundaryKey((prev) => prev + 1)
+
+    setTimeout(() => {
+      generatePreview()
+    }, 500)
   }
 
   const handleDownload = (): void => {
@@ -496,30 +573,32 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
             pdfjsReady &&
             pdfComponents?.Document &&
             pdfComponents?.Page && (
-              <div
-                className={`${styles.pdfContainer} ${
-                  fitToWidth ? styles.fitToWidth : ''
-                }`}
-                ref={pdfContainerRef}
-              >
-                <pdfComponents.Document
-                  file={pdfBlob}
-                  options={pdfComponents.options}
-                  onLoadSuccess={onDocumentLoadSuccess}
-                  onLoadError={onDocumentLoadError}
-                  loading={
-                    <LoadingSpinner size='lg' text='Loading PDF viewer...' />
-                  }
+              <PdfErrorBoundary key={errorBoundaryKey} onError={handlePdfError}>
+                <div
+                  className={`${styles.pdfContainer} ${
+                    fitToWidth ? styles.fitToWidth : ''
+                  }`}
+                  ref={pdfContainerRef}
                 >
-                  <pdfComponents.Page
-                    key={`page_${currentPage}`}
-                    pageNumber={currentPage}
-                    scale={zoom}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                  />
-                </pdfComponents.Document>
-              </div>
+                  <pdfComponents.Document
+                    file={pdfBlob}
+                    options={pdfComponents.options}
+                    onLoadSuccess={onDocumentLoadSuccess}
+                    onLoadError={onDocumentLoadError}
+                    loading={
+                      <LoadingSpinner size='lg' text='Loading PDF viewer...' />
+                    }
+                  >
+                    <pdfComponents.Page
+                      key={`page_${currentPage}`}
+                      pageNumber={currentPage}
+                      scale={zoom}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                    />
+                  </pdfComponents.Document>
+                </div>
+              </PdfErrorBoundary>
             )}
 
           {!pdfjsReady && !error && (
