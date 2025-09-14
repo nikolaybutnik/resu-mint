@@ -99,7 +99,7 @@ class PdfErrorBoundary extends Component<
     this.state = { hasError: false }
   }
 
-  static getDerivedStateFromError(_: Error): { hasError: boolean } {
+  static getDerivedStateFromError(_error: Error): { hasError: boolean } {
     return { hasError: true }
   }
 
