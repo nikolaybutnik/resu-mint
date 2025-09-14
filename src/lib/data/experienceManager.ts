@@ -1,32 +1,20 @@
-import { STORAGE_KEYS } from '../constants'
 import {
   ExperienceBlockData,
   BulletPoint,
   RawExperienceData,
+  RawExperienceBulletData,
   Month,
 } from '../types/experience'
-import { experienceBlockSchema } from '../validationSchemas'
+import { experienceBlockSchema, bulletPointSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import {
-  isAuthenticated,
-  waitForAuthReady,
-  writeLocalEnvelope,
-  nowIso,
-} from './dataUtils'
+import { nowIso } from './dataUtils'
 import {
   Result,
   Success,
   Failure,
-  createStorageError,
   createValidationError,
   createUnknownError,
-  createQuotaExceededError,
-  isQuotaExceededError,
-  OperationError,
-  isNetworkError,
-  createNetworkError,
 } from '../types/errors'
-import { pushExperienceLocalRecordToDb } from './dbUtils'
 import { useAuthStore, useDbStore } from '@/stores'
 import {
   getExperienceQuery,
@@ -34,15 +22,13 @@ import {
   upsertExperienceQuery,
   deleteExperienceQuery,
   updateExperiencePositionQuery,
+  upsertExperienceBulletQuery,
+  getExperienceBulletsQuery,
 } from '../sql'
 import { v4 as uuidv4 } from 'uuid'
 import { getLastKnownUserId } from '../utils'
 
-const CACHE_KEY = 'experience'
-
 class ExperienceManager {
-  private cache = new Map<string, Promise<unknown>>()
-
   private translateRawExperience(raw: RawExperienceData): ExperienceBlockData {
     return {
       id: raw.id,
@@ -59,7 +45,7 @@ class ExperienceManager {
         year: raw.end_year?.toString() || '',
         isPresent: raw.is_present || false,
       },
-      bulletPoints: [], // TODO: Load from experience_bullets table
+      bulletPoints: raw.bullet_points || [],
       isIncluded: raw.is_included ?? true,
       position: raw.position ?? 0,
       updatedAt: raw.updated_at || undefined,
@@ -86,95 +72,6 @@ class ExperienceManager {
     }
 
     return translatedData
-  }
-
-  // TODO: phase out save as granular operations are being implemented.
-  // save(): optimistic local write; then DB (if authed)
-  async save(
-    data: ExperienceBlockData[]
-  ): Promise<Result<ExperienceBlockData[]>> {
-    try {
-      const validation = experienceBlockSchema.array().safeParse(data)
-
-      if (!validation.success) {
-        return Failure(
-          createValidationError('Invalid experience data', validation.error)
-        )
-      }
-
-      this.invalidate()
-
-      // optimistic local write with timestamp
-      try {
-        writeLocalEnvelope(STORAGE_KEYS.EXPERIENCE, validation.data, nowIso())
-      } catch (error) {
-        if (isQuotaExceededError(error)) {
-          return Failure(createQuotaExceededError(error))
-        }
-        return Failure(
-          createStorageError('Failed to save to local storage', error)
-        )
-      }
-
-      let syncWarning: OperationError | undefined
-
-      // Background DB sync
-      await waitForAuthReady()
-      if (isAuthenticated()) {
-        try {
-          // Save each experience block with positions
-          const withPositions = validation.data.map((block, i) => ({
-            ...block,
-            position: i,
-            bulletPoints: (block.bulletPoints || []).map((bp, j) => ({
-              ...bp,
-              position: j,
-            })),
-          }))
-
-          for (const block of withPositions) {
-            const { updatedAt, error } = await pushExperienceLocalRecordToDb(
-              block
-            )
-
-            if (error) {
-              syncWarning = isNetworkError(error)
-                ? createNetworkError('Failed to sync with server', error)
-                : createUnknownError('Database sync failed', error)
-              console.warn(
-                'Database sync failed, but local save succeeded:',
-                error
-              )
-            } else {
-              // Sync succeeded - update local timestamp
-              writeLocalEnvelope(
-                STORAGE_KEYS.EXPERIENCE,
-                withPositions,
-                updatedAt ?? nowIso()
-              )
-            }
-          }
-
-          // TODO: Also save bullet points to experience_bullets table
-          // This would require another upsert function for bullets
-        } catch (error) {
-          syncWarning = isNetworkError(error)
-            ? createNetworkError('Failed to sync with server', error)
-            : createUnknownError('Database sync failed', error)
-          console.warn(
-            'Failed to sync to database, but local save succeeded:',
-            error
-          )
-        }
-      }
-
-      // Prime cache with saved value for immediate reads
-      this.cache.set(CACHE_KEY, Promise.resolve(validation.data))
-
-      return Success(validation.data, syncWarning)
-    } catch (error) {
-      return Failure(createUnknownError('Unexpected error during save', error))
-    }
   }
 
   async upsert(
@@ -327,88 +224,72 @@ class ExperienceManager {
     data: BulletPoint,
     sectionId: string
   ): Promise<Result<ExperienceBlockData[]>> {
-    try {
-      const existingExperience = (await this.get()) as ExperienceBlockData[]
-      const experienceBlockToUpdate = existingExperience.find(
-        (block) => block.id === sectionId
-      )
-
-      if (!experienceBlockToUpdate) {
-        return Failure(createValidationError('Experience section not found'))
-      }
-
-      let updatedBulletPoints = experienceBlockToUpdate.bulletPoints || []
-
-      const bulletExists = experienceBlockToUpdate.bulletPoints.some(
-        (bullet) => bullet.id === data.id
-      )
-
-      if (bulletExists) {
-        updatedBulletPoints = experienceBlockToUpdate.bulletPoints.map(
-          (bullet) =>
-            bullet.id === data.id
-              ? {
-                  id: data.id,
-                  text: data.text,
-                  isLocked: data.isLocked ?? false,
-                  position: data.position ?? bullet.position ?? 0,
-                }
-              : bullet
-        )
-      } else {
-        const nextPosition = updatedBulletPoints.length
-        updatedBulletPoints.push({
-          id: data.id,
-          text: data.text,
-          isLocked: data.isLocked ?? false,
-          position: data.position ?? nextPosition,
-        })
-      }
-
-      const updatedExperience = existingExperience.map((block) =>
-        block.id === sectionId
-          ? { ...block, bulletPoints: updatedBulletPoints }
-          : block
-      )
-
-      return await this.save(updatedExperience)
-    } catch (error) {
-      return Failure(
-        createUnknownError('Unexpected error during bullet save', error)
-      )
-    }
+    return this.saveBullets([data], sectionId)
   }
 
   async saveBullets(
     bullets: BulletPoint[],
     sectionId: string
   ): Promise<Result<ExperienceBlockData[]>> {
-    try {
-      const existingExperience = (await this.get()) as ExperienceBlockData[]
-      const experienceBlockToUpdate = existingExperience.find(
-        (block) => block.id === sectionId
+    const validation = bulletPointSchema.array().safeParse(bullets)
+    if (!validation.success) {
+      return Failure(
+        createValidationError('Invalid bullet data', validation.error)
       )
+    }
 
-      if (!experienceBlockToUpdate) {
-        return Failure(createValidationError('Experience section not found'))
+    // const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    // const currentUser = useAuthStore.getState().user
+    // const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      const currentBulletsResult = await db?.query(getExperienceBulletsQuery, [
+        sectionId,
+      ])
+      const currentBullets =
+        (currentBulletsResult?.rows as RawExperienceBulletData[]) || []
+
+      for (let i = 0; i < bullets.length; i++) {
+        const bullet = bullets[i]
+        const existingBullet = currentBullets.find((b) => b.id === bullet.id)
+
+        let position = bullet.position ?? 0
+
+        if (!existingBullet) {
+          position = bullet.position ?? currentBullets.length + i
+        } else if (bullet.position === undefined) {
+          position = existingBullet.position ?? 0
+        }
+
+        await db?.query(upsertExperienceBulletQuery, [
+          bullet.id,
+          sectionId,
+          bullet.text,
+          bullet.isLocked ?? false,
+          position,
+          timestamp,
+        ])
       }
 
-      const bulletsWithPositions = bullets.map((bullet, index) => ({
-        ...bullet,
-        position: bullet.position ?? index,
-      }))
+      // TODO: Log the change
+      // await db?.query(insertExperienceChangelogQuery, [
+      //   'upsert_bullet',
+      //   JSON.stringify({ experienceId: sectionId, bullet: data }),
+      //   writeId,
+      //   timestamp,
+      //   userId,
+      // ])
 
-      const updatedExperience = existingExperience.map((block) =>
-        block.id === sectionId
-          ? { ...block, bulletPoints: bulletsWithPositions }
-          : block
+      const result = await db?.query(getExperienceQuery)
+      const translatedResult = (result?.rows as RawExperienceData[]).map(
+        (row) => this.translateRawExperience(row)
       )
 
-      return await this.save(updatedExperience)
+      return Success(translatedResult)
     } catch (error) {
-      return Failure(
-        createUnknownError('Unexpected error during bullets save', error)
-      )
+      return Failure(createUnknownError('Failed to save bullets', error))
     }
   }
 
@@ -416,39 +297,56 @@ class ExperienceManager {
     sectionId: string,
     bulletId: string
   ): Promise<Result<ExperienceBlockData[]>> {
+    return this.deleteBullets(sectionId, [bulletId])
+  }
+
+  async deleteBullets(
+    sectionId: string,
+    bulletIds: string[]
+  ): Promise<Result<ExperienceBlockData[]>> {
+    // const writeId = uuidv4()
+    // const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    // const currentUser = useAuthStore.getState().user
+    // const userId = currentUser?.id || getLastKnownUserId()
+
     try {
-      const existingExperience = (await this.get()) as ExperienceBlockData[]
-      const experienceBlockToUpdate = existingExperience.find(
-        (block) => block.id === sectionId
-      )
+      const currentBulletsResult = await db?.query(getExperienceBulletsQuery, [
+        sectionId,
+      ])
+      const currentBullets =
+        (currentBulletsResult?.rows as RawExperienceBulletData[]) || []
 
-      if (!experienceBlockToUpdate) {
-        return Failure(createValidationError('Experience section not found'))
+      for (const bulletId of bulletIds) {
+        const bulletExists = currentBullets.find((b) => b.id === bulletId)
+        if (!bulletExists) {
+          return Failure(
+            createValidationError(`Bullet point ${bulletId} not found`)
+          )
+        }
       }
 
-      const bulletExists = experienceBlockToUpdate.bulletPoints.find(
-        (bullet) => bullet.id === bulletId
+      await db?.query(`DELETE FROM experience_bullets WHERE id = ANY($1)`, [
+        bulletIds,
+      ])
+
+      // TODO: Log the change
+      // await db?.query(insertExperienceChangelogQuery, [
+      //   'delete_bullets',
+      //   JSON.stringify({ experienceId: sectionId, bulletIds }),
+      //   writeId,
+      //   timestamp,
+      //   userId,
+      // ])
+
+      const result = await db?.query(getExperienceQuery)
+      const translatedResult = (result?.rows as RawExperienceData[]).map(
+        (row) => this.translateRawExperience(row)
       )
 
-      if (!bulletExists) {
-        return Failure(createValidationError('Bullet point not found'))
-      }
-
-      const updatedBulletPoints = experienceBlockToUpdate.bulletPoints.filter(
-        (bullet) => bullet.id !== bulletId
-      )
-
-      const updatedExperience = existingExperience.map((block) =>
-        block.id === sectionId
-          ? { ...block, bulletPoints: updatedBulletPoints }
-          : block
-      )
-
-      return await this.save(updatedExperience)
+      return Success(translatedResult)
     } catch (error) {
-      return Failure(
-        createUnknownError('Unexpected error during bullet deletion', error)
-      )
+      return Failure(createUnknownError('Failed to delete bullets', error))
     }
   }
 
@@ -456,42 +354,51 @@ class ExperienceManager {
     sectionId: string,
     bulletId: string
   ): Promise<Result<ExperienceBlockData[]>> {
+    // const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    // const currentUser = useAuthStore.getState().user
+    // const userId = currentUser?.id || getLastKnownUserId()
+
     try {
-      const existingExperience = (await this.get()) as ExperienceBlockData[]
-      const experienceBlockToUpdate = existingExperience.find(
-        (block) => block.id === sectionId
-      )
+      const currentBulletsResult = await db?.query(getExperienceBulletsQuery, [
+        sectionId,
+      ])
+      const currentBullets =
+        (currentBulletsResult?.rows as RawExperienceBulletData[]) || []
+      const bullet = currentBullets.find((b) => b.id === bulletId)
 
-      if (!experienceBlockToUpdate) {
-        return Failure(createValidationError('Experience section not found'))
-      }
-
-      const bulletExists = experienceBlockToUpdate.bulletPoints.find(
-        (bullet) => bullet.id === bulletId
-      )
-
-      if (!bulletExists) {
+      if (!bullet) {
         return Failure(createValidationError('Bullet point not found'))
       }
 
-      const updatedBulletPoints = experienceBlockToUpdate.bulletPoints.map(
-        (bullet) =>
-          bullet.id === bulletId
-            ? { ...bullet, isLocked: !bullet.isLocked }
-            : bullet
+      const newLockState = !bullet.is_locked
+      await db?.query(
+        `UPDATE experience_bullets SET is_locked = $1, updated_at = $2 WHERE id = $3`,
+        [newLockState, timestamp, bulletId]
       )
 
-      const updatedExperience = existingExperience.map((block) =>
-        block.id === sectionId
-          ? { ...block, bulletPoints: updatedBulletPoints }
-          : block
+      // TODO: Log the change
+      // await db?.query(insertExperienceChangelogQuery, [
+      //   'toggle_bullet_lock',
+      //   JSON.stringify({
+      //     experienceId: sectionId,
+      //     bulletId,
+      //     isLocked: newLockState,
+      //   }),
+      //   writeId,
+      //   timestamp,
+      //   userId,
+      // ])
+
+      const result = await db?.query(getExperienceQuery)
+      const translatedResult = (result?.rows as RawExperienceData[]).map(
+        (row) => this.translateRawExperience(row)
       )
 
-      return await this.save(updatedExperience)
+      return Success(translatedResult)
     } catch (error) {
-      return Failure(
-        createUnknownError('Unexpected error during bullet lock toggle', error)
-      )
+      return Failure(createUnknownError('Failed to toggle bullet lock', error))
     }
   }
 
@@ -499,37 +406,38 @@ class ExperienceManager {
     sectionId: string,
     shouldLock: boolean
   ): Promise<Result<ExperienceBlockData[]>> {
+    // const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    // const currentUser = useAuthStore.getState().user
+    // const userId = currentUser?.id || getLastKnownUserId()
+
     try {
-      const existingExperience = (await this.get()) as ExperienceBlockData[]
-      const experienceBlockToUpdate = existingExperience.find(
-        (block: ExperienceBlockData) => block.id === sectionId
+      await db?.query(
+        `UPDATE experience_bullets SET is_locked = $1, updated_at = $2 WHERE experience_id = $3`,
+        [shouldLock, timestamp, sectionId]
       )
 
-      if (!experienceBlockToUpdate) {
-        return Failure(createValidationError('Experience section not found'))
-      }
+      // TODO: Log the change
+      // await db?.query(insertExperienceChangelogQuery, [
+      //   'toggle_bullets_lock_all',
+      //   JSON.stringify({ experienceId: sectionId, shouldLock }),
+      //   writeId,
+      //   timestamp,
+      //   userId,
+      // ])
 
-      const updatedBulletPoints = experienceBlockToUpdate.bulletPoints.map(
-        (bullet: BulletPoint) => ({ ...bullet, isLocked: shouldLock })
+      const result = await db?.query(getExperienceQuery)
+      const translatedResult = (result?.rows as RawExperienceData[]).map(
+        (row) => this.translateRawExperience(row)
       )
 
-      const updatedExperience = existingExperience.map(
-        (block: ExperienceBlockData) =>
-          block.id === sectionId
-            ? { ...block, bulletPoints: updatedBulletPoints }
-            : block
-      )
-
-      return await this.save(updatedExperience)
+      return Success(translatedResult)
     } catch (error) {
       return Failure(
-        createUnknownError('Unexpected error during bulk lock toggle', error)
+        createUnknownError('Failed to toggle all bullet locks', error)
       )
     }
-  }
-
-  invalidate() {
-    this.cache.delete(CACHE_KEY)
   }
 }
 

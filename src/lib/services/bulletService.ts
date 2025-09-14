@@ -74,22 +74,14 @@ export const bulletService = {
       }
 
       if (sectionType === 'experience') {
-        // const dataStore = useExperienceStore.getState()
-        // const updatedData = dataStore.data.map((section) =>
-        //   section.id === sectionId
-        //     ? {
-        //         ...section,
-        //         bulletPoints: section.bulletPoints
-        //           .filter((b) => b.id !== cleanBullet.id)
-        //           .concat(cleanBullet),
-        //       }
-        //     : section
-        // )
-        // TODO: implement new local db operations
-        // const saveResult = await dataStore.save(updatedData)
-        // if (saveResult.error) {
-        //   return Failure(saveResult.error)
-        // }
+        const experienceStore = useExperienceStore.getState()
+        const saveResult = await experienceStore.saveBullet(
+          cleanBullet,
+          sectionId
+        )
+        if (saveResult.error) {
+          return Failure(saveResult.error)
+        }
         return Success(undefined)
       } else if (sectionType === 'project') {
         // TODO: Update when project manager supports Result pattern
@@ -123,22 +115,14 @@ export const bulletService = {
   ): Promise<Result<void>> => {
     try {
       if (sectionType === 'experience') {
-        // const dataStore = useExperienceStore.getState()
-        // const updatedData = dataStore.data.map((section) =>
-        //   section.id === sectionId
-        //     ? {
-        //         ...section,
-        //         bulletPoints: section.bulletPoints.filter(
-        //           (bullet) => bullet.id !== bulletId
-        //         ),
-        //       }
-        //     : section
-        // )
-        // TODO: implement new local db operations
-        // const saveResult = await dataStore.save(updatedData)
-        // if (saveResult.error) {
-        //   return Failure(saveResult.error)
-        // }
+        const experienceStore = useExperienceStore.getState()
+        const deleteResult = await experienceStore.deleteBullet(
+          sectionId,
+          bulletId
+        )
+        if (deleteResult.error) {
+          return Failure(deleteResult.error)
+        }
         return Success(undefined)
       } else if (sectionType === 'project') {
         // TODO: Update when project manager supports Result pattern
@@ -172,24 +156,14 @@ export const bulletService = {
   ): Promise<Result<void>> => {
     try {
       if (sectionType === 'experience') {
-        // const dataStore = useExperienceStore.getState()
-        // const updatedData = dataStore.data.map((section) =>
-        //   section.id === sectionId
-        //     ? {
-        //         ...section,
-        //         bulletPoints: section.bulletPoints.map((bullet) =>
-        //           bullet.id === bulletId
-        //             ? { ...bullet, isLocked: !bullet.isLocked }
-        //             : bullet
-        //         ),
-        //       }
-        //     : section
-        // )
-        // TODO: implement new local db operations
-        // const saveResult = await dataStore.save(updatedData)
-        // if (saveResult.error) {
-        //   return Failure(saveResult.error)
-        // }
+        const experienceStore = useExperienceStore.getState()
+        const toggleResult = await experienceStore.toggleBulletLock(
+          sectionId,
+          bulletId
+        )
+        if (toggleResult.error) {
+          return Failure(toggleResult.error)
+        }
         return Success(undefined)
       } else if (sectionType === 'project') {
         // TODO: Update when project manager supports Result pattern
@@ -225,23 +199,14 @@ export const bulletService = {
   ): Promise<Result<void>> => {
     try {
       if (sectionType === 'experience') {
-        // const dataStore = useExperienceStore.getState()
-        // const updatedData = dataStore.data.map((section) =>
-        //   section.id === sectionId
-        //     ? {
-        //         ...section,
-        //         bulletPoints: section.bulletPoints.map((bullet) => ({
-        //           ...bullet,
-        //           isLocked: shouldLock,
-        //         })),
-        //       }
-        //     : section
-        // )
-        // TODO: implement new local db operations
-        // const saveResult = await dataStore.save(updatedData)
-        // if (saveResult.error) {
-        //   return Failure(saveResult.error)
-        // }
+        const experienceStore = useExperienceStore.getState()
+        const toggleResult = await experienceStore.toggleBulletLockAll(
+          sectionId,
+          shouldLock
+        )
+        if (toggleResult.error) {
+          return Failure(toggleResult.error)
+        }
         return Success(undefined)
       } else if (sectionType === 'project') {
         // TODO: Update when project manager supports Result pattern

@@ -16,6 +16,7 @@ import {
 import { API_ROUTES, DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { Session } from '@supabase/supabase-js'
 import {
+  initializeExperienceBulletsQuery,
   initializeExperienceChangelogQuery,
   initializeExperienceQuery,
   initializePersonalDetailsChangelogQuery,
@@ -109,6 +110,7 @@ const initializeTables = async (db: PGlite) => {
     await db.query(initializePersonalDetailsQuery)
     await db.query(initializePersonalDetailsChangelogQuery)
     await db.query(initializeExperienceQuery)
+    await db.query(initializeExperienceBulletsQuery)
     await db.query(initializeExperienceChangelogQuery)
   } catch (error) {
     console.error('Failed to initialize DB tables:', error)

@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS experience_bullets (
     is_locked BOOLEAN DEFAULT FALSE,
     position INTEGER NOT NULL DEFAULT 0,
     updated_at TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 `
 
@@ -157,8 +157,23 @@ SELECT
     e.id, e.title, e.company_name, e.location, e.description,
     e.start_month, e.start_year, e.end_month, e.end_year,
     e.is_present, e.is_included, e.position,
-    e.updated_at::text, e.created_at::text
+    e.updated_at::text, e.created_at::text,
+    COALESCE(
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'id', b.id,
+                'text', b.text,
+                'isLocked', b.is_locked,
+                'position', b.position
+            ) ORDER BY b.position ASC
+        ) FILTER (WHERE b.id IS NOT NULL),
+        '[]'::json
+    ) as bullet_points
 FROM experience e
+LEFT JOIN experience_bullets b ON e.id = b.experience_id
+GROUP BY e.id, e.title, e.company_name, e.location, e.description,
+         e.start_month, e.start_year, e.end_month, e.end_year,
+         e.is_present, e.is_included, e.position, e.updated_at, e.created_at
 ORDER BY e.position ASC, e.created_at DESC
 `
 
@@ -203,8 +218,8 @@ ON CONFLICT (id) DO UPDATE SET
 
 export const upsertExperienceBulletQuery = `
 INSERT INTO experience_bullets (
-    id, experience_id, text, is_locked, position, updated_at, created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7)
+    id, experience_id, text, is_locked, position, updated_at
+) VALUES ($1, $2, $3, $4, $5, $6)
 ON CONFLICT (id) DO UPDATE SET
     text = EXCLUDED.text,
     is_locked = EXCLUDED.is_locked,

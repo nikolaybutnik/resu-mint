@@ -81,7 +81,7 @@ const urlValidator = (errorMessage = 'Must be a valid URL') => {
   ])
 }
 
-const bulletPointSchema = z.object({
+export const bulletPointSchema = z.object({
   id: z.string().uuid(),
   text: z
     .string()

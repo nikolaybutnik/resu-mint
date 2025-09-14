@@ -22,6 +22,16 @@ export interface BulletPoint {
   position?: number
 }
 
+export interface RawExperienceBulletData {
+  id: string
+  experience_id: string
+  text: string
+  is_locked: boolean
+  position: number
+  updated_at: string
+  created_at: string
+}
+
 export type StartDate = {
   month?: Month | ''
   year: string
@@ -62,6 +72,8 @@ export interface RawExperienceData {
   position: number | null
   updated_at: string | null
   created_at: string | null
+  // Aggregated bullet points from SQL JSON_AGG
+  bullet_points?: BulletPoint[]
 }
 
 export interface ExperienceFormState {

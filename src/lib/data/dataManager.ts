@@ -96,6 +96,13 @@ class DataManager {
     return experienceManager.deleteBullet(sectionId, bulletId)
   }
 
+  async deleteExperienceBullets(
+    sectionId: string,
+    bulletIds: string[]
+  ): Promise<Result<ExperienceBlockData[]>> {
+    return experienceManager.deleteBullets(sectionId, bulletIds)
+  }
+
   async toggleExperienceBulletLock(
     sectionId: string,
     bulletId: string
@@ -108,10 +115,6 @@ class DataManager {
     shouldLock: boolean
   ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.toggleBulletLockAll(sectionId, shouldLock)
-  }
-
-  invalidateExperience() {
-    experienceManager.invalidate()
   }
 
   // Projects

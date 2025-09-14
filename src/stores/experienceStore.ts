@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
-import { ExperienceBlockData } from '@/lib/types/experience'
+import { ExperienceBlockData, BulletPoint } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit, debounce } from 'lodash'
 import { createValidationError, OperationError } from '@/lib/types/errors'
@@ -18,6 +18,22 @@ interface ExperienceStore {
   delete: (blockId: string) => Promise<{ error: OperationError | null }>
   reorder: (
     data: ExperienceBlockData[]
+  ) => Promise<{ error: OperationError | null }>
+  saveBullet: (
+    bullet: BulletPoint,
+    sectionId: string
+  ) => Promise<{ error: OperationError | null }>
+  deleteBullet: (
+    sectionId: string,
+    bulletId: string
+  ) => Promise<{ error: OperationError | null }>
+  toggleBulletLock: (
+    sectionId: string,
+    bulletId: string
+  ) => Promise<{ error: OperationError | null }>
+  toggleBulletLockAll: (
+    sectionId: string,
+    shouldLock: boolean
   ) => Promise<{ error: OperationError | null }>
   hasChanges: (newData: ExperienceBlockData[]) => boolean
   hasBlockChanges: (
@@ -235,6 +251,176 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       ])
 
       return !isEqual(existingFields, newFields)
+    },
+
+    saveBullet: async (bullet: BulletPoint, sectionId: string) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.some((b) => b.id === bullet.id)
+                ? block.bulletPoints.map((b) =>
+                    b.id === bullet.id ? bullet : b
+                  )
+                : [...block.bulletPoints, bullet],
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.saveExperienceBullet(bullet, sectionId)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    deleteBullet: async (sectionId: string, bulletId: string) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.filter((b) => b.id !== bulletId),
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.deleteExperienceBullet(
+        sectionId,
+        bulletId
+      )
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    toggleBulletLock: async (sectionId: string, bulletId: string) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.map((b) =>
+                b.id === bulletId ? { ...b, isLocked: !b.isLocked } : b
+              ),
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.toggleExperienceBulletLock(
+        sectionId,
+        bulletId
+      )
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    toggleBulletLockAll: async (sectionId: string, shouldLock: boolean) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints.map((b) => ({
+                ...b,
+                isLocked: shouldLock,
+              })),
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.toggleExperienceBulletLockAll(
+        sectionId,
+        shouldLock
+      )
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
     },
 
     refresh: async () => {
