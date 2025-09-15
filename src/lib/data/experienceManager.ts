@@ -24,9 +24,12 @@ import {
   updateExperiencePositionQuery,
   upsertExperienceBulletQuery,
   getExperienceBulletsQuery,
+  reorderExperienceBulletsQuery,
+  reorderExperiencePositionsQuery,
 } from '../sql'
 import { v4 as uuidv4 } from 'uuid'
 import { getLastKnownUserId } from '../utils'
+import { omit } from 'lodash'
 
 class ExperienceManager {
   private translateRawExperience(raw: RawExperienceData): ExperienceBlockData {
@@ -49,6 +52,17 @@ class ExperienceManager {
       isIncluded: raw.is_included ?? true,
       position: raw.position ?? 0,
       updatedAt: raw.updated_at || undefined,
+    }
+  }
+
+  private translateRawExperienceBullet(
+    raw: RawExperienceBulletData
+  ): BulletPoint {
+    return {
+      id: raw.id,
+      text: raw.text,
+      isLocked: raw.is_locked,
+      position: raw.position,
     }
   }
 
@@ -121,7 +135,7 @@ class ExperienceManager {
 
       await db?.query(insertExperienceChangelogQuery, [
         'upsert',
-        JSON.stringify(blockToUpsert),
+        JSON.stringify(omit(blockToUpsert, ['bulletPoints'])),
         writeId,
         timestamp,
         userId,
@@ -154,6 +168,8 @@ class ExperienceManager {
       }
 
       await db?.query(deleteExperienceQuery, [blockId])
+
+      await db?.query(reorderExperiencePositionsQuery, [timestamp])
 
       await db?.query(insertExperienceChangelogQuery, [
         'delete',
@@ -203,7 +219,9 @@ class ExperienceManager {
 
       await db?.query(insertExperienceChangelogQuery, [
         'reorder',
-        JSON.stringify(validation.data),
+        JSON.stringify(
+          validation.data.map((item) => omit(item, ['bulletPoints']))
+        ),
         writeId,
         timestamp,
         userId,
@@ -238,11 +256,11 @@ class ExperienceManager {
       )
     }
 
-    // const writeId = uuidv4()
+    const writeId = uuidv4()
     const timestamp = nowIso()
     const { db } = useDbStore.getState()
-    // const currentUser = useAuthStore.getState().user
-    // const userId = currentUser?.id || getLastKnownUserId()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
       const currentBulletsResult = await db?.query(getExperienceBulletsQuery, [
@@ -258,7 +276,7 @@ class ExperienceManager {
         let position = bullet.position ?? 0
 
         if (!existingBullet) {
-          position = bullet.position ?? currentBullets.length + i
+          position = currentBullets.length + i
         } else if (bullet.position === undefined) {
           position = existingBullet.position ?? 0
         }
@@ -273,14 +291,23 @@ class ExperienceManager {
         ])
       }
 
-      // TODO: Log the change
-      // await db?.query(insertExperienceChangelogQuery, [
-      //   'upsert_bullet',
-      //   JSON.stringify({ experienceId: sectionId, bullet: data }),
-      //   writeId,
-      //   timestamp,
-      //   userId,
-      // ])
+      const updatedBullets = await db?.query(getExperienceBulletsQuery, [
+        sectionId,
+      ])
+      const translatedUpdatedBullets = (
+        updatedBullets?.rows as RawExperienceBulletData[]
+      ).map((b) => this.translateRawExperienceBullet(b))
+
+      await db?.query(insertExperienceChangelogQuery, [
+        'upsert_bullets',
+        JSON.stringify({
+          experienceId: sectionId,
+          data: translatedUpdatedBullets,
+        }),
+        writeId,
+        timestamp,
+        userId,
+      ])
 
       const result = await db?.query(getExperienceQuery)
       const translatedResult = (result?.rows as RawExperienceData[]).map(
@@ -304,11 +331,11 @@ class ExperienceManager {
     sectionId: string,
     bulletIds: string[]
   ): Promise<Result<ExperienceBlockData[]>> {
-    // const writeId = uuidv4()
-    // const timestamp = nowIso()
+    const writeId = uuidv4()
+    const timestamp = nowIso()
     const { db } = useDbStore.getState()
-    // const currentUser = useAuthStore.getState().user
-    // const userId = currentUser?.id || getLastKnownUserId()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
       const currentBulletsResult = await db?.query(getExperienceBulletsQuery, [
@@ -330,14 +357,15 @@ class ExperienceManager {
         bulletIds,
       ])
 
-      // TODO: Log the change
-      // await db?.query(insertExperienceChangelogQuery, [
-      //   'delete_bullets',
-      //   JSON.stringify({ experienceId: sectionId, bulletIds }),
-      //   writeId,
-      //   timestamp,
-      //   userId,
-      // ])
+      await db?.query(reorderExperienceBulletsQuery, [sectionId, timestamp])
+
+      await db?.query(insertExperienceChangelogQuery, [
+        'delete_bullets',
+        JSON.stringify({ experienceId: sectionId, bulletIds }),
+        writeId,
+        timestamp,
+        userId,
+      ])
 
       const result = await db?.query(getExperienceQuery)
       const translatedResult = (result?.rows as RawExperienceData[]).map(

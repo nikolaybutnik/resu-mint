@@ -172,9 +172,34 @@ SELECT
 FROM experience e
 LEFT JOIN experience_bullets b ON e.id = b.experience_id
 GROUP BY e.id, e.title, e.company_name, e.location, e.description,
-         e.start_month, e.start_year, e.end_month, e.end_year,
-         e.is_present, e.is_included, e.position, e.updated_at, e.created_at
+    e.start_month, e.start_year, e.end_month, e.end_year,
+    e.is_present, e.is_included, e.position, e.updated_at, e.created_at
 ORDER BY e.position ASC, e.created_at DESC
+`
+
+export const getExperienceByIdQuery = `
+SELECT
+    e.id, e.title, e.company_name, e.location, e.description,
+    e.start_month, e.start_year, e.end_month, e.end_year,
+    e.is_present, e.is_included, e.position,
+    e.updated_at::text, e.created_at::text,
+    COALESCE(
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'id', b.id,
+                'text', b.text,
+                'isLocked', b.is_locked,
+                'position', b.position
+            ) ORDER BY b.position ASC
+        ) FILTER (WHERE b.id IS NOT NULL),
+        '[]'::json
+    ) as bullet_points
+FROM experience e
+LEFT JOIN experience_bullets b ON e.id = b.experience_id
+WHERE e.id = $1
+GROUP BY e.id, e.title, e.company_name, e.location, e.description,
+    e.start_month, e.start_year, e.end_month, e.end_year,
+    e.is_present, e.is_included, e.position, e.updated_at, e.created_at
 `
 
 export const getExperienceBulletsQuery = `
@@ -239,6 +264,29 @@ export const updateExperiencePositionQuery = `
 UPDATE experience 
 SET position = $2, updated_at = $3::timestamptz
 WHERE id = $1
+`
+
+export const reorderExperienceBulletsQuery = `
+UPDATE experience_bullets 
+SET position = subq.new_position - 1, updated_at = $2
+FROM (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY position, created_at) AS new_position
+  FROM experience_bullets 
+  WHERE experience_id = $1
+) AS subq
+WHERE experience_bullets.id = subq.id
+  AND experience_bullets.position != (subq.new_position - 1)
+`
+
+export const reorderExperiencePositionsQuery = `
+UPDATE experience 
+SET position = subq.new_position - 1, updated_at = $1
+FROM (
+  SELECT id, ROW_NUMBER() OVER (ORDER BY position, created_at) AS new_position
+  FROM experience
+) AS subq
+WHERE experience.id = subq.id
+  AND experience.position != (subq.new_position - 1)
 `
 
 // Changelog Operations
