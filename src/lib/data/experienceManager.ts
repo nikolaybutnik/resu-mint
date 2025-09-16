@@ -24,8 +24,11 @@ import {
   updateExperiencePositionQuery,
   upsertExperienceBulletQuery,
   getExperienceBulletsQuery,
+  deleteExperienceBulletsQuery,
   reorderExperienceBulletsQuery,
   reorderExperiencePositionsQuery,
+  toggleExperienceBulletLockQuery,
+  toggleExperienceBulletsLockAllQuery,
 } from '../sql'
 import { v4 as uuidv4 } from 'uuid'
 import { getLastKnownUserId } from '../utils'
@@ -353,9 +356,7 @@ class ExperienceManager {
         }
       }
 
-      await db?.query(`DELETE FROM experience_bullets WHERE id = ANY($1)`, [
-        bulletIds,
-      ])
+      await db?.query(deleteExperienceBulletsQuery, [bulletIds, timestamp])
 
       await db?.query(reorderExperienceBulletsQuery, [sectionId, timestamp])
 
@@ -382,11 +383,11 @@ class ExperienceManager {
     sectionId: string,
     bulletId: string
   ): Promise<Result<ExperienceBlockData[]>> {
-    // const writeId = uuidv4()
+    const writeId = uuidv4()
     const timestamp = nowIso()
     const { db } = useDbStore.getState()
-    // const currentUser = useAuthStore.getState().user
-    // const userId = currentUser?.id || getLastKnownUserId()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
       const currentBulletsResult = await db?.query(getExperienceBulletsQuery, [
@@ -401,23 +402,29 @@ class ExperienceManager {
       }
 
       const newLockState = !bullet.is_locked
-      await db?.query(
-        `UPDATE experience_bullets SET is_locked = $1, updated_at = $2 WHERE id = $3`,
-        [newLockState, timestamp, bulletId]
-      )
+      await db?.query(toggleExperienceBulletLockQuery, [
+        newLockState,
+        timestamp,
+        bulletId,
+      ])
 
-      // TODO: Log the change
-      // await db?.query(insertExperienceChangelogQuery, [
-      //   'toggle_bullet_lock',
-      //   JSON.stringify({
-      //     experienceId: sectionId,
-      //     bulletId,
-      //     isLocked: newLockState,
-      //   }),
-      //   writeId,
-      //   timestamp,
-      //   userId,
-      // ])
+      const updatedBullets = await db?.query(getExperienceBulletsQuery, [
+        sectionId,
+      ])
+      const translatedUpdatedBullets = (
+        updatedBullets?.rows as RawExperienceBulletData[]
+      ).map((b) => this.translateRawExperienceBullet(b))
+
+      await db?.query(insertExperienceChangelogQuery, [
+        'toggle_bullet_lock',
+        JSON.stringify({
+          experienceId: sectionId,
+          data: translatedUpdatedBullets,
+        }),
+        writeId,
+        timestamp,
+        userId,
+      ])
 
       const result = await db?.query(getExperienceQuery)
       const translatedResult = (result?.rows as RawExperienceData[]).map(
@@ -434,26 +441,36 @@ class ExperienceManager {
     sectionId: string,
     shouldLock: boolean
   ): Promise<Result<ExperienceBlockData[]>> {
-    // const writeId = uuidv4()
+    const writeId = uuidv4()
     const timestamp = nowIso()
     const { db } = useDbStore.getState()
-    // const currentUser = useAuthStore.getState().user
-    // const userId = currentUser?.id || getLastKnownUserId()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
-      await db?.query(
-        `UPDATE experience_bullets SET is_locked = $1, updated_at = $2 WHERE experience_id = $3`,
-        [shouldLock, timestamp, sectionId]
-      )
+      await db?.query(toggleExperienceBulletsLockAllQuery, [
+        shouldLock,
+        timestamp,
+        sectionId,
+      ])
 
-      // TODO: Log the change
-      // await db?.query(insertExperienceChangelogQuery, [
-      //   'toggle_bullets_lock_all',
-      //   JSON.stringify({ experienceId: sectionId, shouldLock }),
-      //   writeId,
-      //   timestamp,
-      //   userId,
-      // ])
+      const updatedBullets = await db?.query(getExperienceBulletsQuery, [
+        sectionId,
+      ])
+      const translatedUpdatedBullets = (
+        updatedBullets?.rows as RawExperienceBulletData[]
+      ).map((b) => this.translateRawExperienceBullet(b))
+
+      await db?.query(insertExperienceChangelogQuery, [
+        'toggle_bullets_lock_all',
+        JSON.stringify({
+          experienceId: sectionId,
+          data: translatedUpdatedBullets,
+        }),
+        writeId,
+        timestamp,
+        userId,
+      ])
 
       const result = await db?.query(getExperienceQuery)
       const translatedResult = (result?.rows as RawExperienceData[]).map(

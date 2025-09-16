@@ -242,14 +242,21 @@ ON CONFLICT (id) DO UPDATE SET
 `
 
 export const upsertExperienceBulletQuery = `
-INSERT INTO experience_bullets (
-    id, experience_id, text, is_locked, position, updated_at
-) VALUES ($1, $2, $3, $4, $5, $6)
-ON CONFLICT (id) DO UPDATE SET
-    text = EXCLUDED.text,
-    is_locked = EXCLUDED.is_locked,
-    position = EXCLUDED.position,
-    updated_at = EXCLUDED.updated_at
+WITH bullet_operation AS (
+    INSERT INTO experience_bullets (
+        id, experience_id, text, is_locked, position, updated_at
+    ) VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (id) DO UPDATE SET
+        text = EXCLUDED.text,
+        is_locked = EXCLUDED.is_locked,
+        position = EXCLUDED.position,
+        updated_at = EXCLUDED.updated_at
+    RETURNING experience_id
+)
+UPDATE experience
+SET updated_at = $6
+WHERE id = $2
+  AND EXISTS (SELECT 1 FROM bullet_operation WHERE experience_id = $2)
 `
 
 export const deleteExperienceQuery = `
@@ -258,6 +265,17 @@ DELETE FROM experience WHERE id = $1
 
 export const deleteExperienceBulletQuery = `
 DELETE FROM experience_bullets WHERE id = $1
+`
+
+export const deleteExperienceBulletsQuery = `
+WITH deleted_bullets AS (
+    DELETE FROM experience_bullets
+    WHERE id = ANY($1)
+    RETURNING experience_id
+)
+UPDATE experience
+SET updated_at = $2
+WHERE id IN (SELECT experience_id FROM deleted_bullets)
 `
 
 export const updateExperiencePositionQuery = `
@@ -279,7 +297,7 @@ WHERE experience_bullets.id = subq.id
 `
 
 export const reorderExperiencePositionsQuery = `
-UPDATE experience 
+UPDATE experience
 SET position = subq.new_position - 1, updated_at = $1
 FROM (
   SELECT id, ROW_NUMBER() OVER (ORDER BY position, created_at) AS new_position
@@ -287,6 +305,31 @@ FROM (
 ) AS subq
 WHERE experience.id = subq.id
   AND experience.position != (subq.new_position - 1)
+`
+
+export const toggleExperienceBulletLockQuery = `
+WITH bullet_lock AS (
+    UPDATE experience_bullets
+    SET is_locked = $1, updated_at = $2
+    WHERE id = $3
+    RETURNING experience_id
+)
+UPDATE experience
+SET updated_at = $2
+WHERE id IN (SELECT experience_id FROM bullet_lock)
+`
+
+export const toggleExperienceBulletsLockAllQuery = `
+WITH bulk_lock AS (
+    UPDATE experience_bullets
+    SET is_locked = $1, updated_at = $2
+    WHERE experience_id = $3
+    RETURNING experience_id
+)
+UPDATE experience
+SET updated_at = $2
+WHERE id = $3
+  AND EXISTS (SELECT 1 FROM bulk_lock WHERE experience_id = $3)
 `
 
 // Changelog Operations
@@ -319,6 +362,13 @@ export const transferAnonymousExperienceToUser = `
 UPDATE experience_changes
 SET user_id = $1
 WHERE user_id IS NULL
+`
+
+export const getExperienceChangelogQuery = `
+SELECT id, operation, value, write_id, timestamp, synced, user_id
+FROM experience_changes
+ORDER BY timestamp DESC
+LIMIT 10
 `
 
 // =============================================================================
