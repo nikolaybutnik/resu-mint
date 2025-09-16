@@ -97,7 +97,22 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
   },
   // experience: {
   //   table: 'experience',
-  //   columns: ['id'],
+  //   columns: [
+  //     'id',
+  //     'title',
+  //     'company_name',
+  //     'location',
+  //     'description',
+  //     'start_month',
+  //     'start_year',
+  //     'end_month',
+  //     'end_year',
+  //     'is_present',
+  //     'is_included',
+  //     'position',
+  //     'updated_at',
+  //     'created_at',
+  //   ],
   //   primaryKey: ['id'],
   //   shapeKey: 'experience',
   // },
@@ -245,6 +260,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     const { db, activeStreams, tableConfigs } = get()
     const { refresh: refreshPersonalDetails } =
       usePersonalDetailsStore.getState()
+
     if (!db) {
       set({
         error: createStorageError('Database not initialized'),

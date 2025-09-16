@@ -240,13 +240,11 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       const existingFields = omit(existingBlock, [
         'bulletPoints',
         'updatedAt',
-        'isIncluded',
         'position',
       ])
       const newFields = omit(newBlockData, [
         'bulletPoints',
         'updatedAt',
-        'isIncluded',
         'position',
       ])
 
