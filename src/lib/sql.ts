@@ -134,7 +134,7 @@ AND timestamp <= $1
 AND user_id = $2
 `
 
-export const cleanUpSyncedChangelogEntriesQuery = `
+export const cleanUpSyncedPersonalDetailsChangelogEntriesQuery = `
 DELETE FROM personal_details_changes 
 WHERE synced = TRUE 
 AND timestamp < NOW() - INTERVAL '3 days'
@@ -338,17 +338,11 @@ INSERT INTO experience_changes (operation, value, write_id, timestamp, user_id)
 VALUES ($1, $2, $3, $4, $5)
 `
 
-export const selectLatestUnsyncedExperienceChangeQuery = `
+export const selectAllUnsyncedExperienceChangesQuery = `
 SELECT * FROM experience_changes
-WHERE synced = FALSE AND operation = 'update'
+WHERE synced = FALSE
 AND user_id = $1
-ORDER BY timestamp DESC LIMIT 1
-`
-
-export const markPreviousExperienceChangesAsSyncedQuery = `
-UPDATE experience_changes SET synced = TRUE
-WHERE synced = FALSE AND operation = 'update'
-AND timestamp <= $1 AND user_id = $2
+ORDER BY timestamp ASC
 `
 
 export const cleanUpSyncedExperienceChangelogEntriesQuery = `
@@ -364,11 +358,8 @@ SET user_id = $1
 WHERE user_id IS NULL
 `
 
-export const getExperienceChangelogQuery = `
-SELECT id, operation, value, write_id, timestamp, synced, user_id
-FROM experience_changes
-ORDER BY timestamp DESC
-LIMIT 10
+export const updateExperienceChangelogQuery = `
+UPDATE experience_changes SET synced = $1 WHERE write_id = $2
 `
 
 // =============================================================================

@@ -14,6 +14,8 @@ import {
   isChangeMessage,
 } from '@electric-sql/client'
 import { API_ROUTES, DEFAULT_STATE_VALUES } from '@/lib/constants'
+import { PersonalDetails } from '@/lib/types/personalDetails'
+import { ExperienceBlockData } from '@/lib/types/experience'
 import { Session } from '@supabase/supabase-js'
 import {
   initializeExperienceBulletsQuery,
@@ -24,7 +26,7 @@ import {
 } from '@/lib/sql'
 import { useAuthStore } from './'
 import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
-import { usePersonalDetailsStore } from './'
+import { usePersonalDetailsStore, useExperienceStore } from './'
 import { toast } from './toastStore'
 import {
   OperationError,
@@ -95,28 +97,35 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'personal_details',
   },
-  // experience: {
-  //   table: 'experience',
-  //   columns: [
-  //     'id',
-  //     'title',
-  //     'company_name',
-  //     'location',
-  //     'description',
-  //     'start_month',
-  //     'start_year',
-  //     'end_month',
-  //     'end_year',
-  //     'is_present',
-  //     'is_included',
-  //     'position',
-  //     'updated_at',
-  //     'created_at',
-  //   ],
-  //   primaryKey: ['id'],
-  //   shapeKey: 'experience',
-  // },
+  experience: {
+    table: 'experience',
+    columns: [
+      'id',
+      'title',
+      'company_name',
+      'location',
+      'description',
+      'start_month',
+      'start_year',
+      'end_month',
+      'end_year',
+      'is_present',
+      'is_included',
+      'position',
+      'updated_at',
+      'created_at',
+    ],
+    primaryKey: ['id'],
+    shapeKey: 'experience',
+  },
 }
+
+const TABLE_STORE_RESET_MAP = {
+  personal_details: (defaultValue: PersonalDetails) =>
+    usePersonalDetailsStore.setState({ data: defaultValue }),
+  experience: (defaultValue: ExperienceBlockData[]) =>
+    useExperienceStore.setState({ data: defaultValue }),
+} as const
 
 let firstSyncFlag = true
 
@@ -260,6 +269,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     const { db, activeStreams, tableConfigs } = get()
     const { refresh: refreshPersonalDetails } =
       usePersonalDetailsStore.getState()
+    const { refresh: refreshExperience } = useExperienceStore.getState()
 
     if (!db) {
       set({
@@ -301,9 +311,22 @@ export const useDbStore = create<DbStore>((set, get) => ({
           primaryKey: config.primaryKey,
           shapeKey: config.shapeKey,
           onMustRefetch: async (tx) => {
-            usePersonalDetailsStore.setState({
-              data: DEFAULT_STATE_VALUES.PERSONAL_DETAILS,
-            })
+            const resetFunction =
+              TABLE_STORE_RESET_MAP[
+                config.table as keyof typeof TABLE_STORE_RESET_MAP
+              ]
+
+            if (resetFunction) {
+              const defaultValueKey =
+                config.table.toUpperCase() as keyof typeof DEFAULT_STATE_VALUES
+              const defaultValue = DEFAULT_STATE_VALUES[defaultValueKey]
+              resetFunction(defaultValue as never)
+            } else {
+              console.warn(
+                `No store reset function found for table: ${config.table}`
+              )
+            }
+
             await tx.query(`DELETE FROM ${config.table}`)
             toast.warning(
               'Local data is out of sync with the server. Your cache has been cleared.'
@@ -315,17 +338,24 @@ export const useDbStore = create<DbStore>((set, get) => ({
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
               let hasPersonalDetailsChanges = false
+              let hasExperienceChanges = false
 
               messages.forEach(async (msg) => {
                 if (isChangeMessage(msg)) {
                   if (config.table === 'personal_details') {
                     hasPersonalDetailsChanges = true
                   }
+                  if (config.table === 'experience') {
+                    hasExperienceChanges = true
+                  }
                 }
               })
 
               if (hasPersonalDetailsChanges) {
                 setTimeout(() => refreshPersonalDetails(), 200)
+              }
+              if (hasExperienceChanges) {
+                setTimeout(() => refreshExperience(), 200)
               }
             }
 

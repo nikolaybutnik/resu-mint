@@ -11,10 +11,13 @@ import { useAuthStore, useDbStore } from '@/stores'
 import type { PersonalDetails } from '@/lib/types/personalDetails'
 import { ElectricDb } from '@/stores/dbStore'
 import {
-  cleanUpSyncedChangelogEntriesQuery,
+  cleanUpSyncedPersonalDetailsChangelogEntriesQuery,
   updatePersonalDetailChangelogQuery,
   selectLatestUnsyncedPersonalDetailsChangeQuery,
   markPreviousPersonalDetailsChangesAsSyncedQuery,
+  selectAllUnsyncedExperienceChangesQuery,
+  updateExperienceChangelogQuery,
+  cleanUpSyncedExperienceChangelogEntriesQuery,
 } from '../sql'
 
 export async function pullExperienceDbRecordToLocal(
@@ -85,82 +88,6 @@ export async function pushExperienceLocalRecordToDb(
   }
 }
 
-const syncWithAtomicity = async (
-  db: ElectricDb | null,
-  row: PersonalDetailsChange
-): Promise<void> => {
-  if (!db) throw new Error('Local DB not initialized')
-
-  const maxRetries = 3
-  const TOLERANCE_MS = 30000 // 30 seconds tolerance between client and server
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      const { data: serverData } = await supabase
-        .from('personal_details')
-        .select('updated_at')
-        .single()
-
-      if (serverData?.updated_at) {
-        const serverTime = new Date(serverData.updated_at).getTime()
-        const localTime = new Date(row.timestamp || 0).getTime()
-        const timeDiff = serverTime - localTime
-
-        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
-          console.info(
-            'Local data is stale (beyond tolerance), removing from changelog'
-          )
-          // TODO: notify client via toast
-          await db.query(updatePersonalDetailChangelogQuery, [
-            true,
-            row.write_id,
-          ])
-          return
-        } else if (serverTime > localTime && timeDiff <= TOLERANCE_MS) {
-          console.info(
-            'Server slightly ahead within tolerance - pushing local changes'
-          )
-        }
-      } else {
-        console.info('No server data found, proceeding with local changes')
-      }
-
-      const { error: pushError } = await supabase.rpc(
-        'upsert_personal_details',
-        {
-          p_name: row.value.name,
-          p_email: row.value.email,
-          p_phone: row.value.phone || '',
-          p_location: row.value.location || '',
-          p_linkedin: row.value.linkedin || '',
-          p_github: row.value.github || '',
-          p_website: row.value.website || '',
-        }
-      )
-
-      if (pushError) throw pushError
-
-      await db.query(updatePersonalDetailChangelogQuery, [true, row.write_id])
-
-      return
-    } catch (error) {
-      console.error(`Sync attempt ${attempt + 1} failed:`, error)
-
-      if (attempt === maxRetries - 1) {
-        await db.query(updatePersonalDetailChangelogQuery, [
-          false,
-          row.write_id,
-        ])
-        throw error
-      }
-
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1000 * Math.pow(2, attempt))
-      )
-    }
-  }
-}
-
 interface PersonalDetailsChange {
   id: number
   operation: 'insert' | 'update' | 'delete'
@@ -171,40 +98,252 @@ interface PersonalDetailsChange {
   user_id: string | null
 }
 
+interface ExperienceChange {
+  id: number
+  operation:
+    | 'upsert'
+    | 'delete'
+    | 'reorder'
+    | 'upsert_bullets'
+    | 'delete_bullets'
+    | 'toggle_bullet_lock'
+    | 'toggle_bullets_lock_all'
+  value:
+    | ExperienceBlockData // upsert
+    | ExperienceBlockData[] // reorder
+    | { id: string } // delete
+    | BulletChangeData // upsert_bullets, delete_bullets, toggle_bullet_lock, toggle_bullets_lock_all
+  write_id: string
+  timestamp: string
+  synced: boolean
+  user_id: string | null
+}
+
+interface BulletChangeData {
+  experienceId: string
+  data?: BulletPoint[]
+  bulletIds?: string[]
+}
+
+interface SyncConfig<T> {
+  datasetName: string
+  getLatestUnsyncedQuery: string
+  markSyncedQuery: string
+  markPreviousAsSyncedQuery?: string
+  cleanupQuery: string
+  syncToRemote: (change: T) => Promise<void>
+  syncMode: 'single' | 'batch'
+}
+
+async function syncDataset<T extends { write_id: string; timestamp: string }>(
+  db: ElectricDb,
+  userId: string | undefined,
+  config: SyncConfig<T>
+): Promise<void> {
+  if (config.syncMode === 'single') {
+    await syncSingleLatest(db, userId, config)
+  } else {
+    await syncAllUnsynced(db, userId, config)
+  }
+}
+
+async function syncSingleLatest<
+  T extends { write_id: string; timestamp: string }
+>(
+  db: ElectricDb,
+  userId: string | undefined,
+  config: SyncConfig<T>
+): Promise<void> {
+  const result = await db.query<T>(config.getLatestUnsyncedQuery, [userId])
+  const [latestChange] = result?.rows
+
+  if (!latestChange) {
+    await db.query(config.cleanupQuery, [userId])
+    return
+  }
+
+  try {
+    await config.syncToRemote(latestChange)
+
+    await db.query(config.markSyncedQuery, [true, latestChange.write_id])
+
+    if (config.markPreviousAsSyncedQuery) {
+      await db.query(config.markPreviousAsSyncedQuery, [
+        latestChange.timestamp,
+        userId,
+      ])
+    }
+  } catch (error) {
+    console.error(`Failed to sync ${config.datasetName}:`, error)
+
+    await db.query(config.markSyncedQuery, [false, latestChange.write_id])
+    throw error
+  }
+
+  await db.query(config.cleanupQuery, [userId])
+}
+
+async function syncAllUnsynced<
+  T extends { write_id: string; timestamp: string }
+>(
+  db: ElectricDb,
+  userId: string | undefined,
+  config: SyncConfig<T>
+): Promise<void> {
+  const result = await db.query<T>(config.getLatestUnsyncedQuery, [userId])
+  const unsyncedChanges = result?.rows || []
+
+  if (!unsyncedChanges.length) {
+    await db.query(config.cleanupQuery, [userId])
+    return
+  }
+
+  console.info(
+    `Found ${unsyncedChanges.length} unsynced changes for ${config.datasetName}`
+  )
+
+  // for (const change of unsyncedChanges) {
+  //   try {
+  //     await config.syncToRemote(change)
+
+  //     await db.query(config.markSyncedQuery, [true, change.write_id])
+
+  //     console.info(
+  //       `Successfully synced ${config.datasetName} change: ${change.write_id}`
+  //     )
+  //   } catch (error) {
+  //     console.error(
+  //       `Failed to sync ${config.datasetName} change ${change.write_id}:`,
+  //       error
+  //     )
+  //     // Mark as failed but continue with other changes
+  //     await db.query(config.markSyncedQuery, [false, change.write_id])
+  //   }
+  // }
+
+  await db.query(config.cleanupQuery, [userId])
+}
+
+async function syncPersonalDetailsToRemote(
+  change: PersonalDetailsChange
+): Promise<void> {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const { data: serverData } = await supabase
+        .from('personal_details')
+        .select('updated_at')
+        .single()
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('upsert_personal_details', {
+        p_name: change.value.name,
+        p_email: change.value.email,
+        p_phone: change.value.phone || '',
+        p_location: change.value.location || '',
+        p_linkedin: change.value.linkedin || '',
+        p_github: change.value.github || '',
+        p_website: change.value.website || '',
+      })
+
+      if (error) throw error
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+async function syncExperienceToRemote(change: ExperienceChange) {
+  console.log(
+    'syncExperienceToRemote called:',
+    change.operation,
+    change.write_id
+  )
+
+  // switch (change.operation) {
+  //   case 'upsert':
+  //     console.log('Would upsert experience:', change.value)
+  //     break
+  //   case 'delete':
+  //     console.log(
+  //       'Would delete experience:',
+  //       (change.value as { id: string }).id
+  //     )
+  //     break
+  //   case 'reorder':
+  //     console.log('Would reorder experiences:', change.value)
+  //     break
+  //   case 'upsert_bullets':
+  //   case 'delete_bullets':
+  //   case 'toggle_bullet_lock':
+  //   case 'toggle_bullets_lock_all':
+  //     console.log(
+  //       'Would sync bullets for experience:',
+  //       (change.value as BulletChangeData).experienceId
+  //     )
+  //     break
+  // }
+
+  // return Promise.resolve()
+}
+
+const SYNC_CONFIGS = {
+  personal_details: {
+    datasetName: 'personal_details',
+    getLatestUnsyncedQuery: selectLatestUnsyncedPersonalDetailsChangeQuery,
+    markSyncedQuery: updatePersonalDetailChangelogQuery,
+    markPreviousAsSyncedQuery: markPreviousPersonalDetailsChangesAsSyncedQuery,
+    cleanupQuery: cleanUpSyncedPersonalDetailsChangelogEntriesQuery,
+    syncToRemote: syncPersonalDetailsToRemote,
+    syncMode: 'single',
+  } as SyncConfig<PersonalDetailsChange>,
+
+  experience: {
+    datasetName: 'experience',
+    getLatestUnsyncedQuery: selectAllUnsyncedExperienceChangesQuery,
+    markSyncedQuery: updateExperienceChangelogQuery,
+    cleanupQuery: cleanUpSyncedExperienceChangelogEntriesQuery,
+    syncToRemote: syncExperienceToRemote,
+    syncMode: 'batch',
+  } as SyncConfig<ExperienceChange>,
+} as const
+
 export const pushLocalChangesToRemote = async () => {
   const { user } = useAuthStore.getState()
   const { db } = useDbStore.getState()
   if (!db) throw new Error('Local DB not initialized')
 
   await waitForAuthReady()
-  if (!isAuthenticated()) {
-    return
-  }
+  if (!isAuthenticated()) return
 
-  const latestChange = await db.query<PersonalDetailsChange>(
-    selectLatestUnsyncedPersonalDetailsChangeQuery,
-    [user?.id]
-  )
-
-  if (!latestChange?.rows?.length) {
-    await db.query(cleanUpSyncedChangelogEntriesQuery, [user?.id])
-    return
-  }
-
-  const [row] = latestChange.rows
-
+  const personalDetailsConfig = SYNC_CONFIGS.personal_details
   try {
-    await syncWithAtomicity(db, row)
-
-    await db.query(markPreviousPersonalDetailsChangesAsSyncedQuery, [
-      row.timestamp,
-      user?.id,
-    ])
+    await syncDataset(db, user?.id, personalDetailsConfig)
   } catch (error) {
-    console.error('Failed to sync latest personal details change:', error)
-    // Don't mark as synced if push failed - will retry on next push attempt
+    console.error(`Error syncing personal_details:`, error)
   }
 
-  // TODO: Create a daily job for cleanup?
-  await db.query(cleanUpSyncedChangelogEntriesQuery, [user?.id])
+  const experienceConfig = SYNC_CONFIGS.experience
+  try {
+    await syncDataset(db, user?.id, experienceConfig)
+  } catch (error) {
+    console.error(`Error syncing experience:`, error)
+  }
 }
+
+export { SYNC_CONFIGS }
