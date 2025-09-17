@@ -198,28 +198,24 @@ async function syncAllUnsynced<
     return
   }
 
-  console.info(
-    `Found ${unsyncedChanges.length} unsynced changes for ${config.datasetName}`
-  )
+  for (const change of unsyncedChanges) {
+    try {
+      await config.syncToRemote(change)
 
-  // for (const change of unsyncedChanges) {
-  //   try {
-  //     await config.syncToRemote(change)
+      //     await db.query(config.markSyncedQuery, [true, change.write_id])
 
-  //     await db.query(config.markSyncedQuery, [true, change.write_id])
-
-  //     console.info(
-  //       `Successfully synced ${config.datasetName} change: ${change.write_id}`
-  //     )
-  //   } catch (error) {
-  //     console.error(
-  //       `Failed to sync ${config.datasetName} change ${change.write_id}:`,
-  //       error
-  //     )
-  //     // Mark as failed but continue with other changes
-  //     await db.query(config.markSyncedQuery, [false, change.write_id])
-  //   }
-  // }
+      //     console.info(
+      //       `Successfully synced ${config.datasetName} change: ${change.write_id}`
+      //     )
+    } catch (error) {
+      console.error(
+        `Failed to sync ${config.datasetName} change ${change.write_id}:`,
+        error
+      )
+      // Mark as failed but continue with other changes
+      await db.query(config.markSyncedQuery, [false, change.write_id])
+    }
+  }
 
   await db.query(config.cleanupQuery, [userId])
 }
@@ -232,10 +228,25 @@ async function syncPersonalDetailsToRemote(
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const { data: serverData } = await supabase
+      const { data: serverData, error: serverError } = await supabase
         .from('personal_details')
         .select('updated_at')
         .single()
+
+      if (serverError) {
+        if (
+          serverError.code === 'PGRST116' ||
+          serverError.message?.includes('relation') ||
+          serverError.message?.includes('does not exist') ||
+          serverError.message?.includes('0 rows')
+        ) {
+          console.info(
+            'No existing personal details found, proceeding with upsert'
+          )
+        } else {
+          throw serverError
+        }
+      }
 
       if (serverData?.updated_at) {
         const serverTime = new Date(serverData.updated_at).getTime()
@@ -269,35 +280,77 @@ async function syncPersonalDetailsToRemote(
 }
 
 async function syncExperienceToRemote(change: ExperienceChange) {
-  console.log(
-    'syncExperienceToRemote called:',
-    change.operation,
-    change.write_id
-  )
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
 
-  // switch (change.operation) {
-  //   case 'upsert':
-  //     console.log('Would upsert experience:', change.value)
-  //     break
-  //   case 'delete':
-  //     console.log(
-  //       'Would delete experience:',
-  //       (change.value as { id: string }).id
-  //     )
-  //     break
-  //   case 'reorder':
-  //     console.log('Would reorder experiences:', change.value)
-  //     break
-  //   case 'upsert_bullets':
-  //   case 'delete_bullets':
-  //   case 'toggle_bullet_lock':
-  //   case 'toggle_bullets_lock_all':
-  //     console.log(
-  //       'Would sync bullets for experience:',
-  //       (change.value as BulletChangeData).experienceId
-  //     )
-  //     break
-  // }
+  const upsertExperience = async (): Promise<void> => {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        const { data: serverData, error: serverError } = await supabase
+          .from('experience')
+          .select('updated_at')
+          .single()
+
+        if (serverError) {
+          if (
+            serverError.code === 'PGRST116' ||
+            serverError.message?.includes('relation') ||
+            serverError.message?.includes('does not exist') ||
+            serverError.message?.includes('0 rows')
+          ) {
+            console.info(
+              'No existing experience block found, proceeding with upsert'
+            )
+          } else {
+            throw serverError
+          }
+        }
+
+        if (serverData?.updated_at) {
+          const serverTime = new Date(serverData.updated_at).getTime()
+          const localTime = new Date(change.timestamp || 0).getTime()
+          const timeDiff = serverTime - localTime
+
+          if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+            return
+          }
+        }
+
+        console.log('Upserting experience data to remote...')
+
+        return // Success, exit the retry loop
+      } catch (error) {
+        if (attempt === maxRetries - 1) throw error
+        await new Promise((resolve) =>
+          setTimeout(resolve, 1000 * Math.pow(2, attempt))
+        )
+      }
+    }
+  }
+
+  switch (change.operation) {
+    case 'upsert':
+      await upsertExperience()
+      break
+    //   case 'delete':
+    //     console.log(
+    //       'Would delete experience:',
+    //       (change.value as { id: string }).id
+    //     )
+    //     break
+    //   case 'reorder':
+    //     console.log('Would reorder experiences:', change.value)
+    //     break
+    //   case 'upsert_bullets':
+    //   case 'delete_bullets':
+    //   case 'toggle_bullet_lock':
+    //   case 'toggle_bullets_lock_all':
+    //     console.log(
+    //       'Would sync bullets for experience:',
+    //       (change.value as BulletChangeData).experienceId
+    //     )
+    //     break
+  }
 
   // return Promise.resolve()
 }
