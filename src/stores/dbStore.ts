@@ -337,6 +337,8 @@ export const useDbStore = create<DbStore>((set, get) => ({
         syncResult.stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
+              // Note: when an item is inserted into remote db that doesn't yet exist, the message
+              // coming from the stream has an operation of 'insert', which causes a duplicate key error
               let hasPersonalDetailsChanges = false
               let hasExperienceChanges = false
 

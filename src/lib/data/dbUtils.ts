@@ -201,12 +201,7 @@ async function syncAllUnsynced<
   for (const change of unsyncedChanges) {
     try {
       await config.syncToRemote(change)
-
-      //     await db.query(config.markSyncedQuery, [true, change.write_id])
-
-      //     console.info(
-      //       `Successfully synced ${config.datasetName} change: ${change.write_id}`
-      //     )
+      await db.query(config.markSyncedQuery, [true, change.write_id])
     } catch (error) {
       console.error(
         `Failed to sync ${config.datasetName} change ${change.write_id}:`,
@@ -231,14 +226,16 @@ async function syncPersonalDetailsToRemote(
       const { data: serverData, error: serverError } = await supabase
         .from('personal_details')
         .select('updated_at')
-        .single()
+        .maybeSingle()
 
       if (serverError) {
         if (
           serverError.code === 'PGRST116' ||
+          serverError.code === 'PGRST406' ||
           serverError.message?.includes('relation') ||
           serverError.message?.includes('does not exist') ||
-          serverError.message?.includes('0 rows')
+          serverError.message?.includes('0 rows') ||
+          serverError.message?.includes('Not Acceptable')
         ) {
           console.info(
             'No existing personal details found, proceeding with upsert'
@@ -286,17 +283,22 @@ async function syncExperienceToRemote(change: ExperienceChange) {
   const upsertExperience = async (): Promise<void> => {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
+        const experienceBlock = change.value as ExperienceBlockData
+
         const { data: serverData, error: serverError } = await supabase
           .from('experience')
           .select('updated_at')
-          .single()
+          .eq('id', experienceBlock.id)
+          .maybeSingle()
 
         if (serverError) {
           if (
             serverError.code === 'PGRST116' ||
+            serverError.code === 'PGRST406' ||
             serverError.message?.includes('relation') ||
             serverError.message?.includes('does not exist') ||
-            serverError.message?.includes('0 rows')
+            serverError.message?.includes('0 rows') ||
+            serverError.message?.includes('Not Acceptable')
           ) {
             console.info(
               'No existing experience block found, proceeding with upsert'
@@ -316,9 +318,23 @@ async function syncExperienceToRemote(change: ExperienceChange) {
           }
         }
 
-        console.log('Upserting experience data to remote...')
+        const { error } = await supabase.rpc('upsert_experience', {
+          e_id: experienceBlock.id,
+          e_title: experienceBlock.title,
+          e_company_name: experienceBlock.companyName,
+          e_location: experienceBlock.location,
+          e_description: experienceBlock.description || '',
+          e_start_month: experienceBlock.startDate.month ?? '',
+          e_start_year: Number(experienceBlock.startDate.year),
+          e_end_month: experienceBlock.endDate.month ?? '',
+          e_end_year: Number(experienceBlock.endDate.year),
+          e_is_present: experienceBlock.endDate.isPresent,
+          e_is_included: experienceBlock.isIncluded,
+          e_position: experienceBlock.position || 0,
+        })
 
-        return // Success, exit the retry loop
+        if (error) throw error
+        return
       } catch (error) {
         if (attempt === maxRetries - 1) throw error
         await new Promise((resolve) =>
