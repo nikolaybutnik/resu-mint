@@ -16,3 +16,13 @@
 .addButton {
   @include full-width-add-button;
 }
+
+.skeletonButtonContainer {
+  margin-bottom: 16px;
+}
+
+.skeletonBlockContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

@@ -29,6 +29,10 @@ import { FaPlus } from 'react-icons/fa'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { KeywordData } from '@/lib/types/keywords'
 import { useExperienceStore } from '@/stores'
+import {
+  SkeletonButton,
+  SkeletonDraggableBlock,
+} from '@/components/shared/Skeleton'
 
 interface WorkExperienceProps {
   keywordData: KeywordData
@@ -37,7 +41,7 @@ interface WorkExperienceProps {
 const WorkExperience: React.FC<WorkExperienceProps> = ({ keywordData }) => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { data: workExperience, reorder } = useExperienceStore()
+  const { data: workExperience, reorder, initializing } = useExperienceStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -257,6 +261,10 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({ keywordData }) => {
     )
   }
 
+  if (initializing) {
+    return <LoadingState />
+  }
+
   return (
     <div ref={containerRef} className={styles.experience}>
       <h2 className={styles.formTitle}>Work Experience</h2>
@@ -275,5 +283,21 @@ const WorkExperience: React.FC<WorkExperienceProps> = ({ keywordData }) => {
     </div>
   )
 }
+
+const LoadingState = () => (
+  <div className={styles.formSection}>
+    <h2 className={styles.formTitle}>Work Experience</h2>
+    <div className={styles.formFieldsContainer}>
+      <div className={styles.skeletonButtonContainer}>
+        <SkeletonButton variant='primary' />
+      </div>
+      <div className={styles.skeletonBlockContainer}>
+        <SkeletonDraggableBlock />
+        <SkeletonDraggableBlock />
+        <SkeletonDraggableBlock />
+      </div>
+    </div>
+  </div>
+)
 
 export default WorkExperience

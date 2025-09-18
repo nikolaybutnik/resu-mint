@@ -237,9 +237,7 @@ async function syncPersonalDetailsToRemote(
           serverError.message?.includes('0 rows') ||
           serverError.message?.includes('Not Acceptable')
         ) {
-          console.info(
-            'No existing personal details found, proceeding with upsert'
-          )
+          // Skip, proceed to upsert
         } else {
           throw serverError
         }
@@ -300,9 +298,7 @@ async function syncExperienceToRemote(change: ExperienceChange) {
             serverError.message?.includes('0 rows') ||
             serverError.message?.includes('Not Acceptable')
           ) {
-            console.info(
-              'No existing experience block found, proceeding with upsert'
-            )
+            // Skip, proceed to upsert
           } else {
             throw serverError
           }

@@ -1,0 +1,57 @@
+@import '../../../styles/mixins';
+@import '../../../styles/variables';
+
+.skeletonDraggableBlock {
+  @include skeleton-shimmer;
+  border-radius: 8px;
+  padding: 8px;
+  background: $color-background;
+  border: 1px solid $color-border;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  height: 80px;
+
+  .experienceBlockContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    .experienceBlockHeader {
+      @include skeleton-shimmer;
+      height: 20px;
+      border-radius: 4px;
+      width: 60%;
+    }
+
+    .experienceBlockCompany {
+      @include skeleton-shimmer;
+      height: 16px;
+      border-radius: 4px;
+      width: 40%;
+    }
+
+    .experienceBlockDate {
+      @include skeleton-shimmer;
+      height: 14px;
+      border-radius: 4px;
+      width: 50%;
+    }
+  }
+
+  .experienceBlockActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    height: 100%;
+
+    .skeletonButton {
+      @include skeleton-shimmer;
+      width: 32px;
+      height: 32px;
+      border-radius: 6px;
+    }
+  }
+}
