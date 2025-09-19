@@ -64,7 +64,7 @@ export async function pushExperienceLocalRecordToDb(
         e_end_month: localRecord.endDate.month ?? '',
         e_end_year: Number(localRecord.endDate.year),
         e_is_present: localRecord.endDate.isPresent,
-        e_is_included: localRecord.isIncluded,
+        e_is_included: localRecord.isIncluded ?? true,
         e_position: localRecord.position || 0,
       }
     )
@@ -131,7 +131,11 @@ interface SyncConfig<T> {
   markSyncedQuery: string
   markPreviousAsSyncedQuery?: string
   cleanupQuery: string
-  syncToRemote: (change: T) => Promise<void>
+  syncToRemote: (
+    change: T,
+    db: ElectricDb,
+    config: SyncConfig<T>
+  ) => Promise<void>
   syncMode: 'single' | 'batch'
 }
 
@@ -163,7 +167,7 @@ async function syncSingleLatest<
   }
 
   try {
-    await config.syncToRemote(latestChange)
+    await config.syncToRemote(latestChange, db, config)
 
     await db.query(config.markSyncedQuery, [true, latestChange.write_id])
 
@@ -200,7 +204,7 @@ async function syncAllUnsynced<
 
   for (const change of unsyncedChanges) {
     try {
-      await config.syncToRemote(change)
+      await config.syncToRemote(change, db, config)
       await db.query(config.markSyncedQuery, [true, change.write_id])
     } catch (error) {
       console.error(
@@ -216,7 +220,9 @@ async function syncAllUnsynced<
 }
 
 async function syncPersonalDetailsToRemote(
-  change: PersonalDetailsChange
+  change: PersonalDetailsChange,
+  db: ElectricDb,
+  config: SyncConfig<PersonalDetailsChange>
 ): Promise<void> {
   const maxRetries = 3
   const TOLERANCE_MS = 30000
@@ -249,6 +255,8 @@ async function syncPersonalDetailsToRemote(
         const timeDiff = serverTime - localTime
 
         if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
           return
         }
       }
@@ -264,6 +272,8 @@ async function syncPersonalDetailsToRemote(
       })
 
       if (error) throw error
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
       return
     } catch (error) {
       if (attempt === maxRetries - 1) throw error
@@ -274,7 +284,11 @@ async function syncPersonalDetailsToRemote(
   }
 }
 
-async function syncExperienceToRemote(change: ExperienceChange) {
+async function syncExperienceToRemote(
+  change: ExperienceChange,
+  db: ElectricDb,
+  config: SyncConfig<ExperienceChange>
+) {
   const maxRetries = 3
   const TOLERANCE_MS = 30000
 
@@ -310,6 +324,8 @@ async function syncExperienceToRemote(change: ExperienceChange) {
           const timeDiff = serverTime - localTime
 
           if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+            // Server has newer data, mark local change as synced to avoid conflict
+            await db.query(config.markSyncedQuery, [true, change.write_id])
             return
           }
         }
@@ -325,11 +341,13 @@ async function syncExperienceToRemote(change: ExperienceChange) {
           e_end_month: experienceBlock.endDate.month ?? '',
           e_end_year: Number(experienceBlock.endDate.year),
           e_is_present: experienceBlock.endDate.isPresent,
-          e_is_included: experienceBlock.isIncluded,
+          e_is_included: experienceBlock.isIncluded ?? true,
           e_position: experienceBlock.position || 0,
         })
 
         if (error) throw error
+
+        await db.query(config.markSyncedQuery, [true, change.write_id])
         return
       } catch (error) {
         if (attempt === maxRetries - 1) throw error
@@ -340,16 +358,61 @@ async function syncExperienceToRemote(change: ExperienceChange) {
     }
   }
 
+  const deleteExperience = async () => {
+    const { id } = change.value as { id: string }
+
+    const { data: serverData, error: serverError } = await supabase
+      .from('experience')
+      .select('updated_at')
+      .eq('id', id)
+      .maybeSingle()
+
+    if (serverError) {
+      if (
+        serverError.code === 'PGRST116' ||
+        serverError.code === 'PGRST406' ||
+        serverError.message?.includes('relation') ||
+        serverError.message?.includes('does not exist') ||
+        serverError.message?.includes('0 rows') ||
+        serverError.message?.includes('Not Acceptable')
+      ) {
+        // The item does not exist, skip delete, mark row as synced
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      } else {
+        throw serverError
+      }
+    }
+
+    if (serverData?.updated_at) {
+      const serverTime = new Date(serverData.updated_at).getTime()
+      const localTime = new Date(change.timestamp || 0).getTime()
+      const timeDiff = serverTime - localTime
+
+      if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+        // Server has newer data, mark local change as synced to avoid conflict
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      }
+    }
+
+    const { error } = await supabase.rpc('delete_experience', {
+      e_ids: [id],
+    })
+
+    if (error) throw error
+
+    await db.query(config.markSyncedQuery, [true, change.write_id])
+    return
+  }
+
   switch (change.operation) {
     case 'upsert':
       await upsertExperience()
       break
-    //   case 'delete':
-    //     console.log(
-    //       'Would delete experience:',
-    //       (change.value as { id: string }).id
-    //     )
-    //     break
+    case 'delete':
+      await deleteExperience()
+      break
     //   case 'reorder':
     //     console.log('Would reorder experiences:', change.value)
     //     break

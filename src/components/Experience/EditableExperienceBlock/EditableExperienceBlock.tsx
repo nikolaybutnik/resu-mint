@@ -400,7 +400,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
             </button>
           </div>
           <div className={styles.bulletPointsContainer}>
-            {data.bulletPoints.map((bullet) => {
+            {data.bulletPoints?.map((bullet) => {
               return (
                 <BulletPoint
                   key={bullet.id}

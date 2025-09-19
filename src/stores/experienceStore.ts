@@ -125,11 +125,15 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         (item) => item.id === block.id
       )
 
-      if (existingBlock && !currentState.hasBlockChanges(block.id, block)) {
+      const hasContentChanges =
+        existingBlock && currentState.hasBlockChanges(block.id, block)
+      const hasInclusionChange =
+        existingBlock && existingBlock.isIncluded !== block.isIncluded
+
+      if (existingBlock && !hasContentChanges && !hasInclusionChange) {
         return { error: null }
       }
 
-      // Optimistic UI update
       const blockIndex = currentState.data.findIndex(
         (item) => item.id === block.id
       )
@@ -241,11 +245,13 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         'bulletPoints',
         'updatedAt',
         'position',
+        'isIncluded',
       ])
       const newFields = omit(newBlockData, [
         'bulletPoints',
         'updatedAt',
         'position',
+        'isIncluded',
       ])
 
       return !isEqual(existingFields, newFields)
@@ -258,11 +264,11 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         block.id === sectionId
           ? {
               ...block,
-              bulletPoints: block.bulletPoints.some((b) => b.id === bullet.id)
+              bulletPoints: block.bulletPoints?.some((b) => b.id === bullet.id)
                 ? block.bulletPoints.map((b) =>
                     b.id === bullet.id ? bullet : b
                   )
-                : [...block.bulletPoints, bullet],
+                : [...(block.bulletPoints || []), bullet],
             }
           : block
       )
@@ -300,7 +306,9 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         block.id === sectionId
           ? {
               ...block,
-              bulletPoints: block.bulletPoints.filter((b) => b.id !== bulletId),
+              bulletPoints: block.bulletPoints?.filter(
+                (b) => b.id !== bulletId
+              ),
             }
           : block
       )
@@ -341,7 +349,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         block.id === sectionId
           ? {
               ...block,
-              bulletPoints: block.bulletPoints.map((b) =>
+              bulletPoints: block.bulletPoints?.map((b) =>
                 b.id === bulletId ? { ...b, isLocked: !b.isLocked } : b
               ),
             }
@@ -384,7 +392,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         block.id === sectionId
           ? {
               ...block,
-              bulletPoints: block.bulletPoints.map((b) => ({
+              bulletPoints: block.bulletPoints?.map((b) => ({
                 ...b,
                 isLocked: shouldLock,
               })),

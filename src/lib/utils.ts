@@ -454,18 +454,12 @@ export const extractPersonalDetailsFormData = (
  * @returns ExperienceBlockData object with extracted values
  */
 export const extractExperienceFormData = (
-  source: HTMLFormElement | FormData,
-  preservedData?: {
-    isIncluded?: boolean
-    bulletPoints?: BulletPoint[]
-  }
+  source: HTMLFormElement | FormData
 ): ExperienceBlockData => {
   const formData = source instanceof FormData ? source : new FormData(source)
 
   return {
     id: (formData.get('id') as string) || '',
-    isIncluded: preservedData?.isIncluded || false,
-    bulletPoints: preservedData?.bulletPoints || [],
     title:
       (formData.get(EXPERIENCE_FORM_DATA_KEYS.TITLE) as string)?.trim() || '',
     companyName:

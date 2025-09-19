@@ -98,7 +98,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
 
       const renderedBullets = useMemo(
         () =>
-          memoizedBulletPoints.map((bullet) => (
+          memoizedBulletPoints?.map((bullet) => (
             <BulletPoint
               key={bullet.id}
               sectionId={data.id}
@@ -219,7 +219,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
             </div>
           </LongPressHandler>
 
-          {memoizedBulletPoints.length > 0 && (
+          {memoizedBulletPoints && memoizedBulletPoints.length > 0 && (
             <button
               className={`${styles.draggableExperienceBlockContainer} ${
                 styles.drawerToggleButton
@@ -244,7 +244,7 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
               isExpanded ? styles.expanded : ''
             }`}
           >
-            {memoizedBulletPoints.length > 1 && (
+            {memoizedBulletPoints && memoizedBulletPoints.length > 1 && (
               <div className={styles.lockAllButtons}>
                 <button
                   className={styles.lockAllButton}
@@ -293,16 +293,18 @@ const DraggableExperienceBlock: React.FC<DraggableExperienceBlockProps> =
             </button>
           </div>
 
-          {memoizedBulletPoints.length === 0 && !isExpanded && (
-            <button
-              className={styles.addBulletButton}
-              onClick={handleBulletAdd}
-              disabled={isOverlay}
-              data-no-dnd='true'
-            >
-              <FaPlus size={12} />
-            </button>
-          )}
+          {memoizedBulletPoints &&
+            memoizedBulletPoints.length === 0 &&
+            !isExpanded && (
+              <button
+                className={styles.addBulletButton}
+                onClick={handleBulletAdd}
+                disabled={isOverlay}
+                data-no-dnd='true'
+              >
+                <FaPlus size={12} />
+              </button>
+            )}
         </div>
       )
     }

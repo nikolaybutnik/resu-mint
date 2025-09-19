@@ -51,8 +51,8 @@ export interface ExperienceBlockData {
   companyName: string
   location: string
   description?: string
-  bulletPoints: BulletPoint[]
-  isIncluded: boolean
+  bulletPoints?: BulletPoint[]
+  isIncluded?: boolean
   position?: number
   updatedAt?: string
 }
