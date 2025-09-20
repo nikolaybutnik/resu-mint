@@ -28,7 +28,7 @@ export class KeywordUtils {
 
     workExperience.forEach((exp) => {
       if (exp.isIncluded) {
-        exp.bulletPoints.forEach((bullet) => {
+        exp.bulletPoints?.forEach((bullet) => {
           allBullets.push({ text: bullet.text, sectionId: exp.id })
         })
       }

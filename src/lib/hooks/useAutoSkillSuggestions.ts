@@ -39,7 +39,8 @@ export const useAutoSkillSuggestions = () => {
 
       const hasContent =
         experience.some(
-          (exp) => exp.isIncluded || exp.bulletPoints.length > 0
+          (exp) =>
+            exp.isIncluded || (exp.bulletPoints && exp.bulletPoints.length > 0)
         ) ||
         projects.some((proj) => proj.isIncluded || proj.bulletPoints.length > 0)
 
@@ -58,7 +59,7 @@ export const useAutoSkillSuggestions = () => {
           if (exp.description?.trim()) {
             userExperience.push(exp.description.trim())
           }
-          exp.bulletPoints.forEach((bullet) => {
+          exp.bulletPoints?.forEach((bullet) => {
             if (bullet.text?.trim()) {
               userExperience.push(bullet.text.trim())
             }

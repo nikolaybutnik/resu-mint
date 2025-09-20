@@ -51,7 +51,7 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       prevState: ExperienceFormState,
       formData: FormData
     ): Promise<ExperienceFormState> =>
-      submitExperience(prevState, formData, data.bulletPoints, upsert),
+      submitExperience(prevState, formData, upsert),
     {
       fieldErrors: {},
       data,

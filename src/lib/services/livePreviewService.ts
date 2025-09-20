@@ -64,7 +64,7 @@ export class LivePreviewService {
           location: exp.location,
           startDate: exp.startDate,
           endDate: exp.endDate,
-          bulletPoints: exp.bulletPoints.map((b) => b.text),
+          bulletPoints: exp.bulletPoints?.map((b) => b.text),
           isIncluded: exp.isIncluded,
         })),
       projects: data.projectSection

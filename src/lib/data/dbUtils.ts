@@ -1,12 +1,12 @@
 import { supabase } from '@/lib/supabase/client'
 import { nowIso, isAuthenticated, waitForAuthReady } from '@/lib/data/dataUtils'
+import { PostgrestError } from '@supabase/supabase-js'
 import type {
   BulletPoint,
   ExperienceBlockData,
   Month,
 } from '@/lib/types/experience'
 import { RawExperienceData } from '@/lib/types/experience'
-import { PostgrestError } from '@supabase/supabase-js'
 import { useAuthStore, useDbStore } from '@/stores'
 import type { PersonalDetails } from '@/lib/types/personalDetails'
 import { ElectricDb } from '@/stores/dbStore'
@@ -19,6 +19,19 @@ import {
   updateExperienceChangelogQuery,
   cleanUpSyncedExperienceChangelogEntriesQuery,
 } from '../sql'
+
+function isRecordNotFoundError(error: PostgrestError | null): boolean {
+  if (!error) return false
+
+  return (
+    error.code === 'PGRST116' || // No rows found (.single() on empty result)
+    error.code === 'PGRST406' || // Not Acceptable (.single() with multiple rows or other issues)
+    error.message?.includes('relation') ||
+    error.message?.includes('does not exist') ||
+    error.message?.includes('0 rows') ||
+    error.message?.includes('Not Acceptable')
+  )
+}
 
 export async function pullExperienceDbRecordToLocal(
   dbRecord: RawExperienceData,
@@ -234,19 +247,10 @@ async function syncPersonalDetailsToRemote(
         .select('updated_at')
         .maybeSingle()
 
-      if (serverError) {
-        if (
-          serverError.code === 'PGRST116' ||
-          serverError.code === 'PGRST406' ||
-          serverError.message?.includes('relation') ||
-          serverError.message?.includes('does not exist') ||
-          serverError.message?.includes('0 rows') ||
-          serverError.message?.includes('Not Acceptable')
-        ) {
-          // Skip, proceed to upsert
-        } else {
-          throw serverError
-        }
+      if (isRecordNotFoundError(serverError)) {
+        // Record doesn't exist, skip upsert - nothing to sync
+      } else if (serverError) {
+        throw serverError
       }
 
       if (serverData?.updated_at) {
@@ -284,134 +288,136 @@ async function syncPersonalDetailsToRemote(
   }
 }
 
+const upsertExperience = async (
+  change: ExperienceChange,
+  db: ElectricDb,
+  config: SyncConfig<ExperienceChange>
+): Promise<void> => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const experienceBlock = change.value as ExperienceBlockData
+
+      const { data: serverData, error: serverError } = await supabase
+        .from('experience')
+        .select('updated_at')
+        .eq('id', experienceBlock.id)
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // Record doesn't exist, skip upsert - nothing to sync
+      } else if (serverError) {
+        throw serverError
+      }
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('upsert_experience', {
+        e_id: experienceBlock.id,
+        e_title: experienceBlock.title,
+        e_company_name: experienceBlock.companyName,
+        e_location: experienceBlock.location,
+        e_description: experienceBlock.description || '',
+        e_start_month: experienceBlock.startDate.month ?? '',
+        e_start_year: Number(experienceBlock.startDate.year),
+        e_end_month: experienceBlock.endDate.month ?? '',
+        e_end_year: Number(experienceBlock.endDate.year),
+        e_is_present: experienceBlock.endDate.isPresent,
+        e_is_included: experienceBlock.isIncluded ?? true,
+        e_position: experienceBlock.position || 0,
+      })
+
+      if (error) throw error
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+const deleteExperience = async (
+  change: ExperienceChange,
+  db: ElectricDb,
+  config: SyncConfig<ExperienceChange>
+) => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const { id } = change.value as { id: string }
+
+      const { data: serverData, error: serverError } = await supabase
+        .from('experience')
+        .select('updated_at')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // The item does not exist, skip delete, mark row as synced
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      } else if (serverError) {
+        throw serverError
+      }
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('delete_experience', {
+        e_ids: [id],
+      })
+
+      if (error) throw error
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncExperienceToRemote(
   change: ExperienceChange,
   db: ElectricDb,
   config: SyncConfig<ExperienceChange>
 ) {
-  const maxRetries = 3
-  const TOLERANCE_MS = 30000
-
-  const upsertExperience = async (): Promise<void> => {
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const experienceBlock = change.value as ExperienceBlockData
-
-        const { data: serverData, error: serverError } = await supabase
-          .from('experience')
-          .select('updated_at')
-          .eq('id', experienceBlock.id)
-          .maybeSingle()
-
-        if (serverError) {
-          if (
-            serverError.code === 'PGRST116' ||
-            serverError.code === 'PGRST406' ||
-            serverError.message?.includes('relation') ||
-            serverError.message?.includes('does not exist') ||
-            serverError.message?.includes('0 rows') ||
-            serverError.message?.includes('Not Acceptable')
-          ) {
-            // Skip, proceed to upsert
-          } else {
-            throw serverError
-          }
-        }
-
-        if (serverData?.updated_at) {
-          const serverTime = new Date(serverData.updated_at).getTime()
-          const localTime = new Date(change.timestamp || 0).getTime()
-          const timeDiff = serverTime - localTime
-
-          if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
-            // Server has newer data, mark local change as synced to avoid conflict
-            await db.query(config.markSyncedQuery, [true, change.write_id])
-            return
-          }
-        }
-
-        const { error } = await supabase.rpc('upsert_experience', {
-          e_id: experienceBlock.id,
-          e_title: experienceBlock.title,
-          e_company_name: experienceBlock.companyName,
-          e_location: experienceBlock.location,
-          e_description: experienceBlock.description || '',
-          e_start_month: experienceBlock.startDate.month ?? '',
-          e_start_year: Number(experienceBlock.startDate.year),
-          e_end_month: experienceBlock.endDate.month ?? '',
-          e_end_year: Number(experienceBlock.endDate.year),
-          e_is_present: experienceBlock.endDate.isPresent,
-          e_is_included: experienceBlock.isIncluded ?? true,
-          e_position: experienceBlock.position || 0,
-        })
-
-        if (error) throw error
-
-        await db.query(config.markSyncedQuery, [true, change.write_id])
-        return
-      } catch (error) {
-        if (attempt === maxRetries - 1) throw error
-        await new Promise((resolve) =>
-          setTimeout(resolve, 1000 * Math.pow(2, attempt))
-        )
-      }
-    }
-  }
-
-  const deleteExperience = async () => {
-    const { id } = change.value as { id: string }
-
-    const { data: serverData, error: serverError } = await supabase
-      .from('experience')
-      .select('updated_at')
-      .eq('id', id)
-      .maybeSingle()
-
-    if (serverError) {
-      if (
-        serverError.code === 'PGRST116' ||
-        serverError.code === 'PGRST406' ||
-        serverError.message?.includes('relation') ||
-        serverError.message?.includes('does not exist') ||
-        serverError.message?.includes('0 rows') ||
-        serverError.message?.includes('Not Acceptable')
-      ) {
-        // The item does not exist, skip delete, mark row as synced
-        await db.query(config.markSyncedQuery, [true, change.write_id])
-        return
-      } else {
-        throw serverError
-      }
-    }
-
-    if (serverData?.updated_at) {
-      const serverTime = new Date(serverData.updated_at).getTime()
-      const localTime = new Date(change.timestamp || 0).getTime()
-      const timeDiff = serverTime - localTime
-
-      if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
-        // Server has newer data, mark local change as synced to avoid conflict
-        await db.query(config.markSyncedQuery, [true, change.write_id])
-        return
-      }
-    }
-
-    const { error } = await supabase.rpc('delete_experience', {
-      e_ids: [id],
-    })
-
-    if (error) throw error
-
-    await db.query(config.markSyncedQuery, [true, change.write_id])
-    return
-  }
-
   switch (change.operation) {
     case 'upsert':
-      await upsertExperience()
+      await upsertExperience(change, db, config)
       break
     case 'delete':
-      await deleteExperience()
+      await deleteExperience(change, db, config)
       break
     //   case 'reorder':
     //     console.log('Would reorder experiences:', change.value)

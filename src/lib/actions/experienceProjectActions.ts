@@ -114,10 +114,7 @@ export const submitExperienceProject = (
     }
   }
 
-  const experienceFormData = extractExperienceFormData(formData, {
-    isIncluded: true,
-    bulletPoints: [],
-  })
+  const experienceFormData = extractExperienceFormData(formData)
 
   const data: ExperienceProjectFormData = {
     type,

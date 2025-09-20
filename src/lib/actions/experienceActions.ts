@@ -1,27 +1,17 @@
-import {
-  ExperienceBlockData,
-  ExperienceFormState,
-  BulletPoint,
-} from '../types/experience'
+import { ExperienceBlockData, ExperienceFormState } from '../types/experience'
 import { experienceBlockSchema } from '../validationSchemas'
 import { OperationError, zodErrorsToFormErrors } from '../types/errors'
 import { extractExperienceFormData } from '../utils'
 
 export const submitExperience = async (
-  prevState: ExperienceFormState,
+  _prevState: ExperienceFormState,
   formData: FormData,
-  currentBulletPoints: BulletPoint[] = [],
   upsert: (block: ExperienceBlockData) => Promise<{
     error: OperationError | null
   }>
 ): Promise<ExperienceFormState> => {
-  const experienceData: ExperienceBlockData = extractExperienceFormData(
-    formData,
-    {
-      isIncluded: prevState.data?.isIncluded,
-      bulletPoints: currentBulletPoints,
-    }
-  )
+  const experienceData: ExperienceBlockData =
+    extractExperienceFormData(formData)
 
   const validatedData = experienceBlockSchema.safeParse(experienceData)
 
