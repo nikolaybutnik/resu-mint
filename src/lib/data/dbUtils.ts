@@ -416,7 +416,7 @@ const reorderExperience = async (
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      for (let row of change.value as { id: string; position: number }[]) {
+      for (const row of change.value as { id: string; position: number }[]) {
         const { error: serverError } = await supabase
           .from('experience')
           .update({ position: row.position })
