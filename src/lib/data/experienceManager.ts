@@ -32,7 +32,7 @@ import {
 } from '../sql'
 import { v4 as uuidv4 } from 'uuid'
 import { getLastKnownUserId } from '../utils'
-import { omit } from 'lodash'
+import { omit, pick } from 'lodash'
 
 class ExperienceManager {
   private translateRawExperience(raw: RawExperienceData): ExperienceBlockData {
@@ -136,9 +136,11 @@ class ExperienceManager {
         timestamp,
       ])
 
+      const blockWithPosition = { ...blockToUpsert, position }
+
       await db?.query(insertExperienceChangelogQuery, [
         'upsert',
-        JSON.stringify(omit(blockToUpsert, ['bulletPoints'])),
+        JSON.stringify(omit(blockWithPosition, ['bulletPoints'])),
         writeId,
         timestamp,
         userId,
@@ -223,7 +225,7 @@ class ExperienceManager {
       await db?.query(insertExperienceChangelogQuery, [
         'reorder',
         JSON.stringify(
-          validation.data.map((item) => omit(item, ['bulletPoints']))
+          validation.data.map((item) => pick(item, ['id', 'position']))
         ),
         writeId,
         timestamp,

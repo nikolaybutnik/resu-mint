@@ -123,7 +123,7 @@ interface ExperienceChange {
     | 'toggle_bullets_lock_all'
   value:
     | ExperienceBlockData // upsert
-    | ExperienceBlockData[] // reorder
+    | { id: string; position: number }[] // reorder
     | { id: string } // delete
     | BulletChangeData // upsert_bullets, delete_bullets, toggle_bullet_lock, toggle_bullets_lock_all
   write_id: string
@@ -336,7 +336,7 @@ const upsertExperience = async (
         e_end_year: Number(experienceBlock.endDate.year),
         e_is_present: experienceBlock.endDate.isPresent,
         e_is_included: experienceBlock.isIncluded ?? true,
-        e_position: experienceBlock.position || 0,
+        e_position: experienceBlock.position ?? 0,
       })
 
       if (error) throw error
@@ -356,7 +356,7 @@ const deleteExperience = async (
   change: ExperienceChange,
   db: ElectricDb,
   config: SyncConfig<ExperienceChange>
-) => {
+): Promise<void> => {
   const maxRetries = 3
   const TOLERANCE_MS = 30000
 
@@ -407,6 +407,39 @@ const deleteExperience = async (
   }
 }
 
+const reorderExperience = async (
+  change: ExperienceChange,
+  db: ElectricDb,
+  config: SyncConfig<ExperienceChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      for (let row of change.value as { id: string; position: number }[]) {
+        const { error: serverError } = await supabase
+          .from('experience')
+          .update({ position: row.position })
+          .eq('id', row.id)
+
+        if (isRecordNotFoundError(serverError)) {
+          // Record doesn't exist remotely - skip until record gets upserted
+        } else if (serverError) {
+          throw serverError
+        }
+      }
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncExperienceToRemote(
   change: ExperienceChange,
   db: ElectricDb,
@@ -419,9 +452,9 @@ async function syncExperienceToRemote(
     case 'delete':
       await deleteExperience(change, db, config)
       break
-    //   case 'reorder':
-    //     console.log('Would reorder experiences:', change.value)
-    //     break
+    case 'reorder':
+      await reorderExperience(change, db, config)
+      break
     //   case 'upsert_bullets':
     //   case 'delete_bullets':
     //   case 'toggle_bullet_lock':
@@ -432,8 +465,6 @@ async function syncExperienceToRemote(
     //     )
     //     break
   }
-
-  // return Promise.resolve()
 }
 
 const SYNC_CONFIGS = {
