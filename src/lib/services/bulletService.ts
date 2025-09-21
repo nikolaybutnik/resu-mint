@@ -40,7 +40,19 @@ const generateBulletsApi = async (
     }))
   } catch (error) {
     console.error('Error generating bullets:', error)
-    throw new Error('Failed to generate bullets')
+
+    if (
+      (error instanceof Error &&
+        error.message.includes('AI generated empty bullets')) ||
+      (typeof error === 'object' &&
+        error !== null &&
+        'status' in error &&
+        error.status === 422)
+    ) {
+      throw new Error('INSUFFICIENT_CONTEXT')
+    }
+
+    throw error
   }
 }
 
@@ -245,21 +257,16 @@ export const bulletService = {
       bullets: BulletPoint[]
     }[]
   > => {
-    try {
-      const payload: GenerateBulletsRequest = {
-        sections,
-        jobDescriptionAnalysis,
-        settings,
-        numBullets: numBullets || settings.bulletsPerExperienceBlock,
-      }
-
-      const generatedData = await generateBulletsApi(payload)
-
-      return generatedData || []
-    } catch (error) {
-      console.error('Error generating bullets for sections:', error)
-      throw new Error('Failed to generate bullets for sections')
+    const payload: GenerateBulletsRequest = {
+      sections,
+      jobDescriptionAnalysis,
+      settings,
+      numBullets: numBullets || settings.bulletsPerExperienceBlock,
     }
+
+    const generatedData = await generateBulletsApi(payload)
+
+    return generatedData || []
   },
 
   generateBulletsForSection: async (
@@ -272,45 +279,40 @@ export const bulletService = {
     sectionId: string
     bullets: BulletPoint[]
   } | null> => {
-    try {
-      let storedState
-      if (sectionType === 'experience') {
-        storedState = useExperienceStore.getState()
-      } else if (sectionType === 'project') {
-        storedState = useProjectStore.getState()
-      }
-      const allExistingBullets = storedState?.data?.find(
-        (section) => section.id === sectionId
-      )?.bulletPoints
-
-      const remainingBullets = allExistingBullets?.filter(
-        (bullet) => !bullets.some((b) => b.id === bullet.id)
-      )
-
-      const sectionData = storedState?.data?.find(
-        (section) => section.id === sectionId
-      )
-
-      const section: Section = {
-        id: sectionId,
-        type: sectionType,
-        title: sectionData?.title || '',
-        description: sectionData?.description || '',
-        existingBullets: remainingBullets || [],
-        targetBulletIds: bullets.map((b) => b.id),
-      }
-
-      const results = await bulletService.generateBulletsForSections(
-        [section],
-        jobDescriptionAnalysis,
-        settings,
-        bullets.length
-      )
-
-      return results.length > 0 ? results[0] : null
-    } catch (error) {
-      console.error('Error regenerating bullet:', error)
-      throw new Error('Failed to regenerate bullet')
+    let storedState
+    if (sectionType === 'experience') {
+      storedState = useExperienceStore.getState()
+    } else if (sectionType === 'project') {
+      storedState = useProjectStore.getState()
     }
+    const allExistingBullets = storedState?.data?.find(
+      (section) => section.id === sectionId
+    )?.bulletPoints
+
+    const remainingBullets = allExistingBullets?.filter(
+      (bullet) => !bullets.some((b) => b.id === bullet.id)
+    )
+
+    const sectionData = storedState?.data?.find(
+      (section) => section.id === sectionId
+    )
+
+    const section: Section = {
+      id: sectionId,
+      type: sectionType,
+      title: sectionData?.title || '',
+      description: sectionData?.description || '',
+      existingBullets: remainingBullets || [],
+      targetBulletIds: bullets.map((b) => b.id),
+    }
+
+    const results = await bulletService.generateBulletsForSections(
+      [section],
+      jobDescriptionAnalysis,
+      settings,
+      bullets.length
+    )
+
+    return results.length > 0 ? results[0] : null
   },
 }

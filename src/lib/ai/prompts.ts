@@ -100,11 +100,14 @@ STRICT CONTENT RULES:
 3. Each bullet MUST focus on a specific aspect of the work at a time, no mixing topics
 4. Before writing each bullet, verify: "Is every claim supported by the section description?"
 5. Do NOT assume standard project features or add capabilities not mentioned
+6. If the section lacks sufficient detail to generate accurate, specific bullet points, return empty strings ("") for those bullets instead of making assumptions
 
 SECTION (your ONLY source of truth):
 ${formattedSection}
 
-LENGTH: ${Math.floor(maxCharsPerBullet * 0.85)}-${maxCharsPerBullet} characters
+LENGTH: ${Math.floor(
+    maxCharsPerBullet * 0.85
+  )}-${maxCharsPerBullet} characters (use 0 for empty strings when context insufficient)
 EXAMPLE: "${example}"
 
 KEYWORDS (use when section supports): ${softSkills}, ${hardSkills}, ${technologies}
@@ -135,15 +138,18 @@ Generate ${numBullets} unique bullets for work experience.
 
 STRICT CONTENT RULES:
 1. ONLY write about tasks/responsibilities/technologies EXPLICITLY mentioned in the section below
-2. Each bullet MUST cover different aspects - no duplicating existing bullet topics  
+2. Each bullet MUST cover different aspects - no duplicating existing bullet topics
 3. Each bullet MUST focus on a specific aspect of the work at a time, no mixing topics
 4. Before writing each bullet, verify: "Is every claim supported by the section description?"
 5. Do NOT assume standard job responsibilities or add tasks not mentioned
+6. If the section lacks sufficient detail to generate accurate, specific bullet points, return empty strings ("") for those bullets instead of making assumptions
 
 SECTION (your ONLY source of truth):
 ${formattedSection}
 
-LENGTH: ${Math.floor(maxCharsPerBullet * 0.85)}-${maxCharsPerBullet} characters
+LENGTH: ${Math.floor(
+    maxCharsPerBullet * 0.85
+  )}-${maxCharsPerBullet} characters (use 0 for empty strings when context insufficient)
 EXAMPLE: "${example}"
 
 KEYWORDS (use when section supports): ${softSkills}, ${hardSkills}, ${contextualSkills}

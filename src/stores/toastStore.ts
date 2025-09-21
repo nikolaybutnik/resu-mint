@@ -56,4 +56,6 @@ export const toast = {
     useToastStore.getState().show({ type: 'warning', message, durationMs }),
   error: (message: string, durationMs?: number) =>
     useToastStore.getState().show({ type: 'error', message, durationMs }),
+  info: (message: string, durationMs?: number) =>
+    useToastStore.getState().show({ type: 'info', message, durationMs }),
 }

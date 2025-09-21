@@ -10,6 +10,7 @@ import {
 } from 'react-icons/fa'
 import { memo, useEffect, useRef, useState } from 'react'
 import { confirm } from '@/stores'
+import { toast } from '@/stores/toastStore'
 import { KeywordUtils } from '@/lib/keywordUtils'
 import { KeywordData } from '@/lib/types/keywords'
 import { useSettingsStore } from '@/stores'
@@ -199,7 +200,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
 
     if (!result.success) {
       console.error('Failed to save bullet:', result.error)
-      // TODO: Could show toast notification here
+
+      toast.error('Failed to save the bullet point.')
       return
     }
 
@@ -220,7 +222,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     )
     if (!result.success) {
       console.error('Failed to delete bullet:', result.error)
-      // TODO: Could show toast notification here
+
+      toast.error('Failed to delete the bullet point.')
     }
   }
 
@@ -232,7 +235,8 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     )
     if (!result.success) {
       console.error('Failed to toggle bullet lock:', result.error)
-      // TODO: Could show toast notification here
+
+      toast.error('Failed to toggle bullet lock.')
     }
   }
 
@@ -270,12 +274,22 @@ const BulletPoint: React.FC<BulletPointProps> = ({
           )
           if (!saveResult.success) {
             console.error('Failed to save generated bullet:', saveResult.error)
-            // TODO: Could show toast notification here
+
+            toast.error('Failed to save bullet point.')
           }
         }
       }
     } catch (error) {
       console.error('Error regenerating bullet:', error)
+
+      if (error instanceof Error && error.message === 'INSUFFICIENT_CONTEXT') {
+        toast.info(
+          'The AI needs more context to generate this bullet. Add more details to your experience or project description.'
+        )
+        return
+      }
+
+      toast.error('Failed to generate the bullet point.')
     } finally {
       setBulletIdsGenerating([])
     }

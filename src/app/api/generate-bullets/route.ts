@@ -153,6 +153,20 @@ export async function POST(request: NextRequest) {
         if (toolCall?.function?.name === 'generate_section_bullets') {
           const args = JSON.parse(toolCall.function.arguments)
           if (args?.bullets && Array.isArray(args.bullets)) {
+            const hasEmptyBullets = args.bullets.some(
+              (bullet: string) => !sanitizeGeneratedBulletText(bullet).trim()
+            )
+
+            if (hasEmptyBullets) {
+              console.warn(`AI returned empty bullets for section ${sec.id}`)
+              return NextResponse.json(
+                createErrorResponse([
+                  createError('server', 'AI generated empty bullets'),
+                ]),
+                { status: 422 }
+              )
+            }
+
             if (sec.targetBulletIds.length > 0) {
               results.push({
                 sectionId: sec.id,

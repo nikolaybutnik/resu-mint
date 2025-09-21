@@ -8,6 +8,7 @@ import {
   useSettingsStore,
   useSkillsStore,
 } from '@/stores'
+import { toast } from '@/stores/toastStore'
 import { zodErrorsToFormErrors } from '@/lib/types/errors'
 import { Section } from '@/lib/types/api'
 import { bulletService, skillsService } from '@/lib/services'
@@ -227,6 +228,15 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       }, 400)
     } catch (error) {
       console.error('Error in job description processing:', error)
+
+      if (error instanceof Error && error.message === 'INSUFFICIENT_CONTEXT') {
+        toast.info(
+          'The AI needs more context to generate bullet points. Please add more details to your experience and project descriptions.'
+        )
+        setProgressState(null)
+        return
+      }
+
       setErrors({
         jobDescription: 'Failed to process job description. Please try again.',
       })

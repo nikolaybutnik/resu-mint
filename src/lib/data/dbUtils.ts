@@ -440,6 +440,14 @@ const reorderExperience = async (
   }
 }
 
+const upsertExperienceBullets = async (
+  change: ExperienceChange,
+  _db: ElectricDb,
+  _config: SyncConfig<ExperienceChange>
+): Promise<void> => {
+  console.log(change)
+}
+
 async function syncExperienceToRemote(
   change: ExperienceChange,
   db: ElectricDb,
@@ -455,7 +463,9 @@ async function syncExperienceToRemote(
     case 'reorder':
       await reorderExperience(change, db, config)
       break
-    //   case 'upsert_bullets':
+    case 'upsert_bullets':
+      await upsertExperienceBullets(change, db, config)
+      break
     //   case 'delete_bullets':
     //   case 'toggle_bullet_lock':
     //   case 'toggle_bullets_lock_all':

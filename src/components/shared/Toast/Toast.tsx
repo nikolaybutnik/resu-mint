@@ -16,6 +16,8 @@ const Toasts = () => {
         return '!'
       case 'error':
         return '✕'
+      case 'info':
+        return 'i'
       default:
         return 'i'
     }

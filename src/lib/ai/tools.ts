@@ -67,14 +67,14 @@ export const generateSectionBulletPointsTool = (
           type: 'array',
           items: {
             type: 'string',
-            minLength: Math.floor(maxCharsPerBullet * 0.85), // 85% of the target number of characters
+            minLength: 0,
             maxLength: maxCharsPerBullet,
             description:
-              'A concise, action-oriented bullet point tailored to the job and section context.',
+              'A concise, action-oriented bullet point tailored to the job and section context. Return empty string ("") if insufficient context to generate accurate content.',
           },
           minItems: numBullets,
           maxItems: numBullets,
-          description: `Exactly ${numBullets} bullet points, each under ${maxCharsPerBullet} characters.`,
+          description: `Exactly ${numBullets} bullet points, each under ${maxCharsPerBullet} characters. Use empty strings ("") for bullets lacking sufficient context.`,
         },
       },
       required: ['bullets'],

@@ -16,7 +16,9 @@ const handleResponse = async <T>(
 ): Promise<T> => {
   if (!response.ok) {
     const error = await response.json()
-    throw new Error(error.message || 'API request failed')
+    const errorMessage =
+      error.message || error.errors?.[0]?.message || 'API request failed'
+    throw new Error(errorMessage)
   }
 
   if (responseType === ResponseType.BLOB) {
