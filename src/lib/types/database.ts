@@ -399,13 +399,15 @@ export type Database = {
         Returns: string
       }
       upsert_experience_bullets: {
-        Args: {
-          b_experience_ids: string[]
-          b_ids: string[]
-          b_is_locked: boolean[]
-          b_positions: number[]
-          b_texts: string[]
-        }
+        Args:
+          | {
+              b_experience_ids: string[]
+              b_ids: string[]
+              b_is_locked: boolean[]
+              b_positions: number[]
+              b_texts: string[]
+            }
+          | { bullets: Json }
         Returns: string
       }
       upsert_personal_details: {
