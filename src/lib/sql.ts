@@ -57,6 +57,7 @@ CREATE TABLE IF NOT EXISTS experience_bullets (
     text TEXT NOT NULL,
     is_locked BOOLEAN DEFAULT FALSE,
     position INTEGER NOT NULL DEFAULT 0,
+    user_id UUID,
     updated_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -280,6 +281,12 @@ WHERE id IN (SELECT experience_id FROM deleted_bullets)
 
 export const updateExperiencePositionQuery = `
 UPDATE experience 
+SET position = $2, updated_at = $3::timestamptz
+WHERE id = $1
+`
+
+export const updateExperienceBulletPositionQuery = `
+UPDATE experience_bullets 
 SET position = $2, updated_at = $3::timestamptz
 WHERE id = $1
 `

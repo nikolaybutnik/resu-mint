@@ -19,6 +19,7 @@ import {
   updateExperienceChangelogQuery,
   cleanUpSyncedExperienceChangelogEntriesQuery,
   updateExperiencePositionQuery,
+  updateExperienceBulletPositionQuery,
 } from '../sql'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
@@ -260,6 +261,37 @@ async function syncPositionsFromRemote(db: ElectricDb): Promise<void> {
   }
 }
 
+async function syncBulletPositionsFromRemote(
+  db: ElectricDb,
+  experienceId: string
+): Promise<void> {
+  try {
+    const { data: remoteBullets, error } = await supabase
+      .from('experience_bullets')
+      .select('id, position')
+      .eq('experience_id', experienceId)
+      .order('position', { ascending: true })
+
+    if (error) {
+      console.error('Failed to fetch remote bullet positions:', error)
+      return
+    }
+
+    if (!remoteBullets?.length) return
+
+    const timestamp = nowIso()
+    for (const bullet of remoteBullets) {
+      await db.query(updateExperienceBulletPositionQuery, [
+        bullet.id,
+        bullet.position,
+        timestamp,
+      ])
+    }
+  } catch (error) {
+    console.error('Error syncing bullet positions from remote:', error)
+  }
+}
+
 async function syncPersonalDetailsToRemote(
   change: PersonalDetailsChange,
   db: ElectricDb,
@@ -388,13 +420,12 @@ const deleteExperience = async (
   config: SyncConfig<ExperienceChange>
 ): Promise<void> => {
   const maxRetries = 3
-  const TOLERANCE_MS = 30000
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const { id } = change.value as { id: string }
 
-      const { data: serverData, error: serverError } = await supabase
+      const { error: serverError } = await supabase
         .from('experience')
         .select('updated_at')
         .eq('id', id)
@@ -406,18 +437,6 @@ const deleteExperience = async (
         return
       } else if (serverError) {
         throw serverError
-      }
-
-      if (serverData?.updated_at) {
-        const serverTime = new Date(serverData.updated_at).getTime()
-        const localTime = new Date(change.timestamp || 0).getTime()
-        const timeDiff = serverTime - localTime
-
-        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
-          // Server has newer data, mark local change as synced to avoid conflict
-          await db.query(config.markSyncedQuery, [true, change.write_id])
-          return
-        }
       }
 
       const { error } = await supabase.rpc('delete_experience', {
@@ -530,10 +549,53 @@ const upsertExperienceBullets = async (
         })
 
         if (error) throw error
+
+        // Sync bullet positions from remote after upsert (triggers may have reordered)
+        await syncBulletPositionsFromRemote(db, experienceId)
       }
 
       // Mark change as synced even if some bullets were skipped
       await db.query(config.markSyncedQuery, [true, change.write_id])
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+const deleteExperienceBullets = async (
+  change: ExperienceChange,
+  db: ElectricDb,
+  config: SyncConfig<ExperienceChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const changeData = change.value as BulletChangeData
+      const bulletsToDelete = changeData.bulletIds || []
+      const experienceId = changeData.experienceId
+
+      if (!bulletsToDelete.length) {
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      }
+
+      const { error: serverError } = await supabase.rpc(
+        'delete_experience_bullets',
+        {
+          b_ids: bulletsToDelete,
+        }
+      )
+
+      if (serverError) throw serverError
+
+      await syncBulletPositionsFromRemote(db, experienceId)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
     } catch (error) {
       if (attempt === maxRetries - 1) throw error
       await new Promise((resolve) =>
@@ -561,7 +623,9 @@ async function syncExperienceToRemote(
     case 'upsert_bullets':
       await upsertExperienceBullets(change, db, config)
       break
-    //   case 'delete_bullets':
+    case 'delete_bullets':
+      await deleteExperienceBullets(change, db, config)
+      break
     //   case 'toggle_bullet_lock':
     //   case 'toggle_bullets_lock_all':
     //     console.log(

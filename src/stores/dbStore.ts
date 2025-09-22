@@ -118,6 +118,21 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'experience',
   },
+  experience_bullets: {
+    table: 'experience_bullets',
+    columns: [
+      'id',
+      'experience_id',
+      'text',
+      'is_locked',
+      'position',
+      'user_id',
+      'updated_at',
+      'created_at',
+    ],
+    primaryKey: ['id'],
+    shapeKey: 'experience_bullets',
+  },
 }
 
 const TABLE_STORE_RESET_MAP = {
@@ -125,6 +140,10 @@ const TABLE_STORE_RESET_MAP = {
     usePersonalDetailsStore.setState({ data: defaultValue }),
   experience: (defaultValue: ExperienceBlockData[]) =>
     useExperienceStore.setState({ data: defaultValue }),
+  experience_bullets: () => {
+    const { refresh } = useExperienceStore.getState()
+    refresh()
+  },
 } as const
 
 let firstSyncFlag = true
@@ -347,7 +366,10 @@ export const useDbStore = create<DbStore>((set, get) => ({
                   if (config.table === 'personal_details') {
                     hasPersonalDetailsChanges = true
                   }
-                  if (config.table === 'experience') {
+                  if (
+                    config.table === 'experience' ||
+                    config.table === 'experience_bullets'
+                  ) {
                     hasExperienceChanges = true
                   }
                 }
