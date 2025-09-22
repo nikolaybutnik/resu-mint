@@ -490,7 +490,7 @@ export const extractExperienceFormData = (
     },
     description:
       (formData.get(EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
-      undefined,
+      '',
   }
 }
 

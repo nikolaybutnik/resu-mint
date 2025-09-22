@@ -360,7 +360,10 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Description</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Description
+          </label>
           <textarea
             ref={textareaRef}
             name={EXPERIENCE_FORM_DATA_KEYS.DESCRIPTION}

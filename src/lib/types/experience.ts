@@ -50,7 +50,7 @@ export interface ExperienceBlockData {
   endDate: EndDate
   companyName: string
   location: string
-  description?: string
+  description: string
   bulletPoints?: BulletPoint[]
   isIncluded?: boolean
   position?: number

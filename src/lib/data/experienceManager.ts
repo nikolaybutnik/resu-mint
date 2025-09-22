@@ -41,7 +41,7 @@ class ExperienceManager {
       title: raw.title,
       companyName: raw.company_name,
       location: raw.location,
-      description: raw.description || undefined,
+      description: raw.description || '',
       startDate: {
         month: (raw.start_month as Month | '' | undefined) || undefined,
         year: raw.start_year?.toString() || '',

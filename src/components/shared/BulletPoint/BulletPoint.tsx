@@ -191,6 +191,11 @@ const BulletPoint: React.FC<BulletPointProps> = ({
       isLocked: bulletData.isLocked ?? false,
     }
 
+    const wasTemporary = bulletData.isTemporary
+    if (wasTemporary) {
+      onBulletCancel()
+    }
+
     const result = await bulletService.saveBullet(
       updatedBulletData,
       sectionId,
@@ -201,12 +206,14 @@ const BulletPoint: React.FC<BulletPointProps> = ({
     if (!result.success) {
       console.error('Failed to save bullet:', result.error)
 
+      if (!wasTemporary) {
+        setEditMode(false)
+        setEditModeText('')
+        setErrors({})
+      }
+
       toast.error('Failed to save the bullet point.')
       return
-    }
-
-    if (bulletData.isTemporary) {
-      onBulletCancel()
     }
 
     setEditMode(false)

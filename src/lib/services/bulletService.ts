@@ -257,6 +257,10 @@ export const bulletService = {
       bullets: BulletPoint[]
     }[]
   > => {
+    if (sections.some((sec) => !sec.description)) {
+      throw new Error('INSUFFICIENT_CONTEXT')
+    }
+
     const payload: GenerateBulletsRequest = {
       sections,
       jobDescriptionAnalysis,

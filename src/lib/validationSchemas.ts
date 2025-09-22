@@ -212,8 +212,8 @@ export const experienceBlockSchema = z
       .max(500, 'Company name must be 500 characters or less'),
     description: z
       .string()
-      .max(2000, 'Description must be 2000 characters or less')
-      .optional(),
+      .min(1, 'Description is required')
+      .max(2000, 'Description must be 2000 characters or less'),
     location: z
       .string()
       .min(1, 'Location is required')
