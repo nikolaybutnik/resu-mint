@@ -605,6 +605,79 @@ const deleteExperienceBullets = async (
   }
 }
 
+const toggleExperienceBullets = async (
+  change: ExperienceChange,
+  db: ElectricDb,
+  config: SyncConfig<ExperienceChange>
+) => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const changeData = change.value as BulletChangeData
+      const bulletsToUpdate = changeData.data || []
+      const experienceId = changeData.experienceId
+
+      if (bulletsToUpdate.length === 0) {
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      }
+
+      const safeBullets: BulletPoint[] = []
+
+      for (const bullet of bulletsToUpdate) {
+        const { data: serverData, error: serverError } = await supabase
+          .from('experience_bullets')
+          .select('updated_at, is_locked')
+          .eq('id', bullet.id)
+          .eq('experience_id', experienceId)
+          .maybeSingle()
+
+        if (isRecordNotFoundError(serverError)) {
+          // Bullet doesn't exist on server, skip
+          continue
+        } else if (serverError) {
+          throw serverError
+        }
+
+        if (serverData?.updated_at) {
+          const serverTime = new Date(serverData.updated_at).getTime()
+          const localTime = new Date(change.timestamp || 0).getTime()
+          const timeDiff = serverTime - localTime
+
+          if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+            // Server has newer data, skip this bullet
+            continue
+          }
+        }
+
+        safeBullets.push(bullet)
+      }
+
+      if (safeBullets.length === 0) {
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      }
+
+      const { error } = await supabase.rpc('update_experience_bullet_locks', {
+        bullet_ids: safeBullets.map((b) => b.id),
+        bullet_locks: safeBullets.map((b) => b.isLocked ?? false),
+      })
+
+      if (error) throw error
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncExperienceToRemote(
   change: ExperienceChange,
   db: ElectricDb,
@@ -626,13 +699,10 @@ async function syncExperienceToRemote(
     case 'delete_bullets':
       await deleteExperienceBullets(change, db, config)
       break
-    //   case 'toggle_bullet_lock':
-    //   case 'toggle_bullets_lock_all':
-    //     console.log(
-    //       'Would sync bullets for experience:',
-    //       (change.value as BulletChangeData).experienceId
-    //     )
-    //     break
+    case 'toggle_bullet_lock':
+    case 'toggle_bullets_lock_all':
+      await toggleExperienceBullets(change, db, config)
+      break
   }
 }
 

@@ -384,6 +384,12 @@ export type Database = {
         Args: { b_ids: string[] }
         Returns: string
       }
+      update_experience_bullet_locks: {
+        Args:
+          | { bullet_data: Json }
+          | { bullet_ids: string[]; bullet_locks: boolean[] }
+        Returns: undefined
+      }
       upsert_experience: {
         Args: {
           e_company_name: string
