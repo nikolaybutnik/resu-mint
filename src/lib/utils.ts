@@ -6,7 +6,7 @@ import {
 } from './constants'
 import { ExperienceBlockData, Month } from './types/experience'
 import { PersonalDetails } from './types/personalDetails'
-import { BulletPoint, ProjectBlockData } from './types/projects'
+import { ProjectBlockData } from './types/projects'
 import { v4 as uuidv4 } from 'uuid'
 
 /**
@@ -450,7 +450,6 @@ export const extractPersonalDetailsFormData = (
  * Extracts form data for work experience
  *
  * @param source - The HTMLFormElement or FormData containing experience data
- * @param preservedData - Optional data to preserve (isIncluded, bulletPoints)
  * @returns ExperienceBlockData object with extracted values
  */
 export const extractExperienceFormData = (
@@ -498,22 +497,15 @@ export const extractExperienceFormData = (
  * Extracts form data for projects
  *
  * @param source - The HTMLFormElement or FormData containing project data
- * @param preservedData - Optional data to preserve (isIncluded, bulletPoints)
  * @returns ProjectBlockData object with extracted values
  */
 export const extractProjectFormData = (
-  source: HTMLFormElement | FormData,
-  preservedData?: {
-    isIncluded?: boolean
-    bulletPoints?: BulletPoint[]
-  }
+  source: HTMLFormElement | FormData
 ): ProjectBlockData => {
   const formData = source instanceof FormData ? source : new FormData(source)
 
   return {
     id: (formData.get('id') as string) || '',
-    isIncluded: preservedData?.isIncluded || false,
-    bulletPoints: preservedData?.bulletPoints || [],
     title: (formData.get(PROJECT_FORM_DATA_KEYS.TITLE) as string)?.trim() || '',
     link: (formData.get(PROJECT_FORM_DATA_KEYS.LINK) as string)?.trim() || '',
     technologies: (() => {

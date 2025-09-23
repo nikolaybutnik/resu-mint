@@ -43,7 +43,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
   const isNew = !experienceData.some((block) => block.id === data.id)
   const shouldShowCloseButton = experienceData.length > 0 || !isNew
-
   const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
 
   const [state, formAction] = useActionState(
@@ -105,16 +104,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     onClose?.()
   }
 
-  const SubmitButton: React.FC = () => {
-    const { pending } = useFormStatus()
-
-    return (
-      <button type='submit' className={styles.saveButton} disabled={pending}>
-        Save
-      </button>
-    )
-  }
-
   const handleBulletAdd = (): void => {
     const newBullet: BulletPointType = {
       id: uuidv4(),
@@ -156,6 +145,16 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     }
 
     onClose?.()
+  }
+
+  const SubmitButton: React.FC = () => {
+    const { pending } = useFormStatus()
+
+    return (
+      <button type='submit' className={styles.saveButton} disabled={pending}>
+        Save
+      </button>
+    )
   }
 
   return (

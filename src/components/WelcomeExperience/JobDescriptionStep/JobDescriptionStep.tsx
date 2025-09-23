@@ -103,12 +103,15 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       )
 
       if (result.length > 0) {
-        for (const { sectionId, bullets } of result) {
+        for (const {
+          sectionId,
+          // bullets
+        } of result) {
           const experienceSection = workExperience.find(
             (exp) => exp.id === sectionId
           )
           if (experienceSection) {
-            // TODO: Rework when experienc is migrated to local-first architecture
+            // TODO: Rework when experience is migrated to local-first architecture
             // const { save: saveExperience } = useExperienceStore.getState()
             // const updatedExperience = workExperience.map((exp) =>
             //   exp.id === sectionId ? { ...exp, bulletPoints: bullets } : exp
@@ -119,11 +122,12 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
 
           const projectSection = projects.find((proj) => proj.id === sectionId)
           if (projectSection) {
-            const { save: saveProjects } = useProjectStore.getState()
-            const updatedProjects = projects.map((proj) =>
-              proj.id === sectionId ? { ...proj, bulletPoints: bullets } : proj
-            )
-            await saveProjects(updatedProjects)
+            // TODO: Rework when projects is migrated to local-first architecture
+            // const { save: saveProjects } = useProjectStore.getState()
+            // const updatedProjects = projects.map((proj) =>
+            //   proj.id === sectionId ? { ...proj, bulletPoints: bullets } : proj
+            // )
+            // await saveProjects(updatedProjects)
           }
         }
       }

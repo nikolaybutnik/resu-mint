@@ -1,6 +1,5 @@
 // TODO: re-implement action once submit project is overhauled to support async operations
 // import { submitExperience } from './experienceActions'
-import { submitProject } from './projectActions'
 import { ExperienceBlockData, Month } from '../types/experience'
 import { ProjectBlockData } from '../types/projects'
 import { v4 as uuidv4 } from 'uuid'
@@ -52,8 +51,9 @@ export const submitExperienceProject = (
   upsertExperience: (block: ExperienceBlockData) => Promise<{
     error: OperationError | null
   }>,
-  projectData: ProjectBlockData[],
-  saveProject: (data: ProjectBlockData[]) => void
+  upsertProject: (block: ProjectBlockData) => Promise<{
+    error: OperationError | null
+  }>
 ): ExperienceProjectFormState => {
   const type = formData.get('type') as keyof typeof FormSelectionState
   const isLoad = formData.get('load') === 'true'
@@ -177,32 +177,41 @@ export const submitExperienceProject = (
       success: true,
     }
   } else {
-    // For projects, handle synchronously (until it becomes async)
-    const result = submitProject(
-      {
-        fieldErrors: {},
-        data: {
-          id: data.id || uuidv4(),
-          isIncluded: true,
-          bulletPoints: [],
-          title: '',
-          technologies: [],
-          startDate: { month: '', year: '' },
-          endDate: { month: '', year: '', isPresent: false },
-          link: '',
-          description: '',
+    // Trigger the async operation through the callback
+    // but return the form state immediately
+    try {
+      upsertProject({
+        id: data.id || uuidv4(),
+        isIncluded: true,
+        bulletPoints: [],
+        title: data.title,
+        link: data.link || '',
+        technologies: data.technologies
+          ? data.technologies
+              .split(',')
+              .map((t) => t.trim())
+              .filter((t) => t)
+          : [],
+        startDate: {
+          month: data.startDate.month as Month,
+          year: data.startDate.year,
         },
-      },
-      formData,
-      projectData,
-      [],
-      saveProject
-    )
+        endDate: {
+          month: data.endDate.month as Month,
+          year: data.endDate.year,
+          isPresent: data.endDate.isPresent,
+        },
+        description: data.description || '',
+      })
+    } catch (error) {
+      // TODO: handle errors
+      console.error(error)
+    }
 
     return {
-      errors: result.fieldErrors,
+      errors: {},
       data: data,
-      success: Object.keys(result.fieldErrors).length === 0,
+      success: true,
     }
   }
 }

@@ -341,10 +341,12 @@ export const projectBlockSchema = z
     link: urlValidator().default(''),
     description: z
       .string()
-      .max(2000, 'Description must be 2000 characters or less')
-      .optional(),
-    bulletPoints: z.array(bulletPointSchema).default([]),
+      .min(1, 'Description is required')
+      .max(2000, 'Description must be 2000 characters or less'),
+    bulletPoints: z.array(bulletPointSchema).optional().default([]),
     isIncluded: z.boolean().optional().default(true),
+    position: z.number().int().min(0).optional().default(0),
+    updatedAt: z.string().optional().default('1970-01-01T00:00:00.000Z'),
   })
   .superRefine((data, ctx) => {
     if (data.endDate.isPresent) {

@@ -1,42 +1,22 @@
-import {
-  ProjectBlockData,
-  ProjectFormState,
-  BulletPoint,
-} from '../types/projects'
+import { ProjectBlockData, ProjectFormState } from '../types/projects'
 import { projectBlockSchema } from '../validationSchemas'
-import { zodErrorsToFormErrors } from '../types/errors'
+import { OperationError, zodErrorsToFormErrors } from '../types/errors'
 import { extractProjectFormData } from '../utils'
 
-export const submitProject = (
-  prevState: ProjectFormState,
+export const submitProject = async (
+  _prevState: ProjectFormState,
   formData: FormData,
-  projects: ProjectBlockData[],
-  currentBulletPoints: BulletPoint[] = [],
-  onSave: (updatedProjects: ProjectBlockData[]) => void
-) => {
-  const projectData: ProjectBlockData = extractProjectFormData(formData, {
-    isIncluded: prevState.data?.isIncluded,
-    bulletPoints: currentBulletPoints,
-  })
+  upsert: (block: ProjectBlockData) => Promise<{
+    error: OperationError | null
+  }>
+): Promise<ProjectFormState> => {
+  const projectData: ProjectBlockData = extractProjectFormData(formData)
 
   const validatedData = projectBlockSchema.safeParse(projectData)
 
+  // TODO: implement notifications
   if (validatedData.success) {
-    const existingItemIndex = projects.findIndex(
-      (item) => item.id === validatedData.data.id
-    )
-
-    let updatedProjects: ProjectBlockData[]
-
-    if (existingItemIndex !== -1) {
-      updatedProjects = projects.map((item) =>
-        item.id === validatedData.data.id ? validatedData.data : item
-      )
-    } else {
-      updatedProjects = [...projects, validatedData.data]
-    }
-
-    onSave(updatedProjects)
+    await upsert(validatedData.data)
   }
 
   return {

@@ -13,6 +13,7 @@ import BulletPoint from '@/components/shared/BulletPoint/BulletPoint'
 import { BulletPoint as BulletPointType } from '@/lib/types/projects'
 import { v4 as uuidv4 } from 'uuid'
 import { extractProjectFormData } from '@/lib/utils'
+import { toast } from '@/stores/toastStore'
 
 const normalizeTechnology = (tech: string): string =>
   tech.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -31,7 +32,12 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const closeButtonRef = useRef<HTMLButtonElement | null>(null)
   const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
 
-  const { data: projectData, save, hasBlockChanges } = useProjectStore()
+  const {
+    data: projectData,
+    // delete: deleteProject,
+    upsert,
+    hasBlockChanges,
+  } = useProjectStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
   const isNew = !projectData.some((block) => block.id === data.id)
@@ -39,8 +45,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const isAnyBulletRegenerating = bulletIdsGenerating.length > 0
 
   const [state, formAction] = useActionState(
-    (prevState: ProjectFormState, formData: FormData): ProjectFormState =>
-      submitProject(prevState, formData, projectData, data.bulletPoints, save),
+    async (
+      prevState: ProjectFormState,
+      formData: FormData
+    ): Promise<ProjectFormState> => submitProject(prevState, formData, upsert),
     {
       fieldErrors: {},
       data,
@@ -57,6 +65,15 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const [description, setDescription] = useState(state.data?.description || '')
   const [temporaryBullet, setTemporaryBullet] =
     useState<BulletPointType | null>(null)
+
+  useEffect(() => {
+    const notifications = state?.notifications
+    if (!notifications || notifications.length === 0) return
+
+    notifications.forEach((notification) => {
+      toast[notification.type](notification.message)
+    })
+  }, [state?.notifications])
 
   useEffect(() => {
     setIsCurrent(state.data?.endDate?.isPresent || false)
@@ -110,11 +127,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 
     if (!ok) return
 
-    const updatedSections = projectData.filter(
-      (section) => section.id !== data.id
-    )
-
-    save(updatedSections)
+    // await deleteProject(data.id)
     onClose?.()
   }
 
@@ -412,7 +425,10 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
         </div>
 
         <div className={styles.formField}>
-          <label className={styles.label}>Description</label>
+          <label className={styles.label}>
+            <span className={styles.requiredIndicator}>*</span>
+            Description
+          </label>
           <textarea
             ref={textareaRef}
             name={PROJECT_FORM_DATA_KEYS.DESCRIPTION}
@@ -452,7 +468,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
             </button>
           </div>
           <div className={styles.bulletPointsContainer}>
-            {data.bulletPoints.map((bullet) => (
+            {data.bulletPoints?.map((bullet) => (
               <BulletPoint
                 key={bullet.id}
                 sectionId={data.id}

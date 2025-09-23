@@ -14,7 +14,7 @@ import {
   useSensor,
 } from '@dnd-kit/core'
 import {
-  arrayMove,
+  // arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -29,6 +29,10 @@ import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { KeywordData } from '@/lib/types/keywords'
 import { useProjectStore } from '@/stores'
 import { Month, ProjectBlockData } from '@/lib/types/projects'
+import {
+  SkeletonButton,
+  SkeletonDraggableBlock,
+} from '@/components/shared/Skeleton'
 
 interface ProjectsProps {
   keywordData: KeywordData
@@ -37,7 +41,11 @@ interface ProjectsProps {
 const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { data: projects, save } = useProjectStore()
+  const {
+    data: projects,
+    // reorder,
+    initializing,
+  } = useProjectStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -144,16 +152,19 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        const oldIndex = projects.findIndex((item) => item.id === active.id)
-        const newIndex = projects.findIndex((item) => item.id === over.id)
-        const newOrder = arrayMove(projects, oldIndex, newIndex)
-        save(newOrder)
+        // const oldIndex = projects.findIndex((item) => item.id === active.id)
+        // const newIndex = projects.findIndex((item) => item.id === over.id)
+        // const newOrder = arrayMove(projects, oldIndex, newIndex)
+        // reorder(newOrder)
       }
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
-    [projects, save]
+    [
+      projects,
+      // reorder
+    ]
   )
 
   const activeItem = useMemo(
@@ -253,6 +264,10 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
     )
   }
 
+  if (initializing) {
+    return <LoadingState />
+  }
+
   return (
     <div ref={containerRef} className={styles.projects}>
       <h2 className={styles.formTitle}>Projects</h2>
@@ -271,5 +286,21 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
     </div>
   )
 }
+
+const LoadingState = () => (
+  <div className={styles.formSection}>
+    <h2 className={styles.formTitle}>Projects</h2>
+    <div className={styles.formFieldsContainer}>
+      <div className={styles.skeletonButtonContainer}>
+        <SkeletonButton variant='primary' />
+      </div>
+      <div className={styles.skeletonBlockContainer}>
+        <SkeletonDraggableBlock />
+        <SkeletonDraggableBlock />
+        <SkeletonDraggableBlock />
+      </div>
+    </div>
+  </div>
+)
 
 export default Projects

@@ -1,291 +1,147 @@
-import { STORAGE_KEYS } from '../constants'
-import { ProjectBlockData, BulletPoint } from '../types/projects'
+import {
+  ProjectBlockData,
+  BulletPoint,
+  RawProjectData,
+  Month,
+  RawProjectBulletData,
+} from '../types/projects'
 import { projectBlockSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
-
-const CACHE_KEYS = {
-  PROJECTS_LOCAL: 'projects-local',
-  PROJECTS_API: 'projects-api',
-} as const
+import { nowIso } from './dataUtils'
+import { useAuthStore, useDbStore } from '@/stores'
+import {
+  getProjectsQuery,
+  insertProjectChangelogQuery,
+  upsertProjectQuery,
+} from '../sql'
+import {
+  createUnknownError,
+  createValidationError,
+  Failure,
+  Result,
+  Success,
+} from '../types/errors'
+import { getLastKnownUserId } from '../utils'
+import { v4 as uuidv4 } from 'uuid'
+import { omit } from 'lodash'
 
 class ProjectsManager {
-  private cache = new Map<string, Promise<unknown>>()
+  private translateRawProject(raw: RawProjectData): ProjectBlockData {
+    return {
+      id: raw.id,
+      title: raw.title,
+      link: raw.link || '',
+      technologies: raw.technologies || [],
+      description: raw.description || '',
+      startDate: {
+        month: (raw.start_month as Month | '' | undefined) || undefined,
+        year: raw.start_year?.toString() || '',
+      },
+      endDate: {
+        month: (raw.end_month as Month | '' | undefined) || undefined,
+        year: raw.end_year?.toString() || '',
+        isPresent: raw.is_present || false,
+      },
+      bulletPoints: raw.bullet_points || [],
+      isIncluded: raw.is_included ?? true,
+      position: raw.position ?? 0,
+      updatedAt: raw.updated_at || undefined,
+    }
+  }
+
+  private translateRawProjectBullet(raw: RawProjectBulletData): BulletPoint {
+    return {
+      id: raw.id,
+      text: raw.text,
+      isLocked: raw.is_locked,
+      position: raw.position,
+    }
+  }
 
   async get(
     sectionId?: string
   ): Promise<ProjectBlockData | ProjectBlockData[] | undefined> {
-    const cacheKey = isAuthenticated()
-      ? CACHE_KEYS.PROJECTS_API
-      : CACHE_KEYS.PROJECTS_LOCAL
+    const { db } = useDbStore.getState()
 
-    if (!this.cache.has(cacheKey)) {
-      const promise = new Promise<ProjectBlockData[]>((resolve) => {
-        try {
-          const stored = localStorage.getItem(STORAGE_KEYS.PROJECTS)
+    const data = await db?.query(getProjectsQuery)
 
-          if (stored) {
-            const parsed = JSON.parse(stored)
-            const validation = projectBlockSchema.array().safeParse(parsed)
-
-            if (validation.success) {
-              resolve(validation.data)
-            } else {
-              console.warn(
-                'Invalid projects in Local Storage, using defaults:',
-                validation.error
-              )
-              resolve(DEFAULT_STATE_VALUES.PROJECTS)
-            }
-          } else {
-            resolve(DEFAULT_STATE_VALUES.PROJECTS)
-          }
-        } catch (error) {
-          console.error('Error loading projects, using defaults:', error)
-          resolve(DEFAULT_STATE_VALUES.PROJECTS)
-        }
-      })
-      this.cache.set(cacheKey, promise)
+    if (!data?.rows?.length) {
+      return sectionId ? undefined : DEFAULT_STATE_VALUES.PROJECTS
     }
 
-    const allProjects = await (this.cache.get(cacheKey)! as Promise<
-      ProjectBlockData[]
-    >)
+    const translatedData = (data.rows as RawProjectData[]).map((row) =>
+      this.translateRawProject(row)
+    )
 
     if (sectionId) {
-      return allProjects.find((block) => block.id === sectionId)
+      return translatedData.find((item) => item.id === sectionId)
     }
 
-    return allProjects
+    return translatedData
   }
 
-  async save(data: ProjectBlockData[]): Promise<void> {
-    const validation = projectBlockSchema.array().safeParse(data)
+  async upsert(data: ProjectBlockData): Promise<Result<ProjectBlockData[]>> {
+    const validation = projectBlockSchema.safeParse(data)
+
     if (!validation.success) {
-      console.error('Invalid projects data, save aborted:', validation.error)
-      throw new Error('Invalid projects data')
-    }
-
-    this.invalidate()
-
-    if (!isLocalStorageAvailable()) {
-      console.warn(
-        'Local Storage not available, data will not persist across sessions'
+      return Failure(
+        createValidationError('Invalid project data', validation.error)
       )
-
-      const cacheKey = isAuthenticated()
-        ? CACHE_KEYS.PROJECTS_API
-        : CACHE_KEYS.PROJECTS_LOCAL
-
-      this.cache.set(cacheKey, Promise.resolve(validation.data))
-      return
     }
+
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
-      localStorage.setItem(
-        STORAGE_KEYS.PROJECTS,
-        JSON.stringify(validation.data)
+      const blockToUpsert = validation.data
+
+      const currentData = ((await this.get()) as ProjectBlockData[]) || []
+      const existingBlock = currentData.find(
+        (block) => block.id === blockToUpsert.id
       )
+
+      const position = existingBlock
+        ? existingBlock.position
+        : currentData.length
+
+      await db?.query(upsertProjectQuery, [
+        blockToUpsert.id,
+        blockToUpsert.title,
+        blockToUpsert.link,
+        blockToUpsert.technologies,
+        blockToUpsert.description,
+        blockToUpsert.startDate.month,
+        blockToUpsert.startDate.year,
+        blockToUpsert.endDate.month,
+        blockToUpsert.endDate.year,
+        blockToUpsert.endDate.isPresent,
+        blockToUpsert.isIncluded,
+        position,
+        timestamp,
+      ])
+
+      const blockWithPosition = { ...blockToUpsert, position }
+
+      await db?.query(insertProjectChangelogQuery, [
+        'upsert',
+        JSON.stringify(omit(blockWithPosition, ['bulletPoints'])),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getProjectsQuery)
+      const translatedResult = (result?.rows as RawProjectData[]).map((row) =>
+        this.translateRawProject(row)
+      )
+
+      return Success(translatedResult)
     } catch (error) {
-      throw error
+      return Failure(createUnknownError('Failed to save project', error))
     }
-  }
-
-  async saveBullet(data: BulletPoint, sectionId: string) {
-    const existingProjects = (await this.get()) as ProjectBlockData[]
-    const projectBlockToUpdate = existingProjects.find(
-      (block) => block.id === sectionId
-    )
-    const bulletAlreadyExists = !!projectBlockToUpdate?.bulletPoints.find(
-      (bullet) => bullet.id === data.id
-    )
-
-    let updatedBulletPoints = projectBlockToUpdate?.bulletPoints || []
-
-    if (bulletAlreadyExists && projectBlockToUpdate) {
-      updatedBulletPoints = projectBlockToUpdate?.bulletPoints.map((bullet) =>
-        bullet.id === data.id ? data : bullet
-      )
-    } else {
-      updatedBulletPoints.push({
-        id: data.id,
-        text: data.text,
-        isLocked: data.isLocked,
-      })
-    }
-
-    try {
-      const updatedProjects = existingProjects.map((block) =>
-        block.id === sectionId
-          ? { ...block, bulletPoints: updatedBulletPoints }
-          : block
-      )
-
-      const validation = projectBlockSchema.array().safeParse(updatedProjects)
-      if (!validation.success) {
-        console.error(
-          'Invalid projects data after bullet update, save aborted:',
-          validation.error
-        )
-        throw new Error('Invalid projects data')
-      }
-
-      localStorage.setItem(
-        STORAGE_KEYS.PROJECTS,
-        JSON.stringify(validation.data)
-      )
-
-      this.invalidate()
-    } catch (error) {
-      throw error
-    }
-  }
-
-  async saveBullets(bullets: BulletPoint[], sectionId: string) {
-    const existingProjects = (await this.get()) as ProjectBlockData[]
-
-    try {
-      const updatedProjects = existingProjects.map((block) =>
-        block.id === sectionId ? { ...block, bulletPoints: bullets } : block
-      )
-
-      const validation = projectBlockSchema.array().safeParse(updatedProjects)
-      if (!validation.success) {
-        console.error(
-          'Invalid projects data after bullets update, save aborted:',
-          validation.error
-        )
-        throw new Error('Invalid projects data')
-      }
-
-      localStorage.setItem(
-        STORAGE_KEYS.PROJECTS,
-        JSON.stringify(validation.data)
-      )
-
-      this.invalidate()
-    } catch (error) {
-      throw error
-    }
-  }
-
-  async deleteBullet(sectionId: string, bulletId: string) {
-    const existingProjects = (await this.get()) as ProjectBlockData[]
-    const projectBlockToUpdate = existingProjects.find(
-      (block) => block.id === sectionId
-    )
-    const bulletAlreadyExists = !!projectBlockToUpdate?.bulletPoints.find(
-      (bullet) => bullet.id === bulletId
-    )
-
-    if (!bulletAlreadyExists) {
-      throw new Error('Bullet not found')
-    }
-
-    const updatedBulletPoints = projectBlockToUpdate?.bulletPoints.filter(
-      (bullet) => bullet.id !== bulletId
-    )
-
-    const updatedProjects = existingProjects.map((block) =>
-      block.id === sectionId
-        ? { ...block, bulletPoints: updatedBulletPoints }
-        : block
-    )
-
-    try {
-      const validation = projectBlockSchema.array().safeParse(updatedProjects)
-      if (!validation.success) {
-        console.error(
-          'Invalid projects data after bullet deletion, save aborted:',
-          validation.error
-        )
-        throw new Error('Invalid projects data')
-      }
-
-      localStorage.setItem(
-        STORAGE_KEYS.PROJECTS,
-        JSON.stringify(validation.data)
-      )
-      this.invalidate()
-    } catch (error) {
-      throw error
-    }
-  }
-
-  async toggleBulletLock(sectionId: string, bulletId: string) {
-    const existingProjects = (await this.get()) as ProjectBlockData[]
-    const projectBlockToUpdate = existingProjects.find(
-      (block) => block.id === sectionId
-    )
-    const updatedBulletPoints = projectBlockToUpdate?.bulletPoints.map(
-      (bullet) =>
-        bullet.id === bulletId
-          ? { ...bullet, isLocked: !bullet.isLocked }
-          : bullet
-    )
-    const updatedProjects = existingProjects.map((block) =>
-      block.id === sectionId
-        ? { ...block, bulletPoints: updatedBulletPoints }
-        : block
-    )
-
-    try {
-      const validation = projectBlockSchema.array().safeParse(updatedProjects)
-      if (!validation.success) {
-        console.error(
-          'Invalid projects data after bullet lock toggle, save aborted:',
-          validation.error
-        )
-        throw new Error('Invalid projects data')
-      }
-
-      localStorage.setItem(
-        STORAGE_KEYS.PROJECTS,
-        JSON.stringify(validation.data)
-      )
-      this.invalidate()
-    } catch (error) {
-      throw error
-    }
-  }
-
-  async toggleBulletLockAll(sectionId: string, shouldLock: boolean) {
-    const existingProjects = (await this.get()) as ProjectBlockData[]
-    const projectBlockToUpdate = existingProjects.find(
-      (block) => block.id === sectionId
-    )
-    const updatedBulletPoints = projectBlockToUpdate?.bulletPoints.map(
-      (bullet) => ({ ...bullet, isLocked: shouldLock })
-    )
-    const updatedProjects = existingProjects.map((block) =>
-      block.id === sectionId
-        ? { ...block, bulletPoints: updatedBulletPoints }
-        : block
-    )
-
-    try {
-      const validation = projectBlockSchema.array().safeParse(updatedProjects)
-      if (!validation.success) {
-        console.error(
-          'Invalid projects data after bulk lock toggle, save aborted:',
-          validation.error
-        )
-        throw new Error('Invalid projects data')
-      }
-
-      localStorage.setItem(
-        STORAGE_KEYS.PROJECTS,
-        JSON.stringify(validation.data)
-      )
-      this.invalidate()
-    } catch (error) {
-      throw error
-    }
-  }
-
-  invalidate() {
-    this.cache.delete(CACHE_KEYS.PROJECTS_LOCAL)
-    this.cache.delete(CACHE_KEYS.PROJECTS_API)
   }
 }
 

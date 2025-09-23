@@ -42,7 +42,11 @@ export const useAutoSkillSuggestions = () => {
           (exp) =>
             exp.isIncluded || (exp.bulletPoints && exp.bulletPoints.length > 0)
         ) ||
-        projects.some((proj) => proj.isIncluded || proj.bulletPoints.length > 0)
+        projects.some(
+          (proj) =>
+            proj.isIncluded ||
+            (proj.bulletPoints && proj.bulletPoints.length > 0)
+        )
 
       if (!hasContent) {
         setError(
@@ -72,7 +76,7 @@ export const useAutoSkillSuggestions = () => {
           if (proj.description?.trim()) {
             userExperience.push(proj.description.trim())
           }
-          proj.bulletPoints.forEach((bullet) => {
+          proj.bulletPoints?.forEach((bullet) => {
             if (bullet.text?.trim()) {
               userExperience.push(bullet.text.trim())
             }

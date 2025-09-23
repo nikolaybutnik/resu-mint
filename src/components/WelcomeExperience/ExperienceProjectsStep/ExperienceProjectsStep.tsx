@@ -19,7 +19,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
   onContinue,
 }) => {
   const { upsert: upsertExperience } = useExperienceStore()
-  const { data: projectData, save: saveProject } = useProjectStore()
+  const { upsert: upsertProject } = useProjectStore()
 
   const [selectedOption, setSelectedOption] = useState<
     keyof typeof FormSelectionState | null
@@ -34,8 +34,7 @@ export const ExperienceProjectsStep: React.FC<ExperienceProjectsStepProps> = ({
       prevState,
       formData,
       upsertExperience,
-      projectData,
-      saveProject
+      upsertProject
     )
   }
 

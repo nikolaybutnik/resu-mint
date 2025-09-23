@@ -76,7 +76,7 @@ export class LivePreviewService {
           endDate: proj.endDate,
           technologies: proj.technologies,
           link: proj.link,
-          bulletPoints: proj.bulletPoints.map((b) => b.text),
+          bulletPoints: proj.bulletPoints?.map((b) => b.text),
           isIncluded: proj.isIncluded,
         })),
       education: data.educationSection

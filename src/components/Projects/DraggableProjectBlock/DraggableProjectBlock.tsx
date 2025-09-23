@@ -48,7 +48,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
     const [temporaryBullet, setTemporaryBullet] =
       useState<BulletPointType | null>(null)
 
-    const { data: projectData, save } = useProjectStore()
+    const { data: projectData, upsert } = useProjectStore()
     const { attributes, listeners, setNodeRef, transform, isDragging } =
       useSortable({
         id: data.id,
@@ -121,7 +121,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
 
     const renderedBullets = useMemo(
       () =>
-        memoizedBulletPoints.map((bullet) => (
+        memoizedBulletPoints?.map((bullet) => (
           <BulletPoint
             key={bullet.id}
             sectionId={data.id}
@@ -135,12 +135,12 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
     )
 
     const handleSectionInclusionToggle = useCallback(() => {
-      const updatedSection = { ...data, isIncluded: !data.isIncluded }
-      const updatedData: ProjectBlockData[] = projectData.map((section) =>
-        section.id === data.id ? updatedSection : section
-      )
-      save(updatedData)
-    }, [data, projectData, save])
+      const updatedSection: ProjectBlockData = {
+        ...data,
+        isIncluded: !data.isIncluded,
+      }
+      upsert(updatedSection)
+    }, [data, projectData, upsert])
 
     return (
       <div
@@ -227,7 +227,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
           </div>
         </LongPressHandler>
 
-        {memoizedBulletPoints.length > 0 && (
+        {memoizedBulletPoints && memoizedBulletPoints.length > 0 && (
           <button
             className={`${styles.draggableProjectBlockContainer} ${
               styles.drawerToggleButton
@@ -252,7 +252,7 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
             isExpanded ? styles.expanded : ''
           }`}
         >
-          {memoizedBulletPoints.length > 1 && (
+          {memoizedBulletPoints && memoizedBulletPoints.length > 1 && (
             <div className={styles.lockAllButtons}>
               <button
                 className={styles.lockAllButton}
@@ -297,16 +297,18 @@ const DraggableProjectBlock: React.FC<DraggableProjectBlockProps> = React.memo(
           </button>
         </div>
 
-        {memoizedBulletPoints.length === 0 && !isExpanded && (
-          <button
-            className={styles.addBulletButton}
-            onClick={handleBulletAdd}
-            disabled={isOverlay}
-            data-no-dnd='true'
-          >
-            <FaPlus size={12} />
-          </button>
-        )}
+        {memoizedBulletPoints &&
+          memoizedBulletPoints.length === 0 &&
+          !isExpanded && (
+            <button
+              className={styles.addBulletButton}
+              onClick={handleBulletAdd}
+              disabled={isOverlay}
+              data-no-dnd='true'
+            >
+              <FaPlus size={12} />
+            </button>
+          )}
       </div>
     )
   }

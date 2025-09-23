@@ -10,10 +10,7 @@ import type {
   ExperienceBlockData,
   BulletPoint as ExperienceBulletPoint,
 } from '../types/experience'
-import type {
-  ProjectBlockData,
-  BulletPoint as ProjectBulletPoint,
-} from '../types/projects'
+import type { ProjectBlockData } from '../types/projects'
 import type { AppSettings } from '../types/settings'
 import { JobDetails } from '../types/jobDetails'
 import { jobDetailsManager } from './jobDetailsManager'
@@ -118,37 +115,41 @@ class DataManager {
   }
 
   // Projects
-  async getProjects(sectionId?: string) {
+  async getProjects(
+    sectionId?: string
+  ): Promise<ProjectBlockData | ProjectBlockData[] | undefined> {
     return projectsManager.get(sectionId)
   }
 
-  async saveProjects(data: ProjectBlockData[]): Promise<void> {
-    return projectsManager.save(data)
+  async saveProject(
+    data: ProjectBlockData
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.upsert(data)
   }
 
-  async saveProjectBullet(data: ProjectBulletPoint, sectionId: string) {
-    return projectsManager.saveBullet(data, sectionId)
-  }
+  // async saveProjectBullet(data: ProjectBulletPoint, sectionId: string) {
+  //   return projectsManager.saveBullet(data, sectionId)
+  // }
 
-  async saveProjectBullets(bullets: ProjectBulletPoint[], sectionId: string) {
-    return projectsManager.saveBullets(bullets, sectionId)
-  }
+  // async saveProjectBullets(bullets: ProjectBulletPoint[], sectionId: string) {
+  //   return projectsManager.saveBullets(bullets, sectionId)
+  // }
 
-  async deleteProjectBullet(sectionId: string, bulletId: string) {
-    return projectsManager.deleteBullet(sectionId, bulletId)
-  }
+  // async deleteProjectBullet(sectionId: string, bulletId: string) {
+  //   return projectsManager.deleteBullet(sectionId, bulletId)
+  // }
 
-  async toggleProjectBulletLock(sectionId: string, bulletId: string) {
-    return projectsManager.toggleBulletLock(sectionId, bulletId)
-  }
+  // async toggleProjectBulletLock(sectionId: string, bulletId: string) {
+  //   return projectsManager.toggleBulletLock(sectionId, bulletId)
+  // }
 
-  async toggleProjectBulletLockAll(sectionId: string, shouldLock: boolean) {
-    return projectsManager.toggleBulletLockAll(sectionId, shouldLock)
-  }
+  // async toggleProjectBulletLockAll(sectionId: string, shouldLock: boolean) {
+  //   return projectsManager.toggleBulletLockAll(sectionId, shouldLock)
+  // }
 
-  invalidateProjects() {
-    projectsManager.invalidate()
-  }
+  // invalidateProjects() {
+  //   projectsManager.invalidate()
+  // }
 
   // Education
   async getEducation(sectionId?: string) {

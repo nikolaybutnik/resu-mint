@@ -36,7 +36,7 @@ export class KeywordUtils {
 
     projects.forEach((project) => {
       if (project.isIncluded) {
-        project.bulletPoints.forEach((bullet) => {
+        project.bulletPoints?.forEach((bullet) => {
           allBullets.push({ text: bullet.text, sectionId: project.id })
         })
       }
