@@ -239,7 +239,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       const currentData = get().data
       const existingBlock = currentData.find((block) => block.id === blockId)
 
-      if (!existingBlock) return true
+      if (!existingBlock && !currentData) return false
 
       const existingFields = omit(existingBlock, [
         'bulletPoints',
@@ -253,6 +253,20 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         'position',
         'isIncluded',
       ])
+
+      if (
+        (!existingFields || Object.keys(existingFields).length === 0) &&
+        !newFields.title &&
+        !newFields.companyName &&
+        !newFields.description &&
+        !newFields.location &&
+        !newFields.startDate.month &&
+        !newFields.startDate.year &&
+        !newFields.endDate.month &&
+        !newFields.endDate.year &&
+        !newFields.endDate.isPresent
+      )
+        return false
 
       return !isEqual(existingFields, newFields)
     },

@@ -114,8 +114,9 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
       },
 
       hasChanges: (newData) => {
-        const currentData = omit(get().data, ['updatedAt'])
-        return !isEqual(currentData, newData)
+        const currentData = omit(get().data, ['updatedAt', 'id'])
+        const incomingData = omit(newData, ['id'])
+        return !isEqual(currentData, incomingData)
       },
 
       clearError: () => {
