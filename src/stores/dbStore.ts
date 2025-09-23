@@ -23,6 +23,9 @@ import {
   initializeExperienceQuery,
   initializePersonalDetailsChangelogQuery,
   initializePersonalDetailsQuery,
+  initializeProjectBulletsQuery,
+  initializeProjectChangelogQuery,
+  initializeProjectsQuery,
 } from '@/lib/sql'
 import { useAuthStore } from './'
 import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
@@ -155,6 +158,9 @@ const initializeTables = async (db: PGlite) => {
     await db.query(initializeExperienceQuery)
     await db.query(initializeExperienceBulletsQuery)
     await db.query(initializeExperienceChangelogQuery)
+    await db.query(initializeProjectsQuery)
+    await db.query(initializeProjectBulletsQuery)
+    await db.query(initializeProjectChangelogQuery)
   } catch (error) {
     console.error('Failed to initialize DB tables:', error)
   }

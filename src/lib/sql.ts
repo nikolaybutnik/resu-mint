@@ -75,18 +75,49 @@ CREATE TABLE IF NOT EXISTS experience_changes (
 );
 `
 
-// FUTURE: Uncomment when implementing granular bullet sync
-export const initializeExperienceBulletsChangelogQuery = `
--- CREATE TABLE IF NOT EXISTS experience_bullets_changes (
---     id BIGSERIAL PRIMARY KEY,
---     operation TEXT NOT NULL,
---     value JSONB NOT NULL,
---     write_id TEXT NOT NULL,
---     timestamp TIMESTAMPTZ,
---     synced BOOLEAN DEFAULT FALSE,
---     user_id UUID,
---     experience_id UUID
--- );
+// Project tables
+export const initializeProjectsQuery = `
+CREATE TABLE IF NOT EXISTS projects (
+    id UUID PRIMARY KEY,
+    title TEXT NOT NULL,
+    link TEXT,
+    technologies TEXT[],
+    description TEXT,
+    start_month TEXT CHECK (start_month IS NULL OR start_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
+    start_year SMALLINT NOT NULL CHECK (start_year >= 1000 AND start_year <= 9999),
+    end_month TEXT CHECK (end_month IS NULL OR end_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
+    end_year SMALLINT CHECK (end_year IS NULL OR (end_year >= 1000 AND end_year <= 9999)),
+    is_present BOOLEAN DEFAULT FALSE,
+    is_included BOOLEAN DEFAULT TRUE,
+    position INTEGER DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+
+export const initializeProjectBulletsQuery = `
+CREATE TABLE IF NOT EXISTS project_bullets (
+    id UUID PRIMARY KEY,
+    project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    text TEXT NOT NULL,
+    is_locked BOOLEAN DEFAULT FALSE,
+    position INTEGER NOT NULL DEFAULT 0,
+    user_id UUID NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+
+export const initializeProjectChangelogQuery = `
+CREATE TABLE IF NOT EXISTS project_changes (
+    id BIGSERIAL PRIMARY KEY,
+    operation TEXT NOT NULL,
+    value JSONB NOT NULL,
+    write_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
+);
 `
 
 // =============================================================================
@@ -367,6 +398,36 @@ WHERE user_id IS NULL
 
 export const updateExperienceChangelogQuery = `
 UPDATE experience_changes SET synced = $1 WHERE write_id = $2
+`
+
+// =============================================================================
+// PROJECT QUERIES
+// =============================================================================
+
+// Read Operations
+export const getProjectsQuery = `
+SELECT
+    p.id, p.title, p.link, p.technologies, p.description,
+    p.start_month, p.start_year, p.end_month, p.end_year,
+    p.is_present, p.is_included, p.position,
+    p.updated_at::text, p.created_at::text,
+    COALESCE(
+        JSON_AGG(
+            JSON_BUILD_OBJECT(
+                'id', b.id,
+                'text', b.text,
+                'isLocked', b.is_locked,
+                'position', b.position
+            ) ORDER BY b.position ASC
+        ) FILTER (WHERE b.id IS NOT NULL),
+        '[]'::json
+    ) as bullet_points
+FROM projects p
+LEFT JOIN project_bullets b ON p.id = b.project_id
+GROUP BY p.id, p.title, p.link, p.technologies, p.description,
+    p.start_month, p.start_year, p.end_month, p.end_year,
+    p.is_present, p.is_included, p.position, p.updated_at, p.created_at
+ORDER BY p.position ASC, p.created_at DESC
 `
 
 // =============================================================================
