@@ -210,12 +210,12 @@ export type Database = {
       personal_details: {
         Row: {
           created_at: string | null
-          email: string | null
+          email: string
           github: string | null
           id: string
           linkedin: string | null
           location: string | null
-          name: string | null
+          name: string
           phone: string | null
           updated_at: string | null
           user_id: string
@@ -223,12 +223,12 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          email?: string | null
+          email: string
           github?: string | null
           id?: string
           linkedin?: string | null
           location?: string | null
-          name?: string | null
+          name: string
           phone?: string | null
           updated_at?: string | null
           user_id: string
@@ -236,12 +236,12 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          email?: string | null
+          email?: string
           github?: string | null
           id?: string
           linkedin?: string | null
           location?: string | null
-          name?: string | null
+          name?: string
           phone?: string | null
           updated_at?: string | null
           user_id?: string
