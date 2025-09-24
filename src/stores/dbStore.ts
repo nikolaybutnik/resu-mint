@@ -308,17 +308,50 @@ export const useDbStore = create<DbStore>((set, get) => ({
     try {
       await db.electric.initMetadataTables()
 
-      const tablesToSync = tableNames || Array.from(tableConfigs.keys())
+      const syncPhases = [
+        // Phase 1: Independent tables
+        ['personal_details'],
+        // Phase 2: Parent tables
+        ['experience'],
+        // Phase 3: Child tables
+        ['experience_bullets'],
+      ]
 
-      for (const tableName of tablesToSync) {
+      let completedPhases = 0
+
+      for (const phase of syncPhases) {
+        if (tableNames) {
+          // If specific table names provided, sync them directly
+          for (const tableName of tableNames) {
+            await syncTable(tableName)
+          }
+          break
+        } else {
+          // Otherwise sync by phases
+          await Promise.all(phase.map((tableName) => syncTable(tableName)))
+          completedPhases++
+
+          // Delay to ensure previous phase sync has settled
+          if (completedPhases < syncPhases.length) {
+            await new Promise((resolve) => setTimeout(resolve, 500))
+          }
+        }
+      }
+
+      async function syncTable(tableName: string) {
         const config = tableConfigs.get(tableName)
         if (!config) {
           console.warn(`No config found for table: ${tableName}`)
-          continue
+          return
         }
 
         if (activeStreams.has(tableName)) {
-          continue
+          return
+        }
+
+        if (!db) {
+          console.error('Database not initialized')
+          return
         }
 
         const syncResult = await db.electric.syncShapeToTable({
