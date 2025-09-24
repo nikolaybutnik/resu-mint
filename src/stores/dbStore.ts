@@ -27,9 +27,13 @@ import {
   initializeProjectChangelogQuery,
   initializeProjectsQuery,
 } from '@/lib/sql'
-import { useAuthStore } from './'
 import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
-import { usePersonalDetailsStore, useExperienceStore } from './'
+import {
+  usePersonalDetailsStore,
+  useExperienceStore,
+  useAuthStore,
+  useProjectStore,
+} from './'
 import { toast } from './toastStore'
 import {
   OperationError,
@@ -43,6 +47,7 @@ import {
   isNetworkError,
   isQuotaExceededError,
 } from '@/lib/types/errors'
+import { ProjectBlockData } from '@/lib/types/projects'
 
 export type ElectricDb = PGlite & {
   electric: {
@@ -136,6 +141,27 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'experience_bullets',
   },
+  projects: {
+    table: 'projects',
+    columns: [
+      'id',
+      'title',
+      'link',
+      'technologies',
+      'description',
+      'start_month',
+      'start_year',
+      'end_month',
+      'end_year',
+      'is_present',
+      'is_included',
+      'position',
+      'updated_at',
+      'created_at',
+    ],
+    primaryKey: ['id'],
+    shapeKey: 'projects',
+  },
 }
 
 const TABLE_STORE_RESET_MAP = {
@@ -147,6 +173,8 @@ const TABLE_STORE_RESET_MAP = {
     const { refresh } = useExperienceStore.getState()
     refresh()
   },
+  projects: (defaultValue: ProjectBlockData[]) =>
+    useProjectStore.setState({ data: defaultValue }),
 } as const
 
 let firstSyncFlag = true
@@ -295,6 +323,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     const { refresh: refreshPersonalDetails } =
       usePersonalDetailsStore.getState()
     const { refresh: refreshExperience } = useExperienceStore.getState()
+    const { refresh: refreshProjects } = useProjectStore.getState()
 
     if (!db) {
       set({
@@ -312,7 +341,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
         // Phase 1: Independent tables
         ['personal_details'],
         // Phase 2: Parent tables
-        ['experience'],
+        ['experience', 'projects'],
         // Phase 3: Child tables
         ['experience_bullets'],
       ]
@@ -399,6 +428,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
               // coming from the stream has an operation of 'insert', which causes a duplicate key error
               let hasPersonalDetailsChanges = false
               let hasExperienceChanges = false
+              let hasProjectChanges = false
 
               messages.forEach(async (msg) => {
                 if (isChangeMessage(msg)) {
@@ -411,6 +441,12 @@ export const useDbStore = create<DbStore>((set, get) => ({
                   ) {
                     hasExperienceChanges = true
                   }
+                  if (
+                    config.table === 'projects' ||
+                    config.table === 'project_bullets'
+                  ) {
+                    hasProjectChanges = true
+                  }
                 }
               })
 
@@ -419,6 +455,9 @@ export const useDbStore = create<DbStore>((set, get) => ({
               }
               if (hasExperienceChanges) {
                 setTimeout(() => refreshExperience(), 200)
+              }
+              if (hasProjectChanges) {
+                setTimeout(() => refreshProjects(), 200)
               }
             }
 

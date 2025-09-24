@@ -1,12 +1,7 @@
 import { supabase } from '@/lib/supabase/client'
 import { nowIso, isAuthenticated, waitForAuthReady } from '@/lib/data/dataUtils'
 import { PostgrestError } from '@supabase/supabase-js'
-import type {
-  BulletPoint,
-  ExperienceBlockData,
-  Month,
-} from '@/lib/types/experience'
-import { RawExperienceData } from '@/lib/types/experience'
+import type { BulletPoint, ExperienceBlockData } from '@/lib/types/experience'
 import { useAuthStore, useDbStore } from '@/stores'
 import type { PersonalDetails } from '@/lib/types/personalDetails'
 import { ElectricDb } from '@/stores/dbStore'
@@ -20,7 +15,12 @@ import {
   cleanUpSyncedExperienceChangelogEntriesQuery,
   updateExperiencePositionQuery,
   updateExperienceBulletPositionQuery,
+  selectAllUnsyncedProjectChangesQuery,
+  updateProjectChangelogQuery,
+  cleanUpSyncedProjectChangelogEntriesQuery,
+  updateProjectPositionQuery,
 } from '../sql'
+import { ProjectBlockData } from '../types/projects'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
   if (!error) return false
@@ -33,74 +33,6 @@ function isRecordNotFoundError(error: PostgrestError | null): boolean {
     error.message?.includes('0 rows') ||
     error.message?.includes('Not Acceptable')
   )
-}
-
-export async function pullExperienceDbRecordToLocal(
-  dbRecord: RawExperienceData,
-  localBulletPoints: BulletPoint[] = []
-): Promise<ExperienceBlockData> {
-  const localRecord: ExperienceBlockData = {
-    id: dbRecord.id,
-    title: dbRecord.title,
-    companyName: dbRecord.company_name,
-    location: dbRecord.location,
-    description: dbRecord.description || '',
-    startDate: {
-      year: dbRecord.start_year?.toString() || '',
-      month: (dbRecord.start_month as Month) || '',
-    },
-    endDate: {
-      year: dbRecord.end_year?.toString() || '',
-      month: (dbRecord.end_month as Month) || '',
-      isPresent: dbRecord.is_present || false,
-    },
-    isIncluded: dbRecord.is_included || true,
-    position: dbRecord.position || 0,
-    bulletPoints: localBulletPoints,
-    updatedAt: dbRecord.updated_at || nowIso(),
-  }
-  return localRecord
-}
-
-export async function pushExperienceLocalRecordToDb(
-  localRecord: ExperienceBlockData
-): Promise<{ updatedAt: string; error: PostgrestError | string | null }> {
-  try {
-    const { data: serverUpdatedAt, error } = await supabase.rpc(
-      'upsert_experience',
-      {
-        e_id: localRecord.id,
-        e_title: localRecord.title,
-        e_company_name: localRecord.companyName,
-        e_location: localRecord.location,
-        e_description: localRecord.description || '',
-        e_start_month: localRecord.startDate.month ?? '',
-        e_start_year: Number(localRecord.startDate.year),
-        e_end_month: localRecord.endDate.month ?? '',
-        e_end_year: Number(localRecord.endDate.year),
-        e_is_present: localRecord.endDate.isPresent,
-        e_is_included: localRecord.isIncluded ?? true,
-        e_position: localRecord.position || 0,
-      }
-    )
-
-    if (error) {
-      return {
-        updatedAt: localRecord.updatedAt || nowIso(),
-        error,
-      }
-    }
-
-    return { updatedAt: serverUpdatedAt || nowIso(), error: null }
-  } catch (error) {
-    return {
-      updatedAt: localRecord.updatedAt || nowIso(),
-      error:
-        error instanceof Error
-          ? error.message
-          : new Error('Unknown error').message,
-    }
-  }
 }
 
 interface PersonalDetailsChange {
@@ -134,6 +66,27 @@ interface ExperienceChange {
   user_id: string | null
 }
 
+interface ProjectChange {
+  id: number
+  operation:
+    | 'upsert'
+    | 'delete'
+    | 'reorder'
+    | 'upsert_bullets'
+    | 'delete_bullets'
+    | 'toggle_bullet_lock'
+    | 'toggle_bullets_lock_all'
+  value:
+    | ProjectBlockData // upsert
+    | { id: string; position: number }[] // reorder
+    | { id: string } // delete
+    | BulletChangeData // upsert_bullets, delete_bullets, toggle_bullet_lock, toggle_bullets_lock_all
+  write_id: string
+  timestamp: string
+  synced: boolean
+  user_id: string | null
+}
+
 interface BulletChangeData {
   experienceId: string
   data?: BulletPoint[]
@@ -153,6 +106,34 @@ interface SyncConfig<T> {
   ) => Promise<void>
   syncMode: 'single' | 'batch'
 }
+
+const SYNC_CONFIGS = {
+  personal_details: {
+    datasetName: 'personal_details',
+    getLatestUnsyncedQuery: selectLatestUnsyncedPersonalDetailsChangeQuery,
+    markSyncedQuery: updatePersonalDetailChangelogQuery,
+    markPreviousAsSyncedQuery: markPreviousPersonalDetailsChangesAsSyncedQuery,
+    cleanupQuery: cleanUpSyncedPersonalDetailsChangelogEntriesQuery,
+    syncToRemote: syncPersonalDetailsToRemote,
+    syncMode: 'single',
+  } as SyncConfig<PersonalDetailsChange>,
+  experience: {
+    datasetName: 'experience',
+    getLatestUnsyncedQuery: selectAllUnsyncedExperienceChangesQuery,
+    markSyncedQuery: updateExperienceChangelogQuery,
+    cleanupQuery: cleanUpSyncedExperienceChangelogEntriesQuery,
+    syncToRemote: syncExperienceToRemote,
+    syncMode: 'batch',
+  } as SyncConfig<ExperienceChange>,
+  projects: {
+    datasetName: 'projects',
+    getLatestUnsyncedQuery: selectAllUnsyncedProjectChangesQuery,
+    markSyncedQuery: updateProjectChangelogQuery,
+    cleanupQuery: cleanUpSyncedProjectChangelogEntriesQuery,
+    syncToRemote: syncProjectsToRemote,
+    syncMode: 'batch',
+  } as SyncConfig<ProjectChange>,
+} as const
 
 async function syncDataset<T extends { write_id: string; timestamp: string }>(
   db: ElectricDb,
@@ -234,7 +215,9 @@ async function syncAllUnsynced<
   await db.query(config.cleanupQuery, [userId])
 }
 
-async function syncPositionsFromRemote(db: ElectricDb): Promise<void> {
+async function syncExperiencePositionsFromRemote(
+  db: ElectricDb
+): Promise<void> {
   try {
     const { data: remoteExperiences, error } = await supabase
       .from('experience')
@@ -257,11 +240,11 @@ async function syncPositionsFromRemote(db: ElectricDb): Promise<void> {
       ])
     }
   } catch (error) {
-    console.error('Error syncing positions from remote:', error)
+    console.error('Error syncing experience positions from remote:', error)
   }
 }
 
-async function syncBulletPositionsFromRemote(
+async function syncExperienceBulletPositionsFromRemote(
   db: ElectricDb,
   experienceId: string
 ): Promise<void> {
@@ -288,7 +271,37 @@ async function syncBulletPositionsFromRemote(
       ])
     }
   } catch (error) {
-    console.error('Error syncing bullet positions from remote:', error)
+    console.error(
+      'Error syncing experience bullet positions from remote:',
+      error
+    )
+  }
+}
+
+async function syncProjectsPositionsFromRemote(db: ElectricDb): Promise<void> {
+  try {
+    const { data: remoteProjects, error } = await supabase
+      .from('projects')
+      .select('id, position')
+      .order('position', { ascending: true })
+
+    if (error) {
+      console.error('Failed to fetch remote project block positions:', error)
+      return
+    }
+
+    if (!remoteProjects?.length) return
+
+    const timestamp = nowIso()
+    for (const project of remoteProjects) {
+      await db.query(updateProjectPositionQuery, [
+        project.id,
+        project.position,
+        timestamp,
+      ])
+    }
+  } catch (error) {
+    console.error('Error syncing project positions from remote:', error)
   }
 }
 
@@ -401,7 +414,7 @@ const upsertExperience = async (
 
       if (error) throw error
 
-      await syncPositionsFromRemote(db)
+      await syncExperiencePositionsFromRemote(db)
 
       await db.query(config.markSyncedQuery, [true, change.write_id])
       return
@@ -445,7 +458,7 @@ const deleteExperience = async (
 
       if (error) throw error
 
-      await syncPositionsFromRemote(db)
+      await syncExperiencePositionsFromRemote(db)
 
       await db.query(config.markSyncedQuery, [true, change.write_id])
       return
@@ -551,7 +564,7 @@ const upsertExperienceBullets = async (
         if (error) throw error
 
         // Sync bullet positions from remote after upsert (triggers may have reordered)
-        await syncBulletPositionsFromRemote(db, experienceId)
+        await syncExperienceBulletPositionsFromRemote(db, experienceId)
       }
 
       // Mark change as synced even if some bullets were skipped
@@ -592,7 +605,7 @@ const deleteExperienceBullets = async (
 
       if (serverError) throw serverError
 
-      await syncBulletPositionsFromRemote(db, experienceId)
+      await syncExperienceBulletPositionsFromRemote(db, experienceId)
 
       await db.query(config.markSyncedQuery, [true, change.write_id])
       return
@@ -706,26 +719,176 @@ async function syncExperienceToRemote(
   }
 }
 
-const SYNC_CONFIGS = {
-  personal_details: {
-    datasetName: 'personal_details',
-    getLatestUnsyncedQuery: selectLatestUnsyncedPersonalDetailsChangeQuery,
-    markSyncedQuery: updatePersonalDetailChangelogQuery,
-    markPreviousAsSyncedQuery: markPreviousPersonalDetailsChangesAsSyncedQuery,
-    cleanupQuery: cleanUpSyncedPersonalDetailsChangelogEntriesQuery,
-    syncToRemote: syncPersonalDetailsToRemote,
-    syncMode: 'single',
-  } as SyncConfig<PersonalDetailsChange>,
+const upsertProject = async (
+  change: ProjectChange,
+  db: ElectricDb,
+  config: SyncConfig<ProjectChange>
+): Promise<void> => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
 
-  experience: {
-    datasetName: 'experience',
-    getLatestUnsyncedQuery: selectAllUnsyncedExperienceChangesQuery,
-    markSyncedQuery: updateExperienceChangelogQuery,
-    cleanupQuery: cleanUpSyncedExperienceChangelogEntriesQuery,
-    syncToRemote: syncExperienceToRemote,
-    syncMode: 'batch',
-  } as SyncConfig<ExperienceChange>,
-} as const
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const projectBlock = change.value as ProjectBlockData
+
+      const { data: serverData, error: serverError } = await supabase
+        .from('projects')
+        .select('updated_at')
+        .eq('id', projectBlock.id)
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // Record doesn't exist, skip upsert - nothing to sync
+      } else if (serverError) {
+        throw serverError
+      }
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('upsert_project', {
+        p_id: projectBlock.id,
+        p_title: projectBlock.title,
+        p_link: projectBlock.link,
+        p_technologies: projectBlock.technologies,
+        p_description: projectBlock.description || '',
+        p_start_month: projectBlock.startDate.month ?? '',
+        p_start_year: Number(projectBlock.startDate.year),
+        p_end_month: projectBlock.endDate.month ?? '',
+        p_end_year: Number(projectBlock.endDate.year),
+        p_is_present: projectBlock.endDate.isPresent,
+        p_is_included: projectBlock.isIncluded ?? true,
+        p_position: projectBlock.position ?? 0,
+      })
+
+      if (error) throw error
+
+      await syncProjectsPositionsFromRemote(db)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+const deleteProject = async (
+  change: ProjectChange,
+  db: ElectricDb,
+  config: SyncConfig<ProjectChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const { id } = change.value as { id: string }
+
+      const { error: serverError } = await supabase
+        .from('projects')
+        .select('updated_at')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // The item does not exist, skip delete, mark row as synced
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      } else if (serverError) {
+        throw serverError
+      }
+
+      const { error } = await supabase.rpc('delete_project', {
+        p_ids: [id],
+      })
+
+      if (error) throw error
+
+      await syncProjectsPositionsFromRemote(db)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+const reorderProjects = async (
+  change: ProjectChange,
+  db: ElectricDb,
+  config: SyncConfig<ProjectChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      for (const row of change.value as { id: string; position: number }[]) {
+        const { error: serverError } = await supabase
+          .from('projects')
+          .update({ position: row.position })
+          .eq('id', row.id)
+
+        if (isRecordNotFoundError(serverError)) {
+          // Record doesn't exist remotely - skip until record gets upserted
+        } else if (serverError) {
+          throw serverError
+        }
+      }
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+async function syncProjectsToRemote(
+  change: ProjectChange,
+  db: ElectricDb,
+  config: SyncConfig<ProjectChange>
+) {
+  switch (change.operation) {
+    case 'upsert':
+      await upsertProject(change, db, config)
+      break
+    case 'delete':
+      await deleteProject(change, db, config)
+      break
+    case 'reorder':
+      await reorderProjects(change, db, config)
+      break
+    // case 'upsert_bullets':
+    //   await upsertProjectBullets(change, db, config)
+    //   break
+    // case 'delete_bullets':
+    //   await deleteProjectBullets(change, db, config)
+    //   break
+    // case 'toggle_bullet_lock':
+    // case 'toggle_bullets_lock_all':
+    //   await toggleProjectBullets(change, db, config)
+    //   break
+  }
+}
 
 export const pushLocalChangesToRemote = async () => {
   const { user } = useAuthStore.getState()
@@ -747,6 +910,13 @@ export const pushLocalChangesToRemote = async () => {
     await syncDataset(db, user?.id, experienceConfig)
   } catch (error) {
     console.error(`Error syncing experience:`, error)
+  }
+
+  const projectsConfig = SYNC_CONFIGS.projects
+  try {
+    await syncDataset(db, user?.id, projectsConfig)
+  } catch (error) {
+    console.error(`Error syncing projects:`, error)
   }
 }
 

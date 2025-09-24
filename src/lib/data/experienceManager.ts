@@ -43,11 +43,11 @@ class ExperienceManager {
       location: raw.location,
       description: raw.description || '',
       startDate: {
-        month: (raw.start_month as Month | '' | undefined) || undefined,
+        month: (raw.start_month as Month | '' | undefined) || '',
         year: raw.start_year?.toString() || '',
       },
       endDate: {
-        month: (raw.end_month as Month | '' | undefined) || undefined,
+        month: (raw.end_month as Month | '' | undefined) || '',
         year: raw.end_year?.toString() || '',
         isPresent: raw.is_present || false,
       },

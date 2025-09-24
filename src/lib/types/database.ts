@@ -387,6 +387,14 @@ export type Database = {
         Args: { b_ids: string[] }
         Returns: string
       }
+      delete_project: {
+        Args: { p_ids: string[] }
+        Returns: string
+      }
+      delete_project_bullets: {
+        Args: { b_ids: string[] }
+        Returns: string
+      }
       update_experience_bullet_locks: {
         Args:
           | { bullet_data: Json }
@@ -432,6 +440,27 @@ export type Database = {
           p_phone: string
           p_website: string
         }
+        Returns: string
+      }
+      upsert_project: {
+        Args: {
+          p_description: string
+          p_end_month: string
+          p_end_year: number
+          p_id: string
+          p_is_included: boolean
+          p_is_present: boolean
+          p_link: string
+          p_position: number
+          p_start_month: string
+          p_start_year: number
+          p_technologies: string[]
+          p_title: string
+        }
+        Returns: string
+      }
+      upsert_project_bullets: {
+        Args: { bullets: Json }
         Returns: string
       }
     }
