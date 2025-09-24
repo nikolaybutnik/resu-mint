@@ -620,39 +620,3 @@ WHERE user_id IS NULL
 export const updateProjectChangelogQuery = `
 UPDATE project_changes SET synced = $1 WHERE write_id = $2
 `
-
-// =============================================================================
-// FUTURE: GRANULAR BULLET SYNC QUERIES (Currently Disabled)
-// =============================================================================
-
-// FUTURE: Uncomment when implementing granular bullet sync
-// export const insertExperienceBulletsChangelogQuery = `
-// INSERT INTO experience_bullets_changes (operation, value, write_id, timestamp, user_id, experience_id)
-// VALUES ($1, $2, $3, $4, $5, $6)
-// `
-
-// export const selectLatestUnsyncedExperienceBulletsChangeQuery = `
-// SELECT * FROM experience_bullets_changes
-// WHERE synced = FALSE AND operation = 'update'
-// AND user_id = $1
-// ORDER BY timestamp DESC LIMIT 1
-// `
-
-// export const markPreviousExperienceBulletsChangesAsSyncedQuery = `
-// UPDATE experience_bullets_changes SET synced = TRUE
-// WHERE synced = FALSE AND operation = 'update'
-// AND timestamp <= $1 AND user_id = $2
-// `
-
-// export const cleanUpSyncedExperienceBulletsChangelogEntriesQuery = `
-// DELETE FROM experience_bullets_changes
-// WHERE synced = TRUE
-// AND timestamp < NOW() - INTERVAL '3 days'
-// AND user_id = $1
-// `
-
-// export const transferAnonymousExperienceBulletsToUser = `
-// UPDATE experience_bullets_changes
-// SET user_id = $1
-// WHERE user_id IS NULL
-// `

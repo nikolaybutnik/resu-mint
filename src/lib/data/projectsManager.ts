@@ -10,8 +10,10 @@ import { DEFAULT_STATE_VALUES } from '../constants'
 import { nowIso } from './dataUtils'
 import { useAuthStore, useDbStore } from '@/stores'
 import {
+  deleteProjectQuery,
   getProjectsQuery,
   insertProjectChangelogQuery,
+  reorderProjectPositionsQuery,
   upsertProjectQuery,
 } from '../sql'
 import {
@@ -141,6 +143,44 @@ class ProjectsManager {
       return Success(translatedResult)
     } catch (error) {
       return Failure(createUnknownError('Failed to save project', error))
+    }
+  }
+
+  async delete(blockId: string): Promise<Result<ProjectBlockData[]>> {
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      const existingData = (await this.get()) as ProjectBlockData[]
+      const blockExists = existingData.find((item) => item.id === blockId)
+
+      if (!blockExists) {
+        return Failure(createValidationError('Project block not found'))
+      }
+
+      await db?.query(deleteProjectQuery, [blockId])
+
+      await db?.query(reorderProjectPositionsQuery, [timestamp])
+
+      await db?.query(insertProjectChangelogQuery, [
+        'delete',
+        JSON.stringify({ id: blockId }),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getProjectsQuery)
+      const translatedResult = (result?.rows as RawProjectData[]).map((row) =>
+        this.translateRawProject(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to delete experience', error))
     }
   }
 }

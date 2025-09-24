@@ -3,7 +3,7 @@ import { dataManager } from '@/lib/data/dataManager'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit, debounce } from 'lodash'
-import { OperationError } from '@/lib/types/errors'
+import { createValidationError, OperationError } from '@/lib/types/errors'
 
 interface ProjectStore {
   data: ProjectBlockData[]
@@ -13,7 +13,7 @@ interface ProjectStore {
   error: OperationError | null
   initialize: () => Promise<void>
   upsert: (block: ProjectBlockData) => Promise<{ error: OperationError | null }>
-  // delete: (blockId: string) => Promise<{ error: OperationError | null }>
+  delete: (blockId: string) => Promise<{ error: OperationError | null }>
   // reorder: (
   //   data: ProjectBlockData[]
   // ) => Promise<{ error: OperationError | null }>
@@ -146,6 +146,47 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       debouncedSave?.(block)
 
       return { error: null }
+    },
+
+    delete: async (blockId: string) => {
+      const currentState = get()
+
+      const existingBlock = currentState.data.find(
+        (item) => item.id === blockId
+      )
+
+      if (!existingBlock) {
+        return {
+          error: createValidationError('Project block does not exist'),
+        }
+      }
+
+      const optimisticData = currentState.data.filter(
+        (block) => block.id !== blockId
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.deleteProject(blockId)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
     },
 
     hasChanges: (newData: ProjectBlockData[]) => {

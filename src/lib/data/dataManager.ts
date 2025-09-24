@@ -127,6 +127,10 @@ class DataManager {
     return projectsManager.upsert(data)
   }
 
+  async deleteProject(blockId: string): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.delete(blockId)
+  }
+
   // async saveProjectBullet(data: ProjectBulletPoint, sectionId: string) {
   //   return projectsManager.saveBullet(data, sectionId)
   // }

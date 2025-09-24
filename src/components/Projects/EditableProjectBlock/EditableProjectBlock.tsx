@@ -34,7 +34,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 
   const {
     data: projectData,
-    // delete: deleteProject,
+    delete: deleteProject,
     upsert,
     hasBlockChanges,
   } = useProjectStore()
@@ -127,7 +127,7 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 
     if (!ok) return
 
-    // await deleteProject(data.id)
+    await deleteProject(data.id)
     onClose?.()
   }
 
