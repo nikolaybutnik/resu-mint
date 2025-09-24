@@ -14,6 +14,7 @@ import {
   getProjectsQuery,
   insertProjectChangelogQuery,
   reorderProjectPositionsQuery,
+  updateProjectPositionQuery,
   upsertProjectQuery,
 } from '../sql'
 import {
@@ -25,7 +26,7 @@ import {
 } from '../types/errors'
 import { getLastKnownUserId } from '../utils'
 import { v4 as uuidv4 } from 'uuid'
-import { omit } from 'lodash'
+import { omit, pick } from 'lodash'
 
 class ProjectsManager {
   private translateRawProject(raw: RawProjectData): ProjectBlockData {
@@ -181,6 +182,52 @@ class ProjectsManager {
       return Success(translatedResult)
     } catch (error) {
       return Failure(createUnknownError('Failed to delete experience', error))
+    }
+  }
+
+  async reorder(data: ProjectBlockData[]): Promise<Result<ProjectBlockData[]>> {
+    const validation = projectBlockSchema.array().safeParse(data)
+
+    if (!validation.success) {
+      return Failure(
+        createValidationError('Invalid project data', validation.error)
+      )
+    }
+
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      for (let index = 0; index < validation.data.length; index++) {
+        const block = validation.data[index]
+        await db?.query(updateProjectPositionQuery, [
+          block.id,
+          index,
+          timestamp,
+        ])
+      }
+
+      await db?.query(insertProjectChangelogQuery, [
+        'reorder',
+        JSON.stringify(
+          validation.data.map((item) => pick(item, ['id', 'position']))
+        ),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getProjectsQuery)
+      const translatedResult = (result?.rows as RawProjectData[]).map((row) =>
+        this.translateRawProject(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to reorder projects', error))
     }
   }
 }

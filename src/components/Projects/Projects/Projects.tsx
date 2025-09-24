@@ -14,7 +14,7 @@ import {
   useSensor,
 } from '@dnd-kit/core'
 import {
-  // arrayMove,
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -41,11 +41,7 @@ interface ProjectsProps {
 const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const {
-    data: projects,
-    // reorder,
-    initializing,
-  } = useProjectStore()
+  const { data: projects, reorder, initializing } = useProjectStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -152,19 +148,16 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        // const oldIndex = projects.findIndex((item) => item.id === active.id)
-        // const newIndex = projects.findIndex((item) => item.id === over.id)
-        // const newOrder = arrayMove(projects, oldIndex, newIndex)
-        // reorder(newOrder)
+        const oldIndex = projects.findIndex((item) => item.id === active.id)
+        const newIndex = projects.findIndex((item) => item.id === over.id)
+        const newOrder = arrayMove(projects, oldIndex, newIndex)
+        reorder(newOrder)
       }
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
-    [
-      projects,
-      // reorder
-    ]
+    [projects, reorder]
   )
 
   const activeItem = useMemo(

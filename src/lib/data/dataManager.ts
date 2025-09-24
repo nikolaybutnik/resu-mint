@@ -60,16 +60,16 @@ class DataManager {
     return experienceManager.upsert(data)
   }
 
-  async reorderExperience(
-    data: ExperienceBlockData[]
-  ): Promise<Result<ExperienceBlockData[]>> {
-    return experienceManager.reorder(data)
-  }
-
   async deleteExperience(
     blockId: string
   ): Promise<Result<ExperienceBlockData[]>> {
     return experienceManager.delete(blockId)
+  }
+
+  async reorderExperience(
+    data: ExperienceBlockData[]
+  ): Promise<Result<ExperienceBlockData[]>> {
+    return experienceManager.reorder(data)
   }
 
   async saveExperienceBullet(
@@ -131,29 +131,11 @@ class DataManager {
     return projectsManager.delete(blockId)
   }
 
-  // async saveProjectBullet(data: ProjectBulletPoint, sectionId: string) {
-  //   return projectsManager.saveBullet(data, sectionId)
-  // }
-
-  // async saveProjectBullets(bullets: ProjectBulletPoint[], sectionId: string) {
-  //   return projectsManager.saveBullets(bullets, sectionId)
-  // }
-
-  // async deleteProjectBullet(sectionId: string, bulletId: string) {
-  //   return projectsManager.deleteBullet(sectionId, bulletId)
-  // }
-
-  // async toggleProjectBulletLock(sectionId: string, bulletId: string) {
-  //   return projectsManager.toggleBulletLock(sectionId, bulletId)
-  // }
-
-  // async toggleProjectBulletLockAll(sectionId: string, shouldLock: boolean) {
-  //   return projectsManager.toggleBulletLockAll(sectionId, shouldLock)
-  // }
-
-  // invalidateProjects() {
-  //   projectsManager.invalidate()
-  // }
+  async reorderProjects(
+    data: ProjectBlockData[]
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.reorder(data)
+  }
 
   // Education
   async getEducation(sectionId?: string) {
