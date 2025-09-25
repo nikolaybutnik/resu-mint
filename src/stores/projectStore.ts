@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
-import { ProjectBlockData } from '@/lib/types/projects'
+import { BulletPoint, ProjectBlockData } from '@/lib/types/projects'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit, debounce } from 'lodash'
 import { createValidationError, OperationError } from '@/lib/types/errors'
@@ -17,22 +17,22 @@ interface ProjectStore {
   reorder: (
     data: ProjectBlockData[]
   ) => Promise<{ error: OperationError | null }>
-  // saveBullet: (
-  //   bullet: BulletPoint,
-  //   sectionId: string
-  // ) => Promise<{ error: OperationError | null }>
-  // deleteBullet: (
-  //   sectionId: string,
-  //   bulletId: string
-  // ) => Promise<{ error: OperationError | null }>
-  // toggleBulletLock: (
-  //   sectionId: string,
-  //   bulletId: string
-  // ) => Promise<{ error: OperationError | null }>
-  // toggleBulletLockAll: (
-  //   sectionId: string,
-  //   shouldLock: boolean
-  // ) => Promise<{ error: OperationError | null }>
+  saveBullet: (
+    bullet: BulletPoint,
+    sectionId: string
+  ) => Promise<{ error: OperationError | null }>
+  deleteBullet: (
+    sectionId: string,
+    bulletId: string
+  ) => Promise<{ error: OperationError | null }>
+  toggleBulletLock: (
+    sectionId: string,
+    bulletId: string
+  ) => Promise<{ error: OperationError | null }>
+  toggleBulletLockAll: (
+    sectionId: string,
+    shouldLock: boolean
+  ) => Promise<{ error: OperationError | null }>
   hasChanges: (newData: ProjectBlockData[]) => boolean
   hasBlockChanges: (blockId: string, newBlockData: ProjectBlockData) => boolean
   refresh: () => Promise<void>
@@ -212,6 +212,175 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       } else {
         const currentState = get()
         set({
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    saveBullet: async (bullet: BulletPoint, sectionId: string) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints?.some((b) => b.id === bullet.id)
+                ? block.bulletPoints.map((b) =>
+                    b.id === bullet.id ? bullet : b
+                  )
+                : [...(block.bulletPoints || []), bullet],
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.saveProjectBullet(bullet, sectionId)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    deleteBullet: async (sectionId: string, bulletId: string) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints?.filter(
+                (b) => b.id !== bulletId
+              ),
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.deleteProjectBullet(sectionId, bulletId)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    toggleBulletLock: async (sectionId: string, bulletId: string) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints?.map((b) =>
+                b.id === bulletId ? { ...b, isLocked: !b.isLocked } : b
+              ),
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.toggleProjectBulletLock(
+        sectionId,
+        bulletId
+      )
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    toggleBulletLockAll: async (sectionId: string, shouldLock: boolean) => {
+      const currentState = get()
+
+      const optimisticData = currentState.data.map((block) =>
+        block.id === sectionId
+          ? {
+              ...block,
+              bulletPoints: block.bulletPoints?.map((b) => ({
+                ...b,
+                isLocked: shouldLock,
+              })),
+            }
+          : block
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.toggleProjectBulletLockAll(
+        sectionId,
+        shouldLock
+      )
+
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
           data: currentState.data,
           error: result.error,
         })

@@ -401,6 +401,10 @@ export type Database = {
           | { bullet_ids: string[]; bullet_locks: boolean[] }
         Returns: undefined
       }
+      update_project_bullet_locks: {
+        Args: { bullet_ids: string[]; bullet_locks: boolean[] }
+        Returns: undefined
+      }
       upsert_experience: {
         Args: {
           e_company_name: string

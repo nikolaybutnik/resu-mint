@@ -5,16 +5,22 @@ import {
   Month,
   RawProjectBulletData,
 } from '../types/projects'
-import { projectBlockSchema } from '../validationSchemas'
+import { bulletPointSchema, projectBlockSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
 import { nowIso } from './dataUtils'
 import { useAuthStore, useDbStore } from '@/stores'
 import {
+  deleteProjectBulletsQuery,
   deleteProjectQuery,
+  getProjectBulletsQuery,
   getProjectsQuery,
   insertProjectChangelogQuery,
+  reorderProjectBulletsQuery,
   reorderProjectPositionsQuery,
+  toggleProjectBulletLockQuery,
+  toggleProjectBulletsLockAllQuery,
   updateProjectPositionQuery,
+  upsertProjectBulletQuery,
   upsertProjectQuery,
 } from '../sql'
 import {
@@ -181,7 +187,7 @@ class ProjectsManager {
 
       return Success(translatedResult)
     } catch (error) {
-      return Failure(createUnknownError('Failed to delete experience', error))
+      return Failure(createUnknownError('Failed to delete project', error))
     }
   }
 
@@ -228,6 +234,250 @@ class ProjectsManager {
       return Success(translatedResult)
     } catch (error) {
       return Failure(createUnknownError('Failed to reorder projects', error))
+    }
+  }
+
+  async saveBullet(
+    data: BulletPoint,
+    sectionId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    return this.saveBullets([data], sectionId)
+  }
+
+  async saveBullets(
+    bullets: BulletPoint[],
+    sectionId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    const validation = bulletPointSchema.array().safeParse(bullets)
+    if (!validation.success) {
+      return Failure(
+        createValidationError('Invalid bullet data', validation.error)
+      )
+    }
+
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      const currentBulletsResult = await db?.query(getProjectBulletsQuery, [
+        sectionId,
+      ])
+      const currentBullets =
+        (currentBulletsResult?.rows as RawProjectBulletData[]) || []
+
+      for (let i = 0; i < bullets.length; i++) {
+        const bullet = bullets[i]
+        const existingBullet = currentBullets.find((b) => b.id === bullet.id)
+
+        let position = bullet.position ?? 0
+
+        if (!existingBullet) {
+          position = currentBullets.length + i
+        } else if (bullet.position === undefined) {
+          position = existingBullet.position ?? 0
+        }
+
+        await db?.query(upsertProjectBulletQuery, [
+          bullet.id,
+          sectionId,
+          bullet.text,
+          bullet.isLocked ?? false,
+          position,
+          timestamp,
+        ])
+      }
+
+      const updatedBullets = await db?.query(getProjectBulletsQuery, [
+        sectionId,
+      ])
+      const translatedUpdatedBullets = (
+        updatedBullets?.rows as RawProjectBulletData[]
+      ).map((b) => this.translateRawProjectBullet(b))
+
+      await db?.query(insertProjectChangelogQuery, [
+        'upsert_bullets',
+        JSON.stringify({
+          projectId: sectionId,
+          data: translatedUpdatedBullets,
+        }),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getProjectsQuery)
+      const translatedResult = (result?.rows as RawProjectData[]).map((row) =>
+        this.translateRawProject(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to save bullets', error))
+    }
+  }
+
+  async deleteBullet(
+    sectionId: string,
+    bulletId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    return this.deleteBullets(sectionId, [bulletId])
+  }
+
+  async deleteBullets(
+    sectionId: string,
+    bulletIds: string[]
+  ): Promise<Result<ProjectBlockData[]>> {
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      const currentBulletsResult = await db?.query(getProjectBulletsQuery, [
+        sectionId,
+      ])
+      const currentBullets =
+        (currentBulletsResult?.rows as RawProjectBulletData[]) || []
+
+      for (const bulletId of bulletIds) {
+        const bulletExists = currentBullets.find((b) => b.id === bulletId)
+        if (!bulletExists) {
+          return Failure(
+            createValidationError(`Bullet point ${bulletId} not found`)
+          )
+        }
+      }
+
+      await db?.query(deleteProjectBulletsQuery, [bulletIds, timestamp])
+
+      await db?.query(reorderProjectBulletsQuery, [sectionId, timestamp])
+
+      await db?.query(insertProjectChangelogQuery, [
+        'delete_bullets',
+        JSON.stringify({ projectId: sectionId, bulletIds }),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getProjectsQuery)
+      const translatedResult = (result?.rows as RawProjectData[]).map((row) =>
+        this.translateRawProject(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to delete bullets', error))
+    }
+  }
+
+  async toggleBulletLock(
+    sectionId: string,
+    bulletId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      const currentBulletsResult = await db?.query(getProjectBulletsQuery, [
+        sectionId,
+      ])
+      const currentBullets =
+        (currentBulletsResult?.rows as RawProjectBulletData[]) || []
+      const bullet = currentBullets.find((b) => b.id === bulletId)
+
+      if (!bullet) {
+        return Failure(createValidationError('Bullet point not found'))
+      }
+
+      const newLockState = !bullet.is_locked
+      await db?.query(toggleProjectBulletLockQuery, [
+        newLockState,
+        timestamp,
+        bulletId,
+      ])
+
+      const updatedBullets = await db?.query(getProjectBulletsQuery, [
+        sectionId,
+      ])
+      const translatedUpdatedBullets = (
+        updatedBullets?.rows as RawProjectBulletData[]
+      ).map((b) => this.translateRawProjectBullet(b))
+
+      await db?.query(insertProjectChangelogQuery, [
+        'toggle_bullet_lock',
+        JSON.stringify({
+          projectId: sectionId,
+          data: translatedUpdatedBullets,
+        }),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getProjectsQuery)
+      const translatedResult = (result?.rows as RawProjectData[]).map((row) =>
+        this.translateRawProject(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to toggle bullet lock', error))
+    }
+  }
+
+  async toggleBulletLockAll(
+    sectionId: string,
+    shouldLock: boolean
+  ): Promise<Result<ProjectBlockData[]>> {
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      await db?.query(toggleProjectBulletsLockAllQuery, [
+        shouldLock,
+        timestamp,
+        sectionId,
+      ])
+
+      const updatedBullets = await db?.query(getProjectBulletsQuery, [
+        sectionId,
+      ])
+      const translatedUpdatedBullets = (
+        updatedBullets?.rows as RawProjectBulletData[]
+      ).map((b) => this.translateRawProjectBullet(b))
+
+      await db?.query(insertProjectChangelogQuery, [
+        'toggle_bullets_lock_all',
+        JSON.stringify({
+          projectId: sectionId,
+          data: translatedUpdatedBullets,
+        }),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getProjectsQuery)
+      const translatedResult = (result?.rows as RawProjectData[]).map((row) =>
+        this.translateRawProject(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(
+        createUnknownError('Failed to toggle all bullet locks', error)
+      )
     }
   }
 }

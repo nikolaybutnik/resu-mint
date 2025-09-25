@@ -9,8 +9,7 @@ import {
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
 import { sanitizeResumeBullet } from '@/lib/utils'
 import { BulletPoint } from '../types/experience'
-import { useExperienceStore } from '@/stores'
-import { useProjectStore } from '@/stores'
+import { useExperienceStore, useProjectStore } from '@/stores'
 import { bulletTextValidationSchema } from '../validationSchemas'
 import { AppSettings } from '../types/settings'
 import {
@@ -96,23 +95,12 @@ export const bulletService = {
         }
         return Success(undefined)
       } else if (sectionType === 'project') {
-        // TODO: Implement saveBullet method in project store/manager
-        // const projectStore = useProjectStore.getState()
-        // const saveResult = await projectStore.saveBullet(cleanBullet, sectionId)
-        // if (saveResult.error) {
-        //   return Failure(saveResult.error)
-        // }
-        // return Success(undefined)
-
-        // Mock implementation following experience pattern
-        // const projectManager = projectsManager
-        // const saveResult = await projectManager.saveBullet(cleanBullet, sectionId)
-        // if (saveResult.success === false) {
-        //   return Failure(saveResult.error)
-        // }
-        // return Success(undefined)
-
-        throw new Error('Project bullet save not yet implemented')
+        const projectStore = useProjectStore.getState()
+        const saveResult = await projectStore.saveBullet(cleanBullet, sectionId)
+        if (saveResult.error) {
+          return Failure(saveResult.error)
+        }
+        return Success(undefined)
       }
 
       return Failure(createValidationError('Invalid section type'))
@@ -140,23 +128,15 @@ export const bulletService = {
         }
         return Success(undefined)
       } else if (sectionType === 'project') {
-        // TODO: Implement deleteBullet method in project store/manager
-        // const projectStore = useProjectStore.getState()
-        // const deleteResult = await projectStore.deleteBullet(sectionId, bulletId)
-        // if (deleteResult.error) {
-        //   return Failure(deleteResult.error)
-        // }
-        // return Success(undefined)
-
-        // Mock implementation following experience pattern
-        // const projectManager = projectsManager
-        // const deleteResult = await projectManager.deleteBullet(sectionId, bulletId)
-        // if (deleteResult.success === false) {
-        //   return Failure(deleteResult.error)
-        // }
-        // return Success(undefined)
-
-        throw new Error('Project bullet delete not yet implemented')
+        const projectStore = useProjectStore.getState()
+        const deleteResult = await projectStore.deleteBullet(
+          sectionId,
+          bulletId
+        )
+        if (deleteResult.error) {
+          return Failure(deleteResult.error)
+        }
+        return Success(undefined)
       }
 
       return Failure(createValidationError('Invalid section type'))
@@ -184,23 +164,15 @@ export const bulletService = {
         }
         return Success(undefined)
       } else if (sectionType === 'project') {
-        // TODO: Implement toggleBulletLock method in project store/manager
-        // const projectStore = useProjectStore.getState()
-        // const toggleResult = await projectStore.toggleBulletLock(sectionId, bulletId)
-        // if (toggleResult.error) {
-        //   return Failure(toggleResult.error)
-        // }
-        // return Success(undefined)
-
-        // Mock implementation following experience pattern
-        // const projectManager = projectsManager
-        // const toggleResult = await projectManager.toggleBulletLock(sectionId, bulletId)
-        // if (toggleResult.success === false) {
-        //   return Failure(toggleResult.error)
-        // }
-        // return Success(undefined)
-
-        throw new Error('Project bullet lock toggle not yet implemented')
+        const projectStore = useProjectStore.getState()
+        const toggleResult = await projectStore.toggleBulletLock(
+          sectionId,
+          bulletId
+        )
+        if (toggleResult.error) {
+          return Failure(toggleResult.error)
+        }
+        return Success(undefined)
       }
 
       return Failure(createValidationError('Invalid section type'))
@@ -228,23 +200,15 @@ export const bulletService = {
         }
         return Success(undefined)
       } else if (sectionType === 'project') {
-        // TODO: Implement toggleBulletLockAll method in project store/manager
-        // const projectStore = useProjectStore.getState()
-        // const toggleResult = await projectStore.toggleBulletLockAll(sectionId, shouldLock)
-        // if (toggleResult.error) {
-        //   return Failure(toggleResult.error)
-        // }
-        // return Success(undefined)
-
-        // Mock implementation following experience pattern
-        // const projectManager = projectsManager
-        // const toggleResult = await projectManager.toggleBulletLockAll(sectionId, shouldLock)
-        // if (toggleResult.success === false) {
-        //   return Failure(toggleResult.error)
-        // }
-        // return Success(undefined)
-
-        throw new Error('Project bullet lock all toggle not yet implemented')
+        const projectStore = useProjectStore.getState()
+        const toggleResult = await projectStore.toggleBulletLockAll(
+          sectionId,
+          shouldLock
+        )
+        if (toggleResult.error) {
+          return Failure(toggleResult.error)
+        }
+        return Success(undefined)
       }
 
       return Failure(createValidationError('Invalid section type'))

@@ -10,7 +10,10 @@ import type {
   ExperienceBlockData,
   BulletPoint as ExperienceBulletPoint,
 } from '../types/experience'
-import type { ProjectBlockData } from '../types/projects'
+import type {
+  ProjectBlockData,
+  BulletPoint as ProjectBulletPoint,
+} from '../types/projects'
 import type { AppSettings } from '../types/settings'
 import { JobDetails } from '../types/jobDetails'
 import { jobDetailsManager } from './jobDetailsManager'
@@ -135,6 +138,48 @@ class DataManager {
     data: ProjectBlockData[]
   ): Promise<Result<ProjectBlockData[]>> {
     return projectsManager.reorder(data)
+  }
+
+  async saveProjectBullet(
+    data: ProjectBulletPoint,
+    sectionId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.saveBullet(data, sectionId)
+  }
+
+  async saveProjectBullets(
+    bullets: ProjectBulletPoint[],
+    sectionId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.saveBullets(bullets, sectionId)
+  }
+
+  async deleteProjectBullet(
+    sectionId: string,
+    bulletId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.deleteBullet(sectionId, bulletId)
+  }
+
+  async deleteProjectBullets(
+    sectionId: string,
+    bulletIds: string[]
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.deleteBullets(sectionId, bulletIds)
+  }
+
+  async toggleProjectBulletLock(
+    sectionId: string,
+    bulletId: string
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.toggleBulletLock(sectionId, bulletId)
+  }
+
+  async toggleProjectBulletLockAll(
+    sectionId: string,
+    shouldLock: boolean
+  ): Promise<Result<ProjectBlockData[]>> {
+    return projectsManager.toggleBulletLockAll(sectionId, shouldLock)
   }
 
   // Education

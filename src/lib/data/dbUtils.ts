@@ -19,6 +19,7 @@ import {
   updateProjectChangelogQuery,
   cleanUpSyncedProjectChangelogEntriesQuery,
   updateProjectPositionQuery,
+  updateProjectBulletPositionQuery,
 } from '../sql'
 import { ProjectBlockData } from '../types/projects'
 
@@ -59,7 +60,7 @@ interface ExperienceChange {
     | ExperienceBlockData // upsert
     | { id: string; position: number }[] // reorder
     | { id: string } // delete
-    | BulletChangeData // upsert_bullets, delete_bullets, toggle_bullet_lock, toggle_bullets_lock_all
+    | ExperienceBulletChangeData // upsert_bullets, delete_bullets, toggle_bullet_lock, toggle_bullets_lock_all
   write_id: string
   timestamp: string
   synced: boolean
@@ -80,15 +81,21 @@ interface ProjectChange {
     | ProjectBlockData // upsert
     | { id: string; position: number }[] // reorder
     | { id: string } // delete
-    | BulletChangeData // upsert_bullets, delete_bullets, toggle_bullet_lock, toggle_bullets_lock_all
+    | ProjectBulletChangeData // upsert_bullets, delete_bullets, toggle_bullet_lock, toggle_bullets_lock_all
   write_id: string
   timestamp: string
   synced: boolean
   user_id: string | null
 }
 
-interface BulletChangeData {
+interface ExperienceBulletChangeData {
   experienceId: string
+  data?: BulletPoint[]
+  bulletIds?: string[]
+}
+
+interface ProjectBulletChangeData {
+  projectId: string
   data?: BulletPoint[]
   bulletIds?: string[]
 }
@@ -256,7 +263,10 @@ async function syncExperienceBulletPositionsFromRemote(
       .order('position', { ascending: true })
 
     if (error) {
-      console.error('Failed to fetch remote bullet positions:', error)
+      console.error(
+        'Failed to fetch remote experience bullet positions:',
+        error
+      )
       return
     }
 
@@ -302,6 +312,37 @@ async function syncProjectsPositionsFromRemote(db: ElectricDb): Promise<void> {
     }
   } catch (error) {
     console.error('Error syncing project positions from remote:', error)
+  }
+}
+
+async function syncProjectBulletPositionsFromRemote(
+  db: ElectricDb,
+  projectId: string
+): Promise<void> {
+  try {
+    const { data: remoteBullets, error } = await supabase
+      .from('project_bullets')
+      .select('id, position')
+      .eq('project_id', projectId)
+      .order('position', { ascending: true })
+
+    if (error) {
+      console.error('Failed to fetch remote project bullet positions:', error)
+      return
+    }
+
+    if (!remoteBullets?.length) return
+
+    const timestamp = nowIso()
+    for (const bullet of remoteBullets) {
+      await db.query(updateProjectBulletPositionQuery, [
+        bullet.id,
+        bullet.position,
+        timestamp,
+      ])
+    }
+  } catch (error) {
+    console.error('Error syncing project bullet positions from remote:', error)
   }
 }
 
@@ -513,7 +554,7 @@ const upsertExperienceBullets = async (
   const TOLERANCE_MS = 30000
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
-    const changeData = change.value as BulletChangeData
+    const changeData = change.value as ExperienceBulletChangeData
     const bulletsToUpsert = changeData.data || []
     const experienceId = changeData.experienceId
 
@@ -587,7 +628,7 @@ const deleteExperienceBullets = async (
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const changeData = change.value as BulletChangeData
+      const changeData = change.value as ExperienceBulletChangeData
       const bulletsToDelete = changeData.bulletIds || []
       const experienceId = changeData.experienceId
 
@@ -628,7 +669,7 @@ const toggleExperienceBullets = async (
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
-      const changeData = change.value as BulletChangeData
+      const changeData = change.value as ExperienceBulletChangeData
       const bulletsToUpdate = changeData.data || []
       const experienceId = changeData.experienceId
 
@@ -862,6 +903,193 @@ const reorderProjects = async (
   }
 }
 
+const upsertProjectBullets = async (
+  change: ProjectChange,
+  db: ElectricDb,
+  config: SyncConfig<ProjectChange>
+): Promise<void> => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const changeData = change.value as ProjectBulletChangeData
+    const bulletsToUpsert = changeData.data || []
+    const projectId = changeData.projectId
+
+    try {
+      const safeBullets: BulletPoint[] = []
+
+      for (const bullet of bulletsToUpsert) {
+        const { data: serverData, error: serverError } = await supabase
+          .from('project_bullets')
+          .select('updated_at')
+          .eq('id', bullet.id)
+          .eq('project_id', projectId)
+          .maybeSingle()
+
+        if (isRecordNotFoundError(serverError)) {
+          // Bullet doesn't exist on server, safe to sync
+          safeBullets.push(bullet)
+          continue
+        } else if (serverError) {
+          throw serverError
+        }
+
+        if (serverData?.updated_at) {
+          const serverTime = new Date(serverData.updated_at).getTime()
+          const localTime = new Date(change.timestamp || 0).getTime()
+          const timeDiff = serverTime - localTime
+
+          if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+            // Server has newer data for this bullet, skip
+            continue
+          }
+        }
+
+        // No conflict, safe to sync
+        safeBullets.push(bullet)
+      }
+
+      if (safeBullets.length > 0) {
+        const bulletsWithProjectId = safeBullets.map((bullet) => ({
+          ...bullet,
+          projectId,
+        }))
+
+        const { error } = await supabase.rpc('upsert_project_bullets', {
+          bullets: bulletsWithProjectId,
+        })
+
+        if (error) throw error
+
+        // Sync bullet positions from remote after upsert (triggers may have reordered)
+        await syncProjectBulletPositionsFromRemote(db, projectId)
+      }
+
+      // Mark change as synced even if some bullets were skipped
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+const deleteProjectBullets = async (
+  change: ProjectChange,
+  db: ElectricDb,
+  config: SyncConfig<ProjectChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const changeData = change.value as ProjectBulletChangeData
+      const bulletsToDelete = changeData.bulletIds || []
+      const projectId = changeData.projectId
+
+      if (!bulletsToDelete.length) {
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      }
+
+      const { error: serverError } = await supabase.rpc(
+        'delete_project_bullets',
+        {
+          b_ids: bulletsToDelete,
+        }
+      )
+
+      if (serverError) throw serverError
+
+      await syncProjectBulletPositionsFromRemote(db, projectId)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+const toggleProjectBullets = async (
+  change: ProjectChange,
+  db: ElectricDb,
+  config: SyncConfig<ProjectChange>
+) => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const changeData = change.value as ProjectBulletChangeData
+      const bulletsToUpdate = changeData.data || []
+      const projectId = changeData.projectId
+
+      if (bulletsToUpdate.length === 0) {
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      }
+
+      const safeBullets: BulletPoint[] = []
+
+      for (const bullet of bulletsToUpdate) {
+        const { data: serverData, error: serverError } = await supabase
+          .from('project_bullets')
+          .select('updated_at, is_locked')
+          .eq('id', bullet.id)
+          .eq('project_id', projectId)
+          .maybeSingle()
+
+        if (isRecordNotFoundError(serverError)) {
+          // Bullet doesn't exist on server, skip
+          continue
+        } else if (serverError) {
+          throw serverError
+        }
+
+        if (serverData?.updated_at) {
+          const serverTime = new Date(serverData.updated_at).getTime()
+          const localTime = new Date(change.timestamp || 0).getTime()
+          const timeDiff = serverTime - localTime
+
+          if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+            // Server has newer data, skip this bullet
+            continue
+          }
+        }
+
+        safeBullets.push(bullet)
+      }
+
+      if (safeBullets.length === 0) {
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      }
+
+      const { error } = await supabase.rpc('update_project_bullet_locks', {
+        bullet_ids: safeBullets.map((b) => b.id),
+        bullet_locks: safeBullets.map((b) => b.isLocked ?? false),
+      })
+
+      if (error) throw error
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncProjectsToRemote(
   change: ProjectChange,
   db: ElectricDb,
@@ -877,16 +1105,16 @@ async function syncProjectsToRemote(
     case 'reorder':
       await reorderProjects(change, db, config)
       break
-    // case 'upsert_bullets':
-    //   await upsertProjectBullets(change, db, config)
-    //   break
-    // case 'delete_bullets':
-    //   await deleteProjectBullets(change, db, config)
-    //   break
-    // case 'toggle_bullet_lock':
-    // case 'toggle_bullets_lock_all':
-    //   await toggleProjectBullets(change, db, config)
-    //   break
+    case 'upsert_bullets':
+      await upsertProjectBullets(change, db, config)
+      break
+    case 'delete_bullets':
+      await deleteProjectBullets(change, db, config)
+      break
+    case 'toggle_bullet_lock':
+    case 'toggle_bullets_lock_all':
+      await toggleProjectBullets(change, db, config)
+      break
   }
 }
 

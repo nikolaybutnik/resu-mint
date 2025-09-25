@@ -162,6 +162,21 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'projects',
   },
+  project_bullets: {
+    table: 'project_bullets',
+    columns: [
+      'id',
+      'project_id',
+      'text',
+      'is_locked',
+      'position',
+      'user_id',
+      'updated_at',
+      'created_at',
+    ],
+    primaryKey: ['id'],
+    shapeKey: 'project_bullets',
+  },
 }
 
 const TABLE_STORE_RESET_MAP = {
@@ -175,6 +190,10 @@ const TABLE_STORE_RESET_MAP = {
   },
   projects: (defaultValue: ProjectBlockData[]) =>
     useProjectStore.setState({ data: defaultValue }),
+  project_bullets: () => {
+    const { refresh } = useProjectStore.getState()
+    refresh()
+  },
 } as const
 
 let firstSyncFlag = true
@@ -343,7 +362,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
         // Phase 2: Parent tables
         ['experience', 'projects'],
         // Phase 3: Child tables
-        ['experience_bullets'],
+        ['experience_bullets', 'project_bullets'],
       ]
 
       let completedPhases = 0
