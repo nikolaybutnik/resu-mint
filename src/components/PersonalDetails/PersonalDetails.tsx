@@ -95,9 +95,7 @@ const PersonalDetails: React.FC = () => {
 
       if (Object.keys(result.fieldErrors).length === 0 && result.data) {
         if (!hasChanges(result.data)) {
-          toast.warning(
-            "You haven't made any changes to your personal details."
-          )
+          toast.info("You haven't made any changes to your personal details.")
           return {
             fieldErrors: {},
             data: result.data,
@@ -106,24 +104,7 @@ const PersonalDetails: React.FC = () => {
 
         const saveResult = await save(result.data)
 
-        if (saveResult.error) {
-          // Check if it's a sync warning (data saved locally) vs actual blocking error
-          if (
-            saveResult.error.code === 'NETWORK_ERROR' ||
-            saveResult.error.code === 'UNKNOWN_ERROR'
-          ) {
-            // TODO: redo toast conditions
-            // toast.success(
-            //   'Your personal details were saved locally and will sync when connection to database is restored.'
-            // )
-          } else {
-            return {
-              fieldErrors: {},
-              data: result.data,
-              operationError: saveResult.error,
-            }
-          }
-        } else {
+        if (!saveResult.error) {
           toast.success('Your personal details were updated.')
         }
       }
@@ -139,14 +120,13 @@ const PersonalDetails: React.FC = () => {
   useEffect(() => {
     if (storeError) {
       switch (storeError.code) {
-        case 'QUOTA_EXCEEDED':
+        case 'NETWORK_ERROR':
           toast.error(
-            'Storage space is full. Please free up space and try again.'
+            'Network connection failed. Please check your internet connection.'
           )
           break
-        case 'NETWORK_ERROR':
-          break
         case 'UNKNOWN_ERROR':
+          toast.error('An unexpected error occurred. Please try again.')
           break
         case 'VALIDATION_ERROR':
           toast.error('Invalid data provided. Please check your input.')
@@ -154,8 +134,9 @@ const PersonalDetails: React.FC = () => {
         default:
           toast.error('Failed to save your changes. Please try again.')
       }
+      clearError()
     }
-  }, [storeError])
+  }, [storeError, clearError])
 
   useEffect(() => {
     return () => {

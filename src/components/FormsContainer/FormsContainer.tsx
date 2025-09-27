@@ -214,7 +214,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const { data: settings } = useSettingsStore()
 
   // UI States
-  const [activeTab, setActiveTab] = useState<string>(Tabs.JOB_DETAILS)
+  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
   const [isClient, setIsClient] = useState(false)
   const [safariUnsupported, setSafariUnsupported] = useState(false)
   const [showLeftScroll, setShowLeftScroll] = useState(false)
@@ -257,6 +257,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           const { hasChanges } = usePersonalDetailsStore.getState()
           isDirty = hasChanges(current)
         }
+        break
       case Tabs.EXPERIENCE:
         form = document.querySelector(`form[data-tab="${FORM_IDS.EXPERIENCE}"]`)
 
@@ -265,6 +266,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           const { hasBlockChanges } = useExperienceStore.getState()
           isDirty = hasBlockChanges(current.id, current)
         }
+        break
       case Tabs.PROJECTS:
         form = document.querySelector(`form[data-tab="${FORM_IDS.PROJECTS}"]`)
 
@@ -273,7 +275,15 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
           const { hasBlockChanges } = useProjectStore.getState()
           isDirty = hasBlockChanges(current.id, current)
         }
+        break
       case Tabs.EDUCATION:
+        form = document.querySelector(`form[data-tab="${FORM_IDS.EDUCATION}"]`)
+
+        if (form) {
+          // const current = extractEducationFormData(form)
+          // const { hasBlockChanges } = useEducationStore.getState()
+          // isDirty = hasBlockChanges(current.id, current)
+        }
         break
     }
 

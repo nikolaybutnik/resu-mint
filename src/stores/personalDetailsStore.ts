@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { PersonalDetails } from '@/lib/types/personalDetails'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
-import { OperationError } from '@/lib/types/errors'
+import { OperationError, createUnknownError } from '@/lib/types/errors'
 import { debounce, isEqual, omit } from 'lodash'
 
 interface PersonalDetailsStore {
@@ -11,6 +11,8 @@ interface PersonalDetailsStore {
   initializing: boolean
   hasData: boolean
   error: OperationError | null
+  saveInFlight: boolean
+  pendingSaveDetails: PersonalDetails | null
   save: (details: PersonalDetails) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   initialize: () => Promise<void>
@@ -19,41 +21,13 @@ interface PersonalDetailsStore {
   cleanup: () => void
 }
 
-let debouncedSave: ReturnType<typeof debounce> | null = null
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
 export const usePersonalDetailsStore = create<PersonalDetailsStore>(
   (set, get) => {
-    if (!debouncedSave) {
-      debouncedSave = debounce(async (details: PersonalDetails) => {
-        const currentState = get()
-
-        set({ loading: true, error: null })
-
-        const result = await dataManager.savePersonalDetails(details)
-
-        if (result.success) {
-          set({
-            data: result.data,
-            loading: false,
-            hasData:
-              !!result.data?.name?.trim() && !!result.data?.email?.trim(),
-            error: result.warning || null,
-          })
-        } else {
-          set({
-            loading: false,
-            data: currentState.data,
-            error: result.error,
-          })
-        }
-      }, 1000)
-    }
-
     if (!debouncedRefresh) {
       debouncedRefresh = debounce(async () => {
         try {
-          set({ loading: true })
           const data = await dataManager.getPersonalDetails()
           set({
             data,
@@ -62,7 +36,13 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
           })
         } catch (error) {
           console.error('PersonalDetailsStore: refresh error:', error)
-          set({ loading: false })
+          set({
+            loading: false,
+            error: createUnknownError(
+              'Failed to refresh personal details',
+              error
+            ),
+          })
         }
       }, 300)
     }
@@ -73,9 +53,11 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
       initializing: true,
       hasData: false,
       error: null,
+      saveInFlight: false,
+      pendingSaveDetails: null,
 
       initialize: async () => {
-        set({ loading: true })
+        set({ loading: true, error: null })
         try {
           const data = await dataManager.getPersonalDetails()
           set({
@@ -86,7 +68,14 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
           })
         } catch (error) {
           console.error('PersonalDetailsStore: initialization error:', error)
-          set({ loading: false, initializing: false })
+          set({
+            loading: false,
+            initializing: false,
+            error: createUnknownError(
+              'Failed to initialize personal details',
+              error
+            ),
+          })
         }
       },
 
@@ -101,12 +90,16 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
         set({
           data: details,
           hasData: !!details?.name?.trim() && !!details?.email?.trim(),
+          loading: true,
           error: null,
         })
 
-        debouncedSave?.(details)
+        if (currentState.saveInFlight) {
+          set({ pendingSaveDetails: details })
+          return { error: null }
+        }
 
-        return { error: null }
+        return executeSave(details, set, get)
       },
 
       refresh: async () => {
@@ -124,13 +117,84 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
       },
 
       cleanup: () => {
-        if (debouncedSave?.cancel) {
-          debouncedSave.cancel()
-        }
-        if (debouncedRefresh?.cancel) {
-          debouncedRefresh.cancel()
-        }
+        set({ saveInFlight: false, pendingSaveDetails: null })
       },
     }
   }
 )
+
+async function executeSave(
+  details: PersonalDetails,
+  set: (state: Partial<PersonalDetailsStore>) => void,
+  get: () => PersonalDetailsStore
+): Promise<{ error: OperationError | null }> {
+  set({ saveInFlight: true })
+
+  try {
+    const result = await dataManager.savePersonalDetails(details)
+
+    if (result.success) {
+      set({
+        data: result.data,
+        hasData: !!result.data?.name?.trim() && !!result.data?.email?.trim(),
+        loading: false,
+        error: result.warning || null,
+      })
+
+      const returnValue = { error: result.warning || null }
+
+      const currentState = get()
+      if (currentState.pendingSaveDetails) {
+        const nextDetails = currentState.pendingSaveDetails
+        set({ pendingSaveDetails: null })
+        return executeSave(nextDetails, set, get)
+      }
+
+      set({ saveInFlight: false })
+      return returnValue
+    } else {
+      const currentState = get()
+      set({
+        data: currentState.data,
+        hasData: currentState.hasData,
+        loading: false,
+        error: result.error,
+      })
+
+      const returnValue = { error: result.error }
+
+      if (currentState.pendingSaveDetails) {
+        const nextDetails = currentState.pendingSaveDetails
+        set({ pendingSaveDetails: null })
+        return executeSave(nextDetails, set, get)
+      }
+
+      set({ saveInFlight: false })
+      return returnValue
+    }
+  } catch (error) {
+    const operationError = createUnknownError(
+      'Failed to save personal details',
+      error
+    )
+
+    const currentState = get()
+    set({
+      data: currentState.data,
+      hasData: currentState.hasData,
+      loading: false,
+      error: operationError,
+    })
+
+    const returnValue = { error: operationError }
+
+    if (currentState.pendingSaveDetails) {
+      const nextDetails = currentState.pendingSaveDetails
+      set({ pendingSaveDetails: null })
+      return executeSave(nextDetails, set, get)
+    }
+
+    set({ saveInFlight: false })
+    return returnValue
+  }
+}

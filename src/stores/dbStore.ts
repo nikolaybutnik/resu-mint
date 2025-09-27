@@ -576,7 +576,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     return syncResult?.stream || null
   },
 
-  startPushSync: (intervalMs = 5000) => {
+  startPushSync: (intervalMs: number = 5000) => {
     const currentTimer = get().pushSyncTimer
     if (currentTimer) {
       clearTimeout(currentTimer)
@@ -623,7 +623,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
       }
     }
 
-    const scheduleNextSync = (isRecurring = false) => {
+    const scheduleNextSync = (isRecurring: boolean = false) => {
       if (isRecurring && !get().pushSyncTimer) return
 
       if (firstSyncFlag) {

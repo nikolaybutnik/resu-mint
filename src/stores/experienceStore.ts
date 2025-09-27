@@ -3,7 +3,11 @@ import { dataManager } from '@/lib/data/dataManager'
 import { ExperienceBlockData, BulletPoint } from '@/lib/types/experience'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit, debounce } from 'lodash'
-import { createValidationError, OperationError } from '@/lib/types/errors'
+import {
+  createValidationError,
+  OperationError,
+  createUnknownError,
+} from '@/lib/types/errors'
 
 interface ExperienceStore {
   data: ExperienceBlockData[]
@@ -76,7 +80,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
   if (!debouncedRefresh) {
     debouncedRefresh = debounce(async () => {
       try {
-        set({ loading: true })
+        set({ loading: true, error: null })
         const data =
           (await dataManager.getExperience()) as ExperienceBlockData[]
         set({
@@ -86,7 +90,10 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         })
       } catch (error) {
         console.error('ExperienceStore: refresh error:', error)
-        set({ loading: false })
+        set({
+          loading: false,
+          error: createUnknownError('Failed to refresh experience data', error),
+        })
       }
     }, 300)
   }
@@ -99,7 +106,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
     error: null,
 
     initialize: async () => {
-      set({ loading: true })
+      set({ loading: true, error: null })
 
       try {
         const data =
@@ -114,7 +121,14 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       } catch (error) {
         console.error('ExperienceStore: initialization error:', error)
 
-        set({ loading: false, initializing: false })
+        set({
+          loading: false,
+          initializing: false,
+          error: createUnknownError(
+            'Failed to initialize experience data',
+            error
+          ),
+        })
       }
     },
 
