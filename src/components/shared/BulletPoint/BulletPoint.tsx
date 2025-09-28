@@ -273,15 +273,18 @@ const BulletPoint: React.FC<BulletPointProps> = ({
         if (editMode && generatedBullet) {
           setEditModeText(generatedBullet.text)
         } else if (!editMode && generatedBullet) {
+          const bulletToSave = {
+            ...bulletData,
+            text: generatedBullet.text,
+          }
           const saveResult = await bulletService.saveBullet(
-            generatedBullet,
+            bulletToSave,
             sectionId,
             sectionType,
             settings.maxCharsPerBullet
           )
           if (!saveResult.success) {
             console.error('Failed to save generated bullet:', saveResult.error)
-
             toast.error('Failed to save bullet point.')
           }
         }

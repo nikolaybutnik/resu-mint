@@ -214,7 +214,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const { data: settings } = useSettingsStore()
 
   // UI States
-  const [activeTab, setActiveTab] = useState<string>(Tabs.PERSONAL_DETAILS)
+  const [activeTab, setActiveTab] = useState<string>(Tabs.PROJECTS)
   const [isClient, setIsClient] = useState(false)
   const [safariUnsupported, setSafariUnsupported] = useState(false)
   const [showLeftScroll, setShowLeftScroll] = useState(false)

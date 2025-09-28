@@ -66,7 +66,7 @@ export function useAuthListener() {
             })
 
             if (event === 'SIGNED_OUT') {
-              toast.success('You have been signed out successfully.')
+              toast.info('You have been signed out.')
             }
 
             hasShownLoginToast.current = false
