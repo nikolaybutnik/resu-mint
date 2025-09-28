@@ -48,6 +48,7 @@ import {
   isQuotaExceededError,
 } from '@/lib/types/errors'
 import { ProjectBlockData } from '@/lib/types/projects'
+import { debounce } from 'lodash'
 
 export type ElectricDb = PGlite & {
   electric: {
@@ -427,16 +428,14 @@ export const useDbStore = create<DbStore>((set, get) => ({
                 config.table.toUpperCase() as keyof typeof DEFAULT_STATE_VALUES
               const defaultValue = DEFAULT_STATE_VALUES[defaultValueKey]
               resetFunction(defaultValue as never)
-            } else {
-              console.warn(
-                `No store reset function found for table: ${config.table}`
-              )
             }
 
             await tx.query(`DELETE FROM ${config.table}`)
-            toast.warning(
-              'Local data is out of sync with the server. Your cache has been cleared.'
-            )
+            debounce(() => {
+              toast.info(
+                'Your data is out of sync with the server. Your cache has been cleared.'
+              )
+            }, 200)
           },
         })
 
@@ -470,13 +469,13 @@ export const useDbStore = create<DbStore>((set, get) => ({
               })
 
               if (hasPersonalDetailsChanges) {
-                setTimeout(() => refreshPersonalDetails(), 200)
+                debounce(() => refreshPersonalDetails(), 200)
               }
               if (hasExperienceChanges) {
-                setTimeout(() => refreshExperience(), 200)
+                debounce(() => refreshExperience(), 200)
               }
               if (hasProjectChanges) {
-                setTimeout(() => refreshProjects(), 200)
+                debounce(() => refreshProjects(), 200)
               }
             }
 

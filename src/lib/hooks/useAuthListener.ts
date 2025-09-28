@@ -5,6 +5,7 @@ import { toast } from '@/stores/toastStore'
 import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { getLastKnownUserId, setLastKnownUserId } from '../utils'
 import { transferAnonymousPersonalDetailsToUser } from '../sql'
+import { debounce } from 'lodash'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
@@ -66,7 +67,9 @@ export function useAuthListener() {
             })
 
             if (event === 'SIGNED_OUT') {
-              toast.info('You have been signed out.')
+              debounce(() => {
+                toast.info('You have been signed out.')
+              }, 200)
             }
 
             hasShownLoginToast.current = false
@@ -127,14 +130,22 @@ export function useAuthListener() {
                     (now.getTime() - createdAt.getTime()) / 1000
 
                   if (timeSinceCreation <= 10) {
-                    toast.success(
-                      'Welcome to ResuMint! Your account has been created successfully.'
-                    )
+                    debounce(() => {
+                      toast.success(
+                        'Welcome to ResuMint! Your account has been created successfully.'
+                      )
+                    }, 200)
                   } else {
-                    toast.success('Login successful, welcome back to ResuMint!')
+                    debounce(() => {
+                      toast.success(
+                        'Login successful, welcome back to ResuMint!'
+                      )
+                    }, 200)
                   }
                 } else {
-                  toast.success('Login successful, welcome back to ResuMint!')
+                  debounce(() => {
+                    toast.success('Login successful, welcome back to ResuMint!')
+                  }, 200)
                 }
               }
 
