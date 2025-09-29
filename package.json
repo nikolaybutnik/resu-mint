@@ -8,6 +8,7 @@
     "vercel-build": "node scripts/download-tectonic.js && node scripts/warm-tectonic-cache.js && next build",
     "start": "next start",
     "lint": "next lint",
+    "analyze": "ANALYZE=true npm run build",
     "postinstall": "node scripts/download-tectonic.js"
   },
   "dependencies": {
@@ -41,6 +42,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@next/bundle-analyzer": "^15.5.4",
     "@types/file-saver": "^2.0.7",
     "@types/lodash": "^4.17.16",
     "@types/node": "^20",
