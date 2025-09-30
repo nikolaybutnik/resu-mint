@@ -20,8 +20,8 @@ import {
   cleanUpSyncedProjectChangelogEntriesQuery,
   updateProjectPositionQuery,
   updateProjectBulletPositionQuery,
-} from '../sql'
-import { ProjectBlockData } from '../types/projects'
+} from './sql'
+import { ProjectBlockData } from './types/projects'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
   if (!error) return false

@@ -27,7 +27,7 @@ import {
   initializeProjectChangelogQuery,
   initializeProjectsQuery,
 } from '@/lib/sql'
-import { pushLocalChangesToRemote } from '@/lib/data/dbUtils'
+import { pushLocalChangesToRemote } from '@/lib/dbUtils'
 import {
   usePersonalDetailsStore,
   useExperienceStore,
@@ -469,13 +469,13 @@ export const useDbStore = create<DbStore>((set, get) => ({
               })
 
               if (hasPersonalDetailsChanges) {
-                debounce(() => refreshPersonalDetails(), 200)
+                setTimeout(() => refreshPersonalDetails(), 200)
               }
               if (hasExperienceChanges) {
-                debounce(() => refreshExperience(), 200)
+                setTimeout(() => refreshExperience(), 200)
               }
               if (hasProjectChanges) {
-                debounce(() => refreshProjects(), 200)
+                setTimeout(() => refreshProjects(), 200)
               }
             }
 
