@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import {
-  arrayMove,
+  // arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -26,11 +26,22 @@ import { restrictToVerticalAxis } from '@dnd-kit/modifiers'
 import EditableEducationBlock from '../EditableEducationBlock/EditableEducationBlock'
 import DraggableEducationBlock from '../DraggableEducationBlock/DraggableEducationBlock'
 import { useEducationStore } from '@/stores'
+import {
+  SkeletonButton,
+  SkeletonDraggableBlock,
+} from '@/components/shared/Skeleton'
 
 const Education: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { data: education, save } = useEducationStore()
+  // TODO: implement store operations
+  const {
+    data: education,
+    // reorder,
+    initializing,
+    // error: storeError,
+    // clearError,
+  } = useEducationStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -114,16 +125,17 @@ const Education: React.FC = () => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        const oldIndex = education.findIndex((item) => item.id === active.id)
-        const newIndex = education.findIndex((item) => item.id === over.id)
-        const newOrder = arrayMove(education, oldIndex, newIndex)
-        save(newOrder)
+        // const oldIndex = education.findIndex((item) => item.id === active.id)
+        // const newIndex = education.findIndex((item) => item.id === over.id)
+        // const newOrder = arrayMove(education, oldIndex, newIndex)
+        // save(newOrder)
+        // TODO: implement reorder
       }
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
-    [education, save]
+    [education]
   )
 
   const activeItem = useMemo(
@@ -212,6 +224,10 @@ const Education: React.FC = () => {
     )
   }
 
+  if (initializing) {
+    return <LoadingState />
+  }
+
   return (
     <div ref={containerRef} className={styles.education}>
       <h2 className={styles.formTitle}>Education</h2>
@@ -231,5 +247,21 @@ const Education: React.FC = () => {
     </div>
   )
 }
+
+const LoadingState = () => (
+  <div className={styles.formSection}>
+    <h2 className={styles.formTitle}>Education</h2>
+    <div className={styles.formFieldsContainer}>
+      <div className={styles.skeletonButtonContainer}>
+        <SkeletonButton variant='primary' />
+      </div>
+      <div className={styles.skeletonBlockContainer}>
+        <SkeletonDraggableBlock />
+        <SkeletonDraggableBlock />
+        <SkeletonDraggableBlock />
+      </div>
+    </div>
+  </div>
+)
 
 export default Education

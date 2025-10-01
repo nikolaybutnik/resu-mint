@@ -3,7 +3,9 @@ import {
   PERSONAL_DETAILS_FORM_DATA_KEYS,
   EXPERIENCE_FORM_DATA_KEYS,
   PROJECT_FORM_DATA_KEYS,
+  EDUCATION_FORM_DATA_KEYS,
 } from './constants'
+import { DegreeStatus, EducationBlockData } from './types/education'
 import { ExperienceBlockData, Month } from './types/experience'
 import { PersonalDetails } from './types/personalDetails'
 import { ProjectBlockData } from './types/projects'
@@ -534,6 +536,55 @@ export const extractProjectFormData = (
     },
     description:
       (formData.get(PROJECT_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
+      '',
+  }
+}
+
+/**
+ * Extracts form data for education
+ *
+ * @param source - The HTMLFormElement or FormData containing education data
+ * @returns EducationBlockData object with extracted values
+ */
+export const extractEducationFormData = (
+  source: HTMLFormElement | FormData
+): EducationBlockData => {
+  const formData = source instanceof FormData ? source : new FormData(source)
+
+  return {
+    id: (formData.get('id') as string) || '',
+    institution:
+      (formData.get(EDUCATION_FORM_DATA_KEYS.INSTITUTION) as string)?.trim() ||
+      '',
+    degree:
+      (formData.get(EDUCATION_FORM_DATA_KEYS.DEGREE) as string)?.trim() || '',
+    degreeStatus: (() => {
+      const value = formData.get(
+        EDUCATION_FORM_DATA_KEYS.DEGREE_STATUS
+      ) as string
+      return value && value !== '' ? (value as DegreeStatus) : undefined
+    })(),
+    location:
+      (formData.get(EDUCATION_FORM_DATA_KEYS.LOCATION) as string)?.trim() || '',
+    startDate: {
+      month:
+        (formData.get(EDUCATION_FORM_DATA_KEYS.START_DATE_MONTH) as Month) ||
+        '',
+      year:
+        (
+          formData.get(EDUCATION_FORM_DATA_KEYS.START_DATE_YEAR) as string
+        )?.trim() || '',
+    },
+    endDate: {
+      month:
+        (formData.get(EDUCATION_FORM_DATA_KEYS.END_DATE_MONTH) as Month) || '',
+      year:
+        (
+          formData.get(EDUCATION_FORM_DATA_KEYS.END_DATE_YEAR) as string
+        )?.trim() || '',
+    },
+    description:
+      (formData.get(EDUCATION_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
       '',
   }
 }

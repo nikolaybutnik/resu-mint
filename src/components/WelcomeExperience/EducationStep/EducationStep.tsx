@@ -6,6 +6,7 @@ import { DegreeStatus, EducationFormState } from '@/lib/types/education'
 import { useAutoResizeTextarea } from '@/lib/hooks/useAutoResizeTextarea'
 import { v4 as uuidv4 } from 'uuid'
 import { useEducationStore } from '@/stores/educationStore'
+import { OperationError } from '@/lib/types/errors'
 
 interface EducationStepProps {
   onContinue: () => void
@@ -16,45 +17,40 @@ export const EducationStep: React.FC<EducationStepProps> = ({
   onContinue,
   onSkip,
 }) => {
+  // const { upsert: upsertEducation } = useEducationStore()
+
+  const [showForm, setShowForm] = useState(false)
+  const [isEditingExisting, setIsEditingExisting] = useState(false)
+
   const {
     data: educationData,
     hasData,
-    save: saveEducation,
+    // save: saveEducation,
   } = useEducationStore()
 
-  const submitEducationWrapper = (
+  const submitEducationWrapper = async (
     prevState: EducationFormState,
     formData: FormData
-  ) => {
+  ): Promise<EducationFormState> => {
     let id = prevState.data?.id
     if (!id) {
       id = uuidv4()
     }
 
-    return submitEducation(
+    // TODO: implement upsert
+    return await submitEducation(
       { ...prevState, data: { ...prevState.data, id, isIncluded: true } },
       formData,
-      educationData,
-      saveEducation
+      // upsertEducation // Mocked - would use the upsert function from store
+      () => Promise.resolve({ error: null } as { error: OperationError | null })
     )
   }
 
-  const [state, formAction] = useActionState(
-    (prevState: EducationFormState, formData: FormData) =>
-      submitEducationWrapper(prevState, formData),
-    {
-      errors: {},
-      data: educationData,
-    } as EducationFormState
-  )
+  const [state, formAction] = useActionState(submitEducationWrapper, {
+    fieldErrors: {},
+    data: educationData.length > 0 ? educationData[0] : undefined,
+  })
 
-  useEffect(() => {
-    if (state.success) {
-      onContinue()
-    }
-  }, [state.success, onContinue])
-
-  const [showForm, setShowForm] = useState(false)
   const [description, setDescription] = useState(state.data?.description || '')
 
   const {
@@ -67,17 +63,20 @@ export const EducationStep: React.FC<EducationStepProps> = ({
     setDescription(state.data?.description || '')
   }, [state.data?.description])
 
-  const handleEditEducation = () => {
-    const [storedData] = educationData
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-    const loadFormData = new FormData()
-    loadFormData.set('load', 'true')
-    loadFormData.set('existingData', JSON.stringify(storedData))
+    const form = e.target as HTMLFormElement
+    const formData = new FormData(form)
 
-    formAction(loadFormData)
-
-    setShowForm(true)
+    formAction(formData)
   }
+
+  useEffect(() => {
+    if (state.data && Object.keys(state.fieldErrors).length === 0) {
+      onContinue()
+    }
+  }, [state.data, state.fieldErrors, onContinue])
 
   const renderSelectionPhase = () => {
     if (hasData) {
@@ -87,7 +86,10 @@ export const EducationStep: React.FC<EducationStepProps> = ({
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
-              onClick={handleEditEducation}
+              onClick={() => {
+                setShowForm(true)
+                setIsEditingExisting(true)
+              }}
             >
               Edit Education
             </button>
@@ -108,7 +110,10 @@ export const EducationStep: React.FC<EducationStepProps> = ({
           <div className={styles.choiceButtons}>
             <button
               className={styles.choiceButton}
-              onClick={() => setShowForm(true)}
+              onClick={() => {
+                setShowForm(true)
+                setIsEditingExisting(false)
+              }}
             >
               Add Education
             </button>
@@ -136,14 +141,14 @@ export const EducationStep: React.FC<EducationStepProps> = ({
           {renderSelectionPhase()}
         </div>
       ) : (
-        <form action={formAction}>
+        <form onSubmit={handleSubmit}>
           <div className={styles.formField}>
             <button
               type='button'
               className={styles.backToChoiceButton}
               onClick={() => {
                 setShowForm(false)
-                // setIsEditingExisting(false)
+                setIsEditingExisting(false)
               }}
             >
               ← Back to selection
@@ -156,14 +161,14 @@ export const EducationStep: React.FC<EducationStepProps> = ({
               type='text'
               name={EDUCATION_FORM_DATA_KEYS.INSTITUTION}
               className={`${styles.formInput} ${
-                state?.errors?.institution ? styles.error : ''
+                state?.fieldErrors?.institution ? styles.error : ''
               }`}
               defaultValue={state.data?.institution}
               placeholder='e.g., University of Toronto'
             />
-            {state?.errors?.institution && (
+            {state?.fieldErrors?.institution && (
               <span className={styles.formError}>
-                {state.errors.institution}
+                {state.fieldErrors.institution}
               </span>
             )}
           </div>
@@ -174,13 +179,15 @@ export const EducationStep: React.FC<EducationStepProps> = ({
               type='text'
               name={EDUCATION_FORM_DATA_KEYS.DEGREE}
               className={`${styles.formInput} ${
-                state?.errors?.degree ? styles.error : ''
+                state?.fieldErrors?.degree ? styles.error : ''
               }`}
               defaultValue={state.data?.degree}
               placeholder='e.g., Bachelor of Science in Computer Science'
             />
-            {state?.errors?.degree && (
-              <span className={styles.formError}>{state.errors.degree}</span>
+            {state?.fieldErrors?.degree && (
+              <span className={styles.formError}>
+                {state.fieldErrors.degree}
+              </span>
             )}
           </div>
 
@@ -190,13 +197,15 @@ export const EducationStep: React.FC<EducationStepProps> = ({
               type='text'
               name={EDUCATION_FORM_DATA_KEYS.LOCATION}
               className={`${styles.formInput} ${
-                state?.errors?.location ? styles.error : ''
+                state?.fieldErrors?.location ? styles.error : ''
               }`}
               defaultValue={state.data?.location || ''}
               placeholder='e.g., Toronto, ON'
             />
-            {state?.errors?.location && (
-              <span className={styles.formError}>{state.errors.location}</span>
+            {state?.fieldErrors?.location && (
+              <span className={styles.formError}>
+                {state.fieldErrors.location}
+              </span>
             )}
           </div>
 
@@ -248,9 +257,9 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                   }}
                 />
               </div>
-              {state?.errors?.startDate && (
+              {state?.fieldErrors?.startDate && (
                 <span className={styles.formError}>
-                  {state.errors.startDate}
+                  {state.fieldErrors.startDate}
                 </span>
               )}
             </div>
@@ -288,8 +297,10 @@ export const EducationStep: React.FC<EducationStepProps> = ({
                   }}
                 />
               </div>
-              {state?.errors?.endDate && (
-                <span className={styles.formError}>{state.errors.endDate}</span>
+              {state?.fieldErrors?.endDate && (
+                <span className={styles.formError}>
+                  {state.fieldErrors.endDate}
+                </span>
               )}
             </div>
           </div>
@@ -311,16 +322,15 @@ export const EducationStep: React.FC<EducationStepProps> = ({
               }}
               onInput={handleInput}
             />
-            {state?.errors?.description && (
+            {state?.fieldErrors?.description && (
               <span className={styles.formError}>
-                {state.errors.description}
+                {state.fieldErrors.description}
               </span>
             )}
           </div>
 
           <button type='submit' className={styles.submitButton}>
-            {/* {isEditingExisting ? 'Update & Continue' : 'Continue'} */}
-            Continue
+            {isEditingExisting ? 'Update & Continue' : 'Continue'}
           </button>
         </form>
       )}

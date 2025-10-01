@@ -11,6 +11,7 @@ import { useAutoResizeTextarea } from '@/lib/hooks'
 import { useEducationStore } from '@/stores'
 import { submitEducation } from '@/lib/actions/educationActions'
 import { useFormStatus } from 'react-dom'
+import { OperationError } from '@/lib/types/errors'
 
 interface EditableEducationBlockProps {
   data: EducationBlockData
@@ -21,16 +22,26 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   data,
   onClose,
 }) => {
-  const { data: educationData, save, hasChanges } = useEducationStore()
+  const {
+    data: educationData,
+    // upsert,
+    hasChanges,
+  } = useEducationStore()
 
   const isNew = !educationData.some((block) => block.id === data.id)
   const shouldShowCloseButton = educationData.length > 1 || !isNew
 
   const [state, formAction] = useActionState(
-    (prevState: EducationFormState, formData: FormData): EducationFormState =>
-      submitEducation(prevState, formData, educationData, save),
+    (
+      prevState: EducationFormState,
+      formData: FormData
+    ): Promise<EducationFormState> =>
+      // TODO: implement upsert
+      submitEducation(prevState, formData, () =>
+        Promise.resolve({ error: null } as { error: OperationError | null })
+      ) as Promise<EducationFormState>,
     {
-      errors: {},
+      fieldErrors: {},
       data,
     } as EducationFormState
   )
@@ -62,11 +73,12 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         'Are you sure you want to delete this education? This action cannot be undone.'
       )
     ) {
-      const updatedSections = educationData.filter(
-        (section) => section.id !== data.id
-      )
-      save(updatedSections)
-      onClose?.()
+      // const updatedSections = educationData.filter(
+      //   (section) => section.id !== data.id
+      // )
+      // TODO: implement delete
+      // save(updatedSections)
+      // onClose?.()
     }
   }
 
@@ -124,13 +136,15 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             type='text'
             name={EDUCATION_FORM_DATA_KEYS.INSTITUTION}
             className={`${styles.formInput} ${
-              state?.errors?.institution ? styles.error : ''
+              state?.fieldErrors?.institution ? styles.error : ''
             }`}
             defaultValue={state.data?.institution}
             placeholder='e.g. Harvard University'
           />
-          {state?.errors?.institution && (
-            <span className={styles.formError}>{state.errors.institution}</span>
+          {state?.fieldErrors?.institution && (
+            <span className={styles.formError}>
+              {state.fieldErrors.institution}
+            </span>
           )}
         </div>
 
@@ -143,13 +157,13 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             type='text'
             name={EDUCATION_FORM_DATA_KEYS.DEGREE}
             className={`${styles.formInput} ${
-              state?.errors?.degree ? styles.error : ''
+              state?.fieldErrors?.degree ? styles.error : ''
             }`}
             defaultValue={state.data?.degree}
             placeholder='e.g. Bachelor of Computer Science'
           />
-          {state?.errors?.degree && (
-            <span className={styles.formError}>{state.errors.degree}</span>
+          {state?.fieldErrors?.degree && (
+            <span className={styles.formError}>{state.fieldErrors.degree}</span>
           )}
         </div>
 
@@ -165,9 +179,9 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             <option value={DegreeStatus.COMPLETED}>Completed</option>
             <option value={DegreeStatus.IN_PROGRESS}>In Progress</option>
           </select>
-          {state?.errors?.degreeStatus && (
+          {state?.fieldErrors?.degreeStatus && (
             <span className={styles.formError}>
-              {state.errors.degreeStatus}
+              {state.fieldErrors.degreeStatus}
             </span>
           )}
         </div>
@@ -178,13 +192,15 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             type='text'
             name={EDUCATION_FORM_DATA_KEYS.LOCATION}
             className={`${styles.formInput} ${
-              state?.errors?.location ? styles.error : ''
+              state?.fieldErrors?.location ? styles.error : ''
             }`}
             defaultValue={state.data?.location || ''}
             placeholder='e.g. Cambridge, MA'
           />
-          {state?.errors?.location && (
-            <span className={styles.formError}>{state.errors.location}</span>
+          {state?.fieldErrors?.location && (
+            <span className={styles.formError}>
+              {state.fieldErrors.location}
+            </span>
           )}
         </div>
 
@@ -221,8 +237,10 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
               }}
             />
           </div>
-          {state?.errors?.startDate && (
-            <span className={styles.formError}>{state.errors.startDate}</span>
+          {state?.fieldErrors?.startDate && (
+            <span className={styles.formError}>
+              {state.fieldErrors.startDate}
+            </span>
           )}
         </div>
 
@@ -259,8 +277,10 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
               }}
             />
           </div>
-          {state?.errors?.endDate && (
-            <span className={styles.formError}>{state.errors.endDate}</span>
+          {state?.fieldErrors?.endDate && (
+            <span className={styles.formError}>
+              {state.fieldErrors.endDate}
+            </span>
           )}
         </div>
 
@@ -279,8 +299,10 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
             }}
             onInput={handleInput}
           />
-          {state?.errors?.description && (
-            <span className={styles.formError}>{state.errors.description}</span>
+          {state?.fieldErrors?.description && (
+            <span className={styles.formError}>
+              {state.fieldErrors.description}
+            </span>
           )}
         </div>
 

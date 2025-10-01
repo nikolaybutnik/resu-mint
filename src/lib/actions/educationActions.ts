@@ -1,110 +1,28 @@
-import {
-  EducationBlockData,
-  DegreeStatus,
-  Month,
-  EducationFormState,
-} from '../types/education'
+import { EducationBlockData, EducationFormState } from '../types/education'
 import { educationBlockSchema } from '../validationSchemas'
-import { zodErrorsToFormErrors } from '../types/errors'
-import { EDUCATION_FORM_DATA_KEYS } from '../constants'
+import { OperationError, zodErrorsToFormErrors } from '../types/errors'
+import { extractEducationFormData } from '../utils'
 
-export const submitEducation = (
-  prevState: EducationFormState,
+export const submitEducation = async (
+  _prevState: EducationFormState,
   formData: FormData,
-  education: EducationBlockData[],
-  onSave: (data: EducationBlockData[]) => void
-): EducationFormState => {
-  if (formData.get('load') === 'true') {
-    const existingDataString = formData.get('existingData') as string
-    if (existingDataString) {
-      try {
-        const existingData = JSON.parse(
-          existingDataString
-        ) as EducationBlockData
-        return {
-          errors: {},
-          data: existingData,
-          success: false,
-        }
-      } catch (error) {
-        console.error('Error parsing existing education data:', error)
-      }
-    }
-  }
-
-  if (formData.get('reset') === 'true') {
-    return {
-      errors: {},
-      data: undefined,
-      success: false,
-    }
-  }
-
-  const educationData: EducationBlockData = {
-    id: prevState.data?.id || '',
-    isIncluded: prevState.data?.isIncluded || false,
-    institution:
-      (formData.get(EDUCATION_FORM_DATA_KEYS.INSTITUTION) as string)?.trim() ||
-      '',
-    degree:
-      (formData.get(EDUCATION_FORM_DATA_KEYS.DEGREE) as string)?.trim() || '',
-    degreeStatus: (() => {
-      const value = formData.get(
-        EDUCATION_FORM_DATA_KEYS.DEGREE_STATUS
-      ) as string
-      return value && value !== '' ? (value as DegreeStatus) : undefined
-    })(),
-    location:
-      (formData.get(EDUCATION_FORM_DATA_KEYS.LOCATION) as string)?.trim() || '',
-    startDate: {
-      month:
-        (formData.get(EDUCATION_FORM_DATA_KEYS.START_DATE_MONTH) as Month) ||
-        '',
-      year:
-        (
-          formData.get(EDUCATION_FORM_DATA_KEYS.START_DATE_YEAR) as string
-        )?.trim() || '',
-    },
-    endDate: {
-      month:
-        (formData.get(EDUCATION_FORM_DATA_KEYS.END_DATE_MONTH) as Month) || '',
-      year:
-        (
-          formData.get(EDUCATION_FORM_DATA_KEYS.END_DATE_YEAR) as string
-        )?.trim() || '',
-    },
-    description:
-      (formData.get(EDUCATION_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
-      '',
-  }
+  upsert: (block: EducationBlockData) => Promise<{
+    error: OperationError | null
+  }>
+): Promise<EducationFormState> => {
+  const educationData: EducationBlockData = extractEducationFormData(formData)
 
   const validatedData = educationBlockSchema.safeParse(educationData)
 
+  // TODO: implement notifications
   if (validatedData.success) {
-    const existingItemIndex = education.findIndex(
-      (item) => item.id === validatedData.data.id
-    )
-
-    let updatedEducation: EducationBlockData[]
-
-    if (existingItemIndex !== -1) {
-      updatedEducation = education.map((item) =>
-        item.id === validatedData.data.id ? validatedData.data : item
-      )
-    } else {
-      updatedEducation = [...education, validatedData.data]
-    }
-
-    onSave(updatedEducation)
+    await upsert(validatedData.data)
   }
 
   return {
-    errors: validatedData.success
+    fieldErrors: validatedData.success
       ? {}
       : zodErrorsToFormErrors(validatedData.error),
-    data: validatedData.success
-      ? (validatedData.data as EducationBlockData)
-      : (educationData as Partial<EducationBlockData>),
-    success: validatedData.success,
+    data: validatedData.success ? validatedData.data : educationData,
   }
 }

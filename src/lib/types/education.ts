@@ -1,3 +1,5 @@
+import { ToastMessage } from './toast'
+
 export type Month =
   | 'Jan'
   | 'Feb'
@@ -39,10 +41,12 @@ export interface EducationBlockData {
   location?: string
   description?: string
   isIncluded?: boolean
+  position?: number
+  updatedAt?: string
 }
 
 export interface EducationFormState {
-  errors: Record<string, string>
+  fieldErrors: Record<string, string>
   data?: Partial<EducationBlockData>
-  success?: boolean
+  notifications?: ToastMessage[]
 }
