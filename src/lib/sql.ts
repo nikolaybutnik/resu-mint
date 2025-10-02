@@ -120,6 +120,38 @@ CREATE TABLE IF NOT EXISTS project_changes (
 );
 `
 
+// Education Tables
+export const initializeEducationQuery = `
+CREATE TABLE IF NOT EXISTS education (
+    id UUID PRIMARY KEY,
+    institution TEXT NOT NULL,
+    degree TEXT NOT NULL,
+    degree_status TEXT,
+    location TEXT,
+    description TEXT,
+    start_month TEXT CHECK (start_month IS NULL OR start_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
+    start_year SMALLINT NOT NULL CHECK (start_year >= 1000 AND start_year <= 9999),
+    end_month TEXT CHECK (end_month IS NULL OR end_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
+    end_year SMALLINT CHECK (end_year IS NULL OR (end_year >= 1000 AND end_year <= 9999)),
+    is_included BOOLEAN DEFAULT TRUE,
+    position INTEGER DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+
+export const initializeEducationChangelogQuery = `
+CREATE TABLE IF NOT EXISTS education_changes (
+    id BIGSERIAL PRIMARY KEY,
+    operation TEXT NOT NULL,
+    value JSONB NOT NULL,
+    write_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
+);
+`
+
 // =============================================================================
 // PERSONAL DETAILS QUERIES
 // =============================================================================

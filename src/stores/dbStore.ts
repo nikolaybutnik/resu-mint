@@ -18,6 +18,8 @@ import { PersonalDetails } from '@/lib/types/personalDetails'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { Session } from '@supabase/supabase-js'
 import {
+  initializeEducationChangelogQuery,
+  initializeEducationQuery,
   initializeExperienceBulletsQuery,
   initializeExperienceChangelogQuery,
   initializeExperienceQuery,
@@ -209,6 +211,8 @@ const initializeTables = async (db: PGlite) => {
     await db.query(initializeProjectsQuery)
     await db.query(initializeProjectBulletsQuery)
     await db.query(initializeProjectChangelogQuery)
+    await db.query(initializeEducationQuery)
+    await db.query(initializeEducationChangelogQuery)
   } catch (error) {
     console.error('Failed to initialize DB tables:', error)
   }
