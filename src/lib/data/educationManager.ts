@@ -1,99 +1,56 @@
-import { STORAGE_KEYS } from '../constants'
-import { EducationBlockData } from '../types/education'
-import { educationBlockSchema } from '../validationSchemas'
+import {
+  DegreeStatus,
+  EducationBlockData,
+  Month,
+  RawEducationData,
+} from '../types/education'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
-
-const CACHE_KEYS = {
-  EDUCATION_LOCAL: 'education-local',
-  EDUCATION_API: 'education-api',
-} as const
+import { useDbStore } from '@/stores'
+import { getEducationQuery } from '../sql'
 
 class EducationManager {
-  private cache = new Map<string, Promise<unknown>>()
+  private translateRawEducation(raw: RawEducationData): EducationBlockData {
+    return {
+      id: raw.id,
+      institution: raw.institution,
+      degree: raw.degree,
+      degreeStatus: raw.degree_status as DegreeStatus | undefined,
+      location: raw.location as string | undefined,
+      description: raw.description || '',
+      startDate: {
+        month: (raw.start_month as Month | '' | undefined) || '',
+        year: raw.start_year?.toString() || '',
+      },
+      endDate: {
+        month: (raw.end_month as Month | '' | undefined) || '',
+        year: raw.end_year?.toString() || '',
+      },
+      isIncluded: raw.is_included ?? true,
+      position: raw.position ?? 0,
+      updatedAt: raw.updated_at || undefined,
+    }
+  }
 
   async get(
     sectionId?: string
   ): Promise<EducationBlockData | EducationBlockData[] | undefined> {
-    const cacheKey = isAuthenticated()
-      ? CACHE_KEYS.EDUCATION_API
-      : CACHE_KEYS.EDUCATION_LOCAL
+    const { db } = useDbStore.getState()
 
-    if (!this.cache.has(cacheKey)) {
-      const promise = new Promise<EducationBlockData[]>((resolve) => {
-        try {
-          const stored = localStorage.getItem(STORAGE_KEYS.EDUCATION)
+    const data = await db?.query(getEducationQuery)
 
-          if (stored) {
-            const parsed = JSON.parse(stored)
-            const validation = educationBlockSchema.array().safeParse(parsed)
-
-            if (validation.success) {
-              resolve(validation.data)
-            } else {
-              console.warn(
-                'Invalid education in Local Storage, using defaults:',
-                validation.error
-              )
-              resolve(DEFAULT_STATE_VALUES.EDUCATION)
-            }
-          } else {
-            resolve(DEFAULT_STATE_VALUES.EDUCATION)
-          }
-        } catch (error) {
-          console.error('Error loading education, using defaults:', error)
-          resolve(DEFAULT_STATE_VALUES.EDUCATION)
-        }
-      })
-      this.cache.set(cacheKey, promise)
+    if (!data?.rows?.length) {
+      return sectionId ? undefined : DEFAULT_STATE_VALUES.EDUCATION
     }
 
-    const allEducation = await (this.cache.get(cacheKey)! as Promise<
-      EducationBlockData[]
-    >)
+    const translatedData = (data.rows as RawEducationData[]).map((row) =>
+      this.translateRawEducation(row)
+    )
 
     if (sectionId) {
-      return allEducation.find((block) => block.id === sectionId)
+      return translatedData.find((item) => item.id === sectionId)
     }
 
-    return allEducation
-  }
-
-  async save(data: EducationBlockData[]): Promise<void> {
-    const validation = educationBlockSchema.array().safeParse(data)
-    if (!validation.success) {
-      console.error('Invalid education data, save aborted:', validation.error)
-      throw new Error('Invalid education data')
-    }
-
-    this.invalidate()
-
-    if (!isLocalStorageAvailable()) {
-      console.warn(
-        'Local Storage not available, data will not persist across sessions'
-      )
-
-      const cacheKey = isAuthenticated()
-        ? CACHE_KEYS.EDUCATION_API
-        : CACHE_KEYS.EDUCATION_LOCAL
-
-      this.cache.set(cacheKey, Promise.resolve(validation.data))
-      return
-    }
-
-    try {
-      localStorage.setItem(
-        STORAGE_KEYS.EDUCATION,
-        JSON.stringify(validation.data)
-      )
-    } catch (error) {
-      throw error
-    }
-  }
-
-  invalidate() {
-    this.cache.delete(CACHE_KEYS.EDUCATION_LOCAL)
-    this.cache.delete(CACHE_KEYS.EDUCATION_API)
+    return translatedData
   }
 }
 

@@ -183,17 +183,29 @@ class DataManager {
   }
 
   // Education
-  async getEducation(sectionId?: string) {
+  async getEducation(
+    sectionId?: string
+  ): Promise<EducationBlockData | EducationBlockData[] | undefined> {
     return educationManager.get(sectionId)
   }
 
-  async saveEducation(data: EducationBlockData[]): Promise<void> {
-    return educationManager.save(data)
-  }
+  // async saveEducation(
+  //   data: EducationBlockData
+  // ): Promise<Result<EducationBlockData[]>> {
+  //   return educationManager.upsert(data)
+  // }
 
-  invalidateEducation() {
-    educationManager.invalidate()
-  }
+  // async deleteEducation(
+  //   blockId: string
+  // ): Promise<Result<EducationBlockData[]>> {
+  //   return educationManager.delete(blockId)
+  // }
+
+  // async reorderEducation(
+  //   data: EducationBlockData[]
+  // ): Promise<Result<EducationBlockData[]>> {
+  //   return educationManager.reorder(data)
+  // }
 
   // Settings
   async getSettings(): Promise<AppSettings> {

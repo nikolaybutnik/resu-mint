@@ -652,3 +652,24 @@ WHERE user_id IS NULL
 export const updateProjectChangelogQuery = `
 UPDATE project_changes SET synced = $1 WHERE write_id = $2
 `
+
+// =============================================================================
+// EDUCATION QUERIES
+// =============================================================================
+
+// Read Operations
+export const getEducationQuery = `
+SELECT id, institution, degree, degree_status, location, description,
+    start_month, start_year, end_month, end_year,
+    is_included, position, updated_at::text, created_at::text
+FROM education
+ORDER BY position ASC, created_at DESC
+`
+
+export const getEducationByIdQuery = `
+SELECT id, institution, degree, degree_status, location, description,
+    start_month, start_year, end_month, end_year,
+    is_included, position, updated_at::text, created_at::text
+FROM education
+WHERE id = $1
+`

@@ -2,79 +2,160 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { EducationBlockData } from '@/lib/types/education'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
+import { createUnknownError, OperationError } from '@/lib/types/errors'
+import { debounce, isEqual, omit } from 'lodash'
 
 interface EducationStore {
   data: EducationBlockData[]
   loading: boolean
   initializing: boolean
   hasData: boolean
-  save: (data: EducationBlockData[]) => Promise<void>
-  refresh: () => Promise<void>
+  error: OperationError | null
   initialize: () => Promise<void>
+  // upsert: (
+  //   block: EducationBlockData
+  // ) => Promise<{ error: OperationError | null }>
+  // delete: (blockId: string) => Promise<{ error: OperationError | null }>
+  // reorder: (
+  //   data: EducationBlockData[]
+  // ) => Promise<{ error: OperationError | null }>
   hasChanges: (newData: EducationBlockData[]) => boolean
+  hasBlockChanges: (
+    blockId: string,
+    newBlockData: EducationBlockData
+  ) => boolean
+  refresh: () => Promise<void>
+  clearError: () => void
 }
 
-export const useEducationStore = create<EducationStore>((set, get) => ({
-  data: DEFAULT_STATE_VALUES.EDUCATION,
-  loading: false,
-  initializing: true,
-  hasData: false,
+let debouncedSave: ReturnType<typeof debounce> | null = null
+let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
-  initialize: async () => {
-    set({ loading: true })
-    try {
-      const data = (await dataManager.getEducation()) as EducationBlockData[]
-      set({
-        data,
-        loading: false,
-        initializing: false,
-        hasData: !!data?.length,
-      })
-    } catch (error) {
-      console.error('EducationStore: initialization error:', error)
-      set({ loading: false, initializing: false })
-    }
-  },
+export const useEducationStore = create<EducationStore>((set, get) => {
+  if (!debouncedSave) {
+    debouncedSave = debounce(async (block: EducationBlockData) => {
+      const currentState = get()
 
-  save: async (data: EducationBlockData[]) => {
-    const currentState = get()
+      set({ loading: true, error: null })
 
-    if (!currentState.hasChanges(data)) {
-      console.info('No changes in form, skipping save')
-      return
-    }
+      // const result = await dataManager.saveEducation(block)
 
-    const previousData = get().data
+      // if (result.success) {
+      //   set({
+      //     data: result.data,
+      //     loading: false,
+      //     hasData: !!result.data?.length,
+      //     error: result.warning || null,
+      //   })
+      // } else {
+      //   set({
+      //     loading: false,
+      //     data: currentState.data,
+      //     error: result.error,
+      //   })
+      // }
+    }, 1000)
+  }
 
-    set({ data, hasData: !!data?.length })
+  if (!debouncedRefresh) {
+    debouncedRefresh = debounce(async () => {
+      try {
+        set({ loading: true, error: null })
+        const data = (await dataManager.getEducation()) as EducationBlockData[]
+        set({
+          data,
+          loading: false,
+          hasData: !!data?.length,
+        })
+      } catch (error) {
+        console.error('EducationStore: refresh error:', error)
+        set({
+          loading: false,
+          error: createUnknownError('Failed to refresh education data', error),
+        })
+      }
+    }, 300)
+  }
 
-    try {
-      await dataManager.saveEducation(data)
-    } catch (error) {
-      set({ data: previousData, hasData: !!previousData?.length })
-      console.error('EducationStore: save error:', error)
-      throw error
-    }
-  },
+  return {
+    data: DEFAULT_STATE_VALUES.EDUCATION,
+    loading: false,
+    initializing: true,
+    hasData: false,
+    error: null,
 
-  refresh: async () => {
-    try {
-      set({ loading: true })
-      dataManager.invalidateEducation()
-      const data = (await dataManager.getEducation()) as EducationBlockData[]
-      set({
-        data,
-        loading: false,
-        hasData: !!data?.length,
-      })
-    } catch (error) {
-      console.error('EducationStore: refresh error:', error)
-      set({ loading: false })
-    }
-  },
+    initialize: async () => {
+      set({ loading: true, error: null })
 
-  hasChanges: (newData: EducationBlockData[]) => {
-    const currentData = get().data
-    return JSON.stringify(currentData) !== JSON.stringify(newData)
-  },
-}))
+      try {
+        const data = (await dataManager.getEducation()) as EducationBlockData[]
+
+        set({
+          data,
+          loading: false,
+          initializing: false,
+          hasData: !!data?.length,
+        })
+      } catch (error) {
+        console.error('EducationStore: initialization error:', error)
+
+        set({
+          loading: false,
+          initializing: false,
+          error: createUnknownError(
+            'Failed to initialize education data',
+            error
+          ),
+        })
+      }
+    },
+
+    hasChanges: (newData: EducationBlockData[]) => {
+      const currentData = get().data
+
+      return !isEqual(currentData, newData)
+    },
+
+    hasBlockChanges: (blockId: string, newBlockData: EducationBlockData) => {
+      const currentData = get().data
+      const existingBlock = currentData.find((block) => block.id === blockId)
+
+      if (!existingBlock && !currentData) return false
+
+      const existingFields = omit(existingBlock, [
+        'updatedAt',
+        'position',
+        'isIncluded',
+      ])
+      const newFields = omit(newBlockData, [
+        'updatedAt',
+        'position',
+        'isIncluded',
+      ])
+
+      if (
+        (!existingFields || Object.keys(existingFields).length === 0) &&
+        !newFields.institution &&
+        !newFields.degree &&
+        !newFields.degreeStatus &&
+        !newFields.location &&
+        !newFields.description &&
+        !newFields.startDate?.month &&
+        !newFields.startDate?.year &&
+        !newFields.endDate?.month &&
+        !newFields.endDate?.year
+      )
+        return false
+
+      return !isEqual(existingFields, newFields)
+    },
+
+    refresh: async () => {
+      debouncedRefresh?.()
+    },
+
+    clearError: () => {
+      set({ error: null })
+    },
+  }
+})
