@@ -154,16 +154,31 @@ ${bulletSection}`
           .map((edu) => {
             let dateRange = ''
 
-            if (edu.startDate && edu.endDate) {
+            const hasStartDate =
+              edu.startDate && (edu.startDate.month || edu.startDate.year)
+            const hasEndDate =
+              edu.endDate && (edu.endDate.month || edu.endDate.year)
+
+            if (hasStartDate && hasEndDate) {
+              // Both start and end dates provided
               if (
-                edu.startDate.month &&
-                edu.startDate.year &&
-                edu.endDate.month &&
-                edu.endDate.year
+                edu.startDate!.month &&
+                edu.startDate!.year &&
+                edu.endDate!.month &&
+                edu.endDate!.year
               ) {
-                dateRange = `${edu.startDate.month} ${edu.startDate.year} -- ${edu.endDate.month} ${edu.endDate.year}`
-              } else if (edu.startDate.year && edu.endDate.year) {
-                dateRange = `${edu.startDate.year} -- ${edu.endDate.year}`
+                dateRange = `${edu.startDate!.month} ${
+                  edu.startDate!.year
+                } -- ${edu.endDate!.month} ${edu.endDate!.year}`
+              } else if (edu.startDate!.year && edu.endDate!.year) {
+                dateRange = `${edu.startDate!.year} -- ${edu.endDate!.year}`
+              }
+            } else if (hasEndDate && !hasStartDate) {
+              // Only end date provided
+              if (edu.endDate!.month && edu.endDate!.year) {
+                dateRange = `${edu.endDate!.month} ${edu.endDate!.year}`
+              } else if (edu.endDate!.year) {
+                dateRange = `${edu.endDate!.year}`
               }
             }
 

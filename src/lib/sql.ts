@@ -129,9 +129,9 @@ CREATE TABLE IF NOT EXISTS education (
     degree_status TEXT,
     location TEXT,
     description TEXT,
-    start_month TEXT CHECK (start_month IS NULL OR start_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
-    start_year SMALLINT NOT NULL CHECK (start_year >= 1000 AND start_year <= 9999),
-    end_month TEXT CHECK (end_month IS NULL OR end_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
+    start_month TEXT CHECK (start_month IS NULL OR start_month = '' OR start_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
+    start_year SMALLINT CHECK (start_year IS NULL OR (start_year >= 1000 AND start_year <= 9999)),
+    end_month TEXT CHECK (end_month IS NULL OR end_month = '' OR end_month IN ('Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec')),
     end_year SMALLINT CHECK (end_year IS NULL OR (end_year >= 1000 AND end_year <= 9999)),
     is_included BOOLEAN DEFAULT TRUE,
     position INTEGER DEFAULT 0,
@@ -672,4 +672,40 @@ SELECT id, institution, degree, degree_status, location, description,
     is_included, position, updated_at::text, created_at::text
 FROM education
 WHERE id = $1
+`
+
+// Write Operations
+export const upsertEducationQuery = `
+INSERT INTO education (
+    id, institution, degree, degree_status, location, description,
+    start_month, start_year, end_month, end_year,
+    is_included, position, updated_at
+) VALUES (
+    $1, $2, $3, $4,
+    CASE WHEN $5::text = 'undefined' OR $5::text = '' THEN NULL ELSE $5 END,
+    CASE WHEN $6::text = 'undefined' THEN NULL ELSE $6 END,
+    CASE WHEN $7::text = 'undefined' OR $7::text = '' THEN NULL ELSE $7 END,
+    CASE WHEN $8::text = '' THEN NULL ELSE $8::smallint END,
+    CASE WHEN $9::text = 'undefined' OR $9::text = '' THEN NULL ELSE $9 END,
+    CASE WHEN $10::text = '' THEN NULL ELSE $10::smallint END,
+    $11, $12, $13::timestamptz
+)
+ON CONFLICT (id) DO UPDATE SET
+    institution = EXCLUDED.institution,
+    degree = EXCLUDED.degree,
+    degree_status = EXCLUDED.degree_status,
+    location = EXCLUDED.location,
+    description = CASE WHEN EXCLUDED.description::text = 'undefined' THEN NULL ELSE EXCLUDED.description END,
+    start_month = CASE WHEN EXCLUDED.start_month::text = 'undefined' OR EXCLUDED.start_month::text = '' THEN NULL ELSE EXCLUDED.start_month END,
+    start_year = EXCLUDED.start_year,
+    end_month = CASE WHEN EXCLUDED.end_month::text = 'undefined' OR EXCLUDED.end_month::text = '' THEN NULL ELSE EXCLUDED.end_month END,
+    end_year = EXCLUDED.end_year,
+    is_included = EXCLUDED.is_included,
+    position = EXCLUDED.position,
+    updated_at = EXCLUDED.updated_at
+`
+// Changelog Operations
+export const insertEducationChangelogQuery = `
+INSERT INTO education_changes (operation, value, write_id, timestamp, user_id)
+VALUES ($1, $2, $3, $4, $5)
 `

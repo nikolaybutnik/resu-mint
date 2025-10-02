@@ -189,11 +189,11 @@ class DataManager {
     return educationManager.get(sectionId)
   }
 
-  // async saveEducation(
-  //   data: EducationBlockData
-  // ): Promise<Result<EducationBlockData[]>> {
-  //   return educationManager.upsert(data)
-  // }
+  async saveEducation(
+    data: EducationBlockData
+  ): Promise<Result<EducationBlockData[]>> {
+    return educationManager.upsert(data)
+  }
 
   // async deleteEducation(
   //   blockId: string

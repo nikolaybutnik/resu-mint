@@ -86,6 +86,10 @@ export class LivePreviewService {
           institution: edu.institution,
           location: edu.location,
           degree: edu.degree,
+          degreeStatus: edu.degreeStatus,
+          startDate: edu.startDate,
+          endDate: edu.endDate,
+          description: edu.description,
           isIncluded: edu.isIncluded,
         })),
       skills: data.skillsSection
@@ -353,7 +357,6 @@ export class LivePreviewService {
    */
   private async generatePdfRequest(request: QueuedRequest): Promise<Blob> {
     const startTime = Date.now()
-
     try {
       const blob = await api.post<CreatePdfRequest, Blob>(
         API_ROUTES.CREATE_PDF,

@@ -17,7 +17,7 @@ interface DraggableEducationBlockProps {
 const DraggableEducationBlock: React.FC<DraggableEducationBlockProps> =
   React.memo(
     ({ data, isOverlay = false, isDropping = false, onSectionEdit }) => {
-      const { data: educationData, save } = useEducationStore()
+      const { upsert } = useEducationStore()
 
       const { attributes, listeners, setNodeRef, transform, isDragging } =
         useSortable({
@@ -38,11 +38,8 @@ const DraggableEducationBlock: React.FC<DraggableEducationBlockProps> =
 
       const handleSectionInclusionToggle = useCallback(() => {
         const updatedSection = { ...data, isIncluded: !data.isIncluded }
-        const updatedData = educationData.map((section) =>
-          section.id === data.id ? updatedSection : section
-        )
-        save(updatedData)
-      }, [data, educationData, save])
+        upsert(updatedSection)
+      }, [data, upsert])
 
       const formatDatesWithStatus = () => {
         const { startDate, endDate, degreeStatus } = data

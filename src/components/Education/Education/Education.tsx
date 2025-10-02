@@ -30,6 +30,7 @@ import {
   SkeletonButton,
   SkeletonDraggableBlock,
 } from '@/components/shared/Skeleton'
+import { toast } from '@/stores/toastStore'
 
 const Education: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
@@ -39,8 +40,8 @@ const Education: React.FC = () => {
     data: education,
     // reorder,
     initializing,
-    // error: storeError,
-    // clearError,
+    error: storeError,
+    clearError,
   } = useEducationStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
@@ -76,6 +77,37 @@ const Education: React.FC = () => {
       document.body.classList.remove('dragging-active')
     }
   }, [activeId])
+
+  useEffect(() => {
+    if (storeError) {
+      switch (storeError.code) {
+        case 'NETWORK_ERROR':
+          toast.error(
+            'Network connection failed. Please check your internet connection.'
+          )
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        case 'UNKNOWN_ERROR':
+          if (storeError.message.includes('Failed to load')) {
+            toast.error(
+              'Failed to load your education. Please refresh the page.'
+            )
+          } else if (storeError.message.includes('Failed to refresh')) {
+            toast.warning(
+              'Unable to refresh education data. Some information may be outdated.'
+            )
+          } else {
+            toast.error('Failed to save your changes. Please try again.')
+          }
+          break
+        default:
+          toast.error('An unexpected error occurred. Please try again.')
+      }
+      clearError()
+    }
+  }, [storeError, clearError])
 
   const createNewEducationBlock = (id: string): EducationBlockData => ({
     id,

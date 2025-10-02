@@ -12,9 +12,9 @@ interface EducationStore {
   hasData: boolean
   error: OperationError | null
   initialize: () => Promise<void>
-  // upsert: (
-  //   block: EducationBlockData
-  // ) => Promise<{ error: OperationError | null }>
+  upsert: (
+    block: EducationBlockData
+  ) => Promise<{ error: OperationError | null }>
   // delete: (blockId: string) => Promise<{ error: OperationError | null }>
   // reorder: (
   //   data: EducationBlockData[]
@@ -38,22 +38,22 @@ export const useEducationStore = create<EducationStore>((set, get) => {
 
       set({ loading: true, error: null })
 
-      // const result = await dataManager.saveEducation(block)
+      const result = await dataManager.saveEducation(block)
 
-      // if (result.success) {
-      //   set({
-      //     data: result.data,
-      //     loading: false,
-      //     hasData: !!result.data?.length,
-      //     error: result.warning || null,
-      //   })
-      // } else {
-      //   set({
-      //     loading: false,
-      //     data: currentState.data,
-      //     error: result.error,
-      //   })
-      // }
+      if (result.success) {
+        set({
+          data: result.data,
+          loading: false,
+          hasData: !!result.data?.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          loading: false,
+          data: currentState.data,
+          error: result.error,
+        })
+      }
     }, 1000)
   }
 
@@ -108,6 +108,43 @@ export const useEducationStore = create<EducationStore>((set, get) => {
           ),
         })
       }
+    },
+
+    upsert: async (block: EducationBlockData) => {
+      const currentState = get()
+
+      const existingBlock = currentState.data.find(
+        (item) => item.id === block.id
+      )
+
+      const hasContentChanges =
+        existingBlock && currentState.hasBlockChanges(block.id, block)
+      const hasInclusionChange =
+        existingBlock && existingBlock.isIncluded !== block.isIncluded
+
+      if (existingBlock && !hasContentChanges && !hasInclusionChange) {
+        return { error: null }
+      }
+
+      const blockIndex = currentState.data.findIndex(
+        (item) => item.id === block.id
+      )
+      const optimisticData =
+        blockIndex >= 0
+          ? currentState.data.map((item) =>
+              item.id === block.id ? block : item
+            )
+          : [...currentState.data, block]
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      debouncedSave?.(block)
+
+      return { error: null }
     },
 
     hasChanges: (newData: EducationBlockData[]) => {

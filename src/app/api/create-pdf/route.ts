@@ -67,9 +67,7 @@ export async function POST(request: NextRequest) {
       ? path.join(process.cwd(), '.vercel-cache', 'xdg-build-cache')
       : path.join(os.tmpdir(), 'xdg-build-cache')
 
-    console.log('Checking cache availability...')
-
-    // Check cache availability with detailed logging
+    // Check cache availability
     const buildCacheExists = await fs
       .access(buildCacheDir)
       .then(() => true)
@@ -89,29 +87,6 @@ export async function POST(request: NextRequest) {
       .access(sharedXdgCacheDir)
       .then(() => true)
       .catch(() => false)
-
-    // Log cache status
-    console.log('Cache Status:')
-    console.log(
-      `   Build Cache: ${
-        buildCacheExists ? 'EXISTS' : 'MISSING'
-      } (${buildCacheDir})`
-    )
-    console.log(
-      `   Build XDG:   ${
-        buildXdgCacheExists ? 'EXISTS' : 'MISSING'
-      } (${buildXdgCacheDir})`
-    )
-    console.log(
-      `   Shared Cache: ${
-        sharedCacheExists ? 'EXISTS' : 'MISSING'
-      } (${sharedCacheDir})`
-    )
-    console.log(
-      `   Shared XDG:   ${
-        sharedXdgCacheExists ? 'EXISTS' : 'MISSING'
-      } (${sharedXdgCacheDir})`
-    )
 
     // Use build cache if it exists (from cache warming), otherwise use shared cache
     const cacheDir = buildCacheExists ? buildCacheDir : sharedCacheDir
@@ -139,10 +114,6 @@ export async function POST(request: NextRequest) {
         'NO CACHE FOUND - Cold start download - Expected: 8-12 seconds'
       )
     }
-
-    console.log('Selected cache directories:')
-    console.log(`   Tectonic: ${cacheDir}`)
-    console.log(`   XDG:      ${xdgCacheDir}`)
 
     const expectedPdfPath = path.join(tempDir, 'texput.pdf')
 
@@ -250,7 +221,7 @@ export async function POST(request: NextRequest) {
       )
       console.log('─'.repeat(60))
 
-      return new NextResponse(pdfBuffer, {
+      return new NextResponse(new Uint8Array(pdfBuffer), {
         headers: {
           'Content-Type': 'application/pdf',
           'Content-Disposition': 'attachment; filename="resume.pdf"',

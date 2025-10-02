@@ -11,7 +11,6 @@ import { useAutoResizeTextarea } from '@/lib/hooks'
 import { useEducationStore } from '@/stores'
 import { submitEducation } from '@/lib/actions/educationActions'
 import { useFormStatus } from 'react-dom'
-import { OperationError } from '@/lib/types/errors'
 
 interface EditableEducationBlockProps {
   data: EducationBlockData
@@ -22,11 +21,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   data,
   onClose,
 }) => {
-  const {
-    data: educationData,
-    // upsert,
-    hasChanges,
-  } = useEducationStore()
+  const { data: educationData, upsert, hasChanges } = useEducationStore()
 
   const isNew = !educationData.some((block) => block.id === data.id)
   const shouldShowCloseButton = educationData.length > 1 || !isNew
@@ -36,9 +31,10 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
       prevState: EducationFormState,
       formData: FormData
     ): Promise<EducationFormState> =>
-      // TODO: implement upsert
-      submitEducation(prevState, formData, () =>
-        Promise.resolve({ error: null } as { error: OperationError | null })
+      submitEducation(
+        prevState,
+        formData,
+        upsert
       ) as Promise<EducationFormState>,
     {
       fieldErrors: {},
@@ -127,6 +123,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
       </div>
 
       <form action={formAction} className={styles.educationDetails}>
+        <input type='hidden' name='id' value={data.id} />
         <div className={styles.formField}>
           <label className={styles.label}>
             <span className={styles.requiredIndicator}>*</span>
