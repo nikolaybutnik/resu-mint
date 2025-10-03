@@ -7,8 +7,10 @@ import {
 import { DEFAULT_STATE_VALUES } from '../constants'
 import { useDbStore } from '@/stores'
 import {
+  deleteEducationQuery,
   getEducationQuery,
   insertEducationChangelogQuery,
+  reorderEducationPositionsQuery,
   upsertEducationQuery,
 } from '../sql'
 import { nowIso } from './dataUtils'
@@ -135,6 +137,44 @@ class EducationManager {
       return Success(translatedResult)
     } catch (error) {
       return Failure(createUnknownError('Failed to save education', error))
+    }
+  }
+
+  async delete(blockId: string): Promise<Result<EducationBlockData[]>> {
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      const existingData = (await this.get()) as EducationBlockData[]
+      const blockExists = existingData.find((item) => item.id === blockId)
+
+      if (!blockExists) {
+        return Failure(createValidationError('Education block not found'))
+      }
+
+      await db?.query(deleteEducationQuery, [blockId])
+
+      await db?.query(reorderEducationPositionsQuery, [timestamp])
+
+      await db?.query(insertEducationChangelogQuery, [
+        'delete',
+        JSON.stringify({ id: blockId }),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getEducationQuery)
+      const translatedResult = (result?.rows as RawEducationData[]).map((row) =>
+        this.translateRawEducation(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to delete education', error))
     }
   }
 }

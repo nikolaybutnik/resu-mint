@@ -22,6 +22,7 @@ import { AppSettings } from '@/lib/types/settings'
 import { api, ResponseType } from '@/lib/services'
 import { useKeywordAnalysis } from '@/lib/hooks/useKeywordAnalysis'
 import {
+  extractEducationFormData,
   extractExperienceFormData,
   extractPersonalDetailsFormData,
   extractProjectFormData,
@@ -280,9 +281,9 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
         form = document.querySelector(`form[data-tab="${FORM_IDS.EDUCATION}"]`)
 
         if (form) {
-          // const current = extractEducationFormData(form)
-          // const { hasBlockChanges } = useEducationStore.getState()
-          // isDirty = hasBlockChanges(current.id, current)
+          const current = extractEducationFormData(form)
+          const { hasBlockChanges } = useEducationStore.getState()
+          isDirty = hasBlockChanges(current.id, current)
         }
         break
     }

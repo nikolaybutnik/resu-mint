@@ -195,11 +195,11 @@ class DataManager {
     return educationManager.upsert(data)
   }
 
-  // async deleteEducation(
-  //   blockId: string
-  // ): Promise<Result<EducationBlockData[]>> {
-  //   return educationManager.delete(blockId)
-  // }
+  async deleteEducation(
+    blockId: string
+  ): Promise<Result<EducationBlockData[]>> {
+    return educationManager.delete(blockId)
+  }
 
   // async reorderEducation(
   //   data: EducationBlockData[]

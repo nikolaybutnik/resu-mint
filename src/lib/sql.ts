@@ -704,8 +704,48 @@ ON CONFLICT (id) DO UPDATE SET
     position = EXCLUDED.position,
     updated_at = EXCLUDED.updated_at
 `
+
+export const deleteEducationQuery = `
+DELETE FROM education WHERE id = $1
+`
+
+export const reorderEducationPositionsQuery = `
+UPDATE education
+SET position = subq.new_position - 1, updated_at = $1
+FROM (
+    SELECT id, ROW_NUMBER() OVER (ORDER BY position, created_at) AS new_position
+    FROM education
+) AS subq
+WHERE education.id = subq.id
+    AND education.position != (subq.new_position - 1)
+`
+
 // Changelog Operations
 export const insertEducationChangelogQuery = `
 INSERT INTO education_changes (operation, value, write_id, timestamp, user_id)
 VALUES ($1, $2, $3, $4, $5)
+`
+
+export const selectAllUnsyncedEducationChangesQuery = `
+SELECT * FROM education_changes
+WHERE synced = FALSE
+AND user_id = $1
+ORDER BY timestamp ASC
+`
+
+export const cleanUpSyncedEducationChangelogEntriesQuery = `
+DELETE FROM education_changes
+WHERE synced = TRUE
+AND timestamp < NOW() - INTERVAL '3 days'
+AND user_id = $1
+`
+
+export const transferAnonymousEducationToUser = `
+UPDATE education_changes
+SET user_id = $1
+WHERE user_id IS NULL
+`
+
+export const updateEducationChangelogQuery = `
+UPDATE education_changes SET synced = $1 WHERE write_id = $2
 `

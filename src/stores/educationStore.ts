@@ -2,7 +2,11 @@ import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
 import { EducationBlockData } from '@/lib/types/education'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
-import { createUnknownError, OperationError } from '@/lib/types/errors'
+import {
+  createUnknownError,
+  createValidationError,
+  OperationError,
+} from '@/lib/types/errors'
 import { debounce, isEqual, omit } from 'lodash'
 
 interface EducationStore {
@@ -15,7 +19,7 @@ interface EducationStore {
   upsert: (
     block: EducationBlockData
   ) => Promise<{ error: OperationError | null }>
-  // delete: (blockId: string) => Promise<{ error: OperationError | null }>
+  delete: (blockId: string) => Promise<{ error: OperationError | null }>
   // reorder: (
   //   data: EducationBlockData[]
   // ) => Promise<{ error: OperationError | null }>
@@ -145,6 +149,47 @@ export const useEducationStore = create<EducationStore>((set, get) => {
       debouncedSave?.(block)
 
       return { error: null }
+    },
+
+    delete: async (blockId: string) => {
+      const currentState = get()
+
+      const existingBlock = currentState.data.find(
+        (item) => item.id === blockId
+      )
+
+      if (!existingBlock) {
+        return {
+          error: createValidationError('Education block does not exist'),
+        }
+      }
+
+      const optimisticData = currentState.data.filter(
+        (block) => block.id !== blockId
+      )
+
+      set({
+        data: optimisticData,
+        hasData: !!optimisticData.length,
+        error: null,
+      })
+
+      const result = await dataManager.deleteEducation(blockId)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+      } else {
+        set({
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
     },
 
     hasChanges: (newData: EducationBlockData[]) => {

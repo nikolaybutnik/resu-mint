@@ -1,16 +1,17 @@
 import styles from './EditableEducationBlock.module.scss'
-import React, { useState, useEffect, useActionState } from 'react'
+import React, { useState, useEffect, useActionState, useRef } from 'react'
 import { FaXmark } from 'react-icons/fa6'
-import { EDUCATION_FORM_DATA_KEYS, MONTHS } from '@/lib/constants'
+import { EDUCATION_FORM_DATA_KEYS, FORM_IDS, MONTHS } from '@/lib/constants'
 import {
   EducationBlockData,
   DegreeStatus,
   EducationFormState,
 } from '@/lib/types/education'
 import { useAutoResizeTextarea } from '@/lib/hooks'
-import { useEducationStore } from '@/stores'
+import { useEducationStore, confirm } from '@/stores'
 import { submitEducation } from '@/lib/actions/educationActions'
 import { useFormStatus } from 'react-dom'
+import { extractEducationFormData } from '@/lib/utils'
 
 interface EditableEducationBlockProps {
   data: EducationBlockData
@@ -21,7 +22,15 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   data,
   onClose,
 }) => {
-  const { data: educationData, upsert, hasChanges } = useEducationStore()
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null)
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
+
+  const {
+    data: educationData,
+    delete: deleteEducation,
+    upsert,
+    hasBlockChanges,
+  } = useEducationStore()
 
   const isNew = !educationData.some((block) => block.id === data.id)
   const shouldShowCloseButton = educationData.length > 1 || !isNew
@@ -42,15 +51,6 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
     } as EducationFormState
   )
 
-  const updatedEducationData = educationData.map((block) =>
-    block.id === data.id
-      ? state.data
-        ? { ...data, ...state.data }
-        : data
-      : block
-  )
-  const currentFormHasChanges = hasChanges(updatedEducationData)
-
   const [description, setDescription] = useState(state.data?.description || '')
 
   useEffect(() => {
@@ -63,32 +63,56 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
     handleInput,
   } = useAutoResizeTextarea(description)
 
-  const handleDelete = (): void => {
-    if (
-      window.confirm(
-        'Are you sure you want to delete this education? This action cannot be undone.'
-      )
-    ) {
-      // const updatedSections = educationData.filter(
-      //   (section) => section.id !== data.id
-      // )
-      // TODO: implement delete
-      // save(updatedSections)
-      // onClose?.()
-    }
+  const handleDelete = async (): Promise<void> => {
+    const ok = await confirm({
+      title: 'Delete this education?',
+      message: 'This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      anchorEl: deleteButtonRef.current,
+      placement: 'left',
+      width: 260,
+    })
+
+    if (!ok) return
+    await deleteEducation(data.id)
+    onClose?.()
   }
 
-  const SubmitButton: React.FC<{ hasChanges: boolean }> = ({ hasChanges }) => {
+  const handleFormClose = async (): Promise<void> => {
+    const form = document.querySelector(
+      `form[data-tab="${FORM_IDS.EDUCATION}"]`
+    ) as HTMLFormElement | null
+    let isDirty = false
+
+    if (form) {
+      const current = extractEducationFormData(form)
+      isDirty = hasBlockChanges(current.id, current)
+    }
+
+    if (isDirty) {
+      const ok = await confirm({
+        title: 'You have unsaved changes',
+        message:
+          'If you leave without saving, you will lose your changes. Continue?',
+        confirmText: 'Yes',
+        cancelText: 'No',
+        anchorEl: closeButtonRef.current,
+        placement: 'right',
+        width: 260,
+      })
+
+      if (!ok) return
+    }
+
+    onClose?.()
+  }
+
+  const SubmitButton: React.FC = () => {
     const { pending } = useFormStatus()
 
-    const shouldDisable = hasChanges && pending
-
     return (
-      <button
-        type='submit'
-        className={styles.saveButton}
-        disabled={shouldDisable}
-      >
+      <button type='submit' className={styles.saveButton} disabled={pending}>
         Save
       </button>
     )
@@ -101,6 +125,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
           <button
             type='button'
             className={styles.deleteButton}
+            ref={deleteButtonRef}
             onClick={handleDelete}
           >
             Delete
@@ -110,7 +135,8 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
           <button
             type='button'
             className={styles.closeButton}
-            onClick={onClose}
+            ref={closeButtonRef}
+            onClick={handleFormClose}
           >
             <FaXmark />
           </button>
@@ -122,7 +148,11 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         Indicates a required field
       </div>
 
-      <form action={formAction} className={styles.educationDetails}>
+      <form
+        action={formAction}
+        className={styles.educationDetails}
+        data-tab={FORM_IDS.EDUCATION}
+      >
         <input type='hidden' name='id' value={data.id} />
         <div className={styles.formField}>
           <label className={styles.label}>
@@ -304,7 +334,7 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
         </div>
 
         <div className={styles.actionButtons}>
-          <SubmitButton hasChanges={currentFormHasChanges} />
+          <SubmitButton />
         </div>
       </form>
     </section>
