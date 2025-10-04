@@ -11,6 +11,7 @@ import {
   getEducationQuery,
   insertEducationChangelogQuery,
   reorderEducationPositionsQuery,
+  updateEducationPositionQuery,
   upsertEducationQuery,
 } from '../sql'
 import { nowIso } from './dataUtils'
@@ -25,6 +26,7 @@ import {
   Success,
 } from '../types/errors'
 import { educationBlockSchema } from '../validationSchemas'
+import { pick } from 'lodash'
 
 class EducationManager {
   private translateRawEducation(raw: RawEducationData): EducationBlockData {
@@ -32,11 +34,8 @@ class EducationManager {
       id: raw.id,
       institution: raw.institution,
       degree: raw.degree,
-      degreeStatus:
-        raw.degree_status !== null
-          ? (raw.degree_status as DegreeStatus)
-          : undefined,
-      location: raw.location !== null ? raw.location : undefined,
+      degreeStatus: (raw.degree_status as DegreeStatus) || '',
+      location: raw.location || '',
       description: raw.description || '',
       startDate: {
         month: (raw.start_month as Month | '' | undefined) || '',
@@ -175,6 +174,54 @@ class EducationManager {
       return Success(translatedResult)
     } catch (error) {
       return Failure(createUnknownError('Failed to delete education', error))
+    }
+  }
+
+  async reorder(
+    data: EducationBlockData[]
+  ): Promise<Result<EducationBlockData[]>> {
+    const validation = educationBlockSchema.array().safeParse(data)
+
+    if (!validation.success) {
+      return Failure(
+        createValidationError('Invalid education data', validation.error)
+      )
+    }
+
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      for (let index = 0; index < validation.data.length; index++) {
+        const block = validation.data[index]
+        await db?.query(updateEducationPositionQuery, [
+          block.id,
+          index,
+          timestamp,
+        ])
+      }
+
+      await db?.query(insertEducationChangelogQuery, [
+        'reorder',
+        JSON.stringify(
+          validation.data.map((item) => pick(item, ['id', 'position']))
+        ),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getEducationQuery)
+      const translatedResult = (result?.rows as RawEducationData[]).map((row) =>
+        this.translateRawEducation(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to reorder education', error))
     }
   }
 }

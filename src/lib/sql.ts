@@ -709,6 +709,12 @@ export const deleteEducationQuery = `
 DELETE FROM education WHERE id = $1
 `
 
+export const updateEducationPositionQuery = `
+UPDATE education 
+SET position = $2, updated_at = $3::timestamptz
+WHERE id = $1
+`
+
 export const reorderEducationPositionsQuery = `
 UPDATE education
 SET position = subq.new_position - 1, updated_at = $1

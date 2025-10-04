@@ -12,7 +12,7 @@ import {
 } from '@dnd-kit/core'
 import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import {
-  // arrayMove,
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -35,10 +35,9 @@ import { toast } from '@/stores/toastStore'
 const Education: React.FC = () => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // TODO: implement store operations
   const {
     data: education,
-    // reorder,
+    reorder,
     initializing,
     error: storeError,
     clearError,
@@ -157,17 +156,16 @@ const Education: React.FC = () => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        // const oldIndex = education.findIndex((item) => item.id === active.id)
-        // const newIndex = education.findIndex((item) => item.id === over.id)
-        // const newOrder = arrayMove(education, oldIndex, newIndex)
-        // save(newOrder)
-        // TODO: implement reorder
+        const oldIndex = education.findIndex((item) => item.id === active.id)
+        const newIndex = education.findIndex((item) => item.id === over.id)
+        const newOrder = arrayMove(education, oldIndex, newIndex)
+        reorder(newOrder)
       }
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
-    [education]
+    [education, reorder]
   )
 
   const activeItem = useMemo(

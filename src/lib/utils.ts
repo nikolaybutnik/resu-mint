@@ -562,7 +562,7 @@ export const extractEducationFormData = (
       const value = formData.get(
         EDUCATION_FORM_DATA_KEYS.DEGREE_STATUS
       ) as string
-      return value && value !== '' ? (value as DegreeStatus) : undefined
+      return value && value !== '' ? (value as DegreeStatus) : ''
     })(),
     location:
       (formData.get(EDUCATION_FORM_DATA_KEYS.LOCATION) as string)?.trim() || '',

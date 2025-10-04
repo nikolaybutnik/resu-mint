@@ -20,9 +20,9 @@ interface EducationStore {
     block: EducationBlockData
   ) => Promise<{ error: OperationError | null }>
   delete: (blockId: string) => Promise<{ error: OperationError | null }>
-  // reorder: (
-  //   data: EducationBlockData[]
-  // ) => Promise<{ error: OperationError | null }>
+  reorder: (
+    data: EducationBlockData[]
+  ) => Promise<{ error: OperationError | null }>
   hasChanges: (newData: EducationBlockData[]) => boolean
   hasBlockChanges: (
     blockId: string,
@@ -183,6 +183,37 @@ export const useEducationStore = create<EducationStore>((set, get) => {
           error: result.warning || null,
         })
       } else {
+        set({
+          data: currentState.data,
+          error: result.error,
+        })
+      }
+
+      return { error: result.success ? null : result.error }
+    },
+
+    reorder: async (data: EducationBlockData[]) => {
+      const optimisticWithPositions = data.map((block, i) => ({
+        ...block,
+        position: i,
+      }))
+
+      set({
+        data: optimisticWithPositions,
+        hasData: !!optimisticWithPositions.length,
+        error: null,
+      })
+
+      const result = await dataManager.reorderEducation(optimisticWithPositions)
+
+      if (result.success) {
+        set({
+          data: result.data,
+          hasData: !!result.data.length,
+          error: result.warning || null,
+        })
+      } else {
+        const currentState = get()
         set({
           data: currentState.data,
           error: result.error,

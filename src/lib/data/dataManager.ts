@@ -201,11 +201,11 @@ class DataManager {
     return educationManager.delete(blockId)
   }
 
-  // async reorderEducation(
-  //   data: EducationBlockData[]
-  // ): Promise<Result<EducationBlockData[]>> {
-  //   return educationManager.reorder(data)
-  // }
+  async reorderEducation(
+    data: EducationBlockData[]
+  ): Promise<Result<EducationBlockData[]>> {
+    return educationManager.reorder(data)
+  }
 
   // Settings
   async getSettings(): Promise<AppSettings> {

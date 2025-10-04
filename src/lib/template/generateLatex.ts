@@ -153,6 +153,7 @@ ${bulletSection}`
           .filter((edu) => edu.isIncluded !== false)
           .map((edu) => {
             let dateRange = ''
+            const isInProgress = edu.degreeStatus === 'in-progress'
 
             const hasStartDate =
               edu.startDate && (edu.startDate.month || edu.startDate.year)
@@ -173,6 +174,10 @@ ${bulletSection}`
               } else if (edu.startDate!.year && edu.endDate!.year) {
                 dateRange = `${edu.startDate!.year} -- ${edu.endDate!.year}`
               }
+
+              if (isInProgress) {
+                dateRange = `${dateRange} (Expected)`
+              }
             } else if (hasEndDate && !hasStartDate) {
               // Only end date provided
               if (edu.endDate!.month && edu.endDate!.year) {
@@ -180,7 +185,21 @@ ${bulletSection}`
               } else if (edu.endDate!.year) {
                 dateRange = `${edu.endDate!.year}`
               }
+
+              if (isInProgress && dateRange) {
+                dateRange = `Expected ${dateRange}`
+              }
+            } else if (isInProgress) {
+              dateRange = 'In Progress'
             }
+
+            const descriptionSection = edu.description?.trim()
+              ? `
+          \\vspace{6pt}
+          {\\leftskip=0.2in
+          \\small ${sanitizeLatexText(edu.description.trim())}
+          \\par}`
+              : '\\vspace{6pt}'
 
             return `
             \\resumeSubheading
@@ -188,7 +207,7 @@ ${bulletSection}`
               edu.location || ''
             )}}
               {${sanitizeLatexText(edu.degree)}}{${dateRange}}
-        \\vspace{4pt}`
+${descriptionSection}`
           })
           .join('\n\n')
       : null
