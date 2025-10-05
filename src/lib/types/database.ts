@@ -76,11 +76,15 @@ export type Database = {
           degree: string
           degree_status: string | null
           description: string | null
-          end_date: Json | null
+          end_month: string | null
+          end_year: number | null
           id: string
           institution: string
+          is_included: boolean | null
           location: string | null
-          start_date: Json | null
+          position: number | null
+          start_month: string | null
+          start_year: number | null
           updated_at: string | null
           user_id: string
         }
@@ -89,11 +93,15 @@ export type Database = {
           degree: string
           degree_status?: string | null
           description?: string | null
-          end_date?: Json | null
+          end_month?: string | null
+          end_year?: number | null
           id?: string
           institution: string
+          is_included?: boolean | null
           location?: string | null
-          start_date?: Json | null
+          position?: number | null
+          start_month?: string | null
+          start_year?: number | null
           updated_at?: string | null
           user_id: string
         }
@@ -102,11 +110,15 @@ export type Database = {
           degree?: string
           degree_status?: string | null
           description?: string | null
-          end_date?: Json | null
+          end_month?: string | null
+          end_year?: number | null
           id?: string
           institution?: string
+          is_included?: boolean | null
           location?: string | null
-          start_date?: Json | null
+          position?: number | null
+          start_month?: string | null
+          start_year?: number | null
           updated_at?: string | null
           user_id?: string
         }
