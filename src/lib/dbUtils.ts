@@ -20,8 +20,13 @@ import {
   cleanUpSyncedProjectChangelogEntriesQuery,
   updateProjectPositionQuery,
   updateProjectBulletPositionQuery,
+  selectAllUnsyncedEducationChangesQuery,
+  updateEducationChangelogQuery,
+  cleanUpSyncedEducationChangelogEntriesQuery,
+  updateEducationPositionQuery,
 } from './sql'
 import { ProjectBlockData } from './types/projects'
+import { EducationBlockData } from './types/education'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
   if (!error) return false
@@ -100,6 +105,19 @@ interface ProjectBulletChangeData {
   bulletIds?: string[]
 }
 
+interface EducationChange {
+  id: number
+  operation: 'upsert' | 'delete' | 'reorder'
+  value:
+    | EducationBlockData
+    | { id: string; position: number }[]
+    | { id: string }
+  write_id: string
+  timestamp: string
+  synced: boolean
+  user_id: string | null
+}
+
 interface SyncConfig<T> {
   datasetName: string
   getLatestUnsyncedQuery: string
@@ -140,6 +158,14 @@ const SYNC_CONFIGS = {
     syncToRemote: syncProjectsToRemote,
     syncMode: 'batch',
   } as SyncConfig<ProjectChange>,
+  education: {
+    datasetName: 'education',
+    getLatestUnsyncedQuery: selectAllUnsyncedEducationChangesQuery,
+    markSyncedQuery: updateEducationChangelogQuery,
+    cleanupQuery: cleanUpSyncedEducationChangelogEntriesQuery,
+    syncToRemote: syncEducationToRemote,
+    syncMode: 'batch',
+  } as SyncConfig<EducationChange>,
 } as const
 
 async function syncDataset<T extends { write_id: string; timestamp: string }>(
@@ -343,6 +369,33 @@ async function syncProjectBulletPositionsFromRemote(
     }
   } catch (error) {
     console.error('Error syncing project bullet positions from remote:', error)
+  }
+}
+
+async function syncEducationPositionsFromRemote(db: ElectricDb): Promise<void> {
+  try {
+    const { data: remoteEducation, error } = await supabase
+      .from('education')
+      .select('id, position')
+      .order('position', { ascending: true })
+
+    if (error) {
+      console.error('Failed to fetch remote education block positions:', error)
+      return
+    }
+
+    if (!remoteEducation?.length) return
+
+    const timestamp = nowIso()
+    for (const education of remoteEducation) {
+      await db.query(updateEducationPositionQuery, [
+        education.id,
+        education.position,
+        timestamp,
+      ])
+    }
+  } catch (error) {
+    console.error('Error syncing education positions from remote:', error)
   }
 }
 
@@ -1118,6 +1171,90 @@ async function syncProjectsToRemote(
   }
 }
 
+const upsertEducation = async (
+  change: EducationChange,
+  db: ElectricDb,
+  config: SyncConfig<EducationChange>
+): Promise<void> => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const educationBlock = change.value as EducationBlockData
+
+      const { data: serverData, error: serverError } = await supabase
+        .from('education')
+        .select('updated_at')
+        .eq('id', educationBlock.id)
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // Record doesn't exist, skip upsert - nothing to sync
+      } else if (serverError) {
+        throw serverError
+      }
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('upsert_education', {
+        e_id: educationBlock.id,
+        e_institution: educationBlock.institution,
+        e_degree: educationBlock.degree,
+        e_degree_status: educationBlock.degreeStatus || '',
+        e_location: educationBlock.location || '',
+        e_description: educationBlock.description || '',
+        e_start_month: educationBlock.startDate?.month ?? '',
+        e_start_year: Number(educationBlock.startDate?.year),
+        e_end_month: educationBlock.endDate?.month ?? '',
+        e_end_year: Number(educationBlock.endDate?.year),
+        e_is_included: educationBlock.isIncluded ?? true,
+        e_position: educationBlock.position ?? 0,
+      })
+
+      if (error) throw error
+
+      await syncEducationPositionsFromRemote(db)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+async function syncEducationToRemote(
+  change: EducationChange,
+  db: ElectricDb,
+  config: SyncConfig<EducationChange>
+) {
+  switch (change.operation) {
+    case 'upsert':
+      await upsertEducation(change, db, config)
+      break
+    case 'delete':
+      // await deleteEducation(change, db, config)
+      break
+    case 'reorder':
+      // await reorderEducation(change, db, config)
+      break
+  }
+}
+
 export const pushLocalChangesToRemote = async () => {
   const { user } = useAuthStore.getState()
   const { db } = useDbStore.getState()
@@ -1145,6 +1282,13 @@ export const pushLocalChangesToRemote = async () => {
     await syncDataset(db, user?.id, projectsConfig)
   } catch (error) {
     console.error(`Error syncing projects:`, error)
+  }
+
+  const educationConfig = SYNC_CONFIGS.education
+  try {
+    await syncDataset(db, user?.id, educationConfig)
+  } catch (error) {
+    console.error(`Error syncing education:`, error)
   }
 }
 

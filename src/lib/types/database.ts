@@ -417,6 +417,23 @@ export type Database = {
         Args: { bullet_ids: string[]; bullet_locks: boolean[] }
         Returns: undefined
       }
+      upsert_education: {
+        Args: {
+          e_degree: string
+          e_degree_status: string
+          e_description: string
+          e_end_month: string
+          e_end_year: number
+          e_id: string
+          e_institution: string
+          e_is_included: boolean
+          e_location: string
+          e_position: number
+          e_start_month: string
+          e_start_year: number
+        }
+        Returns: string
+      }
       upsert_experience: {
         Args: {
           e_company_name: string

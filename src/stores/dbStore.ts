@@ -35,6 +35,7 @@ import {
   useExperienceStore,
   useAuthStore,
   useProjectStore,
+  useEducationStore,
 } from './'
 import { toast } from './toastStore'
 import {
@@ -51,6 +52,7 @@ import {
 } from '@/lib/types/errors'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { debounce } from 'lodash'
+import { EducationBlockData } from '@/lib/types/education'
 
 export type ElectricDb = PGlite & {
   electric: {
@@ -180,6 +182,27 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'project_bullets',
   },
+  education: {
+    table: 'education',
+    columns: [
+      'id',
+      'institution',
+      'degree',
+      'degree_status',
+      'location',
+      'description',
+      'start_month',
+      'start_year',
+      'end_month',
+      'end_year',
+      'is_included',
+      'position',
+      'updated_at',
+      'created_at',
+    ],
+    primaryKey: ['id'],
+    shapeKey: 'education',
+  },
 }
 
 const TABLE_STORE_RESET_MAP = {
@@ -197,6 +220,8 @@ const TABLE_STORE_RESET_MAP = {
     const { refresh } = useProjectStore.getState()
     refresh()
   },
+  education: (defaultValue: EducationBlockData[]) =>
+    useEducationStore.setState({ data: defaultValue }),
 } as const
 
 let firstSyncFlag = true
@@ -348,6 +373,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
       usePersonalDetailsStore.getState()
     const { refresh: refreshExperience } = useExperienceStore.getState()
     const { refresh: refreshProjects } = useProjectStore.getState()
+    const { refresh: refreshEducation } = useEducationStore.getState()
 
     if (!db) {
       set({
@@ -363,7 +389,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       const syncPhases = [
         // Phase 1: Independent tables
-        ['personal_details'],
+        ['personal_details', 'education'],
         // Phase 2: Parent tables
         ['experience', 'projects'],
         // Phase 3: Child tables
@@ -451,6 +477,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
               let hasPersonalDetailsChanges = false
               let hasExperienceChanges = false
               let hasProjectChanges = false
+              let hasEducationChanges = false
 
               messages.forEach(async (msg) => {
                 if (isChangeMessage(msg)) {
@@ -469,6 +496,9 @@ export const useDbStore = create<DbStore>((set, get) => ({
                   ) {
                     hasProjectChanges = true
                   }
+                  if (config.table === 'education') {
+                    hasEducationChanges = true
+                  }
                 }
               })
 
@@ -480,6 +510,9 @@ export const useDbStore = create<DbStore>((set, get) => ({
               }
               if (hasProjectChanges) {
                 setTimeout(() => refreshProjects(), 200)
+              }
+              if (hasEducationChanges) {
+                setTimeout(() => refreshEducation(), 200)
               }
             }
 
