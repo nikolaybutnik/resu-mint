@@ -391,6 +391,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      delete_education: {
+        Args: { e_ids: string[] }
+        Returns: string
+      }
       delete_experience: {
         Args: { e_ids: string[] }
         Returns: string

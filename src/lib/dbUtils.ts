@@ -1237,6 +1237,50 @@ const upsertEducation = async (
   }
 }
 
+const deleteEducation = async (
+  change: EducationChange,
+  db: ElectricDb,
+  config: SyncConfig<EducationChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const { id } = change.value as { id: string }
+
+      const { error: serverError } = await supabase
+        .from('education')
+        .select('updated_at')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // The item does not exist, skip delete, mark row as synced
+        await db.query(config.markSyncedQuery, [true, change.write_id])
+        return
+      } else if (serverError) {
+        throw serverError
+      }
+
+      const { error } = await supabase.rpc('delete_education', {
+        e_ids: [id],
+      })
+
+      if (error) throw error
+
+      await syncEducationPositionsFromRemote(db)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncEducationToRemote(
   change: EducationChange,
   db: ElectricDb,
@@ -1247,7 +1291,7 @@ async function syncEducationToRemote(
       await upsertEducation(change, db, config)
       break
     case 'delete':
-      // await deleteEducation(change, db, config)
+      await deleteEducation(change, db, config)
       break
     case 'reorder':
       // await reorderEducation(change, db, config)
