@@ -1281,6 +1281,39 @@ const deleteEducation = async (
   }
 }
 
+const reorderEducation = async (
+  change: EducationChange,
+  db: ElectricDb,
+  config: SyncConfig<EducationChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      for (const row of change.value as { id: string; position: number }[]) {
+        const { error: serverError } = await supabase
+          .from('education')
+          .update({ position: row.position })
+          .eq('id', row.id)
+
+        if (isRecordNotFoundError(serverError)) {
+          // Record doesn't exist remotely - skip until record gets upserted
+        } else if (serverError) {
+          throw serverError
+        }
+      }
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncEducationToRemote(
   change: EducationChange,
   db: ElectricDb,
@@ -1294,7 +1327,7 @@ async function syncEducationToRemote(
       await deleteEducation(change, db, config)
       break
     case 'reorder':
-      // await reorderEducation(change, db, config)
+      await reorderEducation(change, db, config)
       break
   }
 }
