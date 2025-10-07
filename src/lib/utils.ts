@@ -605,7 +605,7 @@ export const extractSettingsFormData = (
   const formData = source instanceof FormData ? source : new FormData(source)
 
   return {
-    id: (formData.get('id') as string) || '',
+    id: (formData.get('id') as string) || uuidv4(),
     bulletsPerExperienceBlock: Number(
       formData.get(
         SETTINGS_FORM_DATA_KEYS.BULLETS_PER_EXPERIENCE_BLOCK

@@ -25,7 +25,7 @@ import {
   useSensor,
 } from '@dnd-kit/core'
 import {
-  arrayMove,
+  // arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -108,7 +108,10 @@ const ReorderControls: React.FC<ReorderControlsProps> = ({
   educationData,
   skillsData,
 }) => {
-  const { data: settings, saveOrder } = useSettingsStore()
+  const {
+    data: settings,
+    // saveOrder
+  } = useSettingsStore()
   const { sectionOrder } = settings
 
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -164,22 +167,22 @@ const ReorderControls: React.FC<ReorderControlsProps> = ({
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        const oldIndex = sectionOrder.findIndex(
-          (section) => section === active.id
-        )
-        const newIndex = sectionOrder.findIndex(
-          (section) => section === over.id
-        )
-        const newOrder = arrayMove(sectionOrder, oldIndex, newIndex)
-
-        saveOrder(newOrder)
+        // TODO: Implement reordering
+        // const oldIndex = sectionOrder.findIndex(
+        //   (section) => section === active.id
+        // )
+        // const newIndex = sectionOrder.findIndex(
+        //   (section) => section === over.id
+        // )
+        // const newOrder = arrayMove(sectionOrder, oldIndex, newIndex)
+        // saveOrder(newOrder)
       }
 
       setActiveId(null)
       setIsDropping(true)
       setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
     },
-    [sectionOrder, saveOrder]
+    [sectionOrder]
   )
 
   const activeSection = useMemo(

@@ -212,12 +212,8 @@ class DataManager {
     return settingsManager.get()
   }
 
-  async saveSettings(data: AppSettings): Promise<void> {
+  async saveSettings(data: AppSettings): Promise<Result<AppSettings>> {
     return settingsManager.save(data)
-  }
-
-  invalidateSettings() {
-    settingsManager.invalidate()
   }
 
   // Skills

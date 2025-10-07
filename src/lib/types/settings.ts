@@ -16,12 +16,25 @@ export const ResumeSection = {
 
 export type ResumeSection = (typeof ResumeSection)[keyof typeof ResumeSection]
 
+export interface RawSettings {
+  id: string
+  bullets_per_experience_block: number
+  bullets_per_project_block: number
+  max_chars_per_bullet: number
+  language_model: LanguageModel
+  section_order: ResumeSection[]
+  updated_at?: string
+  created_at?: string
+}
+
 export interface AppSettings {
+  id: string
   bulletsPerExperienceBlock: number
   bulletsPerProjectBlock: number
   maxCharsPerBullet: number
   languageModel: LanguageModel
   sectionOrder: ResumeSection[]
+  updatedAt?: string
 }
 
 export const SettingsFields = {

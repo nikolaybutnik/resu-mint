@@ -1,6 +1,7 @@
 import { MONTHS } from './constants'
 import z from 'zod'
 import { LanguageModel, ResumeSection } from './types/settings'
+import { nowIso } from './data/dataUtils'
 
 const urlValidator = (errorMessage = 'Must be a valid URL') => {
   return z.union([
@@ -221,7 +222,7 @@ export const experienceBlockSchema = z
     bulletPoints: z.array(bulletPointSchema).optional().default([]),
     isIncluded: z.boolean().optional().default(true),
     position: z.number().int().min(0).optional().default(0),
-    updatedAt: z.string().optional().default('1970-01-01T00:00:00.000Z'),
+    updatedAt: z.string().optional().default(nowIso()),
   })
   .superRefine((data, ctx) => {
     if (data.endDate.isPresent) {
@@ -346,7 +347,7 @@ export const projectBlockSchema = z
     bulletPoints: z.array(bulletPointSchema).optional().default([]),
     isIncluded: z.boolean().optional().default(true),
     position: z.number().int().min(0).optional().default(0),
-    updatedAt: z.string().optional().default('1970-01-01T00:00:00.000Z'),
+    updatedAt: z.string().optional().default(nowIso()),
   })
   .superRefine((data, ctx) => {
     if (data.endDate.isPresent) {
@@ -454,6 +455,7 @@ export const projectBlockSchema = z
   })
 
 export const settingsSchema = z.object({
+  id: z.string().uuid(),
   bulletsPerExperienceBlock: z.number().int().min(1).max(10),
   bulletsPerProjectBlock: z.number().int().min(1).max(10),
   maxCharsPerBullet: z.number().int().min(100).max(500),
@@ -465,6 +467,7 @@ export const settingsSchema = z.object({
       const requiredSections = Object.values(ResumeSection)
       return requiredSections.every((section) => order.includes(section))
     }, 'Section order must contain all required sections exactly once'),
+  updatedAt: z.string().optional().default(nowIso()),
 })
 
 export const analyzeJobDescriptionRequestSchema = z.object({
@@ -645,6 +648,8 @@ export const educationBlockSchema = z
       .max(2000, 'Description must be 2000 characters or less')
       .optional(),
     isIncluded: z.boolean().optional().default(true),
+    position: z.number().int().min(0).optional().default(0),
+    updatedAt: z.string().optional().default(nowIso()),
   })
   .transform((data) => {
     // Clean up empty date objects

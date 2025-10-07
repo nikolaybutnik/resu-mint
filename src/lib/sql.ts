@@ -792,3 +792,16 @@ SELECT id, bullets_per_experience_block, bullets_per_project_block, max_chars_pe
 FROM settings
 LIMIT 1
 `
+
+// Write Operations
+export const upsertSettingsQuery = `
+INSERT INTO settings (id, bullets_per_experience_block, bullets_per_project_block, max_chars_per_bullet, language_model, section_order, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
+ON CONFLICT (id) DO UPDATE SET
+    bullets_per_experience_block=EXCLUDED.bullets_per_experience_block,
+    bullets_per_project_block=EXCLUDED.bullets_per_project_block,
+    max_chars_per_bullet=EXCLUDED.max_chars_per_bullet,
+    language_model=EXCLUDED.language_model,
+    section_order=EXCLUDED.section_order,
+    updated_at=EXCLUDED.updated_at
+`

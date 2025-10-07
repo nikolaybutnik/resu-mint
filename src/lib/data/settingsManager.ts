@@ -1,90 +1,87 @@
-import { STORAGE_KEYS } from '../constants'
-import { AppSettings } from '../types/settings'
+import { AppSettings, RawSettings } from '../types/settings'
 import { settingsSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
-
-const CACHE_KEYS = {
-  SETTINGS_LOCAL: 'settings-local',
-  SETTINGS_API: 'settings-api',
-} as const
+import {
+  // useAuthStore,
+  useDbStore,
+} from '@/stores'
+import { getSettingsQuery, upsertSettingsQuery } from '../sql'
+import {
+  createValidationError,
+  Failure,
+  Result,
+  Success,
+} from '../types/errors'
+// import { v4 as uuidv4 } from 'uuid'
+import { createUnknownError } from '../types/errors'
+import { nowIso } from './dataUtils'
+// import { getLastKnownUserId } from '../utils'
 
 class SettingsManager {
-  private cache = new Map<string, Promise<unknown>>()
+  private translateRawSettings(raw: RawSettings): AppSettings {
+    return {
+      id: raw.id,
+      bulletsPerExperienceBlock: raw.bullets_per_experience_block,
+      bulletsPerProjectBlock: raw.bullets_per_project_block,
+      maxCharsPerBullet: raw.max_chars_per_bullet,
+      languageModel: raw.language_model,
+      sectionOrder: raw.section_order,
+      updatedAt: raw.updated_at,
+    }
+  }
 
   async get(): Promise<AppSettings> {
-    const cacheKey = isAuthenticated()
-      ? CACHE_KEYS.SETTINGS_API
-      : CACHE_KEYS.SETTINGS_LOCAL
+    const { db } = useDbStore.getState()
 
-    if (!this.cache.has(cacheKey)) {
-      const promise = new Promise<AppSettings>((resolve) => {
-        try {
-          const stored = localStorage.getItem(STORAGE_KEYS.SETTINGS)
+    const data = await db?.query<RawSettings>(getSettingsQuery)
 
-          if (stored) {
-            const parsed = JSON.parse(stored)
-            const validation = settingsSchema.safeParse(parsed)
-
-            if (validation.success) {
-              resolve(validation.data)
-            } else {
-              console.warn(
-                'Invalid settings in Local Storage, using defaults:',
-                validation.error
-              )
-              resolve(DEFAULT_STATE_VALUES.SETTINGS)
-            }
-          } else {
-            this.save(DEFAULT_STATE_VALUES.SETTINGS)
-            resolve(DEFAULT_STATE_VALUES.SETTINGS)
-          }
-        } catch (error) {
-          console.error('Error loading settings, using defaults:', error)
-          resolve(DEFAULT_STATE_VALUES.SETTINGS)
-        }
-      })
-      this.cache.set(cacheKey, promise)
+    if (!data?.rows?.length) {
+      return DEFAULT_STATE_VALUES.SETTINGS
     }
 
-    return this.cache.get(cacheKey)! as Promise<AppSettings>
+    const [storedData] = data.rows
+
+    return this.translateRawSettings(storedData)
   }
 
-  async save(data: AppSettings): Promise<void> {
+  async save(data: AppSettings): Promise<Result<AppSettings>> {
     const validation = settingsSchema.safeParse(data)
+
     if (!validation.success) {
-      console.error('Invalid settings data, save aborted:', validation.error)
-      throw new Error('Invalid settings data')
-    }
-
-    this.invalidate()
-
-    if (!isLocalStorageAvailable()) {
-      console.warn(
-        'Local Storage not available, data will not persist across sessions'
+      return Failure(
+        createValidationError('Invalid settings data', validation.error)
       )
-
-      const cacheKey = isAuthenticated()
-        ? CACHE_KEYS.SETTINGS_API
-        : CACHE_KEYS.SETTINGS_LOCAL
-
-      this.cache.set(cacheKey, Promise.resolve(validation.data))
-      return
     }
+
+    // const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    // const currentUser = useAuthStore.getState().user
+    // const userId = currentUser?.id || getLastKnownUserId()
 
     try {
-      localStorage.setItem(
-        STORAGE_KEYS.SETTINGS,
-        JSON.stringify(validation.data)
-      )
-    } catch (error) {
-      throw error
-    }
-  }
+      await db?.query(upsertSettingsQuery, [
+        data.id,
+        data.bulletsPerExperienceBlock,
+        data.bulletsPerProjectBlock,
+        data.maxCharsPerBullet,
+        data.languageModel,
+        data.sectionOrder,
+        timestamp,
+      ])
 
-  invalidate() {
-    this.cache.delete(CACHE_KEYS.SETTINGS_LOCAL)
-    this.cache.delete(CACHE_KEYS.SETTINGS_API)
+      // await db?.query(insertSettingsChangelogQuery, [
+      //   'update',
+      //   JSON.stringify(data),
+      //   writeId,
+      //   timestamp,
+      //   userId,
+      // ])
+    } catch (error) {
+      return Failure(createUnknownError('Failed to save settings', error))
+    }
+
+    return Success(validation.data)
   }
 }
 

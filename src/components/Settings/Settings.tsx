@@ -9,6 +9,7 @@ import { useSettingsStore } from '@/stores'
 import { submitSettings } from '@/lib/actions/settingsActions'
 import { useDebouncedCallback } from '@/lib/clientUtils'
 import { SkeletonInputField, SkeletonRangeInput } from '../shared/Skeleton'
+import { FORM_IDS } from '@/lib/constants'
 
 const Settings: React.FC = () => {
   const formRef = useRef<HTMLFormElement>(null)
@@ -66,10 +67,16 @@ const Settings: React.FC = () => {
   }
 
   return (
-    <form ref={formRef} className={styles.formSection} action={formAction}>
+    <form
+      ref={formRef}
+      className={styles.formSection}
+      action={formAction}
+      data-tab={FORM_IDS.SETTINGS}
+    >
       <h2 className={styles.formTitle}>Settings</h2>
 
       <div className={styles.formFieldsContainer}>
+        <input type='hidden' name='id' value={settings.id || ''} />
         <div className={styles.formField}>
           <label className={styles.label}>
             Bullets Per Experience Block: {bulletsPerExperienceBlock}

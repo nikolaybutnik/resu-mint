@@ -165,7 +165,7 @@ export const DEFAULT_STATE_VALUES = {
   PROJECTS: [] as ProjectBlockData[],
   EDUCATION: [] as EducationBlockData[],
   SETTINGS: {
-    bulletsPerExperienceBlock: 4,
+    bulletsPerExperienceBlock: 3,
     bulletsPerProjectBlock: 3,
     languageModel: LanguageModel.GPT_4O_MINI,
     maxCharsPerBullet: 180,
