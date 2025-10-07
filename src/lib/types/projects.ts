@@ -1,5 +1,3 @@
-import { ToastMessage } from './toast'
-
 export type Month =
   | 'Jan'
   | 'Feb'
@@ -79,5 +77,4 @@ export interface RawProjectData {
 export interface ProjectFormState {
   fieldErrors: Record<string, string>
   data?: ProjectBlockData
-  notifications?: ToastMessage[]
 }

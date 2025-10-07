@@ -14,7 +14,6 @@ export const submitProject = async (
 
   const validatedData = projectBlockSchema.safeParse(projectData)
 
-  // TODO: implement notifications
   if (validatedData.success) {
     await upsert(validatedData.data)
   }

@@ -34,9 +34,11 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 
   const {
     data: projectData,
+    error: storeError,
     delete: deleteProject,
     upsert,
     hasBlockChanges,
+    clearError,
   } = useProjectStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
@@ -48,7 +50,26 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     async (
       prevState: ProjectFormState,
       formData: FormData
-    ): Promise<ProjectFormState> => submitProject(prevState, formData, upsert),
+    ): Promise<ProjectFormState> => {
+      const formProjectData = extractProjectFormData(formData)
+      const hasChanges = hasBlockChanges(data.id, formProjectData)
+
+      if (!hasChanges) {
+        toast.info("You haven't made any changes to your project.")
+        return {
+          fieldErrors: {},
+          data: formProjectData,
+        }
+      }
+
+      const result = await submitProject(prevState, formData, upsert)
+
+      if (Object.keys(result.fieldErrors).length === 0 && result.data) {
+        toast.success('Your project was updated.')
+      }
+
+      return result
+    },
     {
       fieldErrors: {},
       data,
@@ -67,13 +88,25 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
     useState<BulletPointType | null>(null)
 
   useEffect(() => {
-    const notifications = state?.notifications
-    if (!notifications || notifications.length === 0) return
-
-    notifications.forEach((notification) => {
-      toast[notification.type](notification.message)
-    })
-  }, [state?.notifications])
+    if (storeError) {
+      switch (storeError.code) {
+        case 'NETWORK_ERROR':
+          toast.error(
+            'Network connection failed. Please check your internet connection.'
+          )
+          break
+        case 'UNKNOWN_ERROR':
+          toast.error('An unexpected error occurred. Please try again.')
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        default:
+          toast.error('Failed to save your changes. Please try again.')
+      }
+      clearError()
+    }
+  }, [storeError, clearError])
 
   useEffect(() => {
     setIsCurrent(state.data?.endDate?.isPresent || false)
