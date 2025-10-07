@@ -15,7 +15,6 @@ export const submitExperience = async (
 
   const validatedData = experienceBlockSchema.safeParse(experienceData)
 
-  // TODO: implement notifications
   if (validatedData.success) {
     await upsert(validatedData.data)
   }

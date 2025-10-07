@@ -35,9 +35,11 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
   const {
     data: experienceData,
+    error: storeError,
     delete: deleteExperience,
     upsert,
     hasBlockChanges,
+    clearError,
   } = useExperienceStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
@@ -49,13 +51,52 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
     async (
       prevState: ExperienceFormState,
       formData: FormData
-    ): Promise<ExperienceFormState> =>
-      submitExperience(prevState, formData, upsert),
+    ): Promise<ExperienceFormState> => {
+      const formExperienceData = extractExperienceFormData(formData)
+      const hasChanges = hasBlockChanges(data.id, formExperienceData)
+
+      if (!hasChanges) {
+        toast.info("You haven't made any changes to your experience.")
+        return {
+          fieldErrors: {},
+          data: formExperienceData,
+        }
+      }
+
+      const result = await submitExperience(prevState, formData, upsert)
+
+      if (Object.keys(result.fieldErrors).length === 0 && result.data) {
+        toast.success('Your experience was updated.')
+      }
+
+      return result
+    },
     {
       fieldErrors: {},
       data,
     } as ExperienceFormState
   )
+
+  useEffect(() => {
+    if (storeError) {
+      switch (storeError.code) {
+        case 'NETWORK_ERROR':
+          toast.error(
+            'Network connection failed. Please check your internet connection.'
+          )
+          break
+        case 'UNKNOWN_ERROR':
+          toast.error('An unexpected error occurred. Please try again.')
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        default:
+          toast.error('Failed to save your changes. Please try again.')
+      }
+      clearError()
+    }
+  }, [storeError, clearError])
 
   const [isCurrentlyWorking, setIsCurrentlyWorking] = useState(
     state.data?.endDate?.isPresent || false
@@ -63,15 +104,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
   const [description, setDescription] = useState(state.data?.description || '')
   const [temporaryBullet, setTemporaryBullet] =
     useState<BulletPointType | null>(null)
-
-  useEffect(() => {
-    const notifications = state?.notifications
-    if (!notifications || notifications.length === 0) return
-
-    notifications.forEach((notification) => {
-      toast[notification.type](notification.message)
-    })
-  }, [state?.notifications])
 
   useEffect(() => {
     setIsCurrentlyWorking(state.data?.endDate?.isPresent || false)
@@ -100,7 +132,13 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
     if (!ok) return
 
-    await deleteExperience(data.id)
+    const { error } = await deleteExperience(data.id)
+    if (error) {
+      toast.error('Failed to delete experience. Please try again.')
+      return
+    }
+
+    toast.success('Experience deleted successfully.')
     onClose?.()
   }
 
