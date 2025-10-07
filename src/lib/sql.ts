@@ -152,6 +152,32 @@ CREATE TABLE IF NOT EXISTS education_changes (
 );
 `
 
+// Settings Tables
+export const initializeSettingsQuery = `
+CREATE TABLE IF NOT EXISTS settings (
+    id UUID PRIMARY KEY,
+    bullets_per_experience_block SMALLINT NOT NULL,
+    bullets_per_project_block SMALLINT NOT NULL,
+    max_chars_per_bullet SMALLINT NOT NULL,
+    language_model TEXT NOT NULL,
+    section_order TEXT[] NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+
+export const initializeSettingsChangelogQuery = `
+CREATE TABLE IF NOT EXISTS settings_changes (
+    id BIGSERIAL PRIMARY KEY,
+    operation TEXT NOT NULL,
+    value JSONB NOT NULL,
+    write_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
+);
+`
+
 // =============================================================================
 // PERSONAL DETAILS QUERIES
 // =============================================================================
@@ -754,4 +780,15 @@ WHERE user_id IS NULL
 
 export const updateEducationChangelogQuery = `
 UPDATE education_changes SET synced = $1 WHERE write_id = $2
+`
+
+// =============================================================================
+// SETTINGS QUERIES
+// =============================================================================
+
+// Read Operations
+export const getSettingsQuery = `
+SELECT id, bullets_per_experience_block, bullets_per_project_block, max_chars_per_bullet, language_model, section_order, updated_at::text, created_at::text 
+FROM settings
+LIMIT 1
 `

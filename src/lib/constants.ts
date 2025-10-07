@@ -78,6 +78,7 @@ export const FORM_IDS = {
   EXPERIENCE: 'experience',
   PROJECTS: 'projects',
   EDUCATION: 'education',
+  SETTINGS: 'settings',
 } as const
 
 // Debounce delays

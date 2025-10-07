@@ -4,12 +4,14 @@ import {
   EXPERIENCE_FORM_DATA_KEYS,
   PROJECT_FORM_DATA_KEYS,
   EDUCATION_FORM_DATA_KEYS,
+  SETTINGS_FORM_DATA_KEYS,
 } from './constants'
 import { DegreeStatus, EducationBlockData } from './types/education'
 import { ExperienceBlockData, Month } from './types/experience'
 import { PersonalDetails } from './types/personalDetails'
 import { ProjectBlockData } from './types/projects'
 import { v4 as uuidv4 } from 'uuid'
+import { AppSettings, LanguageModel } from './types/settings'
 
 /**
  * Sanitizes user input for UI display, preventing XSS and normalizing text
@@ -586,6 +588,39 @@ export const extractEducationFormData = (
     description:
       (formData.get(EDUCATION_FORM_DATA_KEYS.DESCRIPTION) as string)?.trim() ||
       '',
+  }
+}
+
+/**
+ * Extracts form data for settings
+ *
+ * @param source - The HTMLFormElement or FormData containing settings data
+ * @param currentSettings - The currently saved settings
+ * @returns AppSettings object with extracted values
+ */
+export const extractSettingsFormData = (
+  source: HTMLFormElement | FormData,
+  currentSettings: AppSettings
+): AppSettings => {
+  const formData = source instanceof FormData ? source : new FormData(source)
+
+  return {
+    id: (formData.get('id') as string) || '',
+    bulletsPerExperienceBlock: Number(
+      formData.get(
+        SETTINGS_FORM_DATA_KEYS.BULLETS_PER_EXPERIENCE_BLOCK
+      ) as string
+    ),
+    bulletsPerProjectBlock: Number(
+      formData.get(SETTINGS_FORM_DATA_KEYS.BULLETS_PER_PROJECT_BLOCK) as string
+    ),
+    maxCharsPerBullet: Number(
+      formData.get(SETTINGS_FORM_DATA_KEYS.MAX_CHARS_PER_BULLET) as string
+    ),
+    languageModel: formData.get(
+      SETTINGS_FORM_DATA_KEYS.LANGUAGE_MODEL
+    ) as LanguageModel,
+    sectionOrder: currentSettings.sectionOrder,
   }
 }
 

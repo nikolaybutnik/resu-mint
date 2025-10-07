@@ -50,23 +50,3 @@ export const getMostRecentTimestamp = (
       '1970-01-01T00:00:00.000Z'
     )
 }
-
-type LocalEnvelope<T> = { data: T; meta: { updatedAt: string } }
-
-export function readLocalEnvelope<T>(key: string): LocalEnvelope<T> | null {
-  try {
-    const raw = localStorage.getItem(key)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if (!parsed?.data || !parsed?.meta?.updatedAt) return null
-    return parsed
-  } catch {
-    return null
-  }
-}
-
-export function writeLocalEnvelope<T>(key: string, data: T, updatedAt: string) {
-  try {
-    localStorage.setItem(key, JSON.stringify({ data, meta: { updatedAt } }))
-  } catch {}
-}
