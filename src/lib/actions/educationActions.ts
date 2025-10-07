@@ -14,7 +14,6 @@ export const submitEducation = async (
 
   const validatedData = educationBlockSchema.safeParse(educationData)
 
-  // TODO: implement notifications
   if (validatedData.success) {
     await upsert(validatedData.data)
   }

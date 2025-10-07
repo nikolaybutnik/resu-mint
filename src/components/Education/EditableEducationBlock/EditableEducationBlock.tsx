@@ -12,6 +12,7 @@ import { useEducationStore, confirm } from '@/stores'
 import { submitEducation } from '@/lib/actions/educationActions'
 import { useFormStatus } from 'react-dom'
 import { extractEducationFormData } from '@/lib/utils'
+import { toast } from '@/stores/toastStore'
 
 interface EditableEducationBlockProps {
   data: EducationBlockData
@@ -27,24 +28,40 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
 
   const {
     data: educationData,
+    error: storeError,
     delete: deleteEducation,
     upsert,
     hasBlockChanges,
+    clearError,
   } = useEducationStore()
 
   const isNew = !educationData.some((block) => block.id === data.id)
   const shouldShowCloseButton = educationData.length > 1 || !isNew
 
   const [state, formAction] = useActionState(
-    (
+    async (
       prevState: EducationFormState,
       formData: FormData
-    ): Promise<EducationFormState> =>
-      submitEducation(
-        prevState,
-        formData,
-        upsert
-      ) as Promise<EducationFormState>,
+    ): Promise<EducationFormState> => {
+      const formEducationData = extractEducationFormData(formData)
+      const hasChanges = hasBlockChanges(data.id, formEducationData)
+
+      if (!hasChanges) {
+        toast.info("You haven't made any changes to your education.")
+        return {
+          fieldErrors: {},
+          data: formEducationData,
+        }
+      }
+
+      const result = await submitEducation(prevState, formData, upsert)
+
+      if (Object.keys(result.fieldErrors).length === 0 && result.data) {
+        toast.success('Your education was updated.')
+      }
+
+      return result
+    },
     {
       fieldErrors: {},
       data,
@@ -52,6 +69,27 @@ const EditableEducationBlock: React.FC<EditableEducationBlockProps> = ({
   )
 
   const [description, setDescription] = useState(state.data?.description || '')
+
+  useEffect(() => {
+    if (storeError) {
+      switch (storeError.code) {
+        case 'NETWORK_ERROR':
+          toast.error(
+            'Network connection failed. Please check your internet connection.'
+          )
+          break
+        case 'UNKNOWN_ERROR':
+          toast.error('An unexpected error occurred. Please try again.')
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        default:
+          toast.error('Failed to save your changes. Please try again.')
+      }
+      clearError()
+    }
+  }, [storeError, clearError])
 
   useEffect(() => {
     setDescription(state.data?.description || '')
