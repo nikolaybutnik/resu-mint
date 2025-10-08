@@ -50,17 +50,17 @@ interface ExperienceStore {
 
 let debouncedSave: ReturnType<typeof debounce> | null = null
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
+let lastSavedState: ExperienceBlockData[] = []
 
 export const useExperienceStore = create<ExperienceStore>((set, get) => {
   if (!debouncedSave) {
     debouncedSave = debounce(async (block: ExperienceBlockData) => {
-      const currentState = get()
-
       set({ loading: true, error: null })
 
       const result = await dataManager.saveExperience(block)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -70,7 +70,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: lastSavedState,
+          hasData: !!lastSavedState.length,
           error: result.error,
         })
       }
@@ -83,13 +84,13 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         set({ loading: true, error: null })
         const data =
           (await dataManager.getExperience()) as ExperienceBlockData[]
+        lastSavedState = data
         set({
           data,
           loading: false,
           hasData: !!data?.length,
         })
       } catch (error) {
-        console.error('ExperienceStore: refresh error:', error)
         set({
           loading: false,
           error: createUnknownError('Failed to refresh experience data', error),
@@ -112,6 +113,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         const data =
           (await dataManager.getExperience()) as ExperienceBlockData[]
 
+        lastSavedState = data
         set({
           data,
           loading: false,
@@ -119,8 +121,6 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
           hasData: !!data?.length,
         })
       } catch (error) {
-        console.error('ExperienceStore: initialization error:', error)
-
         set({
           loading: false,
           initializing: false,
@@ -182,6 +182,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         }
       }
 
+      const previousData = currentState.data
       const optimisticData = currentState.data.filter(
         (block) => block.id !== blockId
       )
@@ -195,6 +196,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       const result = await dataManager.deleteExperience(blockId)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           hasData: !!result.data.length,
@@ -202,7 +204,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         })
       } else {
         set({
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -211,6 +214,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
     },
 
     reorder: async (data: ExperienceBlockData[]) => {
+      const previousData = get().data
       const optimisticWithPositions = data.map((block, i) => ({
         ...block,
         position: i,
@@ -227,15 +231,16 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       )
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           hasData: !!result.data.length,
           error: result.warning || null,
         })
       } else {
-        const currentState = get()
         set({
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -287,6 +292,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
 
     saveBullet: async (bullet: BulletPoint, sectionId: string) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -310,6 +316,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       const result = await dataManager.saveExperienceBullet(bullet, sectionId)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -319,7 +326,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -329,6 +337,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
 
     deleteBullet: async (sectionId: string, bulletId: string) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -353,6 +362,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       )
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -362,7 +372,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -372,6 +383,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
 
     toggleBulletLock: async (sectionId: string, bulletId: string) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -396,6 +408,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       )
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -405,7 +418,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -415,6 +429,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
 
     toggleBulletLockAll: async (sectionId: string, shouldLock: boolean) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -440,6 +455,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       )
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -449,7 +465,8 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }

@@ -34,17 +34,17 @@ interface EducationStore {
 
 let debouncedSave: ReturnType<typeof debounce> | null = null
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
+let lastSavedState: EducationBlockData[] = []
 
 export const useEducationStore = create<EducationStore>((set, get) => {
   if (!debouncedSave) {
     debouncedSave = debounce(async (block: EducationBlockData) => {
-      const currentState = get()
-
       set({ loading: true, error: null })
 
       const result = await dataManager.saveEducation(block)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -54,7 +54,8 @@ export const useEducationStore = create<EducationStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: lastSavedState,
+          hasData: !!lastSavedState.length,
           error: result.error,
         })
       }
@@ -66,13 +67,13 @@ export const useEducationStore = create<EducationStore>((set, get) => {
       try {
         set({ loading: true, error: null })
         const data = (await dataManager.getEducation()) as EducationBlockData[]
+        lastSavedState = data
         set({
           data,
           loading: false,
           hasData: !!data?.length,
         })
       } catch (error) {
-        console.error('EducationStore: refresh error:', error)
         set({
           loading: false,
           error: createUnknownError('Failed to refresh education data', error),
@@ -94,6 +95,7 @@ export const useEducationStore = create<EducationStore>((set, get) => {
       try {
         const data = (await dataManager.getEducation()) as EducationBlockData[]
 
+        lastSavedState = data
         set({
           data,
           loading: false,
@@ -101,8 +103,6 @@ export const useEducationStore = create<EducationStore>((set, get) => {
           hasData: !!data?.length,
         })
       } catch (error) {
-        console.error('EducationStore: initialization error:', error)
-
         set({
           loading: false,
           initializing: false,
@@ -164,6 +164,7 @@ export const useEducationStore = create<EducationStore>((set, get) => {
         }
       }
 
+      const previousData = currentState.data
       const optimisticData = currentState.data.filter(
         (block) => block.id !== blockId
       )
@@ -177,6 +178,7 @@ export const useEducationStore = create<EducationStore>((set, get) => {
       const result = await dataManager.deleteEducation(blockId)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           hasData: !!result.data.length,
@@ -184,7 +186,8 @@ export const useEducationStore = create<EducationStore>((set, get) => {
         })
       } else {
         set({
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -193,6 +196,7 @@ export const useEducationStore = create<EducationStore>((set, get) => {
     },
 
     reorder: async (data: EducationBlockData[]) => {
+      const previousData = get().data
       const optimisticWithPositions = data.map((block, i) => ({
         ...block,
         position: i,
@@ -207,15 +211,16 @@ export const useEducationStore = create<EducationStore>((set, get) => {
       const result = await dataManager.reorderEducation(optimisticWithPositions)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           hasData: !!result.data.length,
           error: result.warning || null,
         })
       } else {
-        const currentState = get()
         set({
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }

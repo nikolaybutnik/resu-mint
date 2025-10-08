@@ -3,7 +3,11 @@ import { dataManager } from '@/lib/data/dataManager'
 import { BulletPoint, ProjectBlockData } from '@/lib/types/projects'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { isEqual, omit, debounce } from 'lodash'
-import { createValidationError, OperationError } from '@/lib/types/errors'
+import {
+  createValidationError,
+  OperationError,
+  createUnknownError,
+} from '@/lib/types/errors'
 
 interface ProjectStore {
   data: ProjectBlockData[]
@@ -41,17 +45,17 @@ interface ProjectStore {
 
 let debouncedSave: ReturnType<typeof debounce> | null = null
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
+let lastSavedState: ProjectBlockData[] = []
 
 export const useProjectStore = create<ProjectStore>((set, get) => {
   if (!debouncedSave) {
     debouncedSave = debounce(async (block: ProjectBlockData) => {
-      const currentState = get()
-
       set({ loading: true, error: null })
 
       const result = await dataManager.saveProject(block)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -61,7 +65,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: lastSavedState,
+          hasData: !!lastSavedState.length,
           error: result.error,
         })
       }
@@ -71,16 +76,19 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
   if (!debouncedRefresh) {
     debouncedRefresh = debounce(async () => {
       try {
-        set({ loading: true })
+        set({ loading: true, error: null })
         const data = (await dataManager.getProjects()) as ProjectBlockData[]
+        lastSavedState = data
         set({
           data,
           loading: false,
           hasData: !!data?.length,
         })
       } catch (error) {
-        console.error('ProjectsStore: refresh error:', error)
-        set({ loading: false })
+        set({
+          loading: false,
+          error: createUnknownError('Failed to refresh project data', error),
+        })
       }
     }, 300)
   }
@@ -93,11 +101,12 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
     error: null,
 
     initialize: async () => {
-      set({ loading: true })
+      set({ loading: true, error: null })
 
       try {
         const data = (await dataManager.getProjects()) as ProjectBlockData[]
 
+        lastSavedState = data
         set({
           data,
           loading: false,
@@ -105,9 +114,11 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
           hasData: !!data?.length,
         })
       } catch (error) {
-        console.error('ProjectsStore: initialization error:', error)
-
-        set({ loading: false, initializing: false })
+        set({
+          loading: false,
+          initializing: false,
+          error: createUnknownError('Failed to initialize project data', error),
+        })
       }
     },
 
@@ -161,6 +172,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
         }
       }
 
+      const previousData = currentState.data
       const optimisticData = currentState.data.filter(
         (block) => block.id !== blockId
       )
@@ -174,6 +186,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       const result = await dataManager.deleteProject(blockId)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           hasData: !!result.data.length,
@@ -181,7 +194,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
         })
       } else {
         set({
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -190,6 +204,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
     },
 
     reorder: async (data: ProjectBlockData[]) => {
+      const previousData = get().data
       const optimisticWithPositions = data.map((block, i) => ({
         ...block,
         position: i,
@@ -204,15 +219,16 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       const result = await dataManager.reorderProjects(optimisticWithPositions)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           hasData: !!result.data.length,
           error: result.warning || null,
         })
       } else {
-        const currentState = get()
         set({
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -222,6 +238,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
 
     saveBullet: async (bullet: BulletPoint, sectionId: string) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -245,6 +262,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       const result = await dataManager.saveProjectBullet(bullet, sectionId)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -254,7 +272,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -264,6 +283,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
 
     deleteBullet: async (sectionId: string, bulletId: string) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -285,6 +305,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       const result = await dataManager.deleteProjectBullet(sectionId, bulletId)
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -294,7 +315,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -304,6 +326,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
 
     toggleBulletLock: async (sectionId: string, bulletId: string) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -328,6 +351,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       )
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -337,7 +361,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }
@@ -347,6 +372,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
 
     toggleBulletLockAll: async (sectionId: string, shouldLock: boolean) => {
       const currentState = get()
+      const previousData = currentState.data
 
       const optimisticData = currentState.data.map((block) =>
         block.id === sectionId
@@ -372,6 +398,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       )
 
       if (result.success) {
+        lastSavedState = result.data
         set({
           data: result.data,
           loading: false,
@@ -381,7 +408,8 @@ export const useProjectStore = create<ProjectStore>((set, get) => {
       } else {
         set({
           loading: false,
-          data: currentState.data,
+          data: previousData,
+          hasData: !!previousData.length,
           error: result.error,
         })
       }

@@ -86,7 +86,8 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
           return { error: null }
         }
 
-        // Optimistic UI update
+        const previousData = currentState.data
+
         set({
           data: details,
           hasData: !!details?.name?.trim() && !!details?.email?.trim(),
@@ -99,7 +100,7 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
           return { error: null }
         }
 
-        return executeSave(details, set, get)
+        return executeSave(details, previousData, set, get)
       },
 
       refresh: async () => {
@@ -125,6 +126,7 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
 
 async function executeSave(
   details: PersonalDetails,
+  previousData: PersonalDetails,
   set: (state: Partial<PersonalDetailsStore>) => void,
   get: () => PersonalDetailsStore
 ): Promise<{ error: OperationError | null }> {
@@ -147,26 +149,26 @@ async function executeSave(
       if (currentState.pendingSaveDetails) {
         const nextDetails = currentState.pendingSaveDetails
         set({ pendingSaveDetails: null })
-        return executeSave(nextDetails, set, get)
+        return executeSave(nextDetails, result.data, set, get)
       }
 
       set({ saveInFlight: false })
       return returnValue
     } else {
-      const currentState = get()
       set({
-        data: currentState.data,
-        hasData: currentState.hasData,
+        data: previousData,
+        hasData: !!previousData?.name?.trim() && !!previousData?.email?.trim(),
         loading: false,
         error: result.error,
       })
 
       const returnValue = { error: result.error }
 
+      const currentState = get()
       if (currentState.pendingSaveDetails) {
         const nextDetails = currentState.pendingSaveDetails
         set({ pendingSaveDetails: null })
-        return executeSave(nextDetails, set, get)
+        return executeSave(nextDetails, previousData, set, get)
       }
 
       set({ saveInFlight: false })
@@ -178,20 +180,20 @@ async function executeSave(
       error
     )
 
-    const currentState = get()
     set({
-      data: currentState.data,
-      hasData: currentState.hasData,
+      data: previousData,
+      hasData: !!previousData?.name?.trim() && !!previousData?.email?.trim(),
       loading: false,
       error: operationError,
     })
 
     const returnValue = { error: operationError }
 
+    const currentState = get()
     if (currentState.pendingSaveDetails) {
       const nextDetails = currentState.pendingSaveDetails
       set({ pendingSaveDetails: null })
-      return executeSave(nextDetails, set, get)
+      return executeSave(nextDetails, previousData, set, get)
     }
 
     set({ saveInFlight: false })
