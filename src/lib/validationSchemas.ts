@@ -454,19 +454,21 @@ export const projectBlockSchema = z
     }
   })
 
+export const sectionOrderSchema = z
+  .array(z.nativeEnum(ResumeSection))
+  .length(4, 'Section order must contain exactly 4 sections')
+  .refine((order) => {
+    const requiredSections = Object.values(ResumeSection)
+    return requiredSections.every((section) => order.includes(section))
+  }, 'Section order must contain all required sections exactly once')
+
 export const settingsSchema = z.object({
   id: z.string().uuid(),
   bulletsPerExperienceBlock: z.number().int().min(1).max(10),
   bulletsPerProjectBlock: z.number().int().min(1).max(10),
   maxCharsPerBullet: z.number().int().min(100).max(500),
   languageModel: z.nativeEnum(LanguageModel),
-  sectionOrder: z
-    .array(z.nativeEnum(ResumeSection))
-    .length(4, 'Section order must contain exactly 4 sections')
-    .refine((order) => {
-      const requiredSections = Object.values(ResumeSection)
-      return requiredSections.every((section) => order.includes(section))
-    }, 'Section order must contain all required sections exactly once'),
+  sectionOrder: sectionOrderSchema,
   updatedAt: z.string().optional().default(nowIso()),
 })
 

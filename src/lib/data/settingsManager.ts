@@ -1,18 +1,22 @@
-import { AppSettings, RawSettings } from '../types/settings'
-import { settingsSchema } from '../validationSchemas'
+import { AppSettings, RawSettings, ResumeSection } from '../types/settings'
+import { settingsSchema, sectionOrderSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
 import {
   // useAuthStore,
   useDbStore,
 } from '@/stores'
-import { getSettingsQuery, upsertSettingsQuery } from '../sql'
+import {
+  getSettingsQuery,
+  upsertSettingsQuery,
+  updateSectionOrderQuery,
+} from '../sql'
 import {
   createValidationError,
   Failure,
   Result,
   Success,
 } from '../types/errors'
-// import { v4 as uuidv4 } from 'uuid'
+import { v4 as uuidv4 } from 'uuid'
 import { createUnknownError } from '../types/errors'
 import { nowIso } from './dataUtils'
 // import { getLastKnownUserId } from '../utils'
@@ -45,7 +49,13 @@ class SettingsManager {
   }
 
   async save(data: AppSettings): Promise<Result<AppSettings>> {
-    const validation = settingsSchema.safeParse(data)
+    // Ensure ID exists
+    const dataWithId = {
+      ...data,
+      id: data.id || uuidv4(),
+    }
+
+    const validation = settingsSchema.safeParse(dataWithId)
 
     if (!validation.success) {
       return Failure(
@@ -61,12 +71,12 @@ class SettingsManager {
 
     try {
       await db?.query(upsertSettingsQuery, [
-        data.id,
-        data.bulletsPerExperienceBlock,
-        data.bulletsPerProjectBlock,
-        data.maxCharsPerBullet,
-        data.languageModel,
-        data.sectionOrder,
+        validation.data.id,
+        validation.data.bulletsPerExperienceBlock,
+        validation.data.bulletsPerProjectBlock,
+        validation.data.maxCharsPerBullet,
+        validation.data.languageModel,
+        validation.data.sectionOrder,
         timestamp,
       ])
 
@@ -82,6 +92,43 @@ class SettingsManager {
     }
 
     return Success(validation.data)
+  }
+
+  async saveSectionOrder(
+    id: string,
+    sectionOrder: ResumeSection[]
+  ): Promise<Result<AppSettings>> {
+    const validation = sectionOrderSchema.safeParse(sectionOrder)
+
+    if (!validation.success) {
+      return Failure(
+        createValidationError('Invalid section order', validation.error)
+      )
+    }
+
+    // const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    // const currentUser = useAuthStore.getState().user
+    // const userId = currentUser?.id || getLastKnownUserId()
+
+    try {
+      await db?.query(updateSectionOrderQuery, [validation.data, timestamp, id])
+
+      const updatedSettings = await this.get()
+
+      // await db?.query(insertSettingsChangelogQuery, [
+      //   'update',
+      //   JSON.stringify(updatedSettings),
+      //   writeId,
+      //   timestamp,
+      //   userId,
+      // ])
+
+      return Success(updatedSettings)
+    } catch (error) {
+      return Failure(createUnknownError('Failed to save section order', error))
+    }
   }
 }
 

@@ -1,9 +1,6 @@
 import { create } from 'zustand'
 import { dataManager } from '@/lib/data/dataManager'
-import {
-  AppSettings,
-  // ResumeSection
-} from '@/lib/types/settings'
+import { AppSettings, ResumeSection } from '@/lib/types/settings'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { createUnknownError, OperationError } from '@/lib/types/errors'
 import { debounce } from 'lodash'
@@ -16,11 +13,11 @@ interface SettingsStore {
   error: OperationError | null
   initialize: () => Promise<void>
   save: (settings: AppSettings) => Promise<{ error: OperationError | null }>
-  // saveOrder: (
-  //   order: ResumeSection[]
-  // ) => Promise<{ error: OperationError | null }>
+  saveOrder: (
+    order: ResumeSection[]
+  ) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
-  // clearError: () => void
+  clearError: () => void
 }
 
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
@@ -95,6 +92,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     },
 
     save: async (settings) => {
+      const previousData = get().data
+
       set({
         data: settings,
         hasData:
@@ -122,19 +121,86 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
             loading: false,
             error: result.warning || null,
           })
+          return { error: null }
+        } else {
+          set({
+            data: previousData,
+            hasData:
+              !!previousData?.bulletsPerExperienceBlock &&
+              !!previousData?.bulletsPerProjectBlock &&
+              !!previousData?.maxCharsPerBullet &&
+              !!previousData?.languageModel &&
+              !!previousData?.sectionOrder.length,
+            loading: false,
+            error: result.error,
+          })
+          return { error: result.error }
         }
-
-        return { error: result.success ? null : result.error }
       } catch (error) {
         const operationError = createUnknownError(
           'Failed to save settings',
           error
         )
 
-        const currentState = get()
         set({
-          data: currentState.data,
-          hasData: currentState.hasData,
+          data: previousData,
+          hasData:
+            !!previousData?.bulletsPerExperienceBlock &&
+            !!previousData?.bulletsPerProjectBlock &&
+            !!previousData?.maxCharsPerBullet &&
+            !!previousData?.languageModel &&
+            !!previousData?.sectionOrder.length,
+          loading: false,
+          error: operationError,
+        })
+
+        return { error: operationError }
+      }
+    },
+
+    saveOrder: async (order: ResumeSection[]) => {
+      const previousData = get().data
+
+      if (!previousData.id) {
+        return {
+          error: createUnknownError('Settings not initialized - no ID found'),
+        }
+      }
+
+      set({
+        data: { ...previousData, sectionOrder: order },
+        loading: true,
+        error: null,
+      })
+
+      try {
+        const result = await dataManager.saveSectionOrder(
+          previousData.id,
+          order
+        )
+        if (result.success) {
+          set({
+            data: result.data,
+            loading: false,
+            error: result.warning || null,
+          })
+          return { error: null }
+        } else {
+          set({
+            data: previousData,
+            loading: false,
+            error: result.error,
+          })
+          return { error: result.error }
+        }
+      } catch (error) {
+        const operationError = createUnknownError(
+          'Failed to save section order',
+          error
+        )
+
+        set({
+          data: previousData,
           loading: false,
           error: operationError,
         })
@@ -147,26 +213,8 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
       debouncedRefresh?.()
     },
 
-    // saveOrder: async (order: ResumeSection[]) => {
-    //   const previousData = get().data
-
-    //   set({
-    //     data: {
-    //       ...previousData,
-    //       sectionOrder: order,
-    //     },
-    //   })
-
-    //   try {
-    //     await dataManager.saveSettings({
-    //       ...previousData,
-    //       sectionOrder: order,
-    //     })
-    //   } catch (error) {
-    //     set({ data: previousData })
-    //     console.error('SettingsStore: save error:', error)
-    //     throw error
-    //   }
-    // },
+    clearError: () => {
+      set({ error: null })
+    },
   }
 })

@@ -69,6 +69,15 @@
     font-size: 18px;
     color: $color-primary;
   }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+
+    svg {
+      color: rgba($color-primary, 0.5);
+    }
+  }
 }
 
 .expandedContent {

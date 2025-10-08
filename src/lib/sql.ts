@@ -805,3 +805,9 @@ ON CONFLICT (id) DO UPDATE SET
     section_order=EXCLUDED.section_order,
     updated_at=EXCLUDED.updated_at
 `
+
+export const updateSectionOrderQuery = `
+UPDATE settings 
+SET section_order = $1, updated_at = $2::timestamptz
+WHERE id = $3
+`

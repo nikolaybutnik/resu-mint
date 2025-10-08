@@ -25,7 +25,7 @@ import {
   useSensor,
 } from '@dnd-kit/core'
 import {
-  // arrayMove,
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -108,10 +108,7 @@ const ReorderControls: React.FC<ReorderControlsProps> = ({
   educationData,
   skillsData,
 }) => {
-  const {
-    data: settings,
-    // saveOrder
-  } = useSettingsStore()
+  const { data: settings, saveOrder } = useSettingsStore()
   const { sectionOrder } = settings
 
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -163,19 +160,18 @@ const ReorderControls: React.FC<ReorderControlsProps> = ({
   }, [])
 
   const handleDragEnd = useCallback(
-    (event: DragEndEvent): void => {
+    async (event: DragEndEvent): Promise<void> => {
       const { active, over } = event
 
       if (over && active.id !== over.id) {
-        // TODO: Implement reordering
-        // const oldIndex = sectionOrder.findIndex(
-        //   (section) => section === active.id
-        // )
-        // const newIndex = sectionOrder.findIndex(
-        //   (section) => section === over.id
-        // )
-        // const newOrder = arrayMove(sectionOrder, oldIndex, newIndex)
-        // saveOrder(newOrder)
+        const oldIndex = sectionOrder.findIndex(
+          (section) => section === active.id
+        )
+        const newIndex = sectionOrder.findIndex(
+          (section) => section === over.id
+        )
+        const newOrder = arrayMove(sectionOrder, oldIndex, newIndex)
+        await saveOrder(newOrder)
       }
 
       setActiveId(null)
@@ -321,6 +317,7 @@ const ReorderControlsWidget: React.FC<ReorderControlsWidgetProps> = ({
       >
         {!isExpanded && (
           <button
+            disabled={sectionsWithContent.length < 2}
             onClick={toggleExpanded}
             className={styles.collapsedButton}
             title='Reorder resume sections'

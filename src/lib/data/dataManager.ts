@@ -14,7 +14,7 @@ import type {
   ProjectBlockData,
   BulletPoint as ProjectBulletPoint,
 } from '../types/projects'
-import type { AppSettings } from '../types/settings'
+import type { AppSettings, ResumeSection } from '../types/settings'
 import { JobDetails } from '../types/jobDetails'
 import { jobDetailsManager } from './jobDetailsManager'
 import { JobDescriptionAnalysis } from '../types/jobDetails'
@@ -214,6 +214,13 @@ class DataManager {
 
   async saveSettings(data: AppSettings): Promise<Result<AppSettings>> {
     return settingsManager.save(data)
+  }
+
+  async saveSectionOrder(
+    id: string,
+    data: ResumeSection[]
+  ): Promise<Result<AppSettings>> {
+    return settingsManager.saveSectionOrder(id, data)
   }
 
   // Skills
