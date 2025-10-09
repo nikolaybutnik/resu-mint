@@ -1,14 +1,12 @@
 import { AppSettings, RawSettings, ResumeSection } from '../types/settings'
 import { settingsSchema, sectionOrderSchema } from '../validationSchemas'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import {
-  // useAuthStore,
-  useDbStore,
-} from '@/stores'
+import { useAuthStore, useDbStore } from '@/stores'
 import {
   getSettingsQuery,
   upsertSettingsQuery,
   updateSectionOrderQuery,
+  insertSettingsChangelogQuery,
 } from '../sql'
 import {
   createValidationError,
@@ -19,7 +17,7 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { createUnknownError } from '../types/errors'
 import { nowIso } from './dataUtils'
-// import { getLastKnownUserId } from '../utils'
+import { getLastKnownUserId } from '../utils'
 
 class SettingsManager {
   private translateRawSettings(raw: RawSettings): AppSettings {
@@ -49,7 +47,6 @@ class SettingsManager {
   }
 
   async save(data: AppSettings): Promise<Result<AppSettings>> {
-    // Ensure ID exists
     const dataWithId = {
       ...data,
       id: data.id || uuidv4(),
@@ -63,11 +60,11 @@ class SettingsManager {
       )
     }
 
-    // const writeId = uuidv4()
+    const writeId = uuidv4()
     const timestamp = nowIso()
     const { db } = useDbStore.getState()
-    // const currentUser = useAuthStore.getState().user
-    // const userId = currentUser?.id || getLastKnownUserId()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
       await db?.query(upsertSettingsQuery, [
@@ -80,13 +77,13 @@ class SettingsManager {
         timestamp,
       ])
 
-      // await db?.query(insertSettingsChangelogQuery, [
-      //   'update',
-      //   JSON.stringify(data),
-      //   writeId,
-      //   timestamp,
-      //   userId,
-      // ])
+      await db?.query(insertSettingsChangelogQuery, [
+        'update',
+        JSON.stringify(validation.data),
+        writeId,
+        timestamp,
+        userId,
+      ])
     } catch (error) {
       return Failure(createUnknownError('Failed to save settings', error))
     }
@@ -106,24 +103,24 @@ class SettingsManager {
       )
     }
 
-    // const writeId = uuidv4()
+    const writeId = uuidv4()
     const timestamp = nowIso()
     const { db } = useDbStore.getState()
-    // const currentUser = useAuthStore.getState().user
-    // const userId = currentUser?.id || getLastKnownUserId()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
     try {
       await db?.query(updateSectionOrderQuery, [validation.data, timestamp, id])
 
       const updatedSettings = await this.get()
 
-      // await db?.query(insertSettingsChangelogQuery, [
-      //   'update',
-      //   JSON.stringify(updatedSettings),
-      //   writeId,
-      //   timestamp,
-      //   userId,
-      // ])
+      await db?.query(insertSettingsChangelogQuery, [
+        'update',
+        JSON.stringify(updatedSettings),
+        writeId,
+        timestamp,
+        userId,
+      ])
 
       return Success(updatedSettings)
     } catch (error) {

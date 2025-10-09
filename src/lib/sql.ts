@@ -811,3 +811,9 @@ UPDATE settings
 SET section_order = $1, updated_at = $2::timestamptz
 WHERE id = $3
 `
+
+// Changelog Operations
+export const insertSettingsChangelogQuery = `
+INSERT INTO settings_changes (operation, value, write_id, timestamp, user_id)
+VALUES ($1, $2, $3, $4, $5)
+`
