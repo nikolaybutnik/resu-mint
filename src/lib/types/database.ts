@@ -36,35 +36,35 @@ export type Database = {
     Tables: {
       app_settings: {
         Row: {
-          bullets_per_experience_block: number | null
-          bullets_per_project_block: number | null
+          bullets_per_experience_block: number
+          bullets_per_project_block: number
           created_at: string | null
           id: string
-          language_model: string | null
-          max_chars_per_bullet: number | null
-          section_order: Json | null
+          language_model: string
+          max_chars_per_bullet: number
+          section_order: string[]
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          bullets_per_experience_block?: number | null
-          bullets_per_project_block?: number | null
+          bullets_per_experience_block?: number
+          bullets_per_project_block?: number
           created_at?: string | null
           id?: string
-          language_model?: string | null
-          max_chars_per_bullet?: number | null
-          section_order?: Json | null
+          language_model?: string
+          max_chars_per_bullet?: number
+          section_order: string[]
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          bullets_per_experience_block?: number | null
-          bullets_per_project_block?: number | null
+          bullets_per_experience_block?: number
+          bullets_per_project_block?: number
           created_at?: string | null
           id?: string
-          language_model?: string | null
-          max_chars_per_bullet?: number | null
-          section_order?: Json | null
+          language_model?: string
+          max_chars_per_bullet?: number
+          section_order?: string[]
           updated_at?: string | null
           user_id?: string
         }
@@ -498,6 +498,16 @@ export type Database = {
       }
       upsert_project_bullets: {
         Args: { bullets: Json }
+        Returns: string
+      }
+      upsert_settings: {
+        Args: {
+          s_experience_bullets_per_block: number
+          s_language_model: string
+          s_max_chars_per_bullet: number
+          s_project_bullets_per_block: number
+          s_section_order: string[]
+        }
         Returns: string
       }
     }

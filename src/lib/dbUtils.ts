@@ -24,9 +24,14 @@ import {
   updateEducationChangelogQuery,
   cleanUpSyncedEducationChangelogEntriesQuery,
   updateEducationPositionQuery,
+  updateSettingsChangelogQuery,
+  cleanUpSyncedSettingsChangelogEntriesQuery,
+  selectLatestUnsyncedSettingsChangeQuery,
+  markPreviousSettingsChangesAsSyncedQuery,
 } from './sql'
 import { ProjectBlockData } from './types/projects'
 import { EducationBlockData } from './types/education'
+import { AppSettings } from './types/settings'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
   if (!error) return false
@@ -118,6 +123,14 @@ interface EducationChange {
   user_id: string | null
 }
 
+interface SettingsChange {
+  id: number
+  operation: 'update'
+  value: AppSettings
+  write_id: string
+  timestamp: string
+}
+
 interface SyncConfig<T> {
   datasetName: string
   getLatestUnsyncedQuery: string
@@ -166,6 +179,15 @@ const SYNC_CONFIGS = {
     syncToRemote: syncEducationToRemote,
     syncMode: 'batch',
   } as SyncConfig<EducationChange>,
+  settings: {
+    datasetName: 'app_settings',
+    getLatestUnsyncedQuery: selectLatestUnsyncedSettingsChangeQuery,
+    markSyncedQuery: updateSettingsChangelogQuery,
+    markPreviousAsSyncedQuery: markPreviousSettingsChangesAsSyncedQuery,
+    cleanupQuery: cleanUpSyncedSettingsChangelogEntriesQuery,
+    syncToRemote: syncSettingsToRemote,
+    syncMode: 'single',
+  } as SyncConfig<SettingsChange>,
 } as const
 
 async function syncDataset<T extends { write_id: string; timestamp: string }>(
@@ -1332,6 +1354,73 @@ async function syncEducationToRemote(
   }
 }
 
+async function upsertSettings(
+  change: SettingsChange,
+  db: ElectricDb,
+  config: SyncConfig<SettingsChange>
+) {
+  const maxRetries = 3
+  const TOLERANCE_MS = 5000 // Reduced for settings - rapid changes are common
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const settings = change.value as AppSettings
+
+      const { data: serverData, error: serverError } = await supabase
+        .from('app_settings')
+        .select('updated_at')
+        .single()
+
+      if (isRecordNotFoundError(serverError)) {
+        // Record doesn't exist, proceed with upsert
+      } else if (serverError) {
+        throw serverError
+      }
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('upsert_settings', {
+        s_experience_bullets_per_block: settings.bulletsPerExperienceBlock,
+        s_project_bullets_per_block: settings.bulletsPerProjectBlock,
+        s_max_chars_per_bullet: settings.maxCharsPerBullet,
+        s_language_model: settings.languageModel,
+        s_section_order: settings.sectionOrder,
+      })
+
+      if (error) throw error
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
+async function syncSettingsToRemote(
+  change: SettingsChange,
+  db: ElectricDb,
+  config: SyncConfig<SettingsChange>
+) {
+  if (change.operation === 'update') {
+    await upsertSettings(change, db, config)
+    return
+  }
+}
+
 export const pushLocalChangesToRemote = async () => {
   const { user } = useAuthStore.getState()
   const { db } = useDbStore.getState()
@@ -1366,6 +1455,13 @@ export const pushLocalChangesToRemote = async () => {
     await syncDataset(db, user?.id, educationConfig)
   } catch (error) {
     console.error(`Error syncing education:`, error)
+  }
+
+  const settingsConfig = SYNC_CONFIGS.settings
+  try {
+    await syncDataset(db, user?.id, settingsConfig)
+  } catch (error) {
+    console.error(`Error syncing settings:`, error)
   }
 }
 

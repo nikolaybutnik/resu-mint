@@ -154,7 +154,7 @@ CREATE TABLE IF NOT EXISTS education_changes (
 
 // Settings Tables
 export const initializeSettingsQuery = `
-CREATE TABLE IF NOT EXISTS settings (
+CREATE TABLE IF NOT EXISTS app_settings (
     id UUID PRIMARY KEY,
     bullets_per_experience_block SMALLINT NOT NULL,
     bullets_per_project_block SMALLINT NOT NULL,
@@ -167,7 +167,7 @@ CREATE TABLE IF NOT EXISTS settings (
 `
 
 export const initializeSettingsChangelogQuery = `
-CREATE TABLE IF NOT EXISTS settings_changes (
+CREATE TABLE IF NOT EXISTS app_settings_changes (
     id BIGSERIAL PRIMARY KEY,
     operation TEXT NOT NULL,
     value JSONB NOT NULL,
@@ -789,13 +789,13 @@ UPDATE education_changes SET synced = $1 WHERE write_id = $2
 // Read Operations
 export const getSettingsQuery = `
 SELECT id, bullets_per_experience_block, bullets_per_project_block, max_chars_per_bullet, language_model, section_order, updated_at::text, created_at::text 
-FROM settings
+FROM app_settings
 LIMIT 1
 `
 
 // Write Operations
 export const upsertSettingsQuery = `
-INSERT INTO settings (id, bullets_per_experience_block, bullets_per_project_block, max_chars_per_bullet, language_model, section_order, updated_at)
+INSERT INTO app_settings (id, bullets_per_experience_block, bullets_per_project_block, max_chars_per_bullet, language_model, section_order, updated_at)
 VALUES ($1, $2, $3, $4, $5, $6, $7::timestamptz)
 ON CONFLICT (id) DO UPDATE SET
     bullets_per_experience_block=EXCLUDED.bullets_per_experience_block,
@@ -807,13 +807,38 @@ ON CONFLICT (id) DO UPDATE SET
 `
 
 export const updateSectionOrderQuery = `
-UPDATE settings 
+UPDATE app_settings 
 SET section_order = $1, updated_at = $2::timestamptz
 WHERE id = $3
 `
 
 // Changelog Operations
 export const insertSettingsChangelogQuery = `
-INSERT INTO settings_changes (operation, value, write_id, timestamp, user_id)
+INSERT INTO app_settings_changes (operation, value, write_id, timestamp, user_id)
 VALUES ($1, $2, $3, $4, $5)
+`
+
+export const selectLatestUnsyncedSettingsChangeQuery = `
+SELECT * FROM app_settings_changes
+WHERE synced = FALSE AND operation = 'update'
+AND user_id = $1
+ORDER BY timestamp DESC LIMIT 1
+`
+
+export const updateSettingsChangelogQuery = `
+UPDATE app_settings_changes SET synced = $1 WHERE write_id = $2
+`
+
+export const cleanUpSyncedSettingsChangelogEntriesQuery = `
+DELETE FROM app_settings_changes
+WHERE synced = TRUE
+AND timestamp < NOW() - INTERVAL '3 days'
+AND user_id = $1
+`
+
+export const markPreviousSettingsChangesAsSyncedQuery = `
+UPDATE app_settings_changes SET synced = TRUE
+WHERE synced = FALSE AND operation = 'update' 
+AND timestamp <= $1 
+AND user_id = $2
 `
