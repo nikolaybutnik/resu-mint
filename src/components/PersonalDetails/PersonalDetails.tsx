@@ -85,7 +85,6 @@ const PersonalDetails: React.FC = () => {
     save,
     hasChanges,
     clearError,
-    cleanup,
   } = usePersonalDetailsStore()
 
   const [state, formAction] = useActionState(
@@ -137,12 +136,6 @@ const PersonalDetails: React.FC = () => {
       clearError()
     }
   }, [storeError, clearError])
-
-  useEffect(() => {
-    return () => {
-      cleanup()
-    }
-  }, [cleanup])
 
   const currentFormHasChanges = hasChanges(state.data || personalDetails)
 

@@ -10,11 +10,18 @@ import { submitSettings } from '@/lib/actions/settingsActions'
 import { useDebouncedCallback } from '@/lib/clientUtils'
 import { SkeletonInputField, SkeletonRangeInput } from '../shared/Skeleton'
 import { FORM_IDS } from '@/lib/constants'
+import { toast } from '@/stores/toastStore'
 
 const Settings: React.FC = () => {
   const formRef = useRef<HTMLFormElement>(null)
 
-  const { data: settings, initializing, save } = useSettingsStore()
+  const {
+    data: settings,
+    initializing,
+    error: storeError,
+    save,
+    clearError,
+  } = useSettingsStore()
 
   const [bulletsPerExperienceBlock, setBulletsPerExperienceBlock] = useState(
     settings.bulletsPerExperienceBlock
@@ -26,6 +33,27 @@ const Settings: React.FC = () => {
     settings.maxCharsPerBullet
   )
   const [languageModel, setLanguageModel] = useState(settings.languageModel)
+
+  useEffect(() => {
+    if (storeError) {
+      switch (storeError.code) {
+        case 'NETWORK_ERROR':
+          toast.error(
+            'Network connection failed. Please check your internet connection.'
+          )
+          break
+        case 'UNKNOWN_ERROR':
+          toast.error('An unexpected error occurred. Please try again.')
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        default:
+          toast.error('Failed to save your changes. Please try again.')
+      }
+      clearError()
+    }
+  }, [storeError, clearError])
 
   useEffect(() => {
     setBulletsPerExperienceBlock(settings.bulletsPerExperienceBlock)
@@ -43,15 +71,7 @@ const Settings: React.FC = () => {
       const result = await submitSettings(prevState, formData, settings)
 
       if (Object.keys(result.errors).length === 0 && result.data) {
-        try {
-          await save(result.data)
-        } catch (error) {
-          console.error('Settings: error saving settings:', error)
-          return {
-            errors: { submit: 'Failed to save settings' },
-            data: result.data,
-          }
-        }
+        await save(result.data)
       }
 
       return result

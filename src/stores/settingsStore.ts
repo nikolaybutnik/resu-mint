@@ -20,7 +20,6 @@ interface SettingsStore {
   ) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   clearError: () => void
-  cleanup: () => void
 }
 
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
@@ -175,10 +174,6 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
 
     clearError: () => {
       set({ error: null })
-    },
-
-    cleanup: () => {
-      set({ saveInFlight: false, pendingSaveSettings: null })
     },
   }
 })

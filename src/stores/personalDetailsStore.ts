@@ -18,7 +18,6 @@ interface PersonalDetailsStore {
   initialize: () => Promise<void>
   hasChanges: (newData: PersonalDetails) => boolean
   clearError: () => void
-  cleanup: () => void
 }
 
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
@@ -115,10 +114,6 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
 
       clearError: () => {
         set({ error: null })
-      },
-
-      cleanup: () => {
-        set({ saveInFlight: false, pendingSaveDetails: null })
       },
     }
   }
