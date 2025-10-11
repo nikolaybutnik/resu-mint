@@ -141,7 +141,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
           set({
             data: result.data,
             loading: false,
-            error: result.warning || null,
+            error: null,
           })
           return { error: null }
         } else {
@@ -199,10 +199,10 @@ async function executeSave(
           !!result.data?.languageModel &&
           !!result.data?.sectionOrder.length,
         loading: false,
-        error: result.warning || null,
+        error: null,
       })
 
-      const returnValue = { error: result.warning || null }
+      const returnValue = { error: null }
 
       const currentState = get()
       if (currentState.pendingSaveSettings) {

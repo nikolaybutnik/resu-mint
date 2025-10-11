@@ -65,7 +65,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
           data: result.data,
           loading: false,
           hasData: !!result.data?.length,
-          error: result.warning || null,
+          error: null,
         })
       } else {
         set({
@@ -200,7 +200,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         set({
           data: result.data,
           hasData: !!result.data.length,
-          error: result.warning || null,
+          error: null,
         })
       } else {
         set({
@@ -235,7 +235,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
         set({
           data: result.data,
           hasData: !!result.data.length,
-          error: result.warning || null,
+          error: null,
         })
       } else {
         set({
@@ -321,7 +321,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
           data: result.data,
           loading: false,
           hasData: !!result.data?.length,
-          error: result.warning || null,
+          error: null,
         })
       } else {
         set({
@@ -367,7 +367,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
           data: result.data,
           loading: false,
           hasData: !!result.data?.length,
-          error: result.warning || null,
+          error: null,
         })
       } else {
         set({
@@ -413,7 +413,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
           data: result.data,
           loading: false,
           hasData: !!result.data?.length,
-          error: result.warning || null,
+          error: null,
         })
       } else {
         set({
@@ -460,7 +460,7 @@ export const useExperienceStore = create<ExperienceStore>((set, get) => {
           data: result.data,
           loading: false,
           hasData: !!result.data?.length,
-          error: result.warning || null,
+          error: null,
         })
       } else {
         set({

@@ -135,10 +135,10 @@ async function executeSave(
         data: result.data,
         hasData: !!result.data?.name?.trim() && !!result.data?.email?.trim(),
         loading: false,
-        error: result.warning || null,
+        error: null,
       })
 
-      const returnValue = { error: result.warning || null }
+      const returnValue = { error: null }
 
       const currentState = get()
       if (currentState.pendingSaveDetails) {

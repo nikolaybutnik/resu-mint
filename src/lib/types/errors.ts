@@ -44,13 +44,12 @@ export interface OperationError {
 // ========================================
 
 export type Result<T> =
-  | { success: true; data: T; warning?: OperationError }
+  | { success: true; data: T }
   | { success: false; error: OperationError }
 
-export const Success = <T>(data: T, warning?: OperationError): Result<T> => ({
+export const Success = <T>(data: T): Result<T> => ({
   success: true,
   data,
-  warning,
 })
 
 export const Failure = (error: OperationError): Result<never> => ({
