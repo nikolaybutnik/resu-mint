@@ -27,4 +27,6 @@ export interface SkillBlock {
   title?: string
   skills: string[]
   isIncluded?: boolean
+  position?: number
+  updatedAt?: string
 }

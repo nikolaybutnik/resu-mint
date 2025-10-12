@@ -28,8 +28,12 @@ import {
   initializeProjectBulletsQuery,
   initializeProjectChangelogQuery,
   initializeProjectsQuery,
+  initializeResumeSkillsChangelogQuery,
+  initializeResumeSkillsQuery,
   initializeSettingsChangelogQuery,
   initializeSettingsQuery,
+  initializeSkillsChangelogQuery,
+  initializeSkillsQuery,
 } from '@/lib/sql'
 import { pushLocalChangesToRemote } from '@/lib/dbUtils'
 import {
@@ -261,6 +265,10 @@ const initializeTables = async (db: PGlite) => {
     await db.query(initializeEducationChangelogQuery)
     await db.query(initializeSettingsQuery)
     await db.query(initializeSettingsChangelogQuery)
+    await db.query(initializeSkillsQuery)
+    await db.query(initializeSkillsChangelogQuery)
+    await db.query(initializeResumeSkillsQuery)
+    await db.query(initializeResumeSkillsChangelogQuery)
   } catch (error) {
     console.error('Failed to initialize DB tables:', error)
   }

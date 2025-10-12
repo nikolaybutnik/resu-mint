@@ -178,6 +178,55 @@ CREATE TABLE IF NOT EXISTS app_settings_changes (
 );
 `
 
+// Skills Tables
+export const initializeSkillsQuery = `
+CREATE TABLE IF NOT EXISTS skills (
+    id UUID PRIMARY KEY,
+    hard_skills TEXT[] DEFAULT '{}',
+    hard_suggestions TEXT[] DEFAULT '{}',
+    soft_skills TEXT[] DEFAULT '{}',
+    soft_suggestions TEXT[] DEFAULT '{}',
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+
+export const initializeSkillsChangelogQuery = `
+CREATE TABLE IF NOT EXISTS skills_changes (
+    id BIGSERIAL PRIMARY KEY,
+    operation TEXT NOT NULL,
+    value JSONB NOT NULL,
+    write_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
+);
+`
+
+export const initializeResumeSkillsQuery = `
+CREATE TABLE IF NOT EXISTS resume_skills (
+    id UUID PRIMARY KEY,
+    title TEXT,
+    skills TEXT[] DEFAULT '{}',
+    is_included BOOLEAN DEFAULT TRUE,
+    position INTEGER DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+
+export const initializeResumeSkillsChangelogQuery = `
+CREATE TABLE IF NOT EXISTS resume_skills_changes (
+    id BIGSERIAL PRIMARY KEY,
+    operation TEXT NOT NULL,
+    value JSONB NOT NULL,
+    write_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
+);
+`
+
 // =============================================================================
 // PERSONAL DETAILS QUERIES
 // =============================================================================
@@ -841,4 +890,132 @@ UPDATE app_settings_changes SET synced = TRUE
 WHERE synced = FALSE AND operation = 'update' 
 AND timestamp <= $1 
 AND user_id = $2
+`
+
+// =============================================================================
+// SKILLS QUERIES
+// =============================================================================
+
+// Read Operations
+export const getSkillsQuery = `
+SELECT id, hard_skills, hard_suggestions, soft_skills, soft_suggestions, updated_at::text, created_at::text
+FROM skills
+ORDER BY updated_at DESC
+LIMIT 1
+`
+
+// Write Operations
+export const upsertSkillsQuery = `
+INSERT INTO skills (id, hard_skills, hard_suggestions, soft_skills, soft_suggestions, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+ON CONFLICT (id) DO UPDATE SET
+    hard_skills = EXCLUDED.hard_skills,
+    hard_suggestions = EXCLUDED.hard_suggestions,
+    soft_skills = EXCLUDED.soft_skills,
+    soft_suggestions = EXCLUDED.soft_suggestions,
+    updated_at = EXCLUDED.updated_at
+`
+
+// Changelog Operations
+export const insertSkillsChangelogQuery = `
+INSERT INTO skills_changes (operation, value, write_id, timestamp, user_id)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+export const selectLatestUnsyncedSkillsChangeQuery = `
+SELECT * FROM skills_changes
+WHERE synced = FALSE AND operation = 'update'
+AND user_id = $1
+ORDER BY timestamp DESC LIMIT 1
+`
+
+export const updateSkillsChangelogQuery = `
+UPDATE skills_changes SET synced = $1 WHERE write_id = $2
+`
+
+export const markPreviousSkillsChangesAsSyncedQuery = `
+UPDATE skills_changes SET synced = TRUE
+WHERE synced = FALSE AND operation = 'update'
+AND timestamp <= $1
+AND user_id = $2
+`
+export const cleanUpSyncedSkillsChangelogEntriesQuery = `
+DELETE FROM skills_changes
+WHERE synced = TRUE
+AND timestamp < NOW() - INTERVAL '3 days'
+AND user_id = $1
+`
+
+// =============================================================================
+// RESUME SKILLS QUERIES
+// =============================================================================
+
+// Read Operations
+export const getResumeSkillsQuery = `
+SELECT id, title, skills, is_included, position, updated_at::text, created_at::text
+FROM resume_skills
+ORDER BY position ASC, created_at DESC
+`
+
+export const getResumeSkillByIdQuery = `
+SELECT id, title, skills, is_included, position, updated_at::text, created_at::text
+FROM resume_skills
+WHERE id = $1
+`
+
+// Write Operations
+export const upsertResumeSkillQuery = `
+INSERT INTO resume_skills (id, title, skills, is_included, position, updated_at)
+VALUES ($1, $2, $3, $4, $5, $6::timestamptz)
+ON CONFLICT (id) DO UPDATE SET
+    title = EXCLUDED.title,
+    skills = EXCLUDED.skills,
+    is_included = EXCLUDED.is_included,
+    position = EXCLUDED.position,
+    updated_at = EXCLUDED.updated_at
+`
+
+export const deleteResumeSkillQuery = `
+DELETE FROM resume_skills WHERE id = $1
+`
+
+export const updateResumeSkillPositionQuery = `
+UPDATE resume_skills
+SET position = $2, updated_at = $3::timestamptz
+WHERE id = $1
+`
+
+export const reorderResumeSkillPositionsQuery = `
+UPDATE resume_skills
+SET position = subq.new_position - 1, updated_at = $1
+FROM (
+    SELECT id, ROW_NUMBER() OVER (ORDER BY position, created_at) AS new_position
+    FROM resume_skills
+) AS subq
+WHERE resume_skills.id = subq.id
+    AND resume_skills.position != (subq.new_position - 1)
+`
+
+// Changelog Operations
+export const insertResumeSkillsChangelogQuery = `
+INSERT INTO resume_skills_changes (operation, value, write_id, timestamp, user_id)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+export const selectAllUnsyncedResumeSkillsChangesQuery = `
+SELECT * FROM resume_skills_changes
+WHERE synced = FALSE
+AND user_id = $1
+ORDER BY timestamp ASC
+`
+
+export const updateResumeSkillsChangelogQuery = `
+UPDATE resume_skills_changes SET synced = $1 WHERE write_id = $2
+`
+
+export const cleanUpSyncedResumeSkillsChangelogEntriesQuery = `
+DELETE FROM resume_skills_changes
+WHERE synced = TRUE
+AND timestamp < NOW() - INTERVAL '3 days'
+AND user_id = $1
 `

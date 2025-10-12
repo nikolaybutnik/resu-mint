@@ -43,6 +43,8 @@ const Skills: React.FC = () => {
   } = useSkillsStore()
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
   const softSkillInputRef = useRef<HTMLInputElement>(null)
+  // TODO: Re-think how suggestions are presented to the user and how/when they're populated.
+  // The floating "cloud" feature feels clunky and could be improved.
   const hardSuggestionsRef = useRef<HTMLDivElement>(null)
   const softSuggestionsRef = useRef<HTMLDivElement>(null)
 
