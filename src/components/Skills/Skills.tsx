@@ -6,7 +6,7 @@ import {
   SKILL_TYPES,
   SkillBlock,
   SkillType,
-  Skills as SkillsType,
+  // Skills as SkillsType,
 } from '@/lib/types/skills'
 import Suggestions from './Suggestions/Suggestions'
 import {
@@ -20,7 +20,7 @@ import {
   useSensor,
 } from '@dnd-kit/core'
 import {
-  arrayMove,
+  // arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -36,10 +36,10 @@ import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
 
 const Skills: React.FC = () => {
   const {
-    data: skillsData,
-    save,
-    resumeSkillData,
-    saveResumeSkillsData,
+    skillsData,
+    // save,
+    // resumeSkillData,
+    // saveResumeSkillsData,
   } = useSkillsStore()
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
   const softSkillInputRef = useRef<HTMLInputElement>(null)
@@ -92,18 +92,18 @@ const Skills: React.FC = () => {
 
     if (isDuplicate) return
 
-    const updatedSkills: SkillsType = {
-      ...skillsData,
-      [skillKey]: {
-        skills: [...skillsData[skillKey].skills, trimmedSkill],
-        suggestions: skillsData[skillKey].suggestions.filter(
-          (suggestion) =>
-            normalizeSkill(suggestion) !== normalizeSkill(trimmedSkill)
-        ),
-      },
-    }
+    // const updatedSkills: SkillsType = {
+    //   ...skillsData,
+    //   [skillKey]: {
+    //     skills: [...skillsData[skillKey].skills, trimmedSkill],
+    //     suggestions: skillsData[skillKey].suggestions.filter(
+    //       (suggestion) =>
+    //         normalizeSkill(suggestion) !== normalizeSkill(trimmedSkill)
+    //     ),
+    //   },
+    // }
 
-    save(updatedSkills)
+    // save(updatedSkills)
 
     if (type === SKILL_TYPES.HARD) {
       setHardSkillInput('')
@@ -114,19 +114,18 @@ const Skills: React.FC = () => {
     }
   }
 
-  const handleRemoveSkill = (type: SkillType, skill: string): void => {
-    const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
-    const updatedSkills: SkillsType = {
-      ...skillsData,
-      [skillKey]: {
-        skills: skillsData[skillKey].skills.filter(
-          (existingSkill) => existingSkill !== skill
-        ),
-        suggestions: skillsData[skillKey].suggestions,
-      },
-    }
-
-    save(updatedSkills)
+  const handleRemoveSkill = (_type: SkillType, _skill: string): void => {
+    // const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
+    // const updatedSkills: SkillsType = {
+    //   ...skillsData,
+    //   [skillKey]: {
+    //     skills: skillsData[skillKey].skills.filter(
+    //       (existingSkill) => existingSkill !== skill
+    //     ),
+    //     suggestions: skillsData[skillKey].suggestions,
+    //   },
+    // }
+    // save(updatedSkills)
   }
 
   const handleKeyPress = (
@@ -170,37 +169,38 @@ const Skills: React.FC = () => {
     setFocusedInput(null)
   }
 
-  const handleSuggestionClick = (type: SkillType, suggestion: string): void => {
-    const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
-    const updatedSkills: SkillsType = {
-      ...skillsData,
-      [skillKey]: {
-        skills: [...skillsData[skillKey].skills, suggestion],
-        suggestions: skillsData[skillKey].suggestions.filter(
-          (item) => normalizeSkill(item) !== normalizeSkill(suggestion)
-        ),
-      },
-    }
-
-    save(updatedSkills)
+  const handleSuggestionClick = (
+    _type: SkillType,
+    _suggestion: string
+  ): void => {
+    // const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
+    // const updatedSkills: SkillsType = {
+    //   ...skillsData,
+    //   [skillKey]: {
+    //     skills: [...skillsData[skillKey].skills, suggestion],
+    //     suggestions: skillsData[skillKey].suggestions.filter(
+    //       (item) => normalizeSkill(item) !== normalizeSkill(suggestion)
+    //     ),
+    //   },
+    // }
+    // save(updatedSkills)
   }
 
   const handleSuggestionDelete = (
-    type: SkillType,
-    suggestion: string
+    _type: SkillType,
+    _suggestion: string
   ): void => {
-    const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
-    const updatedSkills: SkillsType = {
-      ...skillsData,
-      [skillKey]: {
-        suggestions: skillsData[skillKey].suggestions.filter(
-          (existingSuggestion) => existingSuggestion !== suggestion
-        ),
-        skills: skillsData[skillKey].skills,
-      },
-    }
-
-    save(updatedSkills)
+    // const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
+    // const updatedSkills: SkillsType = {
+    //   ...skillsData,
+    //   [skillKey]: {
+    //     suggestions: skillsData[skillKey].suggestions.filter(
+    //       (existingSuggestion) => existingSuggestion !== suggestion
+    //     ),
+    //     skills: skillsData[skillKey].skills,
+    //   },
+    // }
+    // save(updatedSkills)
   }
 
   const duplicateHardSkill = getDuplicateSkill(
@@ -216,28 +216,24 @@ const Skills: React.FC = () => {
     setActiveId(event.active.id as string)
   }, [])
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent): void => {
-      const { active, over } = event
+  const handleDragEnd = useCallback((event: DragEndEvent): void => {
+    const { active, over } = event
 
-      if (over && active.id !== over.id) {
-        const oldIndex = resumeSkillData.findIndex(
-          (item) => item.id === active.id
-        )
-        const newIndex = resumeSkillData.findIndex(
-          (item) => item.id === over.id
-        )
-        const newOrder = arrayMove(resumeSkillData, oldIndex, newIndex)
+    if (over && active.id !== over.id) {
+      // const oldIndex = resumeSkillData.findIndex(
+      //   (item) => item.id === active.id
+      // )
+      // const newIndex = resumeSkillData.findIndex(
+      //   (item) => item.id === over.id
+      // )
+      // const newOrder = arrayMove(resumeSkillData, oldIndex, newIndex)
+      // saveResumeSkillsData(newOrder)
+    }
 
-        saveResumeSkillsData(newOrder)
-      }
-
-      setActiveId(null)
-      setIsDropping(true)
-      setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
-    },
-    [resumeSkillData, saveResumeSkillsData]
-  )
+    setActiveId(null)
+    setIsDropping(true)
+    setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
+  }, [])
 
   const handleAddSkillCategory = (): void => {
     if (temporarySkillCategory) return
@@ -255,22 +251,27 @@ const Skills: React.FC = () => {
   }, [])
 
   const activeItem = useMemo((): JSX.Element | null => {
-    const draggingBlock = resumeSkillData.find((skill) => skill.id === activeId)
-    if (!draggingBlock) return null
+    // const draggingBlock = resumeSkillData.find((skill) => skill.id === activeId)
+    // if (!draggingBlock) return null
 
     return (
       <DraggableSkillBlock
-        id={draggingBlock.id}
-        title={draggingBlock.title ?? ''}
-        skills={draggingBlock.skills}
+        // id={draggingBlock.id}
+        // title={draggingBlock.title ?? ''}
+        // skills={draggingBlock.skills}
+        id={''}
+        title={''}
+        skills={[]}
         isOverlay={true}
         isDropping={isDropping}
         skillsData={skillsData}
-        resumeSkillData={resumeSkillData}
-        saveResumeSkillsData={saveResumeSkillsData}
+        // resumeSkillData={resumeSkillData}
+        // saveResumeSkillsData={saveResumeSkillsData}
+        resumeSkillData={[]}
+        saveResumeSkillsData={() => {}}
       />
     )
-  }, [activeId, resumeSkillData, isDropping])
+  }, [activeId, isDropping])
 
   const renderSkillBlocks = (
     resumeSkillData: SkillBlock[],
@@ -294,7 +295,8 @@ const Skills: React.FC = () => {
               isIncluded={skill.isIncluded}
               skillsData={skillsData}
               resumeSkillData={resumeSkillData}
-              saveResumeSkillsData={saveResumeSkillsData}
+              // saveResumeSkillsData={saveResumeSkillsData}
+              saveResumeSkillsData={() => {}}
             />
           ))}
 
@@ -309,7 +311,8 @@ const Skills: React.FC = () => {
             onCategoryCreate={handleCategoryCreate}
             skillsData={skillsData}
             resumeSkillData={resumeSkillData}
-            saveResumeSkillsData={saveResumeSkillsData}
+            // saveResumeSkillsData={saveResumeSkillsData}
+            saveResumeSkillsData={() => {}}
           />
         )}
 
@@ -523,12 +526,14 @@ const Skills: React.FC = () => {
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
         <SortableContext
-          items={resumeSkillData.map((skill) => skill.id)}
+          items={[]}
+          // items={resumeSkillData.map((skill) => skill.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className={styles.skillBuilderContainer}>
             {renderSkillBlocks(
-              resumeSkillData,
+              // resumeSkillData,
+              [],
               temporarySkillCategory,
               activeId,
               isDropping

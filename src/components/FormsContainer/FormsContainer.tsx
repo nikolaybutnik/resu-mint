@@ -47,7 +47,7 @@ import {
   usePersonalDetailsStore,
   useProjectStore,
   useEducationStore,
-  useSkillsStore,
+  // useSkillsStore,
   useSettingsStore,
   confirm,
 } from '@/stores'
@@ -211,7 +211,7 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
   const { data: projects } = useProjectStore()
   const { data: education } = useEducationStore()
   const { data: jobDetails } = useJobDetailsStore()
-  const { resumeSkillData } = useSkillsStore()
+  // const { resumeSkillData } = useSkillsStore()
   const { data: settings } = useSettingsStore()
 
   // UI States
@@ -364,7 +364,8 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
       workExperience,
       projects,
       education,
-      resumeSkillData,
+      // resumeSkillData,
+      [],
       settings
     )
   }, [
@@ -372,7 +373,8 @@ export const FormsContainer: React.FC<FormsContainerProps> = ({ view }) => {
     workExperience,
     projects,
     education,
-    resumeSkillData,
+    // resumeSkillData,
+    [],
     settings,
   ])
 

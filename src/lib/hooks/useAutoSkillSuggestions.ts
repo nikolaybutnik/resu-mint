@@ -7,9 +7,9 @@ import {
   useSkillsStore,
   useSettingsStore,
 } from '@/stores'
-import { skillsService } from '@/lib/services'
+// import { skillsService } from '@/lib/services'
 import { JobDescriptionAnalysis } from '@/lib/types/jobDetails'
-import { Skills } from '@/lib/types/skills'
+// import { Skills } from '@/lib/types/skills'
 
 export const useAutoSkillSuggestions = () => {
   const prevAnalysisRef = useRef<JobDescriptionAnalysis | null>(null)
@@ -25,8 +25,8 @@ export const useAutoSkillSuggestions = () => {
   const { data: projects, initializing: projectsInitializing } =
     useProjectStore()
   const {
-    data: skills,
-    save: saveSkills,
+    skillsData,
+    // save: saveSkills,
     initializing: skillsInitializing,
   } = useSkillsStore()
   const { data: settings, initializing: settingsInitializing } =
@@ -90,32 +90,32 @@ export const useAutoSkillSuggestions = () => {
         return
       }
 
-      const suggestions = await skillsService.generateSuggestions(
-        jobDetails.analysis,
-        skills,
-        userExperience,
-        settings
-      )
+      // const suggestions = await skillsService.generateSuggestions(
+      //   jobDetails.analysis,
+      //   skillsData,
+      //   userExperience,
+      //   settings
+      // )
 
-      const updatedSkills: Skills = {
-        ...skills,
-        hardSkills: {
-          ...skills.hardSkills,
-          suggestions: [
-            ...skills.hardSkills.suggestions,
-            ...suggestions.hardSkillSuggestions,
-          ].slice(-10),
-        },
-        softSkills: {
-          ...skills.softSkills,
-          suggestions: [
-            ...skills.softSkills.suggestions,
-            ...suggestions.softSkillSuggestions,
-          ].slice(-10),
-        },
-      }
+      // const updatedSkills: Skills = {
+      //   ...skillsData,
+      //   hardSkills: {
+      //     ...skillsData.hardSkills,
+      //     suggestions: [
+      //       ...skillsData.hardSkills.suggestions,
+      //       ...suggestions.hardSkillSuggestions,
+      //     ].slice(-10),
+      //   },
+      //   softSkills: {
+      //     ...skillsData.softSkills,
+      //     suggestions: [
+      //       ...skillsData.softSkills.suggestions,
+      //       ...suggestions.softSkillSuggestions,
+      //     ].slice(-10),
+      //   },
+      // }
 
-      await saveSkills(updatedSkills)
+      // await saveSkills(updatedSkills)
     } catch (error) {
       console.error('Failed to auto-generate skill suggestions:', error)
 
@@ -196,7 +196,7 @@ export const useAutoSkillSuggestions = () => {
     jobDetails.analysis,
     experience,
     projects,
-    skills,
+    skillsData,
     settings,
     jobDetailsInitializing,
     experienceInitializing,

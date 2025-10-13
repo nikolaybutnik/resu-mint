@@ -34,7 +34,6 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
             hasData: !!data?.name?.trim() && !!data?.email?.trim(),
           })
         } catch (error) {
-          console.error('PersonalDetailsStore: refresh error:', error)
           set({
             loading: false,
             error: createUnknownError(
@@ -66,7 +65,6 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
             hasData: !!data?.name?.trim() && !!data?.email?.trim(),
           })
         } catch (error) {
-          console.error('PersonalDetailsStore: initialization error:', error)
           set({
             loading: false,
             initializing: false,

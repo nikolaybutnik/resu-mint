@@ -1,168 +1,193 @@
+import { useDbStore } from '@/stores/dbStore'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import { SkillBlock, Skills } from '../types/skills'
-import { STORAGE_KEYS } from '../constants'
-import { isAuthenticated, isLocalStorageAvailable } from './dataUtils'
+import { getSkillsQuery } from '../sql'
 import {
-  resumeSkillBlockSchema,
-  skillsValidationSchema,
-} from '../validationSchemas'
-
-const CACHE_KEYS = {
-  SKILLS_LOCAL: 'skills-local',
-  SKILLS_API: 'skills-api',
-  SKILLS_RESUME_LOCAL: 'skills-resume-local',
-  SKILLS_RESUME_API: 'skills-resume-api',
-} as const
+  RawSkills,
+  // SkillBlock,
+  Skills,
+} from '../types/skills'
+// import {
+//   resumeSkillBlockSchema,
+//   skillsValidationSchema,
+// } from '../validationSchemas'
 
 class SkillsManager {
-  private cache = new Map<string, Promise<unknown>>()
+  private translateRawSkills(raw: RawSkills): Skills {
+    return {
+      id: raw.id,
+      hardSkills: {
+        skills: raw.hard_skills,
+        suggestions: raw.hard_suggestions,
+      },
+      softSkills: {
+        skills: raw.soft_skills,
+        suggestions: raw.soft_suggestions,
+      },
+      updatedAt: raw.updated_at,
+    }
+  }
 
   async getSkills(): Promise<Skills> {
-    const cacheKey = isAuthenticated()
-      ? CACHE_KEYS.SKILLS_API
-      : CACHE_KEYS.SKILLS_LOCAL
+    const { db } = useDbStore.getState()
 
-    if (!this.cache.has(cacheKey)) {
-      const promise = new Promise<Skills>((resolve) => {
-        try {
-          const stored = localStorage.getItem(STORAGE_KEYS.SKILLS)
+    const data = await db?.query<RawSkills>(getSkillsQuery)
 
-          if (stored) {
-            const parsed = JSON.parse(stored)
-            const validation = skillsValidationSchema.safeParse(parsed)
-            if (validation.success) {
-              resolve(validation.data)
-            } else {
-              console.warn(
-                'Invalid skills in Local Storage, using defaults:',
-                validation.error
-              )
-              resolve(DEFAULT_STATE_VALUES.SKILLS)
-            }
-          } else {
-            resolve(DEFAULT_STATE_VALUES.SKILLS)
-          }
-        } catch (error) {
-          console.error('Error loading skills, using defaults:', error)
-          resolve(DEFAULT_STATE_VALUES.SKILLS)
-        }
-      })
-      this.cache.set(cacheKey, promise)
+    if (!data?.rows?.length) {
+      return DEFAULT_STATE_VALUES.SKILLS
     }
 
-    return this.cache.get(cacheKey)! as Promise<Skills>
+    const [storedData] = data.rows
+
+    return this.translateRawSkills(storedData)
   }
+  // private cache = new Map<string, Promise<unknown>>()
 
-  async saveSkills(data: Skills): Promise<void> {
-    const validation = skillsValidationSchema.safeParse(data)
-    if (!validation.success) {
-      console.error('Invalid skills data, save aborted:', validation.error)
-      throw new Error('Invalid skills data')
-    }
+  // async getSkills(): Promise<Skills> {
+  //   const cacheKey = isAuthenticated()
+  //     ? CACHE_KEYS.SKILLS_API
+  //     : CACHE_KEYS.SKILLS_LOCAL
 
-    this.invalidateSkills()
+  //   if (!this.cache.has(cacheKey)) {
+  //     const promise = new Promise<Skills>((resolve) => {
+  //       try {
+  //         const stored = localStorage.getItem(STORAGE_KEYS.SKILLS)
 
-    if (!isLocalStorageAvailable()) {
-      console.warn(
-        'Local Storage not available, data will not persist across sessions'
-      )
+  //         if (stored) {
+  //           const parsed = JSON.parse(stored)
+  //           const validation = skillsValidationSchema.safeParse(parsed)
+  //           if (validation.success) {
+  //             resolve(validation.data)
+  //           } else {
+  //             console.warn(
+  //               'Invalid skills in Local Storage, using defaults:',
+  //               validation.error
+  //             )
+  //             resolve(DEFAULT_STATE_VALUES.SKILLS)
+  //           }
+  //         } else {
+  //           resolve(DEFAULT_STATE_VALUES.SKILLS)
+  //         }
+  //       } catch (error) {
+  //         console.error('Error loading skills, using defaults:', error)
+  //         resolve(DEFAULT_STATE_VALUES.SKILLS)
+  //       }
+  //     })
+  //     this.cache.set(cacheKey, promise)
+  //   }
 
-      const cacheKey = isAuthenticated()
-        ? CACHE_KEYS.SKILLS_API
-        : CACHE_KEYS.SKILLS_LOCAL
+  //   return this.cache.get(cacheKey)! as Promise<Skills>
+  // }
 
-      this.cache.set(cacheKey, Promise.resolve(validation.data))
-      return
-    }
+  // async saveSkills(data: Skills): Promise<void> {
+  //   const validation = skillsValidationSchema.safeParse(data)
+  //   if (!validation.success) {
+  //     console.error('Invalid skills data, save aborted:', validation.error)
+  //     throw new Error('Invalid skills data')
+  //   }
 
-    try {
-      localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(validation.data))
-    } catch (error) {
-      throw error
-    }
-  }
+  //   this.invalidateSkills()
 
-  invalidateSkills() {
-    this.cache.delete(CACHE_KEYS.SKILLS_LOCAL)
-    this.cache.delete(CACHE_KEYS.SKILLS_API)
-  }
+  //   if (!isLocalStorageAvailable()) {
+  //     console.warn(
+  //       'Local Storage not available, data will not persist across sessions'
+  //     )
 
-  async getResumeSkills(): Promise<SkillBlock[]> {
-    const cacheKey = isAuthenticated()
-      ? CACHE_KEYS.SKILLS_RESUME_API
-      : CACHE_KEYS.SKILLS_RESUME_LOCAL
+  //     const cacheKey = isAuthenticated()
+  //       ? CACHE_KEYS.SKILLS_API
+  //       : CACHE_KEYS.SKILLS_LOCAL
 
-    if (!this.cache.has(cacheKey)) {
-      const promise = new Promise<SkillBlock[]>((resolve) => {
-        try {
-          const stored = localStorage.getItem(STORAGE_KEYS.RESUME_SKILLS)
+  //     this.cache.set(cacheKey, Promise.resolve(validation.data))
+  //     return
+  //   }
 
-          if (stored) {
-            const parsed = JSON.parse(stored)
-            const validation = resumeSkillBlockSchema.array().safeParse(parsed)
+  //   try {
+  //     localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(validation.data))
+  //   } catch (error) {
+  //     throw error
+  //   }
+  // }
 
-            if (validation.success) {
-              resolve(validation.data)
-            } else {
-              console.warn(
-                'Invalid resume skills in Local Storage, using defaults:',
-                validation.error
-              )
-              resolve(DEFAULT_STATE_VALUES.RESUME_SKILLS)
-            }
-          } else {
-            resolve(DEFAULT_STATE_VALUES.RESUME_SKILLS)
-          }
-        } catch (error) {
-          console.error('Error loading resume skills, using defaults:', error)
-          resolve(DEFAULT_STATE_VALUES.RESUME_SKILLS)
-        }
-      })
-      this.cache.set(cacheKey, promise)
-    }
+  // invalidateSkills() {
+  //   this.cache.delete(CACHE_KEYS.SKILLS_LOCAL)
+  //   this.cache.delete(CACHE_KEYS.SKILLS_API)
+  // }
 
-    return this.cache.get(cacheKey)! as Promise<SkillBlock[]>
-  }
+  // async getResumeSkills(): Promise<SkillBlock[]> {
+  //   const cacheKey = isAuthenticated()
+  //     ? CACHE_KEYS.SKILLS_RESUME_API
+  //     : CACHE_KEYS.SKILLS_RESUME_LOCAL
 
-  async saveResumeSkills(data: SkillBlock[]): Promise<void> {
-    const validation = resumeSkillBlockSchema.array().safeParse(data)
-    if (!validation.success) {
-      console.error(
-        'Invalid resume skills data, save aborted:',
-        validation.error
-      )
-      throw new Error('Invalid resume skills data')
-    }
+  //   if (!this.cache.has(cacheKey)) {
+  //     const promise = new Promise<SkillBlock[]>((resolve) => {
+  //       try {
+  //         const stored = localStorage.getItem(STORAGE_KEYS.RESUME_SKILLS)
 
-    this.invalidateResumeSkills()
+  //         if (stored) {
+  //           const parsed = JSON.parse(stored)
+  //           const validation = resumeSkillBlockSchema.array().safeParse(parsed)
 
-    if (!isLocalStorageAvailable()) {
-      console.warn(
-        'Local Storage not available, data will not persist across sessions'
-      )
+  //           if (validation.success) {
+  //             resolve(validation.data)
+  //           } else {
+  //             console.warn(
+  //               'Invalid resume skills in Local Storage, using defaults:',
+  //               validation.error
+  //             )
+  //             resolve(DEFAULT_STATE_VALUES.RESUME_SKILLS)
+  //           }
+  //         } else {
+  //           resolve(DEFAULT_STATE_VALUES.RESUME_SKILLS)
+  //         }
+  //       } catch (error) {
+  //         console.error('Error loading resume skills, using defaults:', error)
+  //         resolve(DEFAULT_STATE_VALUES.RESUME_SKILLS)
+  //       }
+  //     })
+  //     this.cache.set(cacheKey, promise)
+  //   }
 
-      const cacheKey = isAuthenticated()
-        ? CACHE_KEYS.SKILLS_RESUME_API
-        : CACHE_KEYS.SKILLS_RESUME_LOCAL
+  //   return this.cache.get(cacheKey)! as Promise<SkillBlock[]>
+  // }
 
-      this.cache.set(cacheKey, Promise.resolve(validation.data))
-      return
-    }
+  // async saveResumeSkills(data: SkillBlock[]): Promise<void> {
+  //   const validation = resumeSkillBlockSchema.array().safeParse(data)
+  //   if (!validation.success) {
+  //     console.error(
+  //       'Invalid resume skills data, save aborted:',
+  //       validation.error
+  //     )
+  //     throw new Error('Invalid resume skills data')
+  //   }
 
-    try {
-      localStorage.setItem(
-        STORAGE_KEYS.RESUME_SKILLS,
-        JSON.stringify(validation.data)
-      )
-    } catch (error) {
-      throw error
-    }
-  }
+  //   this.invalidateResumeSkills()
 
-  invalidateResumeSkills() {
-    this.cache.delete(CACHE_KEYS.SKILLS_RESUME_LOCAL)
-    this.cache.delete(CACHE_KEYS.SKILLS_RESUME_API)
-  }
+  //   if (!isLocalStorageAvailable()) {
+  //     console.warn(
+  //       'Local Storage not available, data will not persist across sessions'
+  //     )
+
+  //     const cacheKey = isAuthenticated()
+  //       ? CACHE_KEYS.SKILLS_RESUME_API
+  //       : CACHE_KEYS.SKILLS_RESUME_LOCAL
+
+  //     this.cache.set(cacheKey, Promise.resolve(validation.data))
+  //     return
+  //   }
+
+  //   try {
+  //     localStorage.setItem(
+  //       STORAGE_KEYS.RESUME_SKILLS,
+  //       JSON.stringify(validation.data)
+  //     )
+  //   } catch (error) {
+  //     throw error
+  //   }
+  // }
+
+  // invalidateResumeSkills() {
+  //   this.cache.delete(CACHE_KEYS.SKILLS_RESUME_LOCAL)
+  //   this.cache.delete(CACHE_KEYS.SKILLS_RESUME_API)
+  // }
 }
 
 export const skillsManager = new SkillsManager()

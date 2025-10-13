@@ -19,7 +19,10 @@ import { JobDetails } from '../types/jobDetails'
 import { jobDetailsManager } from './jobDetailsManager'
 import { JobDescriptionAnalysis } from '../types/jobDetails'
 import { EducationBlockData } from '../types/education'
-import { SkillBlock, Skills } from '../types/skills'
+import {
+  // SkillBlock,
+  Skills,
+} from '../types/skills'
 
 class DataManager {
   // Personal Details
@@ -228,25 +231,17 @@ class DataManager {
     return skillsManager.getSkills()
   }
 
-  async saveSkills(data: Skills): Promise<void> {
-    return skillsManager.saveSkills(data)
-  }
-
-  invalidateSkills() {
-    skillsManager.invalidateSkills()
-  }
+  // async saveSkills(data: Skills): Promise<void> {
+  //   return skillsManager.saveSkills(data)
+  // }
 
   // Resume Skills
-  async getResumeSkills(): Promise<SkillBlock[]> {
-    return skillsManager.getResumeSkills()
-  }
+  // async getResumeSkills(): Promise<SkillBlock[]> {
+  //   return skillsManager.getResumeSkills()
+  // }
 
-  async saveResumeSkills(data: SkillBlock[]): Promise<void> {
-    return skillsManager.saveResumeSkills(data)
-  }
-
-  invalidateResumeSkills() {
-    skillsManager.invalidateResumeSkills()
-  }
+  // async saveResumeSkills(data: SkillBlock[]): Promise<void> {
+  //   return skillsManager.saveResumeSkills(data)
+  // }
 }
 export const dataManager = new DataManager()

@@ -6,7 +6,7 @@ import {
   useJobDetailsStore,
   useProjectStore,
   useSettingsStore,
-  useSkillsStore,
+  // useSkillsStore,
 } from '@/stores'
 import { toast } from '@/stores/toastStore'
 import { zodErrorsToFormErrors } from '@/lib/types/errors'
@@ -16,7 +16,9 @@ import { v4 as uuidv4 } from 'uuid'
 import { ExperienceBlockData } from '@/lib/types/experience'
 import { ProjectBlockData } from '@/lib/types/projects'
 import { analyzeJobDescriptionRequestSchema } from '@/lib/validationSchemas'
-import { SkillBlock, Skills } from '@/lib/types/skills'
+import // SkillBlock,
+// Skills,
+'@/lib/types/skills'
 
 interface JobDescriptionStepProps {
   onContinue: () => void
@@ -35,7 +37,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   const { data: jobDetails, hasAnalysis } = useJobDetailsStore()
   const { data: workExperience } = useExperienceStore()
   const { data: projects } = useProjectStore()
-  const { save: saveSkills } = useSkillsStore()
+  // const { save: saveSkills } = useSkillsStore()
   const { data: settings } = useSettingsStore()
 
   const [jobDescriptionInput, setJobDescriptionInput] = useState(
@@ -135,59 +137,67 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
   }
 
   const handleSkillExtraction = async (): Promise<void> => {
-    const { data: workExperience } = useExperienceStore.getState()
-    const { data: projects } = useProjectStore.getState()
-    const initSkills = {
-      hardSkills: {
-        skills: [],
-        suggestions: [],
-      },
-      softSkills: {
-        skills: [],
-        suggestions: [],
-      },
-    }
-
-    const result = await skillsService.extractSkills(
-      workExperience,
-      projects,
-      initSkills,
-      settings
-    )
-
-    const skillsToSave: Skills = {
-      hardSkills: {
-        skills: result.hardSkills,
-        suggestions: [],
-      },
-      softSkills: {
-        skills: result.softSkills,
-        suggestions: [],
-      },
-    }
-
-    await saveSkills(skillsToSave)
+    // const { data: workExperience } = useExperienceStore.getState()
+    // const { data: projects } = useProjectStore.getState()
+    // const initSkills = {
+    //   id: '',
+    //   hardSkills: {
+    //     skills: [],
+    //     suggestions: [],
+    //   },
+    //   softSkills: {
+    //     skills: [],
+    //     suggestions: [],
+    //   },
+    // } as Skills
+    // const result = await skillsService.extractSkills(
+    //   workExperience,
+    //   projects,
+    //   initSkills,
+    //   settings
+    // )
+    // const skillsToSave: Skills = {
+    //   hardSkills: {
+    //     skills: result.hardSkills,
+    //     suggestions: [],
+    //   },
+    //   softSkills: {
+    //     skills: result.softSkills,
+    //     suggestions: [],
+    //   },
+    // }
+    // await saveSkills(skillsToSave)
   }
 
   const handleSkillCategorization = async (): Promise<void> => {
     const { data: jobDetails } = useJobDetailsStore.getState()
-    const { data: skills, saveResumeSkillsData } = useSkillsStore.getState()
+    // const { data: skills, saveResumeSkillsData } = useSkillsStore.getState()
 
     const result = await skillsService.categorizeSkills(
       jobDetails.analysis,
-      skills,
+      // skills,
+      {
+        id: '',
+        hardSkills: {
+          skills: [],
+          suggestions: [],
+        },
+        softSkills: {
+          skills: [],
+          suggestions: [],
+        },
+      },
       settings
     )
 
     if (result.length > 0) {
-      const skillBlocks: SkillBlock[] = result.map((item) => ({
-        id: uuidv4(),
-        title: item.title,
-        skills: item.skills,
-        isIncluded: true,
-      }))
-
-      await saveResumeSkillsData(skillBlocks)
+      // const skillBlocks: SkillBlock[] = result.map((item) => ({
+      //   id: uuidv4(),
+      //   title: item.title,
+      //   skills: item.skills,
+      //   isIncluded: true,
+      // }))
+      // await saveResumeSkillsData(skillBlocks)
     }
   }
 
@@ -308,7 +318,7 @@ export const JobDescriptionStep: React.FC<JobDescriptionStepProps> = ({
       setDisplayMessage('')
       setTypewriterText('')
     }
-  }, [progressState, displayMessage])
+  }, [progressState, displayMessage, progressMessages])
 
   useEffect(() => {
     return () => {

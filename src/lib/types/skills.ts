@@ -1,4 +1,5 @@
 export interface Skills {
+  id: string
   hardSkills: {
     skills: string[]
     suggestions: string[]
@@ -7,6 +8,7 @@ export interface Skills {
     skills: string[]
     suggestions: string[]
   }
+  updatedAt?: string
 }
 
 export type SkillType = 'hard' | 'soft'
@@ -29,4 +31,14 @@ export interface SkillBlock {
   isIncluded?: boolean
   position?: number
   updatedAt?: string
+}
+
+export interface RawSkills {
+  id: string
+  hard_skills: string[]
+  hard_suggestions: string[]
+  soft_skills: string[]
+  soft_suggestions: string[]
+  updated_at: string
+  created_at: string
 }
