@@ -4,41 +4,77 @@ import { Skills } from '@/lib/types/skills'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { SkillBlock } from '@/lib/types/skills'
 import { createUnknownError, OperationError } from '@/lib/types/errors'
-import { debounce } from 'lodash'
+import { debounce, isEqual, omit } from 'lodash'
 
 interface SkillsStore {
   skillsData: Skills
   resumeSkillsData: SkillBlock[]
   loading: boolean
   initializing: boolean
-  hasData: boolean
+  hasSkillsData: boolean
   hasResumeSkillData: boolean
   error: OperationError | null
   initialize: () => Promise<void>
-  // saveSkills: (skills: Skills) => Promise<void>
+  upsertSkills: (skills: Skills) => Promise<{ error: OperationError | null }>
   // saveResumeSkills: (resumeSkills: SkillBlock[]) => Promise<void>
   refresh: () => Promise<void>
+  skillsHaveChanges: (newData: Skills) => boolean
   clearError: () => void
 }
 
+let debouncedSkillsSave: ReturnType<typeof debounce> | null = null
+// let debouncedResumeSkillsSave: ReturnType<typeof debounce> | null = null
+let lastSavedSkillsState: Skills = DEFAULT_STATE_VALUES.SKILLS
+// let lastSavedResumeSkillsState: SkillBlock[] =
+//   DEFAULT_STATE_VALUES.RESUME_SKILLS
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
 export const useSkillsStore = create<SkillsStore>((set, get) => {
+  if (!debouncedSkillsSave) {
+    debouncedSkillsSave = debounce(async (skills: Skills) => {
+      set({ loading: true, error: null })
+
+      const result = await dataManager.saveSkills(skills)
+
+      if (result.success) {
+        lastSavedSkillsState = result.data
+        set({
+          skillsData: result.data,
+          loading: false,
+          hasSkillsData:
+            !!result.data?.hardSkills?.skills?.length ||
+            !!result.data?.softSkills?.skills?.length,
+          error: null,
+        })
+      } else {
+        set({
+          loading: false,
+          skillsData: lastSavedSkillsState,
+          hasSkillsData:
+            !!lastSavedSkillsState?.hardSkills?.skills?.length ||
+            !!lastSavedSkillsState?.softSkills?.skills?.length,
+          error: result.error,
+        })
+      }
+    }, 1000)
+  }
+
   if (!debouncedRefresh) {
     debouncedRefresh = debounce(async () => {
       try {
         set({ loading: true, error: null })
-        const data = (await dataManager.getSkills()) as Skills
+        const skillsData = (await dataManager.getSkills()) as Skills
         const resumeSkillsData =
           (await dataManager.getResumeSkills()) as SkillBlock[]
+        lastSavedSkillsState = skillsData
         set({
-          skillsData: data,
-          resumeSkillsData: resumeSkillsData,
+          skillsData,
+          resumeSkillsData,
           loading: false,
-          hasData:
-            !!data?.hardSkills?.skills?.length ||
-            !!data?.softSkills?.skills?.length,
-          hasResumeSkillData: !![]?.length,
+          hasSkillsData:
+            !!skillsData?.hardSkills?.skills?.length ||
+            !!skillsData?.softSkills?.skills?.length,
+          hasResumeSkillData: !!resumeSkillsData?.length,
         })
       } catch (error) {
         set({
@@ -54,7 +90,7 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
     resumeSkillsData: [],
     loading: false,
     initializing: true,
-    hasData: false,
+    hasSkillsData: false,
     hasResumeSkillData: false,
     error: null,
 
@@ -64,16 +100,17 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
         const skillsData = (await dataManager.getSkills()) as Skills
         const resumeSkillsData =
           (await dataManager.getResumeSkills()) as SkillBlock[]
+        lastSavedSkillsState = skillsData
 
         set({
-          skillsData: skillsData,
-          resumeSkillsData: resumeSkillsData,
+          skillsData,
+          resumeSkillsData,
           loading: false,
           initializing: false,
-          hasData:
+          hasSkillsData:
             !!skillsData?.hardSkills?.skills?.length ||
             !!skillsData?.softSkills?.skills?.length,
-          hasResumeSkillData: !![]?.length,
+          hasResumeSkillData: !!resumeSkillsData?.length,
         })
       } catch (error) {
         set({
@@ -84,6 +121,32 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
       }
     },
 
+    upsertSkills: async (skillsData: Skills) => {
+      const currentState = get()
+
+      if (!currentState.skillsHaveChanges(skillsData)) {
+        return { error: null }
+      }
+
+      set({
+        skillsData,
+        hasSkillsData:
+          !!skillsData?.hardSkills?.skills?.length ||
+          !!skillsData?.softSkills?.skills?.length,
+        error: null,
+      })
+
+      debouncedSkillsSave?.(skillsData)
+
+      return { error: null }
+    },
+
+    skillsHaveChanges: (newData: Skills) => {
+      const currentData = omit(get().skillsData, ['id', 'updatedAt'])
+      const incomingData = omit(newData, ['id', 'updatedAt'])
+      return !isEqual(currentData, incomingData)
+    },
+
     refresh: async () => {
       debouncedRefresh?.()
     },
@@ -92,44 +155,4 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
       set({ error: null })
     },
   }
-
-  // save: async (skills: Skills) => {
-  //   const previousData = get().data
-  //   set({
-  //     data: skills,
-  //     hasData:
-  //       !!skills?.hardSkills?.skills?.length ||
-  //       !!skills?.softSkills?.skills?.length,
-  //   })
-  //   try {
-  //     await dataManager.saveSkills(skills)
-  //   } catch (error) {
-  //     set({
-  //       data: previousData,
-  //       hasData:
-  //         !!previousData?.hardSkills?.skills?.length ||
-  //         !!previousData?.softSkills?.skills?.length,
-  //     })
-  //     console.error('SkillsStore: save error:', error)
-  //     throw error
-  //   }
-  // },
-  // saveResumeSkillsData: async (resumeSkills: SkillBlock[]) => {
-  //   set({ loading: true })
-  //   const previousData = get().resumeSkillData
-  //   set({
-  //     resumeSkillData: resumeSkills,
-  //     hasResumeSkillData: !!resumeSkills?.length,
-  //   })
-  //   try {
-  //     await dataManager.saveResumeSkills(resumeSkills)
-  //   } catch (error) {
-  //     set({
-  //       resumeSkillData: previousData,
-  //       hasResumeSkillData: !!previousData?.length,
-  //     })
-  //     console.error('SkillsStore: save resume skills error:', error)
-  //     throw error
-  //   }
-  // },
 })

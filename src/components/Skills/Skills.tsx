@@ -6,7 +6,7 @@ import {
   SKILL_TYPES,
   SkillBlock,
   SkillType,
-  // Skills as SkillsType,
+  Skills as SkillsType,
 } from '@/lib/types/skills'
 import Suggestions from './Suggestions/Suggestions'
 import {
@@ -37,7 +37,7 @@ import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
 const Skills: React.FC = () => {
   const {
     skillsData,
-    // save,
+    upsertSkills,
     // resumeSkillData,
     // saveResumeSkillsData,
   } = useSkillsStore()
@@ -92,18 +92,22 @@ const Skills: React.FC = () => {
 
     if (isDuplicate) return
 
-    // const updatedSkills: SkillsType = {
-    //   ...skillsData,
-    //   [skillKey]: {
-    //     skills: [...skillsData[skillKey].skills, trimmedSkill],
-    //     suggestions: skillsData[skillKey].suggestions.filter(
-    //       (suggestion) =>
-    //         normalizeSkill(suggestion) !== normalizeSkill(trimmedSkill)
-    //     ),
-    //   },
-    // }
+    const updatedSkills: SkillsType = {
+      ...skillsData,
+      [skillKey]: {
+        skills: [...skillsData[skillKey].skills, trimmedSkill],
+        suggestions: skillsData[skillKey].suggestions.filter(
+          (suggestion) =>
+            normalizeSkill(suggestion) !== normalizeSkill(trimmedSkill)
+        ),
+      },
+    }
 
-    // save(updatedSkills)
+    if (!updatedSkills.id) {
+      updatedSkills.id = uuidv4()
+    }
+
+    upsertSkills(updatedSkills)
 
     if (type === SKILL_TYPES.HARD) {
       setHardSkillInput('')

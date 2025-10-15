@@ -228,9 +228,9 @@ class DataManager {
     return skillsManager.getSkills()
   }
 
-  // async saveSkills(data: Skills): Promise<void> {
-  //   return skillsManager.saveSkills(data)
-  // }
+  async saveSkills(data: Skills): Promise<Result<Skills>> {
+    return skillsManager.saveSkills(data)
+  }
 
   // Resume Skills
   async getResumeSkills(): Promise<SkillBlock[]> {

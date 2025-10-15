@@ -821,6 +821,7 @@ export const educationBlockSchema = z
   })
 
 export const skillsValidationSchema = z.object({
+  id: z.string().uuid(),
   hardSkills: z.object({
     skills: z.array(z.string()).default([]),
     suggestions: z.array(z.string()).default([]),

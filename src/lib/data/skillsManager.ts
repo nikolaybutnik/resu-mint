@@ -1,11 +1,24 @@
 import { useDbStore } from '@/stores/dbStore'
 import { DEFAULT_STATE_VALUES } from '../constants'
-import { getResumeSkillsQuery, getSkillsQuery } from '../sql'
+import {
+  getResumeSkillsQuery,
+  getSkillsQuery,
+  upsertSkillsQuery,
+  insertSkillsChangelogQuery,
+} from '../sql'
 import { RawResumeSkills, RawSkills, SkillBlock, Skills } from '../types/skills'
-// import {
-//   resumeSkillBlockSchema,
-//   skillsValidationSchema,
-// } from '../validationSchemas'
+import { skillsValidationSchema } from '../validationSchemas'
+import {
+  Result,
+  Success,
+  Failure,
+  createValidationError,
+  createUnknownError,
+} from '../types/errors'
+import { nowIso } from './dataUtils'
+import { v4 as uuidv4 } from 'uuid'
+import { useAuthStore } from '@/stores'
+import { getLastKnownUserId } from '../utils'
 
 class SkillsManager {
   private translateRawSkills(raw: RawSkills): Skills {
@@ -62,69 +75,46 @@ class SkillsManager {
     return this.translateRawResumeSkills(storedData)
   }
 
-  // async saveSkills(data: Skills): Promise<void> {
-  //   const validation = skillsValidationSchema.safeParse(data)
-  //   if (!validation.success) {
-  //     console.error('Invalid skills data, save aborted:', validation.error)
-  //     throw new Error('Invalid skills data')
-  //   }
+  async saveSkills(data: Skills): Promise<Result<Skills>> {
+    const validation = skillsValidationSchema.safeParse(data)
 
-  //   this.invalidateSkills()
+    if (!validation.success) {
+      return Failure(
+        createValidationError('Invalid skills data', validation.error)
+      )
+    }
 
-  //   if (!isLocalStorageAvailable()) {
-  //     console.warn(
-  //       'Local Storage not available, data will not persist across sessions'
-  //     )
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
-  //     const cacheKey = isAuthenticated()
-  //       ? CACHE_KEYS.SKILLS_API
-  //       : CACHE_KEYS.SKILLS_LOCAL
+    try {
+      await db?.query(upsertSkillsQuery, [
+        validation.data.id,
+        validation.data.hardSkills.skills,
+        validation.data.hardSkills.suggestions,
+        validation.data.softSkills.skills,
+        validation.data.softSkills.suggestions,
+        timestamp,
+      ])
 
-  //     this.cache.set(cacheKey, Promise.resolve(validation.data))
-  //     return
-  //   }
+      await db?.query(insertSkillsChangelogQuery, [
+        'update_skills',
+        JSON.stringify(validation.data),
+        writeId,
+        timestamp,
+        userId,
+      ])
+    } catch (error) {
+      return Failure(createUnknownError('Failed to save skills', error))
+    }
 
-  //   try {
-  //     localStorage.setItem(STORAGE_KEYS.SKILLS, JSON.stringify(validation.data))
-  //   } catch (error) {
-  //     throw error
-  //   }
-  // }
+    const updatedData: Skills = await this.getSkills()
 
-  // async saveResumeSkills(data: SkillBlock[]): Promise<void> {
-  //   const validation = resumeSkillBlockSchema.array().safeParse(data)
-  //   if (!validation.success) {
-  //     console.error(
-  //       'Invalid resume skills data, save aborted:',
-  //       validation.error
-  //     )
-  //     throw new Error('Invalid resume skills data')
-  //   }
-
-  //   this.invalidateResumeSkills()
-
-  //   if (!isLocalStorageAvailable()) {
-  //     console.warn(
-  //       'Local Storage not available, data will not persist across sessions'
-  //     )
-
-  //     const cacheKey = isAuthenticated()
-  //       ? CACHE_KEYS.SKILLS_RESUME_API
-  //       : CACHE_KEYS.SKILLS_RESUME_LOCAL
-
-  //     this.cache.set(cacheKey, Promise.resolve(validation.data))
-  //     return
-  //   }
-
-  //   try {
-  //     localStorage.setItem(
-  //       STORAGE_KEYS.RESUME_SKILLS,
-  //       JSON.stringify(validation.data)
-  //     )
-  //   } catch (error) {
-  //     throw error
-  //   }
-  // }
+    return Success(updatedData)
+  }
 }
 
 export const skillsManager = new SkillsManager()
