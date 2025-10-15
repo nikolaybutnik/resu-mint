@@ -15,25 +15,25 @@ interface SkillsStore {
   hasResumeSkillData: boolean
   error: OperationError | null
   initialize: () => Promise<void>
-  // save: (skills: Skills) => Promise<void>
-  // refresh: () => Promise<void>
-  // saveResumeSkillsData: (skillData: SkillBlock[]) => Promise<void>
-  // clearError: () => void
+  // saveSkills: (skills: Skills) => Promise<void>
+  // saveResumeSkills: (resumeSkills: SkillBlock[]) => Promise<void>
+  refresh: () => Promise<void>
+  clearError: () => void
 }
 
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
-export const useSkillsStore = create<SkillsStore>((set, _get) => {
+export const useSkillsStore = create<SkillsStore>((set, get) => {
   if (!debouncedRefresh) {
     debouncedRefresh = debounce(async () => {
       try {
         set({ loading: true, error: null })
         const data = (await dataManager.getSkills()) as Skills
-        // const resumeSkillsData =
-        //   (await dataManager.getResumeSkills()) as SkillBlock[]
+        const resumeSkillsData =
+          (await dataManager.getResumeSkills()) as SkillBlock[]
         set({
           skillsData: data,
-          resumeSkillsData: [],
+          resumeSkillsData: resumeSkillsData,
           loading: false,
           hasData:
             !!data?.hardSkills?.skills?.length ||
@@ -62,13 +62,12 @@ export const useSkillsStore = create<SkillsStore>((set, _get) => {
       set({ loading: true, error: null })
       try {
         const skillsData = (await dataManager.getSkills()) as Skills
-        // const resumeSkillsData =
-        //   (await dataManager.getResumeSkills()) as SkillBlock[]
-        console.log('skillsData', skillsData)
+        const resumeSkillsData =
+          (await dataManager.getResumeSkills()) as SkillBlock[]
 
         set({
           skillsData: skillsData,
-          resumeSkillsData: [],
+          resumeSkillsData: resumeSkillsData,
           loading: false,
           initializing: false,
           hasData:
@@ -84,34 +83,16 @@ export const useSkillsStore = create<SkillsStore>((set, _get) => {
         })
       }
     },
+
+    refresh: async () => {
+      debouncedRefresh?.()
+    },
+
+    clearError: () => {
+      set({ error: null })
+    },
   }
-  // data: DEFAULT_STATE_VALUES.SKILLS,
-  // loading: false,
-  // initializing: true,
-  // hasData: false,
-  // resumeSkillData: [],
-  // hasResumeSkillData: false,
-  // initialize: async () => {
-  //   set({ loading: true })
-  //   try {
-  //     const skillsData = (await dataManager.getSkills()) as Skills
-  //     const resumeSkillsData =
-  //       (await dataManager.getResumeSkills()) as SkillBlock[]
-  //     set({
-  //       data: skillsData,
-  //       loading: false,
-  //       initializing: false,
-  //       hasData:
-  //         !!skillsData?.hardSkills?.skills?.length ||
-  //         !!skillsData?.softSkills?.skills?.length,
-  //       resumeSkillData: resumeSkillsData,
-  //       hasResumeSkillData: !!resumeSkillsData?.length,
-  //     })
-  //   } catch (error) {
-  //     console.error('SkillsStore: initialization error:', error)
-  //     set({ loading: false, initializing: false })
-  //   }
-  // },
+
   // save: async (skills: Skills) => {
   //   const previousData = get().data
   //   set({
@@ -131,28 +112,6 @@ export const useSkillsStore = create<SkillsStore>((set, _get) => {
   //     })
   //     console.error('SkillsStore: save error:', error)
   //     throw error
-  //   }
-  // },
-  // refresh: async () => {
-  //   try {
-  //     set({ loading: true })
-  //     dataManager.invalidateSkills()
-  //     dataManager.invalidateResumeSkills()
-  //     const data = (await dataManager.getSkills()) as Skills
-  //     const resumeSkillsData =
-  //       (await dataManager.getResumeSkills()) as SkillBlock[]
-  //     set({
-  //       data,
-  //       loading: false,
-  //       hasData:
-  //         !!data?.hardSkills?.skills?.length ||
-  //         !!data?.softSkills?.skills?.length,
-  //       resumeSkillData: resumeSkillsData,
-  //       hasResumeSkillData: !!resumeSkillsData?.length,
-  //     })
-  //   } catch (error) {
-  //     console.error('SkillsStore: refresh error:', error)
-  //     set({ loading: false })
   //   }
   // },
   // saveResumeSkillsData: async (resumeSkills: SkillBlock[]) => {

@@ -42,3 +42,13 @@ export interface RawSkills {
   updated_at: string
   created_at: string
 }
+
+export interface RawResumeSkills {
+  id: string
+  title: string
+  skills: string[]
+  is_included: boolean
+  position: number
+  updated_at: string
+  created_at: string
+}
