@@ -118,18 +118,18 @@ const Skills: React.FC = () => {
     }
   }
 
-  const handleRemoveSkill = (_type: SkillType, _skill: string): void => {
-    // const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
-    // const updatedSkills: SkillsType = {
-    //   ...skillsData,
-    //   [skillKey]: {
-    //     skills: skillsData[skillKey].skills.filter(
-    //       (existingSkill) => existingSkill !== skill
-    //     ),
-    //     suggestions: skillsData[skillKey].suggestions,
-    //   },
-    // }
-    // save(updatedSkills)
+  const handleRemoveSkill = (type: SkillType, skill: string): void => {
+    const skillKey = type === SKILL_TYPES.HARD ? 'hardSkills' : 'softSkills'
+    const updatedSkills: SkillsType = {
+      ...skillsData,
+      [skillKey]: {
+        skills: skillsData[skillKey].skills.filter(
+          (existingSkill) => existingSkill !== skill
+        ),
+        suggestions: skillsData[skillKey].suggestions,
+      },
+    }
+    upsertSkills(updatedSkills)
   }
 
   const handleKeyPress = (
