@@ -23,10 +23,10 @@ interface SkillsStore {
 }
 
 let debouncedSkillsSave: ReturnType<typeof debounce> | null = null
-// let debouncedResumeSkillsSave: ReturnType<typeof debounce> | null = null
+let debouncedResumeSkillsSave: ReturnType<typeof debounce> | null = null
 let lastSavedSkillsState: Skills = DEFAULT_STATE_VALUES.SKILLS
-// let lastSavedResumeSkillsState: SkillBlock[] =
-//   DEFAULT_STATE_VALUES.RESUME_SKILLS
+let lastSavedResumeSkillsState: SkillBlock[] =
+  DEFAULT_STATE_VALUES.RESUME_SKILLS
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
 
 export const useSkillsStore = create<SkillsStore>((set, get) => {
@@ -53,6 +53,31 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
           hasSkillsData:
             !!lastSavedSkillsState?.hardSkills?.skills?.length ||
             !!lastSavedSkillsState?.softSkills?.skills?.length,
+          error: result.error,
+        })
+      }
+    }, 1000)
+  }
+
+  if (!debouncedResumeSkillsSave) {
+    debouncedResumeSkillsSave = debounce(async (resumeSkills: SkillBlock[]) => {
+      set({ loading: true, error: null })
+
+      const result = await dataManager.saveResumeSkills(resumeSkills)
+
+      if (result.success) {
+        lastSavedResumeSkillsState = result.data
+        set({
+          resumeSkillsData: result.data,
+          loading: false,
+          hasResumeSkillData: !!result.data?.length,
+          error: null,
+        })
+      } else {
+        set({
+          loading: false,
+          resumeSkillsData: lastSavedResumeSkillsState,
+          hasResumeSkillData: !!lastSavedResumeSkillsState?.length,
           error: result.error,
         })
       }
