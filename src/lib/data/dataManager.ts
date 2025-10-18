@@ -237,8 +237,18 @@ class DataManager {
     return skillsManager.getResumeSkills()
   }
 
-  // async saveResumeSkills(data: SkillBlock[]): Promise<void> {
-  //   return skillsManager.saveResumeSkills(data)
+  async saveResumeSkillBlock(block: SkillBlock): Promise<Result<SkillBlock[]>> {
+    return skillsManager.saveResumeSkillBlock(block)
+  }
+
+  // async deleteResumeSkillBlock(blockId: string): Promise<Result<SkillBlock[]>> {
+  //   return skillsManager.deleteResumeSkillBlock(blockId)
+  // }
+
+  // async reorderResumeSkillBlocks(
+  //   blocks: SkillBlock[]
+  // ): Promise<Result<SkillBlock[]>> {
+  //   return skillsManager.reorderResumeSkillBlocks(blocks)
   // }
 }
 export const dataManager = new DataManager()

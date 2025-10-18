@@ -1,13 +1,14 @@
 import React from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import styles from './DraggableSkillBlock.module.scss'
-import { useMemo, useRef, useState, useCallback } from 'react'
+import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { CSS } from '@dnd-kit/utilities'
 import LongPressHandler from '@/components/shared/LongPressHandler/LongPressHandler'
 import { debounce } from 'lodash'
-import { SkillBlock, Skills } from '@/lib/types/skills'
+import { SkillBlock } from '@/lib/types/skills'
 import AutoCompleteInput from '@/components/shared/AutoCompleteInput/AutoCompleteInput'
-import { FaEdit, FaEye, FaEyeSlash } from 'react-icons/fa'
+import { FaEdit, FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa'
+import { useSkillsStore } from '@/stores/skillsStore'
 
 interface DraggableSkillBlockProps {
   id: string
@@ -18,9 +19,6 @@ interface DraggableSkillBlockProps {
   isTemporary?: boolean
   isIncluded?: boolean
   onCategoryCreate?: () => void
-  skillsData: Skills
-  resumeSkillData: SkillBlock[]
-  saveResumeSkillsData: (data: SkillBlock[]) => void
 }
 
 const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
@@ -32,16 +30,23 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
   isTemporary = false,
   isIncluded = false,
   onCategoryCreate,
-  skillsData,
-  resumeSkillData,
-  saveResumeSkillsData,
 }: DraggableSkillBlockProps) => {
-  const blockCategory = useRef<string>(title)
   const titleInputRef = useRef<HTMLInputElement>(null)
-  const [selectedBlockSkills, setSelectedBlockSkills] =
-    useState<string[]>(skills)
+
+  const {
+    skillsData,
+    resumeSkillsData,
+    upsertResumeSkillBlock,
+    // deleteResumeSkillBlock,
+  } = useSkillsStore()
+
+  const [titleValue, setTitleValue] = useState<string>(title)
   const [inputValue, setInputValue] = useState<string>('')
   const [isTitleFocused, setIsTitleFocused] = useState<boolean>(false)
+
+  useEffect(() => {
+    setTitleValue(title)
+  }, [title])
 
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useSortable({
@@ -69,10 +74,10 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
   }, [skillsData.hardSkills.skills, skillsData.softSkills.skills])
 
   const allSelectedSkills = useMemo(() => {
-    return resumeSkillData.reduce((acc, block) => {
+    return resumeSkillsData.reduce((acc, block) => {
       return [...acc, ...block.skills]
     }, [] as string[])
-  }, [resumeSkillData])
+  }, [resumeSkillsData])
 
   const filteredSuggestions = useMemo(() => {
     let filtered = allSuggestions.filter(
@@ -88,36 +93,46 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
     return filtered
   }, [allSuggestions, allSelectedSkills, inputValue])
 
-  const handleCategoryChange = useMemo(
-    () =>
-      debounce((e: React.ChangeEvent<HTMLInputElement>): void => {
-        let updatedSkillBlocks: SkillBlock[] = [...resumeSkillData]
-
-        if (isTemporary) {
-          const newBlockCategory: SkillBlock = {
-            id,
-            title: e.target.value,
-            skills: selectedBlockSkills,
-            isIncluded: true,
-          }
-          updatedSkillBlocks.push(newBlockCategory)
-          onCategoryCreate?.()
-        } else {
-          updatedSkillBlocks = updatedSkillBlocks.map((skill) =>
-            skill.id === id ? { ...skill, title: e.target.value } : skill
-          )
+  const updateBlockTitle = useCallback(
+    (newTitle: string) => {
+      if (isTemporary) {
+        const newBlockCategory: SkillBlock = {
+          id,
+          title: newTitle,
+          skills: skills,
+          isIncluded: true,
         }
-
-        saveResumeSkillsData(updatedSkillBlocks)
-      }, 1500),
+        upsertResumeSkillBlock(newBlockCategory)
+        onCategoryCreate?.()
+      } else {
+        const currentBlock = resumeSkillsData.find((block) => block.id === id)
+        if (currentBlock) {
+          upsertResumeSkillBlock({ ...currentBlock, title: newTitle })
+        }
+      }
+    },
     [
       id,
       isTemporary,
-      selectedBlockSkills,
-      resumeSkillData,
-      saveResumeSkillsData,
+      skills,
+      resumeSkillsData,
+      upsertResumeSkillBlock,
       onCategoryCreate,
     ]
+  )
+
+  const debouncedUpdate = useMemo(
+    () => debounce(updateBlockTitle, 1500),
+    [updateBlockTitle]
+  )
+
+  const handleCategoryChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>): void => {
+      const newTitle = e.target.value
+      setTitleValue(newTitle)
+      debouncedUpdate(newTitle)
+    },
+    [debouncedUpdate]
   )
 
   const handleDeleteCategory = useCallback((): void => {
@@ -125,109 +140,94 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
       onCategoryCreate?.()
       return
     }
-
-    if (
-      window.confirm(
-        'Are you sure you want to delete this skill category? This action cannot be undone.'
-      )
-    ) {
-      const updatedSkillBlocks = resumeSkillData.filter(
-        (skill) => skill.id !== id
-      )
-      saveResumeSkillsData(updatedSkillBlocks)
-    }
-  }, [isTemporary, onCategoryCreate, resumeSkillData, id, saveResumeSkillsData])
+    // if (
+    //   !window.confirm(
+    //     'Are you sure you want to delete this skill category? This action cannot be undone.'
+    //   )
+    // ) {
+    //   return
+    // }
+    // deleteResumeSkillBlock(id)
+  }, [isTemporary, onCategoryCreate, id])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>): void => {
       if (e.key === ' ' || e.code === 'Space') {
         e.stopPropagation()
       }
+
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        debouncedUpdate.cancel()
+        updateBlockTitle((e.target as HTMLInputElement).value)
+        ;(e.target as HTMLInputElement).blur()
+      }
     },
+    [debouncedUpdate, updateBlockTitle]
+  )
+
+  const handleTitleFocus = useCallback(() => setIsTitleFocused(true), [])
+  const handleTitleBlur = useCallback(() => setIsTitleFocused(false), [])
+
+  const handleEditIconClick = useCallback(
+    () => titleInputRef.current?.focus(),
     []
   )
 
-  const handleTitleFocus = useCallback((): void => {
-    setIsTitleFocused(true)
-  }, [])
-
-  const handleTitleBlur = useCallback((): void => {
-    setIsTitleFocused(false)
-  }, [])
-
-  const handleEditIconClick = useCallback((): void => {
-    titleInputRef.current?.focus()
-  }, [])
-
   const handleSuggestionClick = useCallback(
     (suggestion: string): void => {
-      const currentFilteredSuggestions = filteredSuggestions
-      const updatedSkills = [...selectedBlockSkills]
-      const [firstSuggestion] = currentFilteredSuggestions
-
-      if (
+      const skillToAdd =
         filteredSuggestions.length === 1 &&
-        suggestion.toLowerCase().trim() === firstSuggestion.toLowerCase().trim()
-      ) {
-        updatedSkills.push(firstSuggestion)
-      } else updatedSkills.push(suggestion)
+        suggestion.toLowerCase().trim() ===
+          filteredSuggestions[0].toLowerCase().trim()
+          ? filteredSuggestions[0]
+          : suggestion
 
-      setSelectedBlockSkills(updatedSkills)
-
-      let updatedSkillBlocks: SkillBlock[] = [...resumeSkillData]
+      const updatedSkills = [...skills, skillToAdd]
 
       if (isTemporary) {
         const newBlockCategory: SkillBlock = {
           id,
-          title: blockCategory.current,
+          title,
           skills: updatedSkills,
           isIncluded: true,
         }
-        updatedSkillBlocks.push(newBlockCategory)
+        upsertResumeSkillBlock(newBlockCategory)
         onCategoryCreate?.()
       } else {
-        updatedSkillBlocks = updatedSkillBlocks.map((skill) =>
-          skill.id === id ? { ...skill, skills: updatedSkills } : skill
-        )
+        const currentBlock = resumeSkillsData.find((block) => block.id === id)
+        if (currentBlock) {
+          upsertResumeSkillBlock({ ...currentBlock, skills: updatedSkills })
+        }
       }
-
-      saveResumeSkillsData(updatedSkillBlocks)
     },
     [
-      selectedBlockSkills,
-      resumeSkillData,
+      skills,
+      resumeSkillsData,
       id,
-      saveResumeSkillsData,
+      title,
+      upsertResumeSkillBlock,
       filteredSuggestions,
-      inputValue,
+      isTemporary,
+      onCategoryCreate,
     ]
   )
 
   const handleSkillRemove = useCallback(
     (skillToRemove: string): void => {
-      const updatedSkills = selectedBlockSkills.filter(
-        (skill) => skill !== skillToRemove
-      )
-      setSelectedBlockSkills(updatedSkills)
+      if (isTemporary) return
 
-      if (!isTemporary) {
-        const updatedSkillBlocks = resumeSkillData.map((skill) =>
-          skill.id === id ? { ...skill, skills: updatedSkills } : skill
-        )
-        saveResumeSkillsData(updatedSkillBlocks)
+      const updatedSkills = skills.filter((skill) => skill !== skillToRemove)
+      const currentBlock = resumeSkillsData.find((block) => block.id === id)
+      if (currentBlock) {
+        upsertResumeSkillBlock({ ...currentBlock, skills: updatedSkills })
       }
     },
-    [
-      selectedBlockSkills,
-      isTemporary,
-      resumeSkillData,
-      id,
-      saveResumeSkillsData,
-    ]
+    [skills, isTemporary, resumeSkillsData, id, upsertResumeSkillBlock]
   )
 
   const memoizedSkillChips = useMemo(() => {
-    return selectedBlockSkills.map((skill) => (
+    return skills.map((skill) => (
       <div key={skill} className={styles.resumeSkillChip} data-no-dnd='true'>
         <span className={styles.skillText}>{skill}</span>
         <button
@@ -237,24 +237,21 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
           data-no-dnd='true'
           aria-label={`Remove ${skill}`}
         >
-          ×
+          <FaTimes size={10} />
         </button>
       </div>
     ))
-  }, [selectedBlockSkills, handleSkillRemove])
+  }, [skills, handleSkillRemove])
 
-  const handleSkillBlockInclusionToggle = (): void => {
-    const updatedSkillBlocks: SkillBlock[] = resumeSkillData.map((block) => {
-      return block.id === id
-        ? {
-            ...block,
-            isIncluded: !block.isIncluded,
-          }
-        : block
-    })
-
-    saveResumeSkillsData(updatedSkillBlocks)
-  }
+  const handleSkillBlockInclusionToggle = useCallback((): void => {
+    const currentBlock = resumeSkillsData.find((block) => block.id === id)
+    if (currentBlock) {
+      upsertResumeSkillBlock({
+        ...currentBlock,
+        isIncluded: !currentBlock.isIncluded,
+      })
+    }
+  }, [resumeSkillsData, id, upsertResumeSkillBlock])
 
   return (
     <div
@@ -307,7 +304,7 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
               <input
                 ref={titleInputRef}
                 type='text'
-                defaultValue={blockCategory.current}
+                value={titleValue}
                 placeholder='e.g. "Programming Languages"'
                 onChange={handleCategoryChange}
                 onKeyDown={handleKeyDown}
@@ -363,9 +360,6 @@ export default React.memo(DraggableSkillBlock, (prevProps, nextProps) => {
     prevProps.isDropping === nextProps.isDropping &&
     prevProps.isTemporary === nextProps.isTemporary &&
     prevProps.isIncluded === nextProps.isIncluded &&
-    prevProps.onCategoryCreate === nextProps.onCategoryCreate &&
-    prevProps.skillsData === nextProps.skillsData &&
-    prevProps.resumeSkillData === nextProps.resumeSkillData &&
-    prevProps.saveResumeSkillsData === nextProps.saveResumeSkillsData
+    prevProps.onCategoryCreate === nextProps.onCategoryCreate
   )
 })

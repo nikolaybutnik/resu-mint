@@ -29,7 +29,7 @@ import {
   useExperienceStore,
   useProjectStore,
   useEducationStore,
-  // useSkillsStore,
+  useSkillsStore,
 } from '@/stores'
 
 interface PdfOptions {
@@ -140,7 +140,7 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   const { data: experienceData } = useExperienceStore()
   const { data: projectsData } = useProjectStore()
   const { data: educationData } = useEducationStore()
-  // const { resumeSkillData: skillsData } = useSkillsStore()
+  const { resumeSkillsData: skillsData } = useSkillsStore()
 
   const [numPages, setNumPages] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
@@ -565,8 +565,7 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
           experienceData={experienceData}
           projectsData={projectsData}
           educationData={educationData}
-          // skillsData={skillsData}
-          skillsData={[]}
+          skillsData={skillsData}
         />
 
         <div className={styles.previewContent} ref={previewContentRef}>

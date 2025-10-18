@@ -35,18 +35,14 @@ import { v4 as uuidv4 } from 'uuid'
 import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
 
 const Skills: React.FC = () => {
-  const {
-    skillsData,
-    upsertSkills,
-    // resumeSkillData,
-    // saveResumeSkillsData,
-  } = useSkillsStore()
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
   const softSkillInputRef = useRef<HTMLInputElement>(null)
   // TODO: Re-think how suggestions are presented to the user and how/when they're populated.
   // The floating "cloud" feature feels clunky and could be improved.
   const hardSuggestionsRef = useRef<HTMLDivElement>(null)
   const softSuggestionsRef = useRef<HTMLDivElement>(null)
+
+  const { skillsData, upsertSkills, resumeSkillsData } = useSkillsStore()
 
   const [hardSkillInput, setHardSkillInput] = useState('')
   const [softSkillInput, setSoftSkillInput] = useState('')
@@ -255,40 +251,37 @@ const Skills: React.FC = () => {
   }, [])
 
   const activeItem = useMemo((): JSX.Element | null => {
-    // const draggingBlock = resumeSkillData.find((skill) => skill.id === activeId)
-    // if (!draggingBlock) return null
+    if (!activeId) return null
+
+    const draggingBlock = resumeSkillsData.find(
+      (skill) => skill.id === activeId
+    )
+    if (!draggingBlock) return null
 
     return (
       <DraggableSkillBlock
-        // id={draggingBlock.id}
-        // title={draggingBlock.title ?? ''}
-        // skills={draggingBlock.skills}
-        id={''}
-        title={''}
-        skills={[]}
+        id={draggingBlock.id}
+        title={draggingBlock.title ?? ''}
+        skills={draggingBlock.skills}
         isOverlay={true}
         isDropping={isDropping}
-        skillsData={skillsData}
-        // resumeSkillData={resumeSkillData}
-        // saveResumeSkillsData={saveResumeSkillsData}
-        resumeSkillData={[]}
-        saveResumeSkillsData={() => {}}
+        isIncluded={draggingBlock.isIncluded}
       />
     )
-  }, [activeId, isDropping])
+  }, [activeId, isDropping, resumeSkillsData])
 
   const renderSkillBlocks = (
-    resumeSkillData: SkillBlock[],
+    resumeSkillsData: SkillBlock[],
     temporaryBlock: SkillBlock | null,
     activeId: string | null,
     isDropping: boolean
   ): JSX.Element => {
-    const hasContent = resumeSkillData.length || temporaryBlock
+    const hasContent = resumeSkillsData.length || temporaryBlock
 
     return (
       <>
-        {resumeSkillData.length > 0 &&
-          resumeSkillData.map((skill) => (
+        {resumeSkillsData.length > 0 &&
+          resumeSkillsData.map((skill) => (
             <DraggableSkillBlock
               key={skill.id}
               id={skill.id}
@@ -297,10 +290,6 @@ const Skills: React.FC = () => {
               isOverlay={false}
               isDropping={isDropping && activeId === skill.id}
               isIncluded={skill.isIncluded}
-              skillsData={skillsData}
-              resumeSkillData={resumeSkillData}
-              // saveResumeSkillsData={saveResumeSkillsData}
-              saveResumeSkillsData={() => {}}
             />
           ))}
 
@@ -313,10 +302,6 @@ const Skills: React.FC = () => {
             isDropping={isDropping && activeId === temporaryBlock.id}
             isTemporary
             onCategoryCreate={handleCategoryCreate}
-            skillsData={skillsData}
-            resumeSkillData={resumeSkillData}
-            // saveResumeSkillsData={saveResumeSkillsData}
-            saveResumeSkillsData={() => {}}
           />
         )}
 
@@ -527,17 +512,16 @@ const Skills: React.FC = () => {
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragCancel={() => setActiveId(null)}
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
         <SortableContext
-          items={[]}
-          // items={resumeSkillData.map((skill) => skill.id)}
+          items={resumeSkillsData.map((skill) => skill.id)}
           strategy={verticalListSortingStrategy}
         >
           <div className={styles.skillBuilderContainer}>
             {renderSkillBlocks(
-              // resumeSkillData,
-              [],
+              resumeSkillsData,
               temporarySkillCategory,
               activeId,
               isDropping

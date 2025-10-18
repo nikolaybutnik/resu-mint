@@ -5,9 +5,13 @@ import {
   getSkillsQuery,
   upsertSkillsQuery,
   insertSkillsChangelogQuery,
+  upsertResumeSkillQuery,
 } from '../sql'
 import { RawResumeSkills, RawSkills, SkillBlock, Skills } from '../types/skills'
-import { skillsValidationSchema } from '../validationSchemas'
+import {
+  resumeSkillBlockSchema,
+  skillsValidationSchema,
+} from '../validationSchemas'
 import {
   Result,
   Success,
@@ -115,6 +119,106 @@ class SkillsManager {
 
     return Success(updatedData)
   }
+
+  async saveResumeSkillBlock(block: SkillBlock): Promise<Result<SkillBlock[]>> {
+    const validation = resumeSkillBlockSchema.safeParse(block)
+
+    if (!validation.success) {
+      return Failure(
+        createValidationError(
+          'Invalid resume skill block data',
+          validation.error
+        )
+      )
+    }
+
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    // const currentUser = useAuthStore.getState().user
+    // const userId = currentUser?.id || getLastKnownUserId()
+    // const writeId = uuidv4()
+
+    try {
+      await db?.query(upsertResumeSkillQuery, [
+        validation.data.id,
+        validation.data.title,
+        validation.data.skills,
+        validation.data.isIncluded,
+        validation.data.position,
+        timestamp,
+      ])
+
+      // await db?.query(insertResumeSkillChangelogQuery, [
+      //   'update_resume_skills',
+      //   JSON.stringify(validation.data),
+      //   writeId,
+      //   timestamp,
+      //   userId,
+      // ])
+    } catch (error) {
+      return Failure(
+        createUnknownError('Failed to save resume skill block', error)
+      )
+    }
+
+    const updatedData: SkillBlock[] = await this.getResumeSkills()
+
+    return Success(updatedData)
+  }
+
+  // async deleteResumeSkillBlock(blockId: string): Promise<Result<SkillBlock[]>> {
+  //   const { db } = useDbStore.getState()
+
+  //   try {
+  //     await db?.query(deleteResumeSkillQuery, [blockId])
+  //   } catch (error) {
+  //     console.log(error)
+  //     return Failure(
+  //       createUnknownError('Failed to delete resume skill block', error)
+  //     )
+  //   }
+
+  //   const updatedData: SkillBlock[] = await this.getResumeSkills()
+
+  //   return Success(updatedData)
+  // }
+
+  // async reorderResumeSkillBlocks(
+  //   blocks: SkillBlock[]
+  // ): Promise<Result<SkillBlock[]>> {
+  //   const validation = resumeSkillBlockSchema.array().safeParse(blocks)
+
+  //   if (!validation.success) {
+  //     return Failure(
+  //       createValidationError('Invalid resume skills data', validation.error)
+  //     )
+  //   }
+
+  //   const timestamp = nowIso()
+  //   const { db } = useDbStore.getState()
+
+  //   try {
+  //     for (const block of validation.data) {
+  //       await db?.query(upsertResumeSkillQuery, [
+  //         block.id,
+  //         block.title,
+  //         block.skills,
+  //         block.isIncluded,
+  //         block.position,
+  //         timestamp,
+  //       ])
+  //     }
+  //   } catch (error) {
+  //     console.log(error)
+  //     return Failure(
+  //       createUnknownError('Failed to reorder resume skill blocks', error)
+  //     )
+  //   }
+
+  //   const updatedData: SkillBlock[] = await this.getResumeSkills()
+
+  //   return Success(updatedData)
+  // }
 }
 
 export const skillsManager = new SkillsManager()

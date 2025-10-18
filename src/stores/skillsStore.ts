@@ -16,9 +16,21 @@ interface SkillsStore {
   error: OperationError | null
   initialize: () => Promise<void>
   upsertSkills: (skills: Skills) => Promise<{ error: OperationError | null }>
-  // saveResumeSkills: (resumeSkills: SkillBlock[]) => Promise<void>
+  upsertResumeSkillBlock: (
+    block: SkillBlock
+  ) => Promise<{ error: OperationError | null }>
+  // deleteResumeSkillBlock: (
+  //   blockId: string
+  // ) => Promise<{ error: OperationError | null }>
+  // reorderResumeSkillBlocks: (
+  //   blocks: SkillBlock[]
+  // ) => Promise<{ error: OperationError | null }>
   refresh: () => Promise<void>
   skillsHaveChanges: (newData: Skills) => boolean
+  resumeSkillBlockHasChanges: (
+    blockId: string,
+    newBlockData: SkillBlock
+  ) => boolean
   clearError: () => void
 }
 
@@ -60,10 +72,10 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
   }
 
   if (!debouncedResumeSkillsSave) {
-    debouncedResumeSkillsSave = debounce(async (resumeSkills: SkillBlock[]) => {
+    debouncedResumeSkillsSave = debounce(async (block: SkillBlock) => {
       set({ loading: true, error: null })
 
-      const result = await dataManager.saveResumeSkills(resumeSkills)
+      const result = await dataManager.saveResumeSkillBlock(block)
 
       if (result.success) {
         lastSavedResumeSkillsState = result.data
@@ -92,6 +104,7 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
         const resumeSkillsData =
           (await dataManager.getResumeSkills()) as SkillBlock[]
         lastSavedSkillsState = skillsData
+        lastSavedResumeSkillsState = resumeSkillsData
         set({
           skillsData,
           resumeSkillsData,
@@ -112,7 +125,7 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
 
   return {
     skillsData: DEFAULT_STATE_VALUES.SKILLS,
-    resumeSkillsData: [],
+    resumeSkillsData: DEFAULT_STATE_VALUES.RESUME_SKILLS,
     loading: false,
     initializing: true,
     hasSkillsData: false,
@@ -126,6 +139,8 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
         const resumeSkillsData =
           (await dataManager.getResumeSkills()) as SkillBlock[]
         lastSavedSkillsState = skillsData
+        lastSavedResumeSkillsState = resumeSkillsData
+        console.log('resumeSkillsData', resumeSkillsData)
 
         set({
           skillsData,
@@ -166,10 +181,126 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
       return { error: null }
     },
 
+    upsertResumeSkillBlock: async (block: SkillBlock) => {
+      const currentState = get()
+
+      const existingBlock = currentState.resumeSkillsData.find(
+        (item) => item.id === block.id
+      )
+
+      if (
+        existingBlock &&
+        !currentState.resumeSkillBlockHasChanges(block.id, block)
+      ) {
+        return { error: null }
+      }
+
+      const blockIndex = currentState.resumeSkillsData.findIndex(
+        (item) => item.id === block.id
+      )
+      const optimisticData =
+        blockIndex >= 0
+          ? currentState.resumeSkillsData.map((item) =>
+              item.id === block.id ? block : item
+            )
+          : [...currentState.resumeSkillsData, block]
+
+      set({
+        resumeSkillsData: optimisticData,
+        hasResumeSkillData: !!optimisticData.length,
+        error: null,
+      })
+
+      debouncedResumeSkillsSave?.(block)
+
+      return { error: null }
+    },
+
+    // deleteResumeSkillBlock: async (blockId: string) => {
+    //   const currentState = get()
+    //   const previousData = currentState.resumeSkillsData
+
+    //   const optimisticData = currentState.resumeSkillsData.filter(
+    //     (block) => block.id !== blockId
+    //   )
+
+    //   set({
+    //     resumeSkillsData: optimisticData,
+    //     hasResumeSkillData: !!optimisticData.length,
+    //     error: null,
+    //   })
+
+    //   const result = await dataManager.deleteResumeSkillBlock(blockId)
+
+    //   if (result.success) {
+    //     lastSavedResumeSkillsState = result.data
+    //     set({
+    //       resumeSkillsData: result.data,
+    //       hasResumeSkillData: !!result.data.length,
+    //       error: null,
+    //     })
+    //   } else {
+    //     set({
+    //       resumeSkillsData: previousData,
+    //       hasResumeSkillData: !!previousData.length,
+    //       error: result.error,
+    //     })
+    //   }
+
+    //   return { error: result.success ? null : result.error }
+    // },
+
+    // reorderResumeSkillBlocks: async (blocks: SkillBlock[]) => {
+    //   const previousData = get().resumeSkillsData
+    //   const optimisticWithPositions = blocks.map((block, i) => ({
+    //     ...block,
+    //     position: i,
+    //   }))
+
+    //   set({
+    //     resumeSkillsData: optimisticWithPositions,
+    //     hasResumeSkillData: !!optimisticWithPositions.length,
+    //     error: null,
+    //   })
+
+    //   const result = await dataManager.reorderResumeSkillBlocks(
+    //     optimisticWithPositions
+    //   )
+
+    //   if (result.success) {
+    //     lastSavedResumeSkillsState = result.data
+    //     set({
+    //       resumeSkillsData: result.data,
+    //       hasResumeSkillData: !!result.data.length,
+    //       error: null,
+    //     })
+    //   } else {
+    //     set({
+    //       resumeSkillsData: previousData,
+    //       hasResumeSkillData: !!previousData.length,
+    //       error: result.error,
+    //     })
+    //   }
+
+    //   return { error: result.success ? null : result.error }
+    // },
+
     skillsHaveChanges: (newData: Skills) => {
       const currentData = omit(get().skillsData, ['id', 'updatedAt'])
       const incomingData = omit(newData, ['id', 'updatedAt'])
       return !isEqual(currentData, incomingData)
+    },
+
+    resumeSkillBlockHasChanges: (blockId: string, newBlockData: SkillBlock) => {
+      const currentData = get().resumeSkillsData
+      const existingBlock = currentData.find((block) => block.id === blockId)
+
+      if (!existingBlock) return true
+
+      const existingFields = omit(existingBlock, ['updatedAt', 'position'])
+      const newFields = omit(newBlockData, ['updatedAt', 'position'])
+
+      return !isEqual(existingFields, newFields)
     },
 
     refresh: async () => {
