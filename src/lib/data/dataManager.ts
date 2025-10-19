@@ -241,9 +241,9 @@ class DataManager {
     return skillsManager.upsertResumeSkillBlock(block)
   }
 
-  // async deleteResumeSkillBlock(blockId: string): Promise<Result<SkillBlock[]>> {
-  //   return skillsManager.deleteResumeSkillBlock(blockId)
-  // }
+  async deleteResumeSkillBlock(blockId: string): Promise<Result<SkillBlock[]>> {
+    return skillsManager.deleteResumeSkillBlock(blockId)
+  }
 
   // async reorderResumeSkillBlocks(
   //   blocks: SkillBlock[]

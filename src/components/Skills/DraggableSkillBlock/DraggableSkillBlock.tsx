@@ -9,7 +9,8 @@ import { SkillBlock } from '@/lib/types/skills'
 import AutoCompleteInput from '@/components/shared/AutoCompleteInput/AutoCompleteInput'
 import { FaEdit, FaEye, FaEyeSlash, FaTimes } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
-
+import { confirm } from '@/stores/confirmStore'
+import { toast } from '@/stores/toastStore'
 interface DraggableSkillBlockProps {
   id: string
   title: string
@@ -32,12 +33,13 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
   onCategoryCreate,
 }: DraggableSkillBlockProps) => {
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const deleteButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const {
     skillsData,
     resumeSkillsData,
     upsertResumeSkillBlock,
-    // deleteResumeSkillBlock,
+    deleteResumeSkillBlock,
   } = useSkillsStore()
 
   const [titleValue, setTitleValue] = useState<string>(title)
@@ -135,19 +137,29 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
     [debouncedUpdate]
   )
 
-  const handleDeleteCategory = useCallback((): void => {
+  const handleDeleteCategory = useCallback(async (): Promise<void> => {
     if (isTemporary) {
       onCategoryCreate?.()
       return
     }
-    // if (
-    //   !window.confirm(
-    //     'Are you sure you want to delete this skill category? This action cannot be undone.'
-    //   )
-    // ) {
-    //   return
-    // }
-    // deleteResumeSkillBlock(id)
+    const ok = await confirm({
+      title: 'Delete this skill block?',
+      message: 'This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      anchorEl: deleteButtonRef.current,
+      placement: 'left',
+      width: 260,
+    })
+
+    if (!ok) return
+    const { error } = await deleteResumeSkillBlock(id)
+    if (error) {
+      toast.error('Failed to delete skill block. Please try again.')
+      return
+    }
+
+    toast.success('Skill block deleted successfully.')
   }, [isTemporary, onCategoryCreate, id])
 
   const handleKeyDown = useCallback(
@@ -275,6 +287,7 @@ const DraggableSkillBlock: React.FC<DraggableSkillBlockProps> = ({
           <div className={styles.skillCategoryActions}>
             <button
               type='button'
+              ref={deleteButtonRef}
               className={styles.deleteButton}
               onClick={handleDeleteCategory}
               data-no-dnd='true'

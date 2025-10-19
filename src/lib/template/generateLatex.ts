@@ -219,9 +219,16 @@ ${descriptionSection}`
           \\small{\\item{
             ${skills
               .filter((skill) => skill.isIncluded !== false)
+              .filter(
+                (skill) =>
+                  Array.isArray(skill.skills) && skill.skills.length > 0
+              )
               .map((skill) => {
                 const skillsList = skill.skills
-                  .filter((s): s is string => !!s)
+                  .filter(
+                    (s): s is string =>
+                      !!s && typeof s === 'string' && s.trim().length > 0
+                  )
                   .map((s) => sanitizeLatexText(s))
                   .join(', ')
                 return { title: skill.title, skillsList }

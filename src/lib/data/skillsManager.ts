@@ -7,6 +7,8 @@ import {
   insertSkillsChangelogQuery,
   upsertResumeSkillQuery,
   insertResumeSkillsChangelogQuery,
+  deleteResumeSkillQuery,
+  reorderResumeSkillPositionsQuery,
 } from '../sql'
 import { RawResumeSkills, RawSkills, SkillBlock, Skills } from '../types/skills'
 import {
@@ -41,15 +43,15 @@ class SkillsManager {
     }
   }
 
-  private translateRawResumeSkills(raw: RawResumeSkills[]): SkillBlock[] {
-    return raw.map((skill) => ({
-      id: skill.id,
-      title: skill.title ?? undefined,
-      skills: skill.skills ?? [],
-      isIncluded: skill.is_included ?? true,
-      position: skill.position ?? 0,
-      updatedAt: skill.updated_at ?? undefined,
-    }))
+  private translateRawResumeSkills(raw: RawResumeSkills): SkillBlock {
+    return {
+      id: raw.id,
+      title: raw.title ?? undefined,
+      skills: raw.skills ?? [],
+      isIncluded: raw.is_included ?? true,
+      position: raw.position ?? 0,
+      updatedAt: raw.updated_at ?? undefined,
+    }
   }
 
   async getSkills(): Promise<Skills> {
@@ -77,7 +79,7 @@ class SkillsManager {
 
     const storedData = data.rows
 
-    return this.translateRawResumeSkills(storedData)
+    return storedData.map((row) => this.translateRawResumeSkills(row))
   }
 
   async upsertSkills(data: Skills): Promise<Result<Skills>> {
@@ -182,22 +184,45 @@ class SkillsManager {
     return Success(updatedData)
   }
 
-  // async deleteResumeSkillBlock(blockId: string): Promise<Result<SkillBlock[]>> {
-  //   const { db } = useDbStore.getState()
+  async deleteResumeSkillBlock(blockId: string): Promise<Result<SkillBlock[]>> {
+    const writeId = uuidv4()
+    const timestamp = nowIso()
+    const { db } = useDbStore.getState()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
 
-  //   try {
-  //     await db?.query(deleteResumeSkillQuery, [blockId])
-  //   } catch (error) {
-  //     console.log(error)
-  //     return Failure(
-  //       createUnknownError('Failed to delete resume skill block', error)
-  //     )
-  //   }
+    try {
+      const existingData = (await this.getResumeSkills()) as SkillBlock[]
+      const blockExists = existingData.find((item) => item.id === blockId)
 
-  //   const updatedData: SkillBlock[] = await this.getResumeSkills()
+      if (!blockExists) {
+        return Failure(createValidationError('Resume skill block not found'))
+      }
 
-  //   return Success(updatedData)
-  // }
+      await db?.query(deleteResumeSkillQuery, [blockId])
+
+      await db?.query(reorderResumeSkillPositionsQuery, [timestamp])
+
+      await db?.query(insertResumeSkillsChangelogQuery, [
+        'delete_resume_skills',
+        JSON.stringify({ id: blockId }),
+        writeId,
+        timestamp,
+        userId,
+      ])
+
+      const result = await db?.query(getResumeSkillsQuery)
+      const translatedResult = (result?.rows as RawResumeSkills[]).map((row) =>
+        this.translateRawResumeSkills(row)
+      )
+
+      return Success(translatedResult)
+    } catch (error) {
+      return Failure(
+        createUnknownError('Failed to delete resume skill block', error)
+      )
+    }
+  }
 
   // async reorderResumeSkillBlocks(
   //   blocks: SkillBlock[]

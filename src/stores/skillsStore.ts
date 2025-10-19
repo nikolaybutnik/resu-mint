@@ -19,9 +19,9 @@ interface SkillsStore {
   upsertResumeSkillBlock: (
     block: SkillBlock
   ) => Promise<{ error: OperationError | null }>
-  // deleteResumeSkillBlock: (
-  //   blockId: string
-  // ) => Promise<{ error: OperationError | null }>
+  deleteResumeSkillBlock: (
+    blockId: string
+  ) => Promise<{ error: OperationError | null }>
   // reorderResumeSkillBlocks: (
   //   blocks: SkillBlock[]
   // ) => Promise<{ error: OperationError | null }>
@@ -140,7 +140,6 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
           (await dataManager.getResumeSkills()) as SkillBlock[]
         lastSavedSkillsState = skillsData
         lastSavedResumeSkillsState = resumeSkillsData
-        console.log('resumeSkillsData', resumeSkillsData)
 
         set({
           skillsData,
@@ -216,39 +215,39 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
       return { error: null }
     },
 
-    // deleteResumeSkillBlock: async (blockId: string) => {
-    //   const currentState = get()
-    //   const previousData = currentState.resumeSkillsData
+    deleteResumeSkillBlock: async (blockId: string) => {
+      const currentState = get()
+      const previousData = currentState.resumeSkillsData
 
-    //   const optimisticData = currentState.resumeSkillsData.filter(
-    //     (block) => block.id !== blockId
-    //   )
+      const optimisticData = currentState.resumeSkillsData.filter(
+        (block) => block.id !== blockId
+      )
 
-    //   set({
-    //     resumeSkillsData: optimisticData,
-    //     hasResumeSkillData: !!optimisticData.length,
-    //     error: null,
-    //   })
+      set({
+        resumeSkillsData: optimisticData,
+        hasResumeSkillData: !!optimisticData.length,
+        error: null,
+      })
 
-    //   const result = await dataManager.deleteResumeSkillBlock(blockId)
+      const result = await dataManager.deleteResumeSkillBlock(blockId)
 
-    //   if (result.success) {
-    //     lastSavedResumeSkillsState = result.data
-    //     set({
-    //       resumeSkillsData: result.data,
-    //       hasResumeSkillData: !!result.data.length,
-    //       error: null,
-    //     })
-    //   } else {
-    //     set({
-    //       resumeSkillsData: previousData,
-    //       hasResumeSkillData: !!previousData.length,
-    //       error: result.error,
-    //     })
-    //   }
+      if (result.success) {
+        lastSavedResumeSkillsState = result.data
+        set({
+          resumeSkillsData: result.data,
+          hasResumeSkillData: !!result.data.length,
+          error: null,
+        })
+      } else {
+        set({
+          resumeSkillsData: previousData,
+          hasResumeSkillData: !!previousData.length,
+          error: result.error,
+        })
+      }
 
-    //   return { error: result.success ? null : result.error }
-    // },
+      return { error: result.success ? null : result.error }
+    },
 
     // reorderResumeSkillBlocks: async (blocks: SkillBlock[]) => {
     //   const previousData = get().resumeSkillsData
