@@ -229,7 +229,7 @@ class DataManager {
   }
 
   async saveSkills(data: Skills): Promise<Result<Skills>> {
-    return skillsManager.saveSkills(data)
+    return skillsManager.upsertSkills(data)
   }
 
   // Resume Skills
@@ -238,7 +238,7 @@ class DataManager {
   }
 
   async saveResumeSkillBlock(block: SkillBlock): Promise<Result<SkillBlock[]>> {
-    return skillsManager.saveResumeSkillBlock(block)
+    return skillsManager.upsertResumeSkillBlock(block)
   }
 
   // async deleteResumeSkillBlock(blockId: string): Promise<Result<SkillBlock[]>> {

@@ -6,6 +6,7 @@ import {
   upsertSkillsQuery,
   insertSkillsChangelogQuery,
   upsertResumeSkillQuery,
+  insertResumeSkillsChangelogQuery,
 } from '../sql'
 import { RawResumeSkills, RawSkills, SkillBlock, Skills } from '../types/skills'
 import {
@@ -43,11 +44,11 @@ class SkillsManager {
   private translateRawResumeSkills(raw: RawResumeSkills[]): SkillBlock[] {
     return raw.map((skill) => ({
       id: skill.id,
-      title: skill.title,
-      skills: skill.skills,
-      isIncluded: skill.is_included,
-      position: skill.position,
-      updatedAt: skill.updated_at,
+      title: skill.title ?? undefined,
+      skills: skill.skills ?? [],
+      isIncluded: skill.is_included ?? true,
+      position: skill.position ?? 0,
+      updatedAt: skill.updated_at ?? undefined,
     }))
   }
 
@@ -79,7 +80,7 @@ class SkillsManager {
     return this.translateRawResumeSkills(storedData)
   }
 
-  async saveSkills(data: Skills): Promise<Result<Skills>> {
+  async upsertSkills(data: Skills): Promise<Result<Skills>> {
     const validation = skillsValidationSchema.safeParse(data)
 
     if (!validation.success) {
@@ -120,7 +121,9 @@ class SkillsManager {
     return Success(updatedData)
   }
 
-  async saveResumeSkillBlock(block: SkillBlock): Promise<Result<SkillBlock[]>> {
+  async upsertResumeSkillBlock(
+    block: SkillBlock
+  ): Promise<Result<SkillBlock[]>> {
     const validation = resumeSkillBlockSchema.safeParse(block)
 
     if (!validation.success) {
@@ -134,27 +137,40 @@ class SkillsManager {
 
     const timestamp = nowIso()
     const { db } = useDbStore.getState()
-    // const currentUser = useAuthStore.getState().user
-    // const userId = currentUser?.id || getLastKnownUserId()
-    // const writeId = uuidv4()
+    const currentUser = useAuthStore.getState().user
+    const userId = currentUser?.id || getLastKnownUserId()
+    const writeId = uuidv4()
 
     try {
+      const blockToUpsert = validation.data
+
+      const currentData = ((await this.getResumeSkills()) as SkillBlock[]) || []
+      const existingBlock = currentData.find(
+        (block) => block.id === blockToUpsert.id
+      )
+
+      const position = existingBlock
+        ? existingBlock.position
+        : currentData.length
+
       await db?.query(upsertResumeSkillQuery, [
-        validation.data.id,
-        validation.data.title,
-        validation.data.skills,
-        validation.data.isIncluded,
-        validation.data.position,
+        blockToUpsert.id,
+        blockToUpsert.title,
+        blockToUpsert.skills,
+        blockToUpsert.isIncluded,
+        position,
         timestamp,
       ])
 
-      // await db?.query(insertResumeSkillChangelogQuery, [
-      //   'update_resume_skills',
-      //   JSON.stringify(validation.data),
-      //   writeId,
-      //   timestamp,
-      //   userId,
-      // ])
+      const blockWithPosition = { ...blockToUpsert, position }
+
+      await db?.query(insertResumeSkillsChangelogQuery, [
+        'upsert_resume_skills',
+        JSON.stringify(blockWithPosition),
+        writeId,
+        timestamp,
+        userId,
+      ])
     } catch (error) {
       return Failure(
         createUnknownError('Failed to save resume skill block', error)
