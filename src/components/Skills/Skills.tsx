@@ -1,5 +1,5 @@
 import styles from './Skills.module.scss'
-import { useState, useRef, useCallback, useMemo, JSX } from 'react'
+import { useState, useRef, useCallback, useMemo, JSX, useEffect } from 'react'
 import { FaPlus, FaTimes, FaChevronDown, FaChevronUp } from 'react-icons/fa'
 import { useSkillsStore } from '@/stores/skillsStore'
 import {
@@ -20,7 +20,7 @@ import {
   useSensor,
 } from '@dnd-kit/core'
 import {
-  // arrayMove,
+  arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
@@ -33,6 +33,7 @@ import { MouseSensor, TouchSensor } from '@/lib/clientUtils'
 import { DROPPING_ANIMATION_DURATION } from '@/lib/constants'
 import { v4 as uuidv4 } from 'uuid'
 import DraggableSkillBlock from './DraggableSkillBlock/DraggableSkillBlock'
+import { toast } from '@/stores/toastStore'
 
 const Skills: React.FC = () => {
   const hardSkillInputRef = useRef<HTMLInputElement>(null)
@@ -42,7 +43,14 @@ const Skills: React.FC = () => {
   const hardSuggestionsRef = useRef<HTMLDivElement>(null)
   const softSuggestionsRef = useRef<HTMLDivElement>(null)
 
-  const { skillsData, upsertSkills, resumeSkillsData } = useSkillsStore()
+  const {
+    skillsData,
+    resumeSkillsData,
+    error: storeError,
+    upsertSkills,
+    reorderResumeSkills,
+    clearError,
+  } = useSkillsStore()
 
   const [hardSkillInput, setHardSkillInput] = useState('')
   const [softSkillInput, setSoftSkillInput] = useState('')
@@ -71,6 +79,35 @@ const Skills: React.FC = () => {
       coordinateGetter: sortableKeyboardCoordinates,
     })
   )
+
+  useEffect(() => {
+    if (storeError) {
+      switch (storeError.code) {
+        case 'NETWORK_ERROR':
+          toast.error(
+            'Network connection failed. Please check your internet connection.'
+          )
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        case 'UNKNOWN_ERROR':
+          if (storeError.message.includes('Failed to load')) {
+            toast.error('Failed to load your skills. Please refresh the page.')
+          } else if (storeError.message.includes('Failed to refresh')) {
+            toast.warning(
+              'Unable to refresh skills data. Some information may be outdated.'
+            )
+          } else {
+            toast.error('Failed to save your changes. Please try again.')
+          }
+          break
+        default:
+          toast.error('An unexpected error occurred. Please try again.')
+      }
+      clearError()
+    }
+  }, [storeError, clearError])
 
   const normalizeSkill = (skill: string): string => {
     return skill.trim().toLowerCase().replace(/\s+/g, ' ')
@@ -216,24 +253,27 @@ const Skills: React.FC = () => {
     setActiveId(event.active.id as string)
   }, [])
 
-  const handleDragEnd = useCallback((event: DragEndEvent): void => {
-    const { active, over } = event
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent): void => {
+      const { active, over } = event
 
-    if (over && active.id !== over.id) {
-      // const oldIndex = resumeSkillData.findIndex(
-      //   (item) => item.id === active.id
-      // )
-      // const newIndex = resumeSkillData.findIndex(
-      //   (item) => item.id === over.id
-      // )
-      // const newOrder = arrayMove(resumeSkillData, oldIndex, newIndex)
-      // saveResumeSkillsData(newOrder)
-    }
+      if (over && active.id !== over.id) {
+        const oldIndex = resumeSkillsData.findIndex(
+          (item) => item.id === active.id
+        )
+        const newIndex = resumeSkillsData.findIndex(
+          (item) => item.id === over.id
+        )
+        const newOrder = arrayMove(resumeSkillsData, oldIndex, newIndex)
+        reorderResumeSkills(newOrder)
+      }
 
-    setActiveId(null)
-    setIsDropping(true)
-    setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
-  }, [])
+      setActiveId(null)
+      setIsDropping(true)
+      setTimeout(() => setIsDropping(false), DROPPING_ANIMATION_DURATION)
+    },
+    [resumeSkillsData, reorderResumeSkills]
+  )
 
   const handleAddSkillCategory = (): void => {
     if (temporarySkillCategory) return

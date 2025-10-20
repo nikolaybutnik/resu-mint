@@ -245,10 +245,10 @@ class DataManager {
     return skillsManager.deleteResumeSkillBlock(blockId)
   }
 
-  // async reorderResumeSkillBlocks(
-  //   blocks: SkillBlock[]
-  // ): Promise<Result<SkillBlock[]>> {
-  //   return skillsManager.reorderResumeSkillBlocks(blocks)
-  // }
+  async reorderResumeSkills(
+    blocks: SkillBlock[]
+  ): Promise<Result<SkillBlock[]>> {
+    return skillsManager.reorderResumeSkillBlocks(blocks)
+  }
 }
 export const dataManager = new DataManager()

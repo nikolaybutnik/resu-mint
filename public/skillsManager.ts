@@ -9,7 +9,6 @@ import {
   insertResumeSkillsChangelogQuery,
   deleteResumeSkillQuery,
   reorderResumeSkillPositionsQuery,
-  updateResumeSkillPositionQuery,
 } from '../sql'
 import { RawResumeSkills, RawSkills, SkillBlock, Skills } from '../types/skills'
 import {
@@ -27,7 +26,6 @@ import { nowIso } from './dataUtils'
 import { v4 as uuidv4 } from 'uuid'
 import { useAuthStore } from '@/stores'
 import { getLastKnownUserId } from '../utils'
-import { pick } from 'lodash'
 
 class SkillsManager {
   private translateRawSkills(raw: RawSkills): Skills {
@@ -226,55 +224,42 @@ class SkillsManager {
     }
   }
 
-  async reorderResumeSkillBlocks(
-    blocks: SkillBlock[]
-  ): Promise<Result<SkillBlock[]>> {
-    const validation = resumeSkillBlockSchema.array().safeParse(blocks)
+  // async reorderResumeSkillBlocks(
+  //   blocks: SkillBlock[]
+  // ): Promise<Result<SkillBlock[]>> {
+  //   const validation = resumeSkillBlockSchema.array().safeParse(blocks)
 
-    if (!validation.success) {
-      return Failure(
-        createValidationError('Invalid resume skills data', validation.error)
-      )
-    }
+  //   if (!validation.success) {
+  //     return Failure(
+  //       createValidationError('Invalid resume skills data', validation.error)
+  //     )
+  //   }
 
-    const writeId = uuidv4()
-    const timestamp = nowIso()
-    const { db } = useDbStore.getState()
-    const currentUser = useAuthStore.getState().user
-    const userId = currentUser?.id || getLastKnownUserId()
+  //   const timestamp = nowIso()
+  //   const { db } = useDbStore.getState()
 
-    try {
-      for (let index = 0; index < validation.data.length; index++) {
-        const block = validation.data[index]
-        await db?.query(updateResumeSkillPositionQuery, [
-          block.id,
-          index,
-          timestamp,
-        ])
-      }
+  //   try {
+  //     for (const block of validation.data) {
+  //       await db?.query(upsertResumeSkillQuery, [
+  //         block.id,
+  //         block.title,
+  //         block.skills,
+  //         block.isIncluded,
+  //         block.position,
+  //         timestamp,
+  //       ])
+  //     }
+  //   } catch (error) {
+  //     console.log(error)
+  //     return Failure(
+  //       createUnknownError('Failed to reorder resume skill blocks', error)
+  //     )
+  //   }
 
-      await db?.query(insertResumeSkillsChangelogQuery, [
-        'reorder',
-        JSON.stringify(
-          validation.data.map((item) => pick(item, ['id', 'position']))
-        ),
-        writeId,
-        timestamp,
-        userId,
-      ])
+  //   const updatedData: SkillBlock[] = await this.getResumeSkills()
 
-      const result = await db?.query(getResumeSkillsQuery)
-      const translatedResult = (result?.rows as RawResumeSkills[]).map((row) =>
-        this.translateRawResumeSkills(row)
-      )
-
-      return Success(translatedResult)
-    } catch (error) {
-      return Failure(
-        createUnknownError('Failed to reorder resume skills', error)
-      )
-    }
-  }
+  //   return Success(updatedData)
+  // }
 }
 
 export const skillsManager = new SkillsManager()
