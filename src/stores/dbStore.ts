@@ -306,6 +306,7 @@ const initializeTables = async (db: PGlite) => {
     await db.query(initializeResumeSkillsQuery)
     await db.query(initializeResumeSkillsChangelogQuery)
   } catch (error) {
+    console.error('Failed to initialize DB tables', error)
     toast.error('Failed to initialize DB tables')
   }
 }
@@ -333,6 +334,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       const session = useAuthStore.getState().session
 
+      // TODO: error handling
       if (session) {
         // 1. Push local changes first
         await pushLocalChangesToRemote()
