@@ -356,33 +356,69 @@ export type Database = {
         }
         Relationships: []
       }
-      skills: {
+      resume_skills: {
         Row: {
           created_at: string | null
           id: string
-          languages: Json | null
-          soft_skills: Json | null
-          technical_skills: Json | null
+          is_included: boolean | null
+          position: number
+          skills: string[] | null
+          title: string | null
           updated_at: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
-          languages?: Json | null
-          soft_skills?: Json | null
-          technical_skills?: Json | null
+          is_included?: boolean | null
+          position?: number
+          skills?: string[] | null
+          title?: string | null
           updated_at?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
-          languages?: Json | null
-          soft_skills?: Json | null
-          technical_skills?: Json | null
+          is_included?: boolean | null
+          position?: number
+          skills?: string[] | null
+          title?: string | null
           updated_at?: string | null
-          user_id?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      skills: {
+        Row: {
+          created_at: string | null
+          hard_skills: string[] | null
+          hard_suggestions: string[] | null
+          id: string
+          soft_skills: string[] | null
+          soft_suggestions: string[] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          hard_skills?: string[] | null
+          hard_suggestions?: string[] | null
+          id?: string
+          soft_skills?: string[] | null
+          soft_suggestions?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          hard_skills?: string[] | null
+          hard_suggestions?: string[] | null
+          id?: string
+          soft_skills?: string[] | null
+          soft_suggestions?: string[] | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
