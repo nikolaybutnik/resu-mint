@@ -1,5 +1,5 @@
 import { useDbStore } from '@/stores/dbStore'
-import { DEFAULT_STATE_VALUES } from '../constants'
+import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import {
   getResumeSkillsQuery,
   getSkillsQuery,

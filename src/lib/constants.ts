@@ -191,10 +191,8 @@ export const DEFAULT_STATE_VALUES = {
     } as JobDescriptionAnalysis,
   } as JobDetails,
   SKILLS: {
-    // TODO: handle id properly
-    id: '',
-    hardSkills: { skills: [], suggestions: [] },
-    softSkills: { skills: [], suggestions: [] },
+    hardSkills: { skills: [] as string[], suggestions: [] as string[] },
+    softSkills: { skills: [] as string[], suggestions: [] as string[] },
   } as Skills,
   RESUME_SKILLS: [] as SkillBlock[],
 } as const

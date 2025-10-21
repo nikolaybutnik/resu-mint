@@ -369,7 +369,12 @@ const Skills: React.FC = () => {
             className={styles.collapsibleHeader}
             onClick={() => setIsHardSkillsExpanded((prev) => !prev)}
           >
-            <h3 className={styles.sectionTitle}>Hard Skills</h3>
+            <h3 className={styles.sectionTitle}>
+              Hard Skills{' '}
+              {!skillsData.hardSkills.skills.length
+                ? ' (Empty)'
+                : `(${skillsData.hardSkills.skills.length})`}
+            </h3>
             {isHardSkillsExpanded ? (
               <FaChevronUp size={14} />
             ) : (
@@ -456,7 +461,12 @@ const Skills: React.FC = () => {
             className={styles.collapsibleHeader}
             onClick={() => setIsSoftSkillsExpanded((prev) => !prev)}
           >
-            <h3 className={styles.sectionTitle}>Soft Skills</h3>
+            <h3 className={styles.sectionTitle}>
+              Soft Skills{' '}
+              {!skillsData.softSkills.skills.length
+                ? ' (Empty)'
+                : `(${skillsData.softSkills.skills.length})`}
+            </h3>
             {isSoftSkillsExpanded ? (
               <FaChevronUp size={14} />
             ) : (

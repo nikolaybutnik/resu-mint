@@ -43,6 +43,7 @@ import {
   useProjectStore,
   useEducationStore,
   useSettingsStore,
+  useSkillsStore,
 } from './'
 import { toast } from './toastStore'
 import {
@@ -61,6 +62,7 @@ import { ProjectBlockData } from '@/lib/types/projects'
 import { debounce } from 'lodash'
 import { EducationBlockData } from '@/lib/types/education'
 import { AppSettings } from '@/lib/types/settings'
+import { SkillBlock, Skills } from '@/lib/types/skills'
 
 export type ElectricDb = PGlite & {
   electric: {
@@ -226,7 +228,37 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
     primaryKey: ['id'],
     shapeKey: 'app_settings',
   },
+  skills: {
+    table: 'skills',
+    columns: [
+      'id',
+      'hard_skills',
+      'hard_suggestions',
+      'soft_skills',
+      'soft_suggestions',
+      'updated_at',
+      'created_at',
+    ],
+    primaryKey: ['id'],
+    shapeKey: 'skills',
+  },
+  resume_skills: {
+    table: 'resume_skills',
+    columns: [
+      'id',
+      'title',
+      'skills',
+      'is_included',
+      'position',
+      'updated_at',
+      'created_at',
+    ],
+    primaryKey: ['id'],
+    shapeKey: 'resume_skills',
+  },
 }
+
+// TODO: handle errors upstream
 
 const TABLE_STORE_RESET_MAP = {
   personal_details: (defaultValue: PersonalDetails) =>
@@ -247,6 +279,10 @@ const TABLE_STORE_RESET_MAP = {
     useEducationStore.setState({ data: defaultValue }),
   settings: (defaultValue: AppSettings) =>
     useSettingsStore.setState({ data: defaultValue }),
+  skills: (defaultValue: Skills) =>
+    useSkillsStore.setState({ skillsData: defaultValue }),
+  resume_skills: (defaultValue: SkillBlock[]) =>
+    useSkillsStore.setState({ resumeSkillsData: defaultValue }),
 } as const
 
 let firstSyncFlag = true
@@ -270,7 +306,7 @@ const initializeTables = async (db: PGlite) => {
     await db.query(initializeResumeSkillsQuery)
     await db.query(initializeResumeSkillsChangelogQuery)
   } catch (error) {
-    console.error('Failed to initialize DB tables:', error)
+    toast.error('Failed to initialize DB tables')
   }
 }
 
@@ -298,12 +334,17 @@ export const useDbStore = create<DbStore>((set, get) => ({
       const session = useAuthStore.getState().session
 
       if (session) {
+        // 1. Push local changes first
+        await pushLocalChangesToRemote()
+
+        // 2. Start downstream sync
         await get().startSync(session)
+
+        // 3. Start recurring push sync for future changes
         get().startPushSync()
       }
     } catch (error) {
       const err = error as Error
-      console.error('DB init failed:', err)
 
       if (
         err.message?.includes('already exists') ||
@@ -312,14 +353,13 @@ export const useDbStore = create<DbStore>((set, get) => ({
         err.message?.includes('violates')
       ) {
         try {
-          console.warn('Schema conflict detected, attempting recovery...')
+          toast.warning('Schema conflict detected, attempting recovery...')
           await PGlite.create('idb://resumint-local', {
             extensions: { electric: electricSync() },
           })
           // Retry init once
           return await get().initialize()
         } catch (retryError) {
-          console.error('Schema recovery failed:', retryError)
           toast.error(
             'Database setup failed. Please refresh the page to try again.'
           )
@@ -391,7 +431,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
       }))
     } catch (error) {
       const err = error as Error
-      console.error('Failed to register table:', err)
       set({
         error: createValidationError('Failed to register table', err),
       })
@@ -406,6 +445,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
     const { refresh: refreshProjects } = useProjectStore.getState()
     const { refresh: refreshEducation } = useEducationStore.getState()
     const { refresh: refreshSettings } = useSettingsStore.getState()
+    const { refresh: refreshSkills } = useSkillsStore.getState()
 
     if (!db) {
       set({
@@ -421,7 +461,13 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       const syncPhases = [
         // Phase 1: Independent tables
-        ['personal_details', 'education', 'settings'],
+        [
+          'personal_details',
+          'education',
+          'settings',
+          'skills',
+          'resume_skills',
+        ],
         // Phase 2: Parent tables
         ['experience', 'projects'],
         // Phase 3: Child tables
@@ -452,7 +498,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
       async function syncTable(tableName: string) {
         const config = tableConfigs.get(tableName)
         if (!config) {
-          console.warn(`No config found for table: ${tableName}`)
+          toast.warning(`No config found for table: ${tableName}`)
           return
         }
 
@@ -461,7 +507,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
         }
 
         if (!db) {
-          console.error('Database not initialized')
+          toast.error('Database not initialized')
           return
         }
 
@@ -511,6 +557,8 @@ export const useDbStore = create<DbStore>((set, get) => ({
               let hasProjectChanges = false
               let hasEducationChanges = false
               let hasSettingsChanges = false
+              let hasSkillsChanges = false
+              let hasResumeSkillsChanges = false
 
               messages.forEach(async (msg) => {
                 if (isChangeMessage(msg)) {
@@ -535,6 +583,12 @@ export const useDbStore = create<DbStore>((set, get) => ({
                   if (config.table === 'app_settings') {
                     hasSettingsChanges = true
                   }
+                  if (config.table === 'skills') {
+                    hasSkillsChanges = true
+                  }
+                  if (config.table === 'resume_skills') {
+                    hasResumeSkillsChanges = true
+                  }
                 }
               })
 
@@ -552,6 +606,9 @@ export const useDbStore = create<DbStore>((set, get) => ({
               }
               if (hasSettingsChanges) {
                 setTimeout(() => refreshSettings(), 200)
+              }
+              if (hasSkillsChanges || hasResumeSkillsChanges) {
+                setTimeout(() => refreshSkills(), 200)
               }
             }
 
@@ -595,7 +652,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
       })
     } catch (error) {
       const err = error as Error
-      console.error('Sync failed:', err)
 
       toast.error('Failed to start data synchronization.')
 
@@ -638,7 +694,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
       })
     } catch (error) {
       const err = error as Error
-      console.error('Failed to stop sync:', err)
       set({
         error: createUnknownError('Failed to stop sync', err),
       })
@@ -682,7 +737,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
         set({ syncState: 'syncing', error: null })
       } catch (err) {
         const error = err as Error
-        console.error('Push sync error:', error)
 
         if (isNetworkError(error)) {
           set({
@@ -718,7 +772,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
           }
         } catch (error) {
           const err = error as Error
-          console.error('Push sync error:', err)
 
           if (isNetworkError(err)) {
             set({
@@ -757,7 +810,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
       }
     } catch (error) {
       const err = error as Error
-      console.error('Failed to stop push sync:', err)
       set({
         error: createUnknownError('Failed to stop push sync', err),
       })
@@ -788,7 +840,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
       })
     } catch (error) {
       const err = error as Error
-      console.error('Error closing local db connection:', err)
       set({
         error: createStorageError('Failed to close database connection', err),
       })
