@@ -36,7 +36,7 @@ import {
 import { ProjectBlockData } from './types/projects'
 import { EducationBlockData } from './types/education'
 import { AppSettings } from './types/settings'
-import { SkillBlock, Skills } from './types/skills'
+import { Skills } from './types/skills'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
   if (!error) return false
