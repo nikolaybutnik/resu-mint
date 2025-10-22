@@ -28,10 +28,15 @@ import {
   cleanUpSyncedSettingsChangelogEntriesQuery,
   selectLatestUnsyncedSettingsChangeQuery,
   markPreviousSettingsChangesAsSyncedQuery,
+  updateSkillsChangelogQuery,
+  cleanUpSyncedSkillsChangelogEntriesQuery,
+  selectLatestUnsyncedSkillsChangeQuery,
+  markPreviousSkillsChangesAsSyncedQuery,
 } from './sql'
 import { ProjectBlockData } from './types/projects'
 import { EducationBlockData } from './types/education'
 import { AppSettings } from './types/settings'
+import { SkillBlock, Skills } from './types/skills'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
   if (!error) return false
@@ -129,7 +134,32 @@ interface SettingsChange {
   value: AppSettings
   write_id: string
   timestamp: string
+  synced: boolean
+  user_id: string | null
 }
+
+interface SkillsChange {
+  id: number
+  operation: 'update_skills'
+  value: Skills
+  write_id: string
+  timestamp: string
+  synced: boolean
+  user_id: string | null
+}
+
+// interface ResumeSkillsChange {
+//   id: number
+//   operation:
+//     | 'update_resume_skills'
+//     | 'delete_resume_skills'
+//     | 'reorder_resume_skills'
+//   value: SkillBlock | { id: string }[] | { id: string; position: number }[]
+//   write_id: string
+//   timestamp: string
+//   synced: boolean
+//   user_id: string | null
+// }
 
 interface SyncConfig<T> {
   datasetName: string
@@ -188,6 +218,15 @@ const SYNC_CONFIGS = {
     syncToRemote: syncSettingsToRemote,
     syncMode: 'single',
   } as SyncConfig<SettingsChange>,
+  skills: {
+    datasetName: 'skills',
+    getLatestUnsyncedQuery: selectLatestUnsyncedSkillsChangeQuery,
+    markSyncedQuery: updateSkillsChangelogQuery,
+    markPreviousAsSyncedQuery: markPreviousSkillsChangesAsSyncedQuery,
+    cleanupQuery: cleanUpSyncedSkillsChangelogEntriesQuery,
+    syncToRemote: syncSkillsToRemote,
+    syncMode: 'single',
+  } as SyncConfig<SkillsChange>,
 } as const
 
 async function syncDataset<T extends { write_id: string; timestamp: string }>(
@@ -437,7 +476,7 @@ async function syncPersonalDetailsToRemote(
         .maybeSingle()
 
       if (isRecordNotFoundError(serverError)) {
-        // Record doesn't exist, skip upsert - nothing to sync
+        // Record doesn't exist, proceed with upsert
       } else if (serverError) {
         throw serverError
       }
@@ -1421,6 +1460,59 @@ async function syncSettingsToRemote(
   }
 }
 
+async function syncSkillsToRemote(
+  change: SkillsChange,
+  db: ElectricDb,
+  config: SyncConfig<SkillsChange>
+): Promise<void> {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const { data: serverData, error: serverError } = await supabase
+        .from('skills')
+        .select('updated_at')
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // Record doesn't exist, proceed with upsert
+      } else if (serverError) {
+        throw serverError
+      }
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('upsert_skills', {
+        s_hard_skills: change.value.hardSkills.skills,
+        s_hard_suggestions: change.value.hardSkills.suggestions,
+        s_soft_skills: change.value.softSkills.skills,
+        s_soft_suggestions: change.value.softSkills.suggestions,
+      })
+
+      if (error) throw error
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 export const pushLocalChangesToRemote = async () => {
   const { user } = useAuthStore.getState()
   const { db } = useDbStore.getState()
@@ -1462,6 +1554,13 @@ export const pushLocalChangesToRemote = async () => {
     await syncDataset(db, user?.id, settingsConfig)
   } catch (error) {
     console.error(`Error syncing settings:`, error)
+  }
+
+  const skillsConfig = SYNC_CONFIGS.skills
+  try {
+    await syncDataset(db, user?.id, skillsConfig)
+  } catch (error) {
+    console.error(`Error syncing skills:`, error)
   }
 }
 

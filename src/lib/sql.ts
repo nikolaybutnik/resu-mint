@@ -924,7 +924,7 @@ VALUES ($1, $2, $3, $4, $5)
 
 export const selectLatestUnsyncedSkillsChangeQuery = `
 SELECT * FROM skills_changes
-WHERE synced = FALSE AND operation = 'update'
+WHERE synced = FALSE AND operation = 'update_skills'
 AND user_id = $1
 ORDER BY timestamp DESC LIMIT 1
 `
@@ -935,7 +935,7 @@ UPDATE skills_changes SET synced = $1 WHERE write_id = $2
 
 export const markPreviousSkillsChangesAsSyncedQuery = `
 UPDATE skills_changes SET synced = TRUE
-WHERE synced = FALSE AND operation = 'update'
+WHERE synced = FALSE AND operation = 'update_skills'
 AND timestamp <= $1
 AND user_id = $2
 `

@@ -546,6 +546,15 @@ export type Database = {
         }
         Returns: string
       }
+      upsert_skills: {
+        Args: {
+          s_hard_skills: string[]
+          s_hard_suggestions: string[]
+          s_soft_skills: string[]
+          s_soft_suggestions: string[]
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never

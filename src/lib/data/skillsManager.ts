@@ -169,7 +169,7 @@ class SkillsManager {
       const blockWithPosition = { ...blockToUpsert, position }
 
       await db?.query(insertResumeSkillsChangelogQuery, [
-        'upsert_resume_skills',
+        'update_resume_skills',
         JSON.stringify(blockWithPosition),
         writeId,
         timestamp,
@@ -254,7 +254,7 @@ class SkillsManager {
       }
 
       await db?.query(insertResumeSkillsChangelogQuery, [
-        'reorder',
+        'reorder_resume_skills',
         JSON.stringify(
           validation.data.map((item) => pick(item, ['id', 'position']))
         ),
