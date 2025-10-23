@@ -32,11 +32,14 @@ import {
   cleanUpSyncedSkillsChangelogEntriesQuery,
   selectLatestUnsyncedSkillsChangeQuery,
   markPreviousSkillsChangesAsSyncedQuery,
+  selectAllUnsyncedResumeSkillsChangesQuery,
+  updateResumeSkillsChangelogQuery,
+  cleanUpSyncedResumeSkillsChangelogEntriesQuery,
 } from './sql'
 import { ProjectBlockData } from './types/projects'
 import { EducationBlockData } from './types/education'
 import { AppSettings } from './types/settings'
-import { Skills } from './types/skills'
+import { Skills, SkillBlock } from './types/skills'
 
 function isRecordNotFoundError(error: PostgrestError | null): boolean {
   if (!error) return false
@@ -119,9 +122,9 @@ interface EducationChange {
   id: number
   operation: 'upsert' | 'delete' | 'reorder'
   value:
-    | EducationBlockData
-    | { id: string; position: number }[]
-    | { id: string }
+    | EducationBlockData // upsert
+    | { id: string; position: number }[] // reorder
+    | { id: string } // delete
   write_id: string
   timestamp: string
   synced: boolean
@@ -148,18 +151,21 @@ interface SkillsChange {
   user_id: string | null
 }
 
-// interface ResumeSkillsChange {
-//   id: number
-//   operation:
-//     | 'update_resume_skills'
-//     | 'delete_resume_skills'
-//     | 'reorder_resume_skills'
-//   value: SkillBlock | { id: string }[] | { id: string; position: number }[]
-//   write_id: string
-//   timestamp: string
-//   synced: boolean
-//   user_id: string | null
-// }
+interface ResumeSkillsChange {
+  id: number
+  operation:
+    | 'update_resume_skills'
+    | 'delete_resume_skills'
+    | 'reorder_resume_skills'
+  value:
+    | SkillBlock // update_resume_skills
+    | { id: string }[] // delete_resume_skills
+    | { id: string; position: number }[] // reorder_resume_skills
+  write_id: string
+  timestamp: string
+  synced: boolean
+  user_id: string | null
+}
 
 interface SyncConfig<T> {
   datasetName: string
@@ -227,6 +233,14 @@ const SYNC_CONFIGS = {
     syncToRemote: syncSkillsToRemote,
     syncMode: 'single',
   } as SyncConfig<SkillsChange>,
+  resume_skills: {
+    datasetName: 'resume_skills',
+    getLatestUnsyncedQuery: selectAllUnsyncedResumeSkillsChangesQuery,
+    markSyncedQuery: updateResumeSkillsChangelogQuery,
+    cleanupQuery: cleanUpSyncedResumeSkillsChangelogEntriesQuery,
+    syncToRemote: syncResumeSkillsToRemote,
+    syncMode: 'batch',
+  } as SyncConfig<ResumeSkillsChange>,
 } as const
 
 async function syncDataset<T extends { write_id: string; timestamp: string }>(
@@ -1513,6 +1527,24 @@ async function syncSkillsToRemote(
   }
 }
 
+async function syncResumeSkillsToRemote(
+  change: ResumeSkillsChange,
+  db: ElectricDb,
+  config: SyncConfig<ResumeSkillsChange>
+) {
+  switch (change.operation) {
+    case 'update_resume_skills':
+      //   await upsertResumeSkills(change, db, config)
+      break
+    case 'delete_resume_skills':
+      //   await deleteResumeSkills(change, db, config)
+      break
+    case 'reorder_resume_skills':
+      // await reorderResumeSkills(change, db, config)
+      break
+  }
+}
+
 export const pushLocalChangesToRemote = async () => {
   const { user } = useAuthStore.getState()
   const { db } = useDbStore.getState()
@@ -1561,6 +1593,13 @@ export const pushLocalChangesToRemote = async () => {
     await syncDataset(db, user?.id, skillsConfig)
   } catch (error) {
     console.error(`Error syncing skills:`, error)
+  }
+
+  const resumeSkillsConfig = SYNC_CONFIGS.resume_skills
+  try {
+    await syncDataset(db, user?.id, resumeSkillsConfig)
+  } catch (error) {
+    console.error(`Error syncing resume skills:`, error)
   }
 }
 
