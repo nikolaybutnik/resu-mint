@@ -32,8 +32,9 @@ import {
   cleanUpSyncedSkillsChangelogEntriesQuery,
   selectLatestUnsyncedSkillsChangeQuery,
   markPreviousSkillsChangesAsSyncedQuery,
-  selectAllUnsyncedResumeSkillsChangesQuery,
+  selectLatestUnsyncedResumeSkillsChangesQuery,
   updateResumeSkillsChangelogQuery,
+  markPreviousResumeSkillsChangesAsSyncedQuery,
   cleanUpSyncedResumeSkillsChangelogEntriesQuery,
   updateResumeSkillPositionQuery,
 } from './sql'
@@ -160,7 +161,7 @@ interface ResumeSkillsChange {
     | 'reorder_resume_skills'
   value:
     | SkillBlock // update_resume_skills
-    | { id: string }[] // delete_resume_skills
+    | { id: string } // delete_resume_skills
     | { id: string; position: number }[] // reorder_resume_skills
   write_id: string
   timestamp: string
@@ -179,7 +180,7 @@ interface SyncConfig<T> {
     db: ElectricDb,
     config: SyncConfig<T>
   ) => Promise<void>
-  syncMode: 'single' | 'batch'
+  syncMode: 'single' | 'batch' | 'latest-batch'
 }
 
 const SYNC_CONFIGS = {
@@ -236,11 +237,12 @@ const SYNC_CONFIGS = {
   } as SyncConfig<SkillsChange>,
   resume_skills: {
     datasetName: 'resume_skills',
-    getLatestUnsyncedQuery: selectAllUnsyncedResumeSkillsChangesQuery,
+    getLatestUnsyncedQuery: selectLatestUnsyncedResumeSkillsChangesQuery,
     markSyncedQuery: updateResumeSkillsChangelogQuery,
+    markPreviousAsSyncedQuery: markPreviousResumeSkillsChangesAsSyncedQuery,
     cleanupQuery: cleanUpSyncedResumeSkillsChangelogEntriesQuery,
     syncToRemote: syncResumeSkillsToRemote,
-    syncMode: 'batch',
+    syncMode: 'latest-batch',
   } as SyncConfig<ResumeSkillsChange>,
 } as const
 
@@ -251,6 +253,8 @@ async function syncDataset<T extends { write_id: string; timestamp: string }>(
 ): Promise<void> {
   if (config.syncMode === 'single') {
     await syncSingleLatest(db, userId, config)
+  } else if (config.syncMode === 'latest-batch') {
+    await syncLatestBatch(db, userId, config)
   } else {
     await syncAllUnsynced(db, userId, config)
   }
@@ -311,6 +315,48 @@ async function syncAllUnsynced<
     try {
       await config.syncToRemote(change, db, config)
       await db.query(config.markSyncedQuery, [true, change.write_id])
+    } catch (error) {
+      console.error(
+        `Failed to sync ${config.datasetName} change ${change.write_id}:`,
+        error
+      )
+      // Mark as failed but continue with other changes
+      await db.query(config.markSyncedQuery, [false, change.write_id])
+    }
+  }
+
+  await db.query(config.cleanupQuery, [userId])
+}
+
+async function syncLatestBatch<
+  T extends { write_id: string; timestamp: string }
+>(
+  db: ElectricDb,
+  userId: string | undefined,
+  config: SyncConfig<T>
+): Promise<void> {
+  // Get only the latest change per block (deduplicated by query)
+  const result = await db.query<T>(config.getLatestUnsyncedQuery, [userId])
+  const latestChanges = result?.rows || []
+
+  if (!latestChanges.length) {
+    await db.query(config.cleanupQuery, [userId])
+    return
+  }
+
+  for (const change of latestChanges) {
+    try {
+      await config.syncToRemote(change, db, config)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+
+      // Mark all previous changes for this block as synced (superseded)
+      if (config.markPreviousAsSyncedQuery) {
+        await db.query(config.markPreviousAsSyncedQuery, [
+          change.timestamp,
+          userId,
+        ])
+      }
     } catch (error) {
       console.error(
         `Failed to sync ${config.datasetName} change ${change.write_id}:`,

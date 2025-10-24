@@ -1002,15 +1002,73 @@ INSERT INTO resume_skills_changes (operation, value, write_id, timestamp, user_i
 VALUES ($1, $2, $3, $4, $5)
 `
 
-export const selectAllUnsyncedResumeSkillsChangesQuery = `
-SELECT * FROM resume_skills_changes
-WHERE synced = FALSE
-AND user_id = $1
+export const selectLatestUnsyncedResumeSkillsChangesQuery = `
+WITH latest_changes AS (
+  SELECT DISTINCT ON (
+    operation,
+    CASE 
+      WHEN operation = 'update_resume_skills' THEN (value->>'id')
+      WHEN operation = 'delete_resume_skills' THEN (value->>'id')
+      WHEN operation = 'reorder_resume_skills' THEN 'reorder'
+      ELSE NULL
+    END
+  )
+    *
+  FROM resume_skills_changes
+  WHERE synced = FALSE
+    AND user_id = $1
+  ORDER BY 
+    operation,
+    CASE 
+      WHEN operation = 'update_resume_skills' THEN (value->>'id')
+      WHEN operation = 'delete_resume_skills' THEN (value->>'id')
+      WHEN operation = 'reorder_resume_skills' THEN 'reorder'
+      ELSE NULL
+    END,
+    timestamp DESC
+)
+SELECT * FROM latest_changes
 ORDER BY timestamp ASC
 `
 
 export const updateResumeSkillsChangelogQuery = `
 UPDATE resume_skills_changes SET synced = $1 WHERE write_id = $2
+`
+
+export const markPreviousResumeSkillsChangesAsSyncedQuery = `
+UPDATE resume_skills_changes 
+SET synced = TRUE 
+WHERE timestamp < $1
+  AND user_id = $2
+  AND synced = FALSE
+  AND (
+    -- Mark previous updates for the same block
+    (operation = 'update_resume_skills' AND (value->>'id') IN (
+      SELECT DISTINCT (value->>'id')
+      FROM resume_skills_changes
+      WHERE timestamp <= $1
+        AND user_id = $2
+        AND operation = 'update_resume_skills'
+    ))
+    OR
+    -- Mark previous deletes for the same block
+    (operation = 'delete_resume_skills' AND (value->>'id') IN (
+      SELECT DISTINCT (value->>'id')
+      FROM resume_skills_changes
+      WHERE timestamp <= $1
+        AND user_id = $2
+        AND operation = 'delete_resume_skills'
+    ))
+    OR
+    -- Mark all previous reorders (only one reorder should exist)
+    (operation = 'reorder_resume_skills' AND EXISTS (
+      SELECT 1
+      FROM resume_skills_changes
+      WHERE timestamp <= $1
+        AND user_id = $2
+        AND operation = 'reorder_resume_skills'
+    ))
+  )
 `
 
 export const cleanUpSyncedResumeSkillsChangelogEntriesQuery = `

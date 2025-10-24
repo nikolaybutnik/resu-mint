@@ -14,6 +14,8 @@ interface SkillsStore {
   hasSkillsData: boolean
   hasResumeSkillData: boolean
   error: OperationError | null
+  savesInFlight: Set<string>
+  pendingSaveResumeSkills: Map<string, SkillBlock>
   initialize: () => Promise<void>
   upsertSkills: (skills: Skills) => Promise<{ error: OperationError | null }>
   upsertResumeSkillBlock: (
@@ -35,11 +37,11 @@ interface SkillsStore {
 }
 
 let debouncedSkillsSave: ReturnType<typeof debounce> | null = null
-let debouncedResumeSkillsSave: ReturnType<typeof debounce> | null = null
 let lastSavedSkillsState: Skills = DEFAULT_STATE_VALUES.SKILLS
-let lastSavedResumeSkillsState: SkillBlock[] =
-  DEFAULT_STATE_VALUES.RESUME_SKILLS
 let debouncedRefresh: ReturnType<typeof debounce> | null = null
+
+// Per-block debounce timers for resume skills
+const blockDebounceTimers = new Map<string, NodeJS.Timeout>()
 
 export const useSkillsStore = create<SkillsStore>((set, get) => {
   if (!debouncedSkillsSave) {
@@ -71,40 +73,29 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
     }, 1000)
   }
 
-  if (!debouncedResumeSkillsSave) {
-    debouncedResumeSkillsSave = debounce(async (block: SkillBlock) => {
-      set({ loading: true, error: null })
-
-      const result = await dataManager.saveResumeSkillBlock(block)
-
-      if (result.success) {
-        lastSavedResumeSkillsState = result.data
-        set({
-          resumeSkillsData: result.data,
-          loading: false,
-          hasResumeSkillData: !!result.data?.length,
-          error: null,
-        })
-      } else {
-        set({
-          loading: false,
-          resumeSkillsData: lastSavedResumeSkillsState,
-          hasResumeSkillData: !!lastSavedResumeSkillsState?.length,
-          error: result.error,
-        })
-      }
-    }, 1000)
-  }
-
   if (!debouncedRefresh) {
     debouncedRefresh = debounce(async () => {
       try {
+        const currentState = get()
+
+        // Don't refresh if:
+        // 1. Any saves are in flight
+        // 2. Any saves are pending (queued)
+        // 3. Any debounce timers are active (user made changes but save hasn't started)
+        if (
+          currentState.savesInFlight.size > 0 ||
+          currentState.pendingSaveResumeSkills.size > 0 ||
+          blockDebounceTimers.size > 0
+        ) {
+          return
+        }
+
         set({ loading: true, error: null })
         const skillsData = (await dataManager.getSkills()) as Skills
         const resumeSkillsData =
           (await dataManager.getResumeSkills()) as SkillBlock[]
         lastSavedSkillsState = skillsData
-        lastSavedResumeSkillsState = resumeSkillsData
+
         set({
           skillsData,
           resumeSkillsData,
@@ -131,6 +122,8 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
     hasSkillsData: false,
     hasResumeSkillData: false,
     error: null,
+    savesInFlight: new Set<string>(),
+    pendingSaveResumeSkills: new Map<string, SkillBlock>(),
 
     initialize: async () => {
       set({ loading: true, error: null })
@@ -139,7 +132,6 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
         const resumeSkillsData =
           (await dataManager.getResumeSkills()) as SkillBlock[]
         lastSavedSkillsState = skillsData
-        lastSavedResumeSkillsState = resumeSkillsData
 
         set({
           skillsData,
@@ -210,7 +202,41 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
         error: null,
       })
 
-      debouncedResumeSkillsSave?.(block)
+      // Clear existing debounce timer for this block
+      const existingTimer = blockDebounceTimers.get(block.id)
+      if (existingTimer) {
+        clearTimeout(existingTimer)
+      }
+
+      // If this block is already being saved, queue the new version
+      if (currentState.savesInFlight.has(block.id)) {
+        const newPending = new Map(currentState.pendingSaveResumeSkills)
+        newPending.set(block.id, block)
+        set({ pendingSaveResumeSkills: newPending })
+        return { error: null }
+      }
+
+      // Debounce the save for 1 second
+      const timer = setTimeout(() => {
+        blockDebounceTimers.delete(block.id)
+
+        // Get the latest state to ensure we have the most up-to-date data
+        const latestState = get()
+        const latestBlock = latestState.resumeSkillsData.find(
+          (b) => b.id === block.id
+        )
+
+        if (latestBlock) {
+          executeResumeSkillSave(
+            latestBlock,
+            latestState.resumeSkillsData,
+            set,
+            get
+          )
+        }
+      }, 1000)
+
+      blockDebounceTimers.set(block.id, timer)
 
       return { error: null }
     },
@@ -219,30 +245,71 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
       const currentState = get()
       const previousData = currentState.resumeSkillsData
 
+      // Clear any pending debounced save for this block
+      const existingTimer = blockDebounceTimers.get(blockId)
+      if (existingTimer) {
+        clearTimeout(existingTimer)
+        blockDebounceTimers.delete(blockId)
+      }
+
+      // Remove from pending saves
+      const newPending = new Map(currentState.pendingSaveResumeSkills)
+      newPending.delete(blockId)
+
       const optimisticData = currentState.resumeSkillsData.filter(
         (block) => block.id !== blockId
       )
 
+      const newInFlight = new Set(currentState.savesInFlight)
+      newInFlight.add(blockId)
+
       set({
         resumeSkillsData: optimisticData,
         hasResumeSkillData: !!optimisticData.length,
+        loading: true,
         error: null,
+        savesInFlight: newInFlight,
+        pendingSaveResumeSkills: newPending,
       })
 
       const result = await dataManager.deleteResumeSkillBlock(blockId)
 
+      const currentStateAfterDelete = get()
+      const updatedInFlight = new Set(currentStateAfterDelete.savesInFlight)
+      updatedInFlight.delete(blockId)
+
       if (result.success) {
-        lastSavedResumeSkillsState = result.data
+        // Merge strategy: preserve optimistic updates for blocks with saves in flight or pending
+        const mergedData = result.data.map((serverBlock) => {
+          if (
+            updatedInFlight.has(serverBlock.id) ||
+            currentStateAfterDelete.pendingSaveResumeSkills.has(
+              serverBlock.id
+            ) ||
+            blockDebounceTimers.has(serverBlock.id)
+          ) {
+            const currentBlock = currentStateAfterDelete.resumeSkillsData.find(
+              (b) => b.id === serverBlock.id
+            )
+            return currentBlock || serverBlock
+          }
+          return serverBlock
+        })
+
         set({
-          resumeSkillsData: result.data,
-          hasResumeSkillData: !!result.data.length,
+          resumeSkillsData: mergedData,
+          hasResumeSkillData: !!mergedData.length,
+          loading: false,
           error: null,
+          savesInFlight: updatedInFlight,
         })
       } else {
         set({
           resumeSkillsData: previousData,
           hasResumeSkillData: !!previousData.length,
+          loading: false,
           error: result.error,
+          savesInFlight: updatedInFlight,
         })
       }
 
@@ -250,34 +317,65 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
     },
 
     reorderResumeSkills: async (data: SkillBlock[]) => {
-      const previousData = get().resumeSkillsData
+      const currentState = get()
+      const previousData = currentState.resumeSkillsData
       const optimisticWithPositions = data.map((block, i) => ({
         ...block,
         position: i,
       }))
 
+      // Use a special 'reorder' key for the reorder operation
+      const newInFlight = new Set(currentState.savesInFlight)
+      newInFlight.add('reorder')
+
       set({
         resumeSkillsData: optimisticWithPositions,
         hasResumeSkillData: !!optimisticWithPositions.length,
+        loading: true,
         error: null,
+        savesInFlight: newInFlight,
       })
 
       const result = await dataManager.reorderResumeSkills(
         optimisticWithPositions
       )
 
+      const currentStateAfterReorder = get()
+      const updatedInFlight = new Set(currentStateAfterReorder.savesInFlight)
+      updatedInFlight.delete('reorder')
+
       if (result.success) {
-        lastSavedResumeSkillsState = result.data
+        // Merge strategy: preserve optimistic updates for blocks with saves in flight or pending
+        const mergedData = result.data.map((serverBlock) => {
+          if (
+            updatedInFlight.has(serverBlock.id) ||
+            currentStateAfterReorder.pendingSaveResumeSkills.has(
+              serverBlock.id
+            ) ||
+            blockDebounceTimers.has(serverBlock.id)
+          ) {
+            const currentBlock = currentStateAfterReorder.resumeSkillsData.find(
+              (b) => b.id === serverBlock.id
+            )
+            return currentBlock || serverBlock
+          }
+          return serverBlock
+        })
+
         set({
-          resumeSkillsData: result.data,
-          hasResumeSkillData: !!result.data.length,
+          resumeSkillsData: mergedData,
+          hasResumeSkillData: !!mergedData.length,
+          loading: false,
           error: null,
+          savesInFlight: updatedInFlight,
         })
       } else {
         set({
           resumeSkillsData: previousData,
           hasResumeSkillData: !!previousData.length,
+          loading: false,
           error: result.error,
+          savesInFlight: updatedInFlight,
         })
       }
 
@@ -311,3 +409,150 @@ export const useSkillsStore = create<SkillsStore>((set, get) => {
     },
   }
 })
+
+async function executeResumeSkillSave(
+  block: SkillBlock,
+  previousData: SkillBlock[],
+  set: (state: Partial<SkillsStore>) => void,
+  get: () => SkillsStore
+): Promise<{ error: OperationError | null }> {
+  const currentState = get()
+  const newInFlight = new Set(currentState.savesInFlight)
+  newInFlight.add(block.id)
+  set({ savesInFlight: newInFlight })
+
+  try {
+    const result = await dataManager.saveResumeSkillBlock(block)
+
+    const updatedInFlight = new Set(get().savesInFlight)
+    updatedInFlight.delete(block.id)
+
+    if (result.success) {
+      // Merge strategy: preserve optimistic updates for blocks with saves in flight or pending
+      const currentState = get()
+      const mergedData = result.data.map((serverBlock) => {
+        // Keep optimistic state if:
+        // 1. This block has a save currently in flight, OR
+        // 2. This block has a pending save queued up, OR
+        // 3. This block has a debounce timer running (user made changes but save hasn't started)
+        if (
+          updatedInFlight.has(serverBlock.id) ||
+          currentState.pendingSaveResumeSkills.has(serverBlock.id) ||
+          blockDebounceTimers.has(serverBlock.id)
+        ) {
+          const currentBlock = currentState.resumeSkillsData.find(
+            (b) => b.id === serverBlock.id
+          )
+          return currentBlock || serverBlock
+        }
+        return serverBlock
+      })
+
+      set({
+        resumeSkillsData: mergedData,
+        hasResumeSkillData: !!mergedData?.length,
+        loading: false,
+        error: null,
+        savesInFlight: updatedInFlight,
+      })
+
+      const returnValue = { error: null }
+
+      // Check if there's a pending save for this specific block
+      if (currentState.pendingSaveResumeSkills.has(block.id)) {
+        const nextBlock = currentState.pendingSaveResumeSkills.get(block.id)!
+        const newPending = new Map(currentState.pendingSaveResumeSkills)
+        newPending.delete(block.id)
+        set({ pendingSaveResumeSkills: newPending })
+
+        // Calculate the new previousData for the next save
+        const nextPreviousData = mergedData
+        return executeResumeSkillSave(nextBlock, nextPreviousData, set, get)
+      }
+
+      return returnValue
+    } else {
+      // On error, merge with current state to preserve other optimistic updates
+      const currentState = get()
+      const mergedData = previousData.map((prevBlock) => {
+        if (
+          updatedInFlight.has(prevBlock.id) ||
+          currentState.pendingSaveResumeSkills.has(prevBlock.id) ||
+          blockDebounceTimers.has(prevBlock.id)
+        ) {
+          const currentBlock = currentState.resumeSkillsData.find(
+            (b) => b.id === prevBlock.id
+          )
+          return currentBlock || prevBlock
+        }
+        return prevBlock
+      })
+
+      set({
+        resumeSkillsData: mergedData,
+        hasResumeSkillData: !!mergedData?.length,
+        loading: false,
+        error: result.error,
+        savesInFlight: updatedInFlight,
+      })
+
+      const returnValue = { error: result.error }
+
+      // Check if there's a pending save for this specific block
+      if (currentState.pendingSaveResumeSkills.has(block.id)) {
+        const nextBlock = currentState.pendingSaveResumeSkills.get(block.id)!
+        const newPending = new Map(currentState.pendingSaveResumeSkills)
+        newPending.delete(block.id)
+        set({ pendingSaveResumeSkills: newPending })
+        return executeResumeSkillSave(nextBlock, mergedData, set, get)
+      }
+
+      return returnValue
+    }
+  } catch (error) {
+    const operationError = createUnknownError(
+      'Failed to save resume skill block',
+      error
+    )
+
+    const currentState = get()
+    const updatedInFlight = new Set(currentState.savesInFlight)
+    updatedInFlight.delete(block.id)
+
+    // On error, merge with current state to preserve other optimistic updates
+    const mergedData = previousData.map((prevBlock) => {
+      if (
+        updatedInFlight.has(prevBlock.id) ||
+        currentState.pendingSaveResumeSkills.has(prevBlock.id) ||
+        blockDebounceTimers.has(prevBlock.id)
+      ) {
+        const currentBlock = currentState.resumeSkillsData.find(
+          (b) => b.id === prevBlock.id
+        )
+        return currentBlock || prevBlock
+      }
+      return prevBlock
+    })
+
+    set({
+      resumeSkillsData: mergedData,
+      hasResumeSkillData: !!mergedData?.length,
+      loading: false,
+      error: operationError,
+      savesInFlight: updatedInFlight,
+    })
+
+    const returnValue = { error: operationError }
+
+    // Check if there's a pending save for this specific block
+    if (currentState.pendingSaveResumeSkills.has(block.id)) {
+      const nextBlock = currentState.pendingSaveResumeSkills.get(block.id)!
+      const newPending = new Map(currentState.pendingSaveResumeSkills)
+      newPending.delete(block.id)
+      set({ pendingSaveResumeSkills: newPending })
+      return executeResumeSkillSave(nextBlock, mergedData, set, get)
+    }
+
+    return returnValue
+  }
+}

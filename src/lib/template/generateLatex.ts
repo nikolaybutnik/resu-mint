@@ -212,36 +212,39 @@ ${descriptionSection}`
           .join('\n\n')
       : null
 
-  const skillsSection =
+  const filteredSkills =
     skills && skills.length > 0
+      ? skills
+          .filter((skill) => skill.isIncluded !== false)
+          .filter(
+            (skill) => Array.isArray(skill.skills) && skill.skills.length > 0
+          )
+          .map((skill) => {
+            const skillsList = skill.skills
+              .filter(
+                (s): s is string =>
+                  !!s && typeof s === 'string' && s.trim().length > 0
+              )
+              .map((s) => sanitizeLatexText(s))
+              .join(', ')
+            return { title: skill.title, skillsList }
+          })
+          .filter((skill) => skill.skillsList.length > 0)
+          .map((skill) => {
+            return skill.title?.trim()
+              ? `\\textbf{${sanitizeLatexText(skill.title)}}{: ${
+                  skill.skillsList
+                }}`
+              : skill.skillsList
+          })
+      : []
+
+  const skillsSection =
+    filteredSkills.length > 0
       ? `
         \\begin{itemize}[leftmargin=0.15in, label={}]
           \\small{\\item{
-            ${skills
-              .filter((skill) => skill.isIncluded !== false)
-              .filter(
-                (skill) =>
-                  Array.isArray(skill.skills) && skill.skills.length > 0
-              )
-              .map((skill) => {
-                const skillsList = skill.skills
-                  .filter(
-                    (s): s is string =>
-                      !!s && typeof s === 'string' && s.trim().length > 0
-                  )
-                  .map((s) => sanitizeLatexText(s))
-                  .join(', ')
-                return { title: skill.title, skillsList }
-              })
-              .filter((skill) => skill.skillsList.length > 0)
-              .map((skill) => {
-                return skill.title?.trim()
-                  ? `\\textbf{${sanitizeLatexText(skill.title)}}{: ${
-                      skill.skillsList
-                    }}`
-                  : skill.skillsList
-              })
-              .join(' \\\\ ')}
+            ${filteredSkills.join(' \\\\ ')}
           }}
         \\end{itemize}`
       : null

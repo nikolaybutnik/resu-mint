@@ -27,6 +27,13 @@ export const usePersonalDetailsStore = create<PersonalDetailsStore>(
     if (!debouncedRefresh) {
       debouncedRefresh = debounce(async () => {
         try {
+          const currentState = get()
+
+          // Don't refresh if a save is in flight to avoid overwriting user changes
+          if (currentState.saveInFlight) {
+            return
+          }
+
           const data = await dataManager.getPersonalDetails()
           set({
             data,

@@ -93,12 +93,15 @@ export class LivePreviewService {
           isIncluded: edu.isIncluded,
         })),
       skills: data.skillsSection
-        .filter((skill) => skill.skills.length > 0)
-        .filter((skill) => skill.isIncluded)
+        .filter((skill) => skill.isIncluded !== false)
+        .filter(
+          (skill) => Array.isArray(skill.skills) && skill.skills.length > 0
+        )
         .map((skill) => ({
           id: skill.id,
           title: skill.title,
           skills: skill.skills,
+          isIncluded: skill.isIncluded,
         })),
       order: data.settings.sectionOrder,
     }
