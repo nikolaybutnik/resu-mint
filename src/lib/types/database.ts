@@ -536,6 +536,16 @@ export type Database = {
         Args: { bullets: Json }
         Returns: string
       }
+      upsert_resume_skills: {
+        Args: {
+          rs_id: string
+          rs_is_included: boolean
+          rs_position: number
+          rs_skills: string[]
+          rs_title: string
+        }
+        Returns: string
+      }
       upsert_settings: {
         Args: {
           s_experience_bullets_per_block: number

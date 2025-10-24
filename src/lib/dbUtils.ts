@@ -35,6 +35,7 @@ import {
   selectAllUnsyncedResumeSkillsChangesQuery,
   updateResumeSkillsChangelogQuery,
   cleanUpSyncedResumeSkillsChangelogEntriesQuery,
+  updateResumeSkillPositionQuery,
 } from './sql'
 import { ProjectBlockData } from './types/projects'
 import { EducationBlockData } from './types/education'
@@ -474,6 +475,38 @@ async function syncEducationPositionsFromRemote(db: ElectricDb): Promise<void> {
   }
 }
 
+async function syncResumeSkillPositionsFromRemote(
+  db: ElectricDb
+): Promise<void> {
+  try {
+    const { data: remoteResumeSkills, error } = await supabase
+      .from('resume_skills')
+      .select('id, position')
+      .order('position', { ascending: true })
+
+    if (error) {
+      console.error(
+        'Failed to fetch remote resume skill block positions:',
+        error
+      )
+      return
+    }
+
+    if (!remoteResumeSkills?.length) return
+
+    const timestamp = nowIso()
+    for (const skill of remoteResumeSkills) {
+      await db.query(updateResumeSkillPositionQuery, [
+        skill.id,
+        skill.position,
+        timestamp,
+      ])
+    }
+  } catch (error) {
+    console.error('Error syncing resume skill positions from remote:', error)
+  }
+}
+
 async function syncPersonalDetailsToRemote(
   change: PersonalDetailsChange,
   db: ElectricDb,
@@ -907,7 +940,7 @@ const upsertProject = async (
         .maybeSingle()
 
       if (isRecordNotFoundError(serverError)) {
-        // Record doesn't exist, skip upsert - nothing to sync
+        // Record doesn't exist, proceed with upsert
       } else if (serverError) {
         throw serverError
       }
@@ -1265,7 +1298,7 @@ const upsertEducation = async (
         .maybeSingle()
 
       if (isRecordNotFoundError(serverError)) {
-        // Record doesn't exist, skip upsert - nothing to sync
+        // Record doesn't exist, proceed with upsert
       } else if (serverError) {
         throw serverError
       }
@@ -1527,6 +1560,65 @@ async function syncSkillsToRemote(
   }
 }
 
+const upsertResumeSkills = async (
+  change: ResumeSkillsChange,
+  db: ElectricDb,
+  config: SyncConfig<ResumeSkillsChange>
+): Promise<void> => {
+  const maxRetries = 3
+  const TOLERANCE_MS = 30000
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const resumeSkillBlock = change.value as SkillBlock
+
+      const { data: serverData, error: serverError } = await supabase
+        .from('resume_skills')
+        .select('updated_at')
+        .eq('id', resumeSkillBlock.id)
+        .maybeSingle()
+
+      if (isRecordNotFoundError(serverError)) {
+        // Record doesn't exist, proceed with upsert
+      } else if (serverError) {
+        throw serverError
+      }
+
+      if (serverData?.updated_at) {
+        const serverTime = new Date(serverData.updated_at).getTime()
+        const localTime = new Date(change.timestamp || 0).getTime()
+        const timeDiff = serverTime - localTime
+
+        if (serverTime > localTime && timeDiff > TOLERANCE_MS) {
+          // Server has newer data, mark local change as synced to avoid conflict
+          await db.query(config.markSyncedQuery, [true, change.write_id])
+          return
+        }
+      }
+
+      const { error } = await supabase.rpc('upsert_resume_skills', {
+        rs_id: resumeSkillBlock.id,
+        rs_title: resumeSkillBlock.title ?? '',
+        rs_skills: resumeSkillBlock.skills,
+        rs_is_included: resumeSkillBlock.isIncluded ?? true,
+        rs_position: resumeSkillBlock.position ?? 0,
+      })
+
+      if (error) throw error
+
+      await syncResumeSkillPositionsFromRemote(db)
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncResumeSkillsToRemote(
   change: ResumeSkillsChange,
   db: ElectricDb,
@@ -1534,7 +1626,7 @@ async function syncResumeSkillsToRemote(
 ) {
   switch (change.operation) {
     case 'update_resume_skills':
-      //   await upsertResumeSkills(change, db, config)
+      await upsertResumeSkills(change, db, config)
       break
     case 'delete_resume_skills':
       //   await deleteResumeSkills(change, db, config)
