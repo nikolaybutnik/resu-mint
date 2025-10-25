@@ -892,6 +892,12 @@ AND timestamp <= $1
 AND user_id = $2
 `
 
+export const transferAnonymousSettingsToUser = `
+UPDATE app_settings_changes
+SET user_id = $1
+WHERE user_id IS NULL
+`
+
 // =============================================================================
 // SKILLS QUERIES
 // =============================================================================
@@ -944,6 +950,12 @@ DELETE FROM skills_changes
 WHERE synced = TRUE
 AND timestamp < NOW() - INTERVAL '3 days'
 AND user_id = $1
+`
+
+export const transferAnonymousSkillsToUser = `
+UPDATE skills_changes
+SET user_id = $1
+WHERE user_id IS NULL
 `
 
 // =============================================================================
@@ -1076,4 +1088,10 @@ DELETE FROM resume_skills_changes
 WHERE synced = TRUE
 AND timestamp < NOW() - INTERVAL '3 days'
 AND user_id = $1
+`
+
+export const transferAnonymousResumeSkillsToUser = `
+UPDATE resume_skills_changes
+SET user_id = $1
+WHERE user_id IS NULL
 `

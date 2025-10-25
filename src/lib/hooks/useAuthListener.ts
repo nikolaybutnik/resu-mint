@@ -4,7 +4,15 @@ import { useAuthStore, useDbStore } from '@/stores'
 import { toast } from '@/stores/toastStore'
 import { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { getLastKnownUserId, setLastKnownUserId } from '../utils'
-import { transferAnonymousPersonalDetailsToUser } from '../sql'
+import {
+  transferAnonymousEducationToUser,
+  transferAnonymousExperienceToUser,
+  transferAnonymousPersonalDetailsToUser,
+  transferAnonymousProjectToUser,
+  transferAnonymousResumeSkillsToUser,
+  transferAnonymousSettingsToUser,
+  transferAnonymousSkillsToUser,
+} from '../sql'
 import { debounce } from 'lodash'
 
 export function useAuthListener() {
@@ -44,6 +52,12 @@ export function useAuthListener() {
 
     try {
       await db.query(transferAnonymousPersonalDetailsToUser, [newUserId])
+      await db.query(transferAnonymousExperienceToUser, [newUserId])
+      await db.query(transferAnonymousProjectToUser, [newUserId])
+      await db.query(transferAnonymousEducationToUser, [newUserId])
+      await db.query(transferAnonymousSettingsToUser, [newUserId])
+      await db.query(transferAnonymousSkillsToUser, [newUserId])
+      await db.query(transferAnonymousResumeSkillsToUser, [newUserId])
     } catch (error) {
       console.error('Failed to transfer anonymous changes:', error)
     }
