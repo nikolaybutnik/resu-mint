@@ -447,6 +447,10 @@ export type Database = {
         Args: { b_ids: string[] }
         Returns: string
       }
+      delete_resume_skills: {
+        Args: { rs_ids: string[] }
+        Returns: string
+      }
       update_experience_bullet_locks: {
         Args:
           | { bullet_data: Json }
