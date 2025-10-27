@@ -1709,6 +1709,39 @@ const deleteResumeSkills = async (
   }
 }
 
+const reorderResumeSkills = async (
+  change: ResumeSkillsChange,
+  db: ElectricDb,
+  config: SyncConfig<ResumeSkillsChange>
+): Promise<void> => {
+  const maxRetries = 3
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      for (const row of change.value as { id: string; position: number }[]) {
+        const { error: serverError } = await supabase
+          .from('resume_skills')
+          .update({ position: row.position })
+          .eq('id', row.id)
+
+        if (isRecordNotFoundError(serverError)) {
+          // Record doesn't exist remotely - skip until record gets upserted
+        } else if (serverError) {
+          throw serverError
+        }
+      }
+
+      await db.query(config.markSyncedQuery, [true, change.write_id])
+      return
+    } catch (error) {
+      if (attempt === maxRetries - 1) throw error
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, attempt))
+      )
+    }
+  }
+}
+
 async function syncResumeSkillsToRemote(
   change: ResumeSkillsChange,
   db: ElectricDb,
@@ -1722,7 +1755,7 @@ async function syncResumeSkillsToRemote(
       await deleteResumeSkills(change, db, config)
       break
     case 'reorder_resume_skills':
-      // await reorderResumeSkills(change, db, config)
+      await reorderResumeSkills(change, db, config)
       break
   }
 }
