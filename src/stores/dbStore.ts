@@ -45,7 +45,6 @@ import {
   useSettingsStore,
   useSkillsStore,
 } from './'
-import { toast } from './toastStore'
 import {
   OperationError,
   createAuthError,
@@ -59,7 +58,6 @@ import {
   isQuotaExceededError,
 } from '@/lib/types/errors'
 import { ProjectBlockData } from '@/lib/types/projects'
-import { debounce } from 'lodash'
 import { EducationBlockData } from '@/lib/types/education'
 import { AppSettings } from '@/lib/types/settings'
 import { SkillBlock, Skills } from '@/lib/types/skills'
@@ -100,6 +98,7 @@ interface DbStore {
   close: () => void
   startPushSync: (intervalMs?: number) => void
   stopPushSync: () => void
+  clearError: () => void
 }
 
 const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
@@ -258,8 +257,6 @@ const TABLE_CONFIGS: Record<string, TableSyncConfig> = {
   },
 }
 
-// TODO: handle errors upstream
-
 const TABLE_STORE_RESET_MAP = {
   personal_details: (defaultValue: PersonalDetails) =>
     usePersonalDetailsStore.setState({ data: defaultValue }),
@@ -287,28 +284,23 @@ const TABLE_STORE_RESET_MAP = {
 
 let firstSyncFlag = true
 
-const initializeTables = async (db: PGlite) => {
-  try {
-    await db.query(initializePersonalDetailsQuery)
-    await db.query(initializePersonalDetailsChangelogQuery)
-    await db.query(initializeExperienceQuery)
-    await db.query(initializeExperienceBulletsQuery)
-    await db.query(initializeExperienceChangelogQuery)
-    await db.query(initializeProjectsQuery)
-    await db.query(initializeProjectBulletsQuery)
-    await db.query(initializeProjectChangelogQuery)
-    await db.query(initializeEducationQuery)
-    await db.query(initializeEducationChangelogQuery)
-    await db.query(initializeSettingsQuery)
-    await db.query(initializeSettingsChangelogQuery)
-    await db.query(initializeSkillsQuery)
-    await db.query(initializeSkillsChangelogQuery)
-    await db.query(initializeResumeSkillsQuery)
-    await db.query(initializeResumeSkillsChangelogQuery)
-  } catch (error) {
-    console.error('Failed to initialize DB tables', error)
-    toast.error('Failed to initialize DB tables')
-  }
+const initializeTables = async (db: ElectricDb): Promise<void> => {
+  await db.query(initializePersonalDetailsQuery)
+  await db.query(initializePersonalDetailsChangelogQuery)
+  await db.query(initializeExperienceQuery)
+  await db.query(initializeExperienceBulletsQuery)
+  await db.query(initializeExperienceChangelogQuery)
+  await db.query(initializeProjectsQuery)
+  await db.query(initializeProjectBulletsQuery)
+  await db.query(initializeProjectChangelogQuery)
+  await db.query(initializeEducationQuery)
+  await db.query(initializeEducationChangelogQuery)
+  await db.query(initializeSettingsQuery)
+  await db.query(initializeSettingsChangelogQuery)
+  await db.query(initializeSkillsQuery)
+  await db.query(initializeSkillsChangelogQuery)
+  await db.query(initializeResumeSkillsQuery)
+  await db.query(initializeResumeSkillsChangelogQuery)
 }
 
 export const useDbStore = create<DbStore>((set, get) => ({
@@ -334,7 +326,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
 
       const session = useAuthStore.getState().session
 
-      // TODO: error handling
+      // TODO: more granular error handling by step?
       if (session) {
         // 1. Push local changes first
         await pushLocalChangesToRemote()
@@ -355,16 +347,12 @@ export const useDbStore = create<DbStore>((set, get) => ({
         err.message?.includes('violates')
       ) {
         try {
-          toast.warning('Schema conflict detected, attempting recovery...')
           await PGlite.create('idb://resumint-local', {
             extensions: { electric: electricSync() },
           })
           // Retry init once
           return await get().initialize()
         } catch (retryError) {
-          toast.error(
-            'Database setup failed. Please refresh the page to try again.'
-          )
           set({
             initializing: false,
             syncState: 'error',
@@ -378,9 +366,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
       }
 
       if (isQuotaExceededError(err)) {
-        toast.error(
-          'Storage space is full. Please free up space in your browser or clear old data.'
-        )
         set({
           initializing: false,
           syncState: 'error',
@@ -401,9 +386,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
         return
       }
 
-      toast.error(
-        'Failed to initialize local database. Please refresh the page.'
-      )
       set({
         initializing: false,
         syncState: 'error',
@@ -500,7 +482,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
       async function syncTable(tableName: string) {
         const config = tableConfigs.get(tableName)
         if (!config) {
-          toast.warning(`No config found for table: ${tableName}`)
+          console.warn(`No config found for table: ${tableName}`)
           return
         }
 
@@ -509,7 +491,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
         }
 
         if (!db) {
-          toast.error('Database not initialized')
+          console.error('Database not initialized')
           return
         }
 
@@ -541,11 +523,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
             }
 
             await tx.query(`DELETE FROM ${config.table}`)
-            debounce(() => {
-              toast.info(
-                'Your data is out of sync with the server. Your cache has been cleared.'
-              )
-            }, 200)
           },
         })
 
@@ -621,22 +598,20 @@ export const useDbStore = create<DbStore>((set, get) => ({
           (error) => {
             const err = error as Error
             if (err?.message?.includes('401')) {
-              toast.warning('Your session expired.')
               useAuthStore.getState().signOut()
               set({
+                syncState: 'error',
                 error: createAuthError('User authentication failed', err),
               })
             } else {
-              toast.error(
-                'There was an unexpected error while synchronizing your data with the cloud.'
-              )
-
               if (isNetworkError(err)) {
                 set({
+                  syncState: 'error',
                   error: createNetworkError('Sync stream error', err),
                 })
               } else {
                 set({
+                  syncState: 'error',
                   error: createUnknownError('Sync stream error', err),
                 })
               }
@@ -654,8 +629,6 @@ export const useDbStore = create<DbStore>((set, get) => ({
       })
     } catch (error) {
       const err = error as Error
-
-      toast.error('Failed to start data synchronization.')
 
       if (isNetworkError(err)) {
         set({
@@ -846,5 +819,9 @@ export const useDbStore = create<DbStore>((set, get) => ({
         error: createStorageError('Failed to close database connection', err),
       })
     }
+  },
+
+  clearError: () => {
+    set({ error: null })
   },
 }))

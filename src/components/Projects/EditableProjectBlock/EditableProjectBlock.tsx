@@ -34,11 +34,9 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
 
   const {
     data: projectData,
-    error: storeError,
     delete: deleteProject,
     upsert,
     hasBlockChanges,
-    clearError,
   } = useProjectStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
@@ -86,27 +84,6 @@ const EditableProjectBlock: React.FC<EditableProjectBlockProps> = ({
   const [description, setDescription] = useState(state.data?.description || '')
   const [temporaryBullet, setTemporaryBullet] =
     useState<BulletPointType | null>(null)
-
-  useEffect(() => {
-    if (storeError) {
-      switch (storeError.code) {
-        case 'NETWORK_ERROR':
-          toast.error(
-            'Network connection failed. Please check your internet connection.'
-          )
-          break
-        case 'UNKNOWN_ERROR':
-          toast.error('An unexpected error occurred. Please try again.')
-          break
-        case 'VALIDATION_ERROR':
-          toast.error('Invalid data provided. Please check your input.')
-          break
-        default:
-          toast.error('Failed to save your changes. Please try again.')
-      }
-      clearError()
-    }
-  }, [storeError, clearError])
 
   useEffect(() => {
     setIsCurrent(state.data?.endDate?.isPresent || false)

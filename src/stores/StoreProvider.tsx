@@ -13,6 +13,7 @@ import {
   useDbStore,
 } from './'
 import { useAuthListener } from '@/lib/hooks'
+import { DbErrorHandler } from '@/components/shared/DbErrorHandler/DbErrorHandler'
 
 /**
  * StoreProvider - Initializes all Zustand stores when the app starts
@@ -54,5 +55,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [db, initializing])
 
-  return <>{children}</>
+  return (
+    <>
+      <DbErrorHandler />
+      {children}
+    </>
+  )
 }

@@ -35,11 +35,9 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
 
   const {
     data: experienceData,
-    error: storeError,
     delete: deleteExperience,
     upsert,
     hasBlockChanges,
-    clearError,
   } = useExperienceStore()
   const { bulletIdsGenerating } = useAiStateStore()
 
@@ -76,27 +74,6 @@ const EditableExperienceBlock: React.FC<EditableExperienceBlockProps> = ({
       data,
     } as ExperienceFormState
   )
-
-  useEffect(() => {
-    if (storeError) {
-      switch (storeError.code) {
-        case 'NETWORK_ERROR':
-          toast.error(
-            'Network connection failed. Please check your internet connection.'
-          )
-          break
-        case 'UNKNOWN_ERROR':
-          toast.error('An unexpected error occurred. Please try again.')
-          break
-        case 'VALIDATION_ERROR':
-          toast.error('Invalid data provided. Please check your input.')
-          break
-        default:
-          toast.error('Failed to save your changes. Please try again.')
-      }
-      clearError()
-    }
-  }, [storeError, clearError])
 
   const [isCurrentlyWorking, setIsCurrentlyWorking] = useState(
     state.data?.endDate?.isPresent || false

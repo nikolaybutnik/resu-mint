@@ -33,6 +33,7 @@ import {
   SkeletonButton,
   SkeletonDraggableBlock,
 } from '@/components/shared/Skeleton'
+import { toast } from '@/stores/toastStore'
 
 interface ProjectsProps {
   keywordData: KeywordData
@@ -41,7 +42,13 @@ interface ProjectsProps {
 const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const { data: projects, reorder, initializing } = useProjectStore()
+  const {
+    data: projects,
+    reorder,
+    initializing,
+    error: storeError,
+    clearError,
+  } = useProjectStore()
 
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -85,6 +92,37 @@ const Projects: React.FC<ProjectsProps> = ({ keywordData }) => {
       setExpandedSections(new Set())
     }
   }, [selectedBlockId, expandedSections])
+
+  useEffect(() => {
+    if (storeError) {
+      switch (storeError.code) {
+        case 'NETWORK_ERROR':
+          toast.error(
+            'Network connection failed. Please check your internet connection.'
+          )
+          break
+        case 'VALIDATION_ERROR':
+          toast.error('Invalid data provided. Please check your input.')
+          break
+        case 'UNKNOWN_ERROR':
+          if (storeError.message.includes('Failed to load')) {
+            toast.error(
+              'Failed to load your projects. Please refresh the page.'
+            )
+          } else if (storeError.message.includes('Failed to refresh')) {
+            toast.warning(
+              'Unable to refresh project data. Some information may be outdated.'
+            )
+          } else {
+            toast.error('Failed to save your changes. Please try again.')
+          }
+          break
+        default:
+          toast.error('An unexpected error occurred. Please try again.')
+      }
+      clearError()
+    }
+  }, [storeError, clearError])
 
   const createNewProjectBlock = (id: string): ProjectBlockData => ({
     id,
