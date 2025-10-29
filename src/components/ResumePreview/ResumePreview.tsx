@@ -30,7 +30,6 @@ import {
   useProjectStore,
   useEducationStore,
   useSkillsStore,
-  useDbStore,
 } from '@/stores'
 
 interface PdfOptions {
