@@ -30,6 +30,7 @@ import {
   useProjectStore,
   useEducationStore,
   useSkillsStore,
+  useDbStore,
 } from '@/stores'
 
 interface PdfOptions {
@@ -141,6 +142,7 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
   const { data: projectsData } = useProjectStore()
   const { data: educationData } = useEducationStore()
   const { resumeSkillsData: skillsData } = useSkillsStore()
+  const { initialSyncComplete } = useDbStore()
 
   const [numPages, setNumPages] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(1)
@@ -361,7 +363,7 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
       }
       livePreviewService.cancelPending()
     }
-  }, [resumeData, isDataValid])
+  }, [resumeData, isDataValid, initialSyncComplete])
 
   const renderHeaderStatus = (): React.ReactElement => {
     if (error) {
@@ -372,6 +374,25 @@ const Preview: React.FC<ResumePreviewProps> = ({ resumeData, isDataValid }) => {
           <button onClick={generatePreview} className={styles.retryButtonSmall}>
             Retry
           </button>
+        </div>
+      )
+    }
+
+    if (!initialSyncComplete) {
+      // If we have a cached PDF, show a subtle sync indicator
+      if (pdfBlob) {
+        return (
+          <div className={styles.statusIndicator} data-status='info'>
+            <div className={styles.spinner}></div>
+            <span>Syncing latest changes...</span>
+          </div>
+        )
+      }
+      // If no cached PDF, show more prominent syncing message
+      return (
+        <div className={styles.regeneratingIndicator}>
+          <div className={styles.spinner}></div>
+          <span>Syncing data...</span>
         </div>
       )
     }

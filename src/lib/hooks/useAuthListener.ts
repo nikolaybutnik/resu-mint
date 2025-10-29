@@ -120,8 +120,8 @@ export function useAuthListener() {
               lastUserId.current = session.user?.id || null
 
               if (
-                dbState.syncState === 'idle' ||
-                dbState.syncState === 'error'
+                dbState.db &&
+                (dbState.syncState === 'idle' || dbState.syncState === 'error')
               ) {
                 await startAllServices(session)
               }
@@ -164,16 +164,16 @@ export function useAuthListener() {
               }
 
               if (
-                dbState.syncState === 'idle' ||
-                dbState.syncState === 'error'
+                dbState.db &&
+                (dbState.syncState === 'idle' || dbState.syncState === 'error')
               ) {
                 await startAllServices(session)
               }
               break
             case 'TOKEN_REFRESHED':
               if (
-                dbState.syncState === 'idle' ||
-                dbState.syncState === 'error'
+                dbState.db &&
+                (dbState.syncState === 'idle' || dbState.syncState === 'error')
               ) {
                 await startAllServices(session)
               }

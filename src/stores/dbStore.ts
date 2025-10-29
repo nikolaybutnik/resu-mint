@@ -86,6 +86,7 @@ interface DbStore {
   db: ElectricDb | null
   initializing: boolean
   syncState: 'idle' | 'connecting' | 'syncing' | 'error' | 'offline'
+  initialSyncComplete: boolean
   activeStreams: Map<string, SyncShapeToTableResult>
   tableConfigs: Map<string, TableSyncConfig>
   pushSyncTimer: NodeJS.Timeout | null
@@ -307,6 +308,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
   db: null,
   initializing: false,
   syncState: 'idle',
+  initialSyncComplete: false,
   activeStreams: new Map(),
   tableConfigs: new Map(Object.entries(TABLE_CONFIGS)),
   pushSyncTimer: null,
@@ -431,6 +433,49 @@ export const useDbStore = create<DbStore>((set, get) => ({
     const { refresh: refreshSettings } = useSettingsStore.getState()
     const { refresh: refreshSkills } = useSkillsStore.getState()
 
+    // Track which tables have completed initial sync
+    const tablesUpToDate = new Set<string>()
+    const criticalTables = [
+      'personal_details',
+      'education',
+      'settings',
+      'skills',
+      'resume_skills',
+      'experience',
+      'projects',
+      'experience_bullets',
+      'project_bullets',
+    ]
+
+    // Map to track promises for each table's "up-to-date" signal
+    const tableUpToDatePromises = new Map<string, Promise<void>>()
+    const tableUpToDateResolvers = new Map<string, () => void>()
+
+    // Create promises for all tables upfront
+    criticalTables.forEach((tableName) => {
+      const promise = new Promise<void>((resolve) => {
+        tableUpToDateResolvers.set(tableName, resolve)
+      })
+      tableUpToDatePromises.set(tableName, promise)
+    })
+
+    function checkAllTablesReady() {
+      const allReady = criticalTables.every((table) =>
+        tablesUpToDate.has(table)
+      )
+      if (allReady) {
+        // Trigger final refresh to ensure stores have complete data
+        setTimeout(() => {
+          refreshExperience()
+          refreshProjects()
+
+          setTimeout(() => {
+            set({ initialSyncComplete: true })
+          }, 500)
+        }, 100)
+      }
+    }
+
     if (!db) {
       set({
         error: createStorageError('Database not initialized'),
@@ -438,7 +483,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
       return
     }
 
-    set({ syncState: 'connecting', error: null })
+    set({ syncState: 'connecting', initialSyncComplete: false, error: null })
 
     try {
       await db.electric.initMetadataTables()
@@ -472,9 +517,12 @@ export const useDbStore = create<DbStore>((set, get) => ({
           await Promise.all(phase.map((tableName) => syncTable(tableName)))
           completedPhases++
 
-          // Delay to ensure previous phase sync has settled
+          // Wait for all tables in this phase to receive "up-to-date" before proceeding
+          // Needed to ensure that bullet points have data from parent tables
           if (completedPhases < syncPhases.length) {
-            await new Promise((resolve) => setTimeout(resolve, 500))
+            await Promise.all(
+              phase.map((tableName) => tableUpToDatePromises.get(tableName))
+            )
           }
         }
       }
@@ -567,6 +615,21 @@ export const useDbStore = create<DbStore>((set, get) => ({
                   }
                   if (config.table === 'resume_skills') {
                     hasResumeSkillsChanges = true
+                  }
+                } else if (
+                  msg.headers &&
+                  'control' in msg.headers &&
+                  msg.headers.control === 'up-to-date'
+                ) {
+                  if (!tablesUpToDate.has(tableName)) {
+                    tablesUpToDate.add(tableName)
+
+                    const resolver = tableUpToDateResolvers.get(tableName)
+                    if (resolver) {
+                      resolver()
+                    }
+
+                    checkAllTablesReady()
                   }
                 }
               })
