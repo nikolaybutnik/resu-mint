@@ -4,6 +4,7 @@ import { AppSettings, ResumeSection } from '@/lib/types/settings'
 import { DEFAULT_STATE_VALUES } from '@/lib/constants'
 import { createUnknownError, OperationError } from '@/lib/types/errors'
 import { debounce } from 'lodash'
+import { v4 as uuidv4 } from 'uuid'
 
 interface SettingsStore {
   data: AppSettings
@@ -36,15 +37,20 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         }
 
         const data = await dataManager.getSettings()
+
+        const dataWithId = data
+          ? { ...data, id: data.id || uuidv4() }
+          : { ...DEFAULT_STATE_VALUES.SETTINGS, id: uuidv4() }
+
         set({
-          data,
+          data: dataWithId,
           loading: false,
           hasData:
-            !!data?.bulletsPerExperienceBlock &&
-            !!data?.bulletsPerProjectBlock &&
-            !!data?.maxCharsPerBullet &&
-            !!data?.languageModel &&
-            !!data?.sectionOrder.length,
+            !!dataWithId?.bulletsPerExperienceBlock &&
+            !!dataWithId?.bulletsPerProjectBlock &&
+            !!dataWithId?.maxCharsPerBullet &&
+            !!dataWithId?.languageModel &&
+            !!dataWithId?.sectionOrder.length,
           error: null,
         })
       } catch (error) {
@@ -57,7 +63,10 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
   }
 
   return {
-    data: DEFAULT_STATE_VALUES.SETTINGS,
+    data: {
+      ...DEFAULT_STATE_VALUES.SETTINGS,
+      id: uuidv4(),
+    },
     loading: false,
     initializing: true,
     hasData: false,
@@ -70,7 +79,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
       try {
         const data = await dataManager.getSettings()
 
-        const settingsData = data || DEFAULT_STATE_VALUES.SETTINGS
+        const settingsData = data
+          ? { ...data, id: data.id || uuidv4() }
+          : { ...DEFAULT_STATE_VALUES.SETTINGS, id: uuidv4() }
 
         set({
           data: settingsData,

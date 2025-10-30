@@ -1,7 +1,8 @@
 import { create } from 'zustand'
-import { PGlite } from '@electric-sql/pglite'
+import { PGlite, Transaction } from '@electric-sql/pglite'
 import {
   electricSync,
+  ShapeToTableOptions,
   SyncShapeToTableOptions,
   SyncShapeToTableResult,
   SyncShapesToTablesOptions,
@@ -86,12 +87,12 @@ interface DbStore {
   db: ElectricDb | null
   initializing: boolean
   syncState: 'idle' | 'connecting' | 'syncing' | 'error' | 'offline'
-  activeStreams: Map<string, SyncShapeToTableResult>
+  syncResult: SyncShapesToTablesResult | null
   tableConfigs: Map<string, TableSyncConfig>
   pushSyncTimer: NodeJS.Timeout | null
   error: OperationError | null
   initialize: () => Promise<void>
-  startSync: (session: Session, tableNames?: string[]) => Promise<void>
+  startSync: (session: Session) => Promise<void>
   stopSync: () => Promise<void>
   registerTable: (config: TableSyncConfig) => void
   getStream: (tableName: string) => ShapeStreamInterface<Row<unknown>> | null
@@ -307,7 +308,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
   db: null,
   initializing: false,
   syncState: 'idle',
-  activeStreams: new Map(),
+  syncResult: null,
   tableConfigs: new Map(Object.entries(TABLE_CONFIGS)),
   pushSyncTimer: null,
   error: null,
@@ -421,15 +422,8 @@ export const useDbStore = create<DbStore>((set, get) => ({
     }
   },
 
-  startSync: async (session: Session, tableNames?: string[]) => {
-    const { db, activeStreams, tableConfigs } = get()
-    const { refresh: refreshPersonalDetails } =
-      usePersonalDetailsStore.getState()
-    const { refresh: refreshExperience } = useExperienceStore.getState()
-    const { refresh: refreshProjects } = useProjectStore.getState()
-    const { refresh: refreshEducation } = useEducationStore.getState()
-    const { refresh: refreshSettings } = useSettingsStore.getState()
-    const { refresh: refreshSkills } = useSkillsStore.getState()
+  startSync: async (session: Session) => {
+    const { db, tableConfigs } = get()
 
     if (!db) {
       set({
@@ -443,59 +437,10 @@ export const useDbStore = create<DbStore>((set, get) => ({
     try {
       await db.electric.initMetadataTables()
 
-      const syncPhases = [
-        // Phase 1: Independent tables
-        [
-          'personal_details',
-          'education',
-          'settings',
-          'skills',
-          'resume_skills',
-        ],
-        // Phase 2: Parent tables
-        ['experience', 'projects'],
-        // Phase 3: Child tables
-        ['experience_bullets', 'project_bullets'],
-      ]
+      const shapesConfig: Record<string, ShapeToTableOptions> = {}
 
-      let completedPhases = 0
-
-      for (const phase of syncPhases) {
-        if (tableNames) {
-          // If specific table names provided, sync them directly
-          for (const tableName of tableNames) {
-            await syncTable(tableName)
-          }
-          break
-        } else {
-          // Otherwise sync by phases
-          await Promise.all(phase.map((tableName) => syncTable(tableName)))
-          completedPhases++
-
-          // Delay to ensure previous phase sync has settled
-          if (completedPhases < syncPhases.length) {
-            await new Promise((resolve) => setTimeout(resolve, 500))
-          }
-        }
-      }
-
-      async function syncTable(tableName: string) {
-        const config = tableConfigs.get(tableName)
-        if (!config) {
-          console.warn(`No config found for table: ${tableName}`)
-          return
-        }
-
-        if (activeStreams.has(tableName)) {
-          return
-        }
-
-        if (!db) {
-          console.error('Database not initialized')
-          return
-        }
-
-        const syncResult = await db.electric.syncShapeToTable({
+      for (const [tableName, config] of tableConfigs.entries()) {
+        shapesConfig[tableName] = {
           shape: {
             url: `${window.location.origin}${API_ROUTES.SHAPE_PROXY}`,
             params: {
@@ -508,95 +453,66 @@ export const useDbStore = create<DbStore>((set, get) => ({
           },
           table: config.table,
           primaryKey: config.primaryKey,
-          shapeKey: config.shapeKey,
-          onMustRefetch: async (tx) => {
+          onMustRefetch: async (tx: Transaction) => {
+            await tx.query(`DELETE FROM ${tableName}`)
             const resetFunction =
               TABLE_STORE_RESET_MAP[
-                config.table as keyof typeof TABLE_STORE_RESET_MAP
+                tableName as keyof typeof TABLE_STORE_RESET_MAP
               ]
-
             if (resetFunction) {
               const defaultValueKey =
-                config.table.toUpperCase() as keyof typeof DEFAULT_STATE_VALUES
+                tableName.toUpperCase() as keyof typeof DEFAULT_STATE_VALUES
               const defaultValue = DEFAULT_STATE_VALUES[defaultValueKey]
               resetFunction(defaultValue as never)
             }
-
-            await tx.query(`DELETE FROM ${config.table}`)
           },
-        })
+        }
+      }
 
-        syncResult.stream.subscribe(
+      const syncResult = await db.electric.syncShapesToTables({
+        shapes: shapesConfig,
+        key: 'resumint_all_tables',
+        initialInsertMethod: 'csv',
+        onInitialSync: () => {
+          // All tables 'up-to-date'. Optionally trigger a full refresh of all stores here
+        },
+      })
+
+      Object.entries(syncResult.streams).forEach(([tableName, stream]) => {
+        stream.subscribe(
           async (messages: Message<Row<unknown>>[]) => {
             if (Array.isArray(messages) && messages.length) {
               // Note: when an item is inserted into remote db that doesn't yet exist, the message
               // coming from the stream has an operation of 'insert', which causes a duplicate key error
-              let hasPersonalDetailsChanges = false
-              let hasExperienceChanges = false
-              let hasProjectChanges = false
-              let hasEducationChanges = false
-              let hasSettingsChanges = false
-              let hasSkillsChanges = false
-              let hasResumeSkillsChanges = false
+              const hasChanges = messages.some((msg) => isChangeMessage(msg))
 
-              messages.forEach(async (msg) => {
-                if (isChangeMessage(msg)) {
-                  if (config.table === 'personal_details') {
-                    hasPersonalDetailsChanges = true
-                  }
-                  if (
-                    config.table === 'experience' ||
-                    config.table === 'experience_bullets'
-                  ) {
-                    hasExperienceChanges = true
-                  }
-                  if (
-                    config.table === 'projects' ||
-                    config.table === 'project_bullets'
-                  ) {
-                    hasProjectChanges = true
-                  }
-                  if (config.table === 'education') {
-                    hasEducationChanges = true
-                  }
-                  if (config.table === 'app_settings') {
-                    hasSettingsChanges = true
-                  }
-                  if (config.table === 'skills') {
-                    hasSkillsChanges = true
-                  }
-                  if (config.table === 'resume_skills') {
-                    hasResumeSkillsChanges = true
-                  }
-                } else {
-                  // We can track when a table has finished syncing here.
-                  // Listend for up-to-date messages from the stream.
+              if (hasChanges) {
+                switch (tableName) {
+                  case 'personal_details':
+                    usePersonalDetailsStore.getState().refresh()
+                    break
+                  case 'experience':
+                  case 'experience_bullets':
+                    useExperienceStore.getState().refresh()
+                    break
+                  case 'projects':
+                  case 'project_bullets':
+                    useProjectStore.getState().refresh()
+                    break
+                  case 'education':
+                    useEducationStore.getState().refresh()
+                    break
+                  case 'app_settings':
+                    useSettingsStore.getState().refresh()
+                    break
+                  case 'skills':
+                  case 'resume_skills':
+                    useSkillsStore.getState().refresh()
+                    break
                 }
-              })
-
-              if (hasPersonalDetailsChanges) {
-                setTimeout(() => refreshPersonalDetails(), 200)
-              }
-              if (hasExperienceChanges) {
-                setTimeout(() => refreshExperience(), 200)
-              }
-              if (hasProjectChanges) {
-                setTimeout(() => refreshProjects(), 200)
-              }
-              if (hasEducationChanges) {
-                setTimeout(() => refreshEducation(), 200)
-              }
-              if (hasSettingsChanges) {
-                setTimeout(() => refreshSettings(), 200)
-              }
-              if (hasSkillsChanges || hasResumeSkillsChanges) {
-                setTimeout(() => refreshSkills(), 200)
               }
             }
-
-            set({
-              syncState: 'syncing',
-            })
+            set({ syncState: 'syncing' })
           },
           (error) => {
             const err = error as Error
@@ -621,12 +537,10 @@ export const useDbStore = create<DbStore>((set, get) => ({
             }
           }
         )
-
-        activeStreams.set(tableName, syncResult)
-      }
+      })
 
       set({
-        activeStreams,
+        syncResult,
         syncState: 'syncing',
         error: null,
       })
@@ -647,27 +561,19 @@ export const useDbStore = create<DbStore>((set, get) => ({
     }
   },
 
-  stopSync: async (tableNames?: string[]) => {
-    const { activeStreams } = get()
+  stopSync: async () => {
+    const { syncResult } = get()
 
-    if (activeStreams.size === 0) {
+    if (!syncResult) {
       return
     }
 
     try {
-      const tablesToStop = tableNames || Array.from(activeStreams.keys())
-
-      for (const tableName of tablesToStop) {
-        const syncResult = activeStreams.get(tableName)
-        if (syncResult) {
-          syncResult.unsubscribe()
-          activeStreams.delete(tableName)
-        }
-      }
+      syncResult.unsubscribe()
 
       set({
-        activeStreams: new Map(activeStreams),
-        syncState: activeStreams.size > 0 ? 'syncing' : 'idle',
+        syncResult: null,
+        syncState: 'idle',
         error: null,
       })
     } catch (error) {
@@ -679,9 +585,8 @@ export const useDbStore = create<DbStore>((set, get) => ({
   },
 
   getStream: (tableName: string): ShapeStreamInterface<Row<unknown>> | null => {
-    const { activeStreams } = get()
-    const syncResult = activeStreams.get(tableName)
-    return syncResult?.stream || null
+    const { syncResult } = get()
+    return syncResult?.streams[tableName] || null
   },
 
   startPushSync: (intervalMs: number = 5000) => {
@@ -813,7 +718,7 @@ export const useDbStore = create<DbStore>((set, get) => ({
         db: null,
         syncState: 'idle',
         error: null,
-        activeStreams: new Map(),
+        syncResult: null,
         pushSyncTimer: null,
       })
     } catch (error) {
