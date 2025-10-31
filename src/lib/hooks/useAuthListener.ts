@@ -13,7 +13,6 @@ import {
   transferAnonymousSettingsToUser,
   transferAnonymousSkillsToUser,
 } from '../sql'
-import { debounce } from 'lodash'
 
 export function useAuthListener() {
   const initUser = useAuthStore((state) => state.initialize)
@@ -81,9 +80,7 @@ export function useAuthListener() {
             })
 
             if (event === 'SIGNED_OUT') {
-              debounce(() => {
-                toast.info('You have been signed out.')
-              }, 200)
+              toast.info('You have been signed out.')
             }
 
             hasShownLoginToast.current = false
@@ -144,22 +141,14 @@ export function useAuthListener() {
                     (now.getTime() - createdAt.getTime()) / 1000
 
                   if (timeSinceCreation <= 10) {
-                    debounce(() => {
-                      toast.success(
-                        'Welcome to ResuMint! Your account has been created successfully.'
-                      )
-                    }, 200)
+                    toast.success(
+                      'Welcome to ResuMint! Your account has been created successfully.'
+                    )
                   } else {
-                    debounce(() => {
-                      toast.success(
-                        'Login successful, welcome back to ResuMint!'
-                      )
-                    }, 200)
+                    toast.success('Login successful, welcome back to ResuMint!')
                   }
                 } else {
-                  debounce(() => {
-                    toast.success('Login successful, welcome back to ResuMint!')
-                  }, 200)
+                  toast.success('Login successful, welcome back to ResuMint!')
                 }
               }
 
