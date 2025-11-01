@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
 import {
   usePersonalDetailsStore,
   useSettingsStore,
@@ -14,6 +15,7 @@ import {
 } from './'
 import { useAuthListener } from '@/lib/hooks'
 import { DbErrorHandler } from '@/components/shared/DbErrorHandler/DbErrorHandler'
+import { ROUTES } from '@/lib/constants'
 
 /**
  * StoreProvider - Initializes all Zustand stores when the app starts
@@ -22,6 +24,8 @@ import { DbErrorHandler } from '@/components/shared/DbErrorHandler/DbErrorHandle
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  const router = useRouter()
+  const pathname = usePathname()
   const initPersonalDetails = usePersonalDetailsStore(
     (state) => state.initialize
   )
@@ -54,6 +58,27 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
       initSkills()
     }
   }, [db, initializing])
+
+  // Prefetch routes after component mounts to avoid CSS loading delays
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const flattenRoutes = (
+        obj: Record<string, string | Record<string, string>>
+      ): string[] => {
+        return Object.values(obj).flatMap((value) =>
+          typeof value === 'string' ? [value] : flattenRoutes(value)
+        )
+      }
+
+      flattenRoutes(ROUTES).forEach((route) => {
+        if (route !== pathname) {
+          router.prefetch(route)
+        }
+      })
+    }, 1000)
+
+    return () => clearTimeout(timer)
+  }, [router, pathname])
 
   return (
     <>
