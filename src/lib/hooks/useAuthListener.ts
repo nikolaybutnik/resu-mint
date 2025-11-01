@@ -66,6 +66,26 @@ export function useAuthListener() {
     const initAuth = async () => await initUser()
     initAuth()
 
+    const startPolling = () => {
+      if (pollingIntervalRef.current) {
+        return
+      }
+
+      pollingIntervalRef.current = setInterval(async () => {
+        const { data } = await supabase.auth.getSession()
+        if (!data.session) {
+          await stopAllServices()
+          stopPolling()
+          useAuthStore.setState({
+            user: null,
+            session: null,
+            loading: false,
+            error: null,
+          })
+        }
+      }, 30_000)
+    }
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(
@@ -122,6 +142,8 @@ export function useAuthListener() {
               ) {
                 await startAllServices(session)
               }
+
+              startPolling()
               break
             case 'SIGNED_IN':
               const currentUserId = session.user?.id
@@ -158,6 +180,8 @@ export function useAuthListener() {
               ) {
                 await startAllServices(session)
               }
+
+              startPolling()
               break
             case 'TOKEN_REFRESHED':
               if (
@@ -173,25 +197,6 @@ export function useAuthListener() {
         }
       }
     )
-
-    // Poll every 30s for session validity
-    const startPolling = () => {
-      if (pollingIntervalRef.current) return
-
-      pollingIntervalRef.current = setInterval(async () => {
-        const { data } = await supabase.auth.getSession()
-        if (!data.session) {
-          await stopAllServices()
-          stopPolling()
-          useAuthStore.setState({
-            user: null,
-            session: null,
-            loading: false,
-            error: null,
-          })
-        }
-      }, 30_000)
-    }
 
     startPolling()
 
