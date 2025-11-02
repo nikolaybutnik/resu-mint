@@ -40,6 +40,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const { db, initializing } = useDbStore()
 
+  const routesToPrefetch = [ROUTES.HOME, ROUTES.LOGIN, ROUTES.RESET_PASSWORD]
+
   useAuthListener()
 
   useEffect(() => {
@@ -62,15 +64,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
   // Prefetch routes after component mounts to avoid CSS loading delays
   useEffect(() => {
     const timer = setTimeout(() => {
-      const flattenRoutes = (
-        obj: Record<string, string | Record<string, string>>
-      ): string[] => {
-        return Object.values(obj).flatMap((value) =>
-          typeof value === 'string' ? [value] : flattenRoutes(value)
-        )
-      }
-
-      flattenRoutes(ROUTES).forEach((route) => {
+      routesToPrefetch.forEach((route) => {
         if (route !== pathname) {
           router.prefetch(route)
         }
@@ -78,7 +72,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({
     }, 1000)
 
     return () => clearTimeout(timer)
-  }, [router, pathname])
+  }, [router, pathname, routesToPrefetch])
 
   return (
     <>
