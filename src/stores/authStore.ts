@@ -68,8 +68,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return { error: null }
     } catch (error) {
       const err = error as Error
-      console.error('Sign in error:', err)
-
       const operationError = isNetworkError(err)
         ? createNetworkError('Network error during sign in', err)
         : createUnknownError(
@@ -126,8 +124,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return { error: null }
     } catch (error) {
       const err = error as Error
-      console.error('Sign up error:', err)
-
       const operationError = isNetworkError(err)
         ? createNetworkError('Network error during sign up', err)
         : createUnknownError('Unexpected error during sign up', err)
@@ -172,8 +168,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       return { error: null }
     } catch (error) {
       const err = error as Error
-      console.error('Sign out error:', err)
-
       const operationError = isNetworkError(err)
         ? createNetworkError('Network error during sign out', err)
         : createUnknownError('Unexpected error signing you out.', err)
@@ -216,8 +210,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
       }
     } catch (error) {
       const err = error as Error
-      console.error('Auth initialization error:', err)
-
       const operationError = isNetworkError(err)
         ? createNetworkError('Failed to initialize authentication', err)
         : createUnknownError('Failed to initialize authentication', err)

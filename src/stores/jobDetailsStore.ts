@@ -37,7 +37,7 @@ export const useJobDetailsStore = create<JobDetailsStore>((set, get) => ({
         hasAnalysis: !!data.analysis?.jobSummary,
       })
     } catch (error) {
-      console.error('ExperienceStore: initialization error:', error)
+      console.error('JobDetailsStore: initialization error:', error)
       set({ loading: false, initializing: false })
     }
   },
