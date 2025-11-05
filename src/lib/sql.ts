@@ -2,6 +2,60 @@
 // TABLE INITIALIZATION QUERIES
 // =============================================================================
 
+// Job Details Tables
+export const initializeJobDetailsQuery = `
+CREATE TABLE IF NOT EXISTS job_details (
+    id UUID PRIMARY KEY,
+    original_job_description TEXT,
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+export const initializeJobAnalysisQuery = `
+CREATE TABLE IF NOT EXISTS job_analysis (
+    id UUID PRIMARY KEY,
+    job_details_id UUID NOT NULL UNIQUE REFERENCES job_details(id) ON DELETE CASCADE,
+    job_title TEXT,
+    job_summary TEXT,
+    special_instructions TEXT,
+    location_type TEXT CHECK (location_type IN ('remote', 'hybrid', 'on-site')),
+    location_details TEXT,
+    listed_location TEXT,
+    company_name TEXT,
+    company_description TEXT,
+    salary_range TEXT,
+    hard_skills_required TEXT[] DEFAULT '{}',
+    soft_skills_required TEXT[] DEFAULT '{}',
+    contextual_skills TEXT[] DEFAULT '{}',
+    updated_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+`
+
+export const initializeJobDetailsChangelogQuery = `
+CREATE TABLE IF NOT EXISTS job_details_changes (
+    id BIGSERIAL PRIMARY KEY,
+    operation TEXT NOT NULL,
+    value JSONB NOT NULL,
+    write_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
+);
+`
+
+export const initializeJobAnalysisChangelogQuery = `
+CREATE TABLE IF NOT EXISTS job_analysis_changes (
+    id BIGSERIAL PRIMARY KEY,
+    operation TEXT NOT NULL,
+    value JSONB NOT NULL,
+    write_id TEXT NOT NULL,
+    timestamp TIMESTAMPTZ,
+    synced BOOLEAN DEFAULT FALSE,
+    user_id UUID
+);
+`
+
 // Personal Details Tables
 export const initializePersonalDetailsQuery = `
 CREATE TABLE IF NOT EXISTS personal_details (
@@ -225,6 +279,34 @@ CREATE TABLE IF NOT EXISTS resume_skills_changes (
     synced BOOLEAN DEFAULT FALSE,
     user_id UUID
 );
+`
+
+// =============================================================================
+// JOB DETAILS QUERIES
+// =============================================================================
+
+// Read Operations
+export const getJobDetailsQuery = `
+SELECT 
+    jd.id,
+    jd.original_job_description,
+    jd.updated_at::text,
+    ja.job_title,
+    ja.job_summary,
+    ja.special_instructions,
+    ja.location_type,
+    ja.location_details,
+    ja.listed_location,
+    ja.company_name,
+    ja.company_description,
+    ja.salary_range,
+    ja.hard_skills_required,
+    ja.soft_skills_required,
+    ja.contextual_skills
+FROM job_details jd
+LEFT JOIN job_analysis ja ON jd.id = ja.job_details_id
+ORDER BY jd.updated_at DESC
+LIMIT 1
 `
 
 // =============================================================================

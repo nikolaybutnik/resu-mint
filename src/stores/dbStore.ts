@@ -24,6 +24,10 @@ import {
   initializeExperienceBulletsQuery,
   initializeExperienceChangelogQuery,
   initializeExperienceQuery,
+  initializeJobAnalysisChangelogQuery,
+  initializeJobAnalysisQuery,
+  initializeJobDetailsChangelogQuery,
+  initializeJobDetailsQuery,
   initializePersonalDetailsChangelogQuery,
   initializePersonalDetailsQuery,
   initializeProjectBulletsQuery,
@@ -302,6 +306,10 @@ const initializeTables = async (db: ElectricDb): Promise<void> => {
   await db.query(initializeSkillsChangelogQuery)
   await db.query(initializeResumeSkillsQuery)
   await db.query(initializeResumeSkillsChangelogQuery)
+  await db.query(initializeJobDetailsQuery)
+  await db.query(initializeJobAnalysisQuery)
+  await db.query(initializeJobDetailsChangelogQuery)
+  await db.query(initializeJobAnalysisChangelogQuery)
 }
 
 export const useDbStore = create<DbStore>((set, get) => ({
